@@ -1678,4 +1678,319 @@ module tb_top;
 
   endclass
 
+  class d2h_req_agent extends uvm_agent;
+    `uvm_component_utils(d2h_req_agent)
+    d2h_req_driver d2h_req_driver_h;
+    d2h_req_monitor d2h_req_monitor_h;
+    d2h_req_sequencer d2h_req_sequencer_h;
+
+    function new(string name = "d2h_req_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        d2h_req_sequencer_h = d2h_req_sequencer::type_id::create("d2h_req_sequencer_h", this);
+        d2h_req_driver_h = d2h_req_driver::type_id::create("d2h_req_driver_h", this);
+      end
+      d2h_req_monitor_h = d2h_req_monitor::type_id::create("d2h_req_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        d2h_req_driver_h.seq_item_port.connect(d2h_req_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+  
+  class d2h_rsp_agent extends uvm_agent;
+    `uvm_component_utils(d2h_rsp_agent)
+    d2h_rsp_driver d2h_rsp_driver_h;
+    d2h_rsp_monitor d2h_rsp_monitor_h;
+    d2h_rsp_sequencer d2h_rsp_sequencer_h;
+
+    function new(string name = "d2h_rsp_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        d2h_rsp_sequencer_h = d2h_rsp_sequencer::type_id::create("d2h_rsp_sequencer_h", this);
+        d2h_rsp_driver_h = d2h_rsp_driver::type_id::create("d2h_rsp_driver_h", this);
+      end
+      d2h_rsp_monitor_h = d2h_rsp_monitor::type_id::create("d2h_rsp_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        d2h_rsp_driver_h.seq_item_port.connect(d2h_rsp_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+
+  class d2h_data_agent extends uvm_agent;
+    `uvm_component_utils(d2h_data_agent)
+    d2h_data_driver d2h_data_driver_h;
+    d2h_data_monitor d2h_data_monitor_h;
+    d2h_data_sequencer d2h_data_sequencer_h;
+
+    function new(string name = "d2h_data_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        d2h_data_sequencer_h = d2h_data_sequencer::type_id::create("d2h_data_sequencer_h", this);
+        d2h_data_driver_h = d2h_data_driver::type_id::create("d2h_data_driver_h", this);
+      end
+      d2h_data_monitor_h = d2h_data_monitor::type_id::create("d2h_data_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        d2h_data_driver_h.seq_item_port.connect(d2h_data_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+
+  class h2d_req_agent extends uvm_agent;
+    `uvm_component_utils(h2d_req_agent)
+    h2d_req_driver h2d_req_driver_h;
+    h2d_req_monitor h2d_req_monitor_h;
+    h2d_req_sequencer h2d_req_sequencer_h;
+
+    function new(string name = "h2d_req_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        h2d_req_sequencer_h = h2d_req_sequencer::type_id::create("h2d_req_sequencer_h", this);
+        h2d_req_driver_h = h2d_req_driver::type_id::create("h2d_req_driver_h", this);
+      end
+      h2d_req_monitor_h = h2d_req_monitor::type_id::create("h2d_req_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        h2d_req_driver_h.seq_item_port.connect(h2d_req_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+  
+  class h2d_rsp_agent extends uvm_agent;
+    `uvm_component_utils(h2d_rsp_agent)
+    h2d_rsp_driver h2d_rsp_driver_h;
+    h2d_rsp_monitor h2d_rsp_monitor_h;
+    h2d_rsp_sequencer h2d_rsp_sequencer_h;
+
+    function new(string name = "h2d_rsp_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        h2d_rsp_sequencer_h = h2d_rsp_sequencer::type_id::create("h2d_rsp_sequencer_h", this);
+        h2d_rsp_driver_h = h2d_rsp_driver::type_id::create("h2d_rsp_driver_h", this);
+      end
+      h2d_rsp_monitor_h = h2d_rsp_monitor::type_id::create("h2d_rsp_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        h2d_rsp_driver_h.seq_item_port.connect(h2d_rsp_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+
+  class h2d_data_agent extends uvm_agent;
+    `uvm_component_utils(h2d_data_agent)
+    h2d_data_driver h2d_data_driver_h;
+    h2d_data_monitor h2d_data_monitor_h;
+    h2d_data_sequencer h2d_data_sequencer_h;
+
+    function new(string name = "h2d_data_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        h2d_data_sequencer_h = h2d_data_sequencer::type_id::create("h2d_data_sequencer_h", this);
+        h2d_data_driver_h = h2d_data_driver::type_id::create("h2d_data_driver_h", this);
+      end
+      h2d_data_monitor_h = h2d_data_monitor::type_id::create("h2d_data_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        h2d_data_driver_h.seq_item_port.connect(h2d_data_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+  
+  class m2s_req_agent extends uvm_agent;
+    `uvm_component_utils(m2s_req_agent)
+    m2s_req_driver m2s_req_driver_h;
+    m2s_req_monitor m2s_req_monitor_h;
+    m2s_req_sequencer m2s_req_sequencer_h;
+
+    function new(string name = "m2s_req_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        m2s_req_sequencer_h = m2s_req_sequencer::type_id::create("m2s_req_sequencer_h", this);
+         m2s_req_driver_h = m2s_req_driver::type_id::create("m2s_req_driver_h", this);
+      end
+      m2s_req_monitor_h = m2s_req_monitor::type_id::create("m2s_req_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        m2s_req_driver_h.seq_item_port.connect(m2s_req_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+  
+  class m2s_rwd_agent extends uvm_agent;
+    `uvm_component_utils(m2s_rwd_agent)
+    m2s_rwd_driver m2s_rwd_driver_h;
+    m2s_rwd_monitor m2s_rwd_monitor_h;
+    m2s_rwd_sequencer m2s_rwd_sequencer_h;
+
+    function new(string name = "m2s_rwd_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        m2s_rwd_sequencer_h = m2s_rwd_sequencer::type_id::create("m2s_rwd_sequencer_h", this);
+        m2s_rwd_driver_h = m2s_rwd_driver::type_id::create("m2s_rwd_driver_h", this);
+      end
+      m2s_rwd_monitor_h = m2s_rwd_monitor::type_id::create("m2s_rwd_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        m2s_rwd_driver_h.seq_item_port.connect(m2s_rwd_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+
+  class s2m_ndr_agent extends uvm_agent;
+    `uvm_component_utils(s2m_ndr_agent)
+    s2m_ndr_driver s2m_ndr_driver_h;
+    s2m_ndr_monitor s2m_ndr_monitor_h;
+    s2m_ndr_sequencer s2m_ndr_sequencer_h;
+
+    function new(string name = "s2m_ndr_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        s2m_ndr_sequencer_h = s2m_ndr_sequencer::type_id::create("s2m_ndr_sequencer_h", this);
+        s2m_ndr_driver_h = s2m_ndr_driver::type_id::create("s2m_ndr_driver_h", this);
+      end
+      s2m_ndr_monitor_h = s2m_ndr_monitor::type_id::create("s2m_ndr_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        s2m_ndr_driver_h.seq_item_port.connect(s2m_ndr_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+  
+  class s2m_drs_agent extends uvm_agent;
+    `uvm_component_utils(s2m_drs_agent)
+    s2m_drs_driver s2m_drs_driver_h;
+    s2m_drs_monitor s2m_drs_monitor_h;
+    s2m_drs_sequencer s2m_drs_sequencer_h;
+
+    function new(string name = "s2m_drs_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        s2m_drs_sequencer_h = s2m_drs_sequencer::type_id::create("s2m_drs_sequencer_h", this);
+        s2m_drs_driver_h = s2m_drs_driver::type_id::create("s2m_drs_driver_h", this);
+      end
+      s2m_drs_monitor_h = s2m_drs_monitor::type_id::create("s2m_drs_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        s2m_drs_driver_h.seq_item_port.connect(s2m_drs_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+
+  class cxl_cm_env extends uvm_env;
+    `uvm_component_utils(cxl_cm_env)
+    d2h_req_agent d2h_req_agent_h;
+    d2h_rsp_agent d2h_rsp_agent_h;
+    d2h_data_agent d2h_data_agent_h;
+    h2d_req_agent h2d_req_agent_h;
+    h2d_rsp_agent h2d_rsp_agent_h;
+    h2d_data_agent h2d_data_agent_h;
+    m2s_req_agent m2s_req_agent_h;
+    m2s_rwd_agent m2s_rwd_agent_h;
+    s2m_ndr_agent s2m_ndr_agent_h;
+    s2m_drs_agent s2m_drs_agent_h;
+
+    function new(string name = "cxl_cm_env", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      d2h_req_agent_h = d2h_req_agent::type_id::create("d2h_req_agent_h", this);
+      d2h_rsp_agent_h = d2h_rsp_agent::type_id::create("d2h_rsp_agent_h", this);
+      d2h_data_agent_h = d2h_data_agent::type_id::create("d2h_data_agent_h", this);
+      h2d_req_agent_h = h2d_req_agent::type_id::create("h2d_req_agent_h", this);
+      h2d_rsp_agent_h = h2d_rsp_agent::type_id::create("h2d_rsp_agent_h", this);
+      h2d_data_agent_h = h2d_data_agent::type_id::create("h2d_data_agent_h", this);
+      m2s_req_agent_h = m2s_req_agent::type_id::create("m2s_req_agent_h", this);
+      m2s_rwd_agent_h = m2s_rwd_agent::type_id::create("m2s_rwd_agent_h", this);
+      s2m_ndr_agent_h = s2m_ndr_agent::type_id::create("s2m_ndr_agent_h", this);
+      s2m_drs_agent_h = s2m_drs_agent::type_id::create("s2m_drs_agent_h", this);
+    endfunction 
+
+  endclass
+
+  
+
 endmodule
