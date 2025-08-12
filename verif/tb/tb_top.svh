@@ -95,6 +95,12 @@ typedef enum {
     MEMSNP_SNPINV
 } snptype_t;
 
+typedef enum {
+  SHORT_DLY;
+  MED_DLY;
+  LONG_DLY;
+} delay_type;
+
 endpackage
 
 import cxl_uvm_pkg::*;
@@ -519,7 +525,32 @@ module tb_top;
 
   endclass
 
-  class d2h_req_seq_item extends uvm_sequence_item;
+  class cxl_base_txn_seq_item extends uvm_sequence_item;
+    `uvm_object_utils(cxl)cxl_base_txn_seq_item)
+    rand int delay_value;
+    rand logic delay_set;
+    rand delay_type delay_type_t;
+    
+    constraint delay_c{
+      soft delay_set inside {'h0};
+      if(delay_set){
+        (delay_type_t == SHORT_DLY) -> delay_value inside {[1:10]};
+        (delay_type_t == MED_DLY)   -> delay_value inside {[10:100]};
+        (delay_type_t == LONG_DLY)  -> delay_value inside {[100:1000]};
+      } else {
+        delay_value inside {'h0};
+      }
+      solve delay_set before delay_type_t;
+      solve delay_type_t before delay_value;
+    }
+
+    function new(string name = "cxl_base_txn_seq_item");
+      super.new(name);
+    endfunction
+
+  endclass 
+
+  class d2h_req_seq_item extends cxl_base_txn_seq_item;
     `uvm_object_utils(d2h_req_seq_item)
     rand logic valid;
     rand d2h_req_opcode_t opcode;
@@ -542,7 +573,7 @@ module tb_top;
 
   endclass
 
-  class d2h_rsp_seq_item extends uvm_sequence_item;
+  class d2h_rsp_seq_item extends cxl_base_txn_seq_item;
     `uvm_object_utils(d2h_rsp_seq_item)
     rand logic valid;
     rand d2h_rsp_opcode_t opcode;
@@ -559,7 +590,7 @@ module tb_top;
 
   endclass
 
-  class d2h_data_seq_item extends uvm_sequence_item;
+  class d2h_data_seq_item extends cxl_base_txn_seq_item;
     `uvm_object_utils(d2h_data_seq_item)
     rand logic valid;
     rand logic [11:0] uqid;
@@ -588,7 +619,7 @@ module tb_top;
 
   endclass
 
-  class h2d_req_seq_item extends uvm_sequence_item;
+  class h2d_req_seq_item extends cxl_base_txn_seq_item;
     `uvm_object_utils(h2d_req_seq_item)
     rand logic valid;
     rand h2d_req_opcode_t opcode;
@@ -610,7 +641,7 @@ module tb_top;
 
   endclass
 
-  class h2d_rsp_seq_item extends uvm_sequence_item;
+  class h2d_rsp_seq_item extends cxl_base_txn_seq_item;
     `uvm_object_utils(h2d_rsp_seq_item)
     rand logic valid;
     rand h2d_rsp_opcode_t opcode;
@@ -634,7 +665,7 @@ module tb_top;
 
   endclass
 
-  class h2d_data_seq_item extends uvm_sequence_item;
+  class h2d_data_seq_item extends cxl_base_txn_seq_item;
     `uvm_object_utils(h2d_data_seq_item)
     rand logic valid;
     rand logic [11:0] cqid;
@@ -663,7 +694,7 @@ module tb_top;
   
   endclass
 
-  class m2s_req_seq_item extends uvm_sequence_item;
+  class m2s_req_seq_item extends cxl_base_txn_seq_item;
     `uvm_object_utils(m2s_req_seq_item)
     rand logic valid;
     rand logic [51:0] address;
@@ -701,7 +732,7 @@ module tb_top;
 
   endclass
 
-  class m2s_rwd_seq_item extends uvm_sequence_item;
+  class m2s_rwd_seq_item extends cxl_base_txn_seq_item;
     `uvm_object_utils(m2s_rwd_seq_item)
     rand logic valid;
     rand logic [51:0] address;
@@ -745,7 +776,7 @@ module tb_top;
 
   endclass
 
-  class s2m_ndr_seq_item extends uvm_sequence_item;
+  class s2m_ndr_seq_item extends cxl_base_txn_seq_item;
     `uvm_object_utils(s2m_ndr_seq_item)
     rand logic valid;
     rand s2m_ndr_opcode_t opcode;
@@ -776,7 +807,7 @@ module tb_top;
 
   endclass
 
-  class s2m_drs_seq_item extends uvm_sequence_item;
+  class s2m_drs_seq_item extends cxl_base_txn_seq_item;
     `uvm_object_utils(s2m_drs_seq_item)
     rand logic valid;
     rand s2m_drs_opcode_t opcode;
@@ -1203,6 +1234,80 @@ module tb_top;
         end
       join_none
     endtask
+  
+  endclass
+
+  class s2m_ndr_monitor extends uvm_monitor;
+    `uvm_component_utils(s2m_ndr_monitor)
+    uvm_analysis_port#(s2m_ndr_seq_item) s2m_ndr_port;
+    virtual cxl_mem_s2m_ndr_if s2m_ndr_s_if;
+    s2m_ndr_seq_item s2m_ndr_seq_item_h;
+
+    function new(string name = "s2m_ndr_monitor", uvm_component parent = null);
+      super.new(name, parent);
+      s2m_ndr_port = new("s2m_ndr_port", this);
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      if(!(uvm_config_db#(cxl_mem_s2m_ndr_if)::get(this, "", "s2m_ndr_s_if", s2m_ndr_s_if)) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface s2m_ndr_s_if"));
+      end
+      fork
+        begin
+          forever begin
+            @(negedge s2m_ndr_s_if.clk);
+            if(s2m_ndr_s_if.valid) begin
+              s2m_ndr_seq_item_h = s2m_ndr_seq_item::type_id::create("s2m_ndr_seq_item_h", this);
+              s2m_ndr_seq_item_h.valid         = s2m_ndr_s_if.valid;
+              s2m_ndr_seq_item_h.opcode        = s2m_ndr_s_if.opcode;
+              s2m_ndr_seq_item_h.metafield     = s2m_ndr_s_if.metafield;
+              s2m_ndr_seq_item_h.metavalue     = s2m_ndr_s_if.metavalue;
+              s2m_ndr_seq_item_h.tag           = s2m_ndr_s_if.tag;
+              s2m_ndr_port.write(s2m_ndr_seq_item_h);
+            end  
+          end
+        end
+      join_none
+    endtask
+
+  endclass
+
+  class s2m_drs_monitor extends uvm_monitor;
+    `uvm_component_utils(s2m_drs_monitor)
+    uvm_analysis_port#(s2m_drs_seq_item) s2m_drs_port;
+    virtual cxl_mem_s2m_drs_if s2m_drs_s_if;
+    s2m_drs_seq_item s2m_drs_seq_item_h;
+
+    function new(string name = "s2m_drs_monitor", uvm_component parent = null);
+      super.new(name, parent);
+      s2m_drs_port = new("s2m_drs_port", this);
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      if(!(uvm_config_db#(cxl_mem_s2m_drs_if)::get(this, "", "s2m_drs_s_if", s2m_drs_s_if)) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface s2m_drs_s_if"));
+      end
+      fork
+        begin
+          forever begin
+            @(negedge s2m_drs_s_if.clk);
+            if(s2m_drs_s_if.valid) begin
+              s2m_drs_seq_item_h = s2m_drs_seq_item::type_id::create("s2m_drs_seq_item_h", this);
+              s2m_drs_seq_item_h.valid         = s2m_drs_s_if.valid;
+              s2m_drs_seq_item_h.opcode        = s2m_drs_s_if.opcode;
+              s2m_drs_seq_item_h.metafield     = s2m_drs_s_if.metafield;
+              s2m_drs_seq_item_h.metavalue     = s2m_drs_s_if.metavalue;
+              s2m_drs_seq_item_h.tag           = s2m_drs_s_if.tag;
+              s2m_drs_seq_item_h.poison        = s2m_drs_s_if.poison;
+              s2m_drs_seq_item_h.data          = s2m_drs_s_if.data;
+              s2m_drs_port.write(s2m_drs_seq_item_h);
+            end  
+          end
+        end
+      join_none
+    endtask
 
   endclass
 
@@ -1224,7 +1329,11 @@ module tb_top;
         begin
           forever begin
             seq_item_port.get_next_item(d2h_req_seq_item_h);
-            @(negedge d2h_req_s_if.clk);
+            if(d2h_req_seq_item_h.delay_set) begin
+              repeat(d2h_req_seq_item_h.delay_value) @(negedge d2h_req_s_if.clk);
+            end else begin
+              @(negedge d2h_req_s_if.clk);
+            end
             d2h_req_s_if.valid    =  d2h_req_seq_item_h.valid;//    = d2h_req_s_if.valid;
             d2h_req_s_if.opcode   =  d2h_req_seq_item_h.opcode;//   = d2h_req_s_if.opcode;
             d2h_req_s_if.address  =  d2h_req_seq_item_h.address;//  = d2h_req_s_if.address;
@@ -1255,7 +1364,11 @@ module tb_top;
         begin
           forever begin
             seq_item_port.get_next_item(d2h_rsp_seq_item_h);
-            @(negedge d2h_rsp_s_if.clk);
+            if(d2h_rsp_seq_item_h.delay_set) begin
+              repeat(d2h_rsp_seq_item_h.delay_value) @(negedge d2h_rsp_s_if.clk);
+            end else begin
+              @(negedge d2h_rsp_s_if.clk);
+            end
             d2h_rsp_s_if.valid  =  d2h_rsp_seq_item_h.valid;//   = d2h_rsp_s_if.valid;
             d2h_rsp_s_if.opcode =  d2h_rsp_seq_item_h.opcode;//  = d2h_rsp_s_if.opcode;
             d2h_rsp_s_if.uqid   =  d2h_rsp_seq_item_h.uqid;//    = d2h_rsp_s_if.uqid;
@@ -1285,7 +1398,11 @@ module tb_top;
         begin
           forever begin
             seq_item_port.get_next_item(d2h_data_seq_item_h);
-            @(negedge d2h_data_s_if.clk);
+            if(d2h_data_seq_item_h.delay_set) begin
+              repeat(d2h_data_seq_item_h.delay_value) @(negedge d2h_data_s_if.clk);
+            end else begin
+              @(negedge d2h_data_s_if.clk);
+            end
             d2h_data_s_if.valid     =  d2h_data_seq_item_h.valid;//         = d2h_data_s_if.valid;
             d2h_data_s_if.uqid      =  d2h_data_seq_item_h.uqid;//          = d2h_data_s_if.uqid;
             d2h_data_s_if.chunkvalid=  d2h_data_seq_item_h.chunkvalid;//    = d2h_data_s_if.chunkvalid;
@@ -1317,7 +1434,11 @@ module tb_top;
         begin
           forever begin
             seq_item_port.get_next_item(h2d_req_seq_item_h);
-            @(negedge h2d_req_m_if.clk);
+            if(h2d_req_seq_item_h.delay_set) begin
+              repeat(h2d_req_seq_item_h.delay_value) @(negedge h2d_req_m_if.clk);
+            end else begin
+              @(negedge h2d_req_m_if.clk);
+            end
             h2d_req_m_if.valid    =  h2d_req_seq_item_h.valid;//         = h2d_req_m_if.valid;
             h2d_req_m_if.opcode   =  h2d_req_seq_item_h.opcode;//        = h2d_req_m_if.opcode;
             h2d_req_m_if.address  =  h2d_req_seq_item_h.address;//       = h2d_req_m_if.address;
@@ -1348,7 +1469,11 @@ module tb_top;
         begin
           forever begin
             seq_item_port.get_next_item(h2d_rsp_seq_item_h);
-            @(negedge h2d_rsp_m_if.clk);
+            if(h2d_rsp_seq_item_h.delay_set) begin
+              repeat(h2d_rsp_seq_item_h.delay_value) @(negedge h2d_rsp_m_if.clk);
+            end else begin
+              @(negedge h2d_rsp_m_if.clk);
+            end
             h2d_rsp_m_if.valid  =  h2d_rsp_seq_item_h.valid;//         = h2d_rsp_m_if.valid;
             h2d_rsp_m_if.opcode =  h2d_rsp_seq_item_h.opcode;//        = h2d_rsp_m_if.opcode;
             h2d_rsp_m_if.rspdata=  h2d_rsp_seq_item_h.rspdata;//       = h2d_rsp_m_if.rspdata;
@@ -1380,7 +1505,11 @@ module tb_top;
         begin
           forever begin
             seq_item_port.get_next_item(h2d_data_seq_item_h);
-            @(negedge h2d_data_m_if.clk);
+            if(h2d_data_seq_item_h.delay_set) begin
+              repeat(h2d_data_seq_item_h.delay_value) @(negedge h2d_data_m_if.clk);
+            end else begin
+              @(negedge h2d_data_m_if.clk);
+            end
             h2d_data_m_if.valid     =  h2d_data_seq_item_h.valid;//         = h2d_data_m_if.valid;
             h2d_data_m_if.cqid      =  h2d_data_seq_item_h.cqid;//          = h2d_data_m_if.cqid;
             h2d_data_m_if.chunkvalid=  h2d_data_seq_item_h.chunkvalid;//    = h2d_data_m_if.chunkvalid;
@@ -1413,7 +1542,11 @@ module tb_top;
         begin
           forever begin
             seq_item_port.get_next_item(m2s_req_seq_item_h);
-            @(negedge m2s_req_m_if.clk);
+            if(m2s_req_seq_item_h.delay_set) begin
+              repeat(m2s_req_seq_item_h.delay_value) @(negedge m2s_req_m_if.clk);
+            end else begin
+              @(negedge m2s_req_m_if.clk);
+            end
             m2s_req_m_if.valid    =  m2s_req_seq_item_h.valid;//         = m2s_req_m_if.valid;
             m2s_req_m_if.address  =  m2s_req_seq_item_h.address;//       = m2s_req_m_if.address;
             m2s_req_m_if.opcode   =  m2s_req_seq_item_h.opcode;//        = m2s_req_m_if.opcode;
@@ -1448,7 +1581,11 @@ module tb_top;
         begin
           forever begin
             seq_item_port.get_next_item(m2s_rwd_seq_item_h);
-            @(negedge m2s_rwd_m_if.clk);
+            if(m2s_rwd_seq_item_h.delay_set) begin
+              repeat(m2s_rwd_seq_item_h.delay_value) @(negedge m2s_rwd_m_if.clk);
+            end else begin
+              @(negedge m2s_rwd_m_if.clk);
+            end
             m2s_rwd_m_if.valid    =  m2s_rwd_seq_item_h.valid;//         = m2s_rwd_m_if.valid;
             m2s_rwd_m_if.address  =  m2s_rwd_seq_item_h.address;//       = m2s_rwd_m_if.address;
             m2s_rwd_m_if.opcode   =  m2s_rwd_seq_item_h.opcode;//        = m2s_rwd_m_if.opcode;
@@ -1467,6 +1604,78 @@ module tb_top;
 
   endclass
 
-  
+  class s2m_ndr_driver extends uvm_driver;
+    `uvm_component_utils(s2m_ndr_driver)
+    virtual cxl_mem_m2s_rwd_if s2m_ndr_s_if;
+    s2m_ndr_seq_item s2m_ndr_seq_item_h;
+
+    function new(string name = "s2m_ndr_driver", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      if(!(uvm_config_db#(cxl_mem_s2m_ndr_if)::get(this, "", "s2m_ndr_s_if", s2m_ndr_s_if)) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface s2m_ndr_s_if"));
+      end
+      fork
+        begin
+          forever begin
+            seq_item_port.get_next_item(s2m_ndr_seq_item_h);
+            if(s2m_ndr_seq_item_h.delay_set) begin
+              repeat(s2m_ndr_seq_item_h.delay_value) @(negedge s2m_ndr_s_if.clk);
+            end else begin
+              @(negedge s2m_ndr_s_if.clk);
+            end
+            s2m_ndr_s_if.valid    =  s2m_ndr_seq_item_h.valid;//         = m2s_rwd_m_if.valid;
+            s2m_ndr_s_if.opcode   =  s2m_ndr_seq_item_h.opcode;//        = m2s_rwd_m_if.opcode;
+            s2m_ndr_s_if.metafield=  s2m_ndr_seq_item_h.metafield;//     = m2s_rwd_m_if.metafield;
+            s2m_ndr_s_if.metavalue=  s2m_ndr_seq_item_h.metavalue;//     = m2s_rwd_m_if.metavalue;
+            s2m_ndr_s_if.tag      =  s2m_ndr_seq_item_h.tag;//           = m2s_rwd_m_if.tag;
+            seq_item_port.item_done(s2m_ndr_seq_item_h);
+          end
+        end
+      join_none
+    endtask
+
+  endclass
+
+  class s2m_drs_driver extends uvm_driver;
+    `uvm_component_utils(s2m_drs_driver)
+    virtual cxl_mem_s2m_drs_if s2m_drs_s_if;
+    s2m_drs_seq_item s2m_drs_seq_item_h;
+
+    function new(string name = "s2m_drs_driver", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      if(!(uvm_config_db#(cxl_mem_s2m_drs_if)::get(this, "", "s2m_drs_s_if", s2m_drs_s_if)) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface s2m_drs_s_if"));
+      end
+      fork
+        begin
+          forever begin
+            seq_item_port.get_next_item(s2m_drs_seq_item_h);
+            if(s2m_drs_seq_item_h.delay_set) begin
+              repeat(s2m_drs_seq_item_h.delay_value) @(negedge s2m_drs_s_if.clk);
+            end else begin
+              @(negedge s2m_drs_s_if.clk);
+            end
+            s2m_drs_s_if.valid    =  s2m_drs_seq_item_h.valid;//         = m2s_rwd_m_if.valid;
+            s2m_drs_s_if.opcode   =  s2m_drs_seq_item_h.opcode;//        = m2s_rwd_m_if.opcode;
+            s2m_drs_s_if.metafield=  s2m_drs_seq_item_h.metafield;//     = m2s_rwd_m_if.metafield;
+            s2m_drs_s_if.metavalue=  s2m_drs_seq_item_h.metavalue;//     = m2s_rwd_m_if.metavalue;
+            s2m_drs_s_if.tag      =  s2m_drs_seq_item_h.tag;//           = m2s_rwd_m_if.tag;
+            s2m_drs_s_if.poison   =  s2m_drs_seq_item_h.poison;//        = m2s_rwd_m_if.poison;
+            s2m_drs_s_if.data     =  s2m_drs_seq_item_h.data;//          = m2s_rwd_m_if.data;
+            seq_item_port.item_done(s2m_drs_seq_item_h);
+          end
+        end
+      join_none
+    endtask
+
+  endclass
 
 endmodule
