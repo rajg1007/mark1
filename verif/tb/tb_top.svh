@@ -1958,18 +1958,52 @@ module tb_top;
 
   endclass
 
+  class cxl_cm_vsequencer extends uvm_sequencer;
+    `uvm_component_utils(cxl_cm_vsequencer)
+    d2h_req_sequencer   d2h_req_seqr;
+    d2h_rsp_sequencer   d2h_rsp_seqr;
+    d2h_data_sequencer  d2h_data_seqr;
+    h2d_req_sequencer   h2d_req_seqr;
+    h2d_rsp_sequencer   h2d_rsp_seqr;
+    h2d_data_sequencer  h2d_data_seqr;
+    m2s_req_sequencer   m2s_req_seqr;
+    m2s_rsp_sequencer   m2s_rsp_seqr;
+    s2m_ndr_sequencer   s2m_ndr_seqr;
+    s2m_drs_sequencer   s2m_drs_seqr;
+
+    function new(string name = "cxl_cm_vsequencer", uvm_component = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      d2h_req_seqr  = d2h_req_sequencer::type_id::create("d2h_req_seqr", this);
+      d2h_rsp_seqr  = d2h_rsp_sequencer::type_id::create("d2h_rsp_seqr", this);
+      d2h_data_seqr = d2h_data_sequencer::type_id::create("d2h_data_seqr", this);
+      h2d_req_seqr  = h2d_req_sequencer::type_id::create("h2d_req_seqr", this);
+      h2d_rsp_seqr  = h2d_rsp_sequencer::type_id::create("h2d_rsp_seqr", this);
+      h2d_data_seqr = h2d_data_sequencer::type_id::create("h2d_data_seqr", this);
+      m2s_req_seqr  = m2s_req_sequencer::type_id::create("m2s_req_seqr", this);
+      m2s_rwd_seqr  = m2s_rwd_sequencer::type_id::create("m2s_rwd_seqr", this);
+      s2m_ndr_seqr  = s2m_ndr_sequencer::type_id::create("s2m_ndr_seqr", this);
+      s2m_drs_seqr  = s2m_drs_sequencer::type_id::create("s2m_drs_seqr", this);
+    endfunction
+
+  endclass
+
   class cxl_cm_env extends uvm_env;
     `uvm_component_utils(cxl_cm_env)
-    d2h_req_agent d2h_req_agent_h;
-    d2h_rsp_agent d2h_rsp_agent_h;
-    d2h_data_agent d2h_data_agent_h;
-    h2d_req_agent h2d_req_agent_h;
-    h2d_rsp_agent h2d_rsp_agent_h;
-    h2d_data_agent h2d_data_agent_h;
-    m2s_req_agent m2s_req_agent_h;
-    m2s_rwd_agent m2s_rwd_agent_h;
-    s2m_ndr_agent s2m_ndr_agent_h;
-    s2m_drs_agent s2m_drs_agent_h;
+    d2h_req_agent     d2h_req_agent_h;
+    d2h_rsp_agent     d2h_rsp_agent_h;
+    d2h_data_agent    d2h_data_agent_h;
+    h2d_req_agent     h2d_req_agent_h;
+    h2d_rsp_agent     h2d_rsp_agent_h;
+    h2d_data_agent    h2d_data_agent_h;
+    m2s_req_agent     m2s_req_agent_h;
+    m2s_rwd_agent     m2s_rwd_agent_h;
+    s2m_ndr_agent     s2m_ndr_agent_h;
+    s2m_drs_agent     s2m_drs_agent_h;
+    cxl_cm_vsequencer cxl_cm_vseqr;
 
     function new(string name = "cxl_cm_env", uvm_component parent = null);
       super.new(name, parent);
@@ -1977,20 +2011,341 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      d2h_req_agent_h = d2h_req_agent::type_id::create("d2h_req_agent_h", this);
-      d2h_rsp_agent_h = d2h_rsp_agent::type_id::create("d2h_rsp_agent_h", this);
-      d2h_data_agent_h = d2h_data_agent::type_id::create("d2h_data_agent_h", this);
-      h2d_req_agent_h = h2d_req_agent::type_id::create("h2d_req_agent_h", this);
-      h2d_rsp_agent_h = h2d_rsp_agent::type_id::create("h2d_rsp_agent_h", this);
-      h2d_data_agent_h = h2d_data_agent::type_id::create("h2d_data_agent_h", this);
-      m2s_req_agent_h = m2s_req_agent::type_id::create("m2s_req_agent_h", this);
-      m2s_rwd_agent_h = m2s_rwd_agent::type_id::create("m2s_rwd_agent_h", this);
-      s2m_ndr_agent_h = s2m_ndr_agent::type_id::create("s2m_ndr_agent_h", this);
-      s2m_drs_agent_h = s2m_drs_agent::type_id::create("s2m_drs_agent_h", this);
+      d2h_req_agent_h   = d2h_req_agent::type_id::create("d2h_req_agent_h", this);
+      d2h_rsp_agent_h   = d2h_rsp_agent::type_id::create("d2h_rsp_agent_h", this);
+      d2h_data_agent_h  = d2h_data_agent::type_id::create("d2h_data_agent_h", this);
+      h2d_req_agent_h   = h2d_req_agent::type_id::create("h2d_req_agent_h", this);
+      h2d_rsp_agent_h   = h2d_rsp_agent::type_id::create("h2d_rsp_agent_h", this);
+      h2d_data_agent_h  = h2d_data_agent::type_id::create("h2d_data_agent_h", this);
+      m2s_req_agent_h   = m2s_req_agent::type_id::create("m2s_req_agent_h", this);
+      m2s_rwd_agent_h   = m2s_rwd_agent::type_id::create("m2s_rwd_agent_h", this);
+      s2m_ndr_agent_h   = s2m_ndr_agent::type_id::create("s2m_ndr_agent_h", this);
+      s2m_drs_agent_h   = s2m_drs_agent::type_id::create("s2m_drs_agent_h", this);
+      cxl_cm_vseqr      = cxl_cm_vsequencer::type_id::create("cxl_cm_vseqr", this);
     endfunction 
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(d2h_req_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.d2h_req_seqr   = d2h_req_agent_h.d2h_req_sequencer_h;
+      end
+      if(d2h_rsp_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.d2h_rsp_seqr   = d2h_rsp_agent_h.d2h_rsp_sequencer_h;
+      end
+      if(d2h_data_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.d2h_data_seqr  = d2h_data_agent_h.d2h_data_sequencer_h;
+      end
+      if(h2d_req_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.h2d_req_seqr   = h2d_req_agent_h.h2d_req_sequencer_h;
+      end
+      if(h2d_rsp_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.h2d_rsp_seqr   = h2d_rsp_agent_h.h2d_rsp_sequencer_h;
+      end
+      if(h2d_data_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.h2d_data_seqr  = h2d_data_agent_h.h2d_data_sequencer_h;
+      end
+      if(m2s_req_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.m2s_req_seqr   = m2s_req_agent_h.m2s_req_sequencer_h;
+      end
+      if(m2s_rwd_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.m2s_rwd_seqr   = m2s_rwd_agent_h.m2s_rwd_sequencer_h;
+      end
+      if(s2m_ndr_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.s2m_ndr_seqr   = s2m_ndr_agent_h.s2m_ndr_sequencer_h;
+      end
+      if(s2m_drs_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.s2m_drs_seqr   = s2m_drs_agent_h.s2m_drs_sequencer_h;
+      end
+    endfunction
 
   endclass
 
-  
+  class d2h_req_seq extends uvm_sequence;
+    `uvm_object_utils(d2h_req_seq)
+    rand int num_trans;
+    rand d2h_req_seq_item d2h_req_seq_item_h;
+
+    constraint num_of_trans_c{
+      soft num_trans inside {[10:100]};
+    }
+
+    function new(string name = "d2h_req_seq");
+      super.new(name);
+    endfunction
+
+    task body();
+      repeat(num_trans) begin
+        `uvm_do(d2h_req_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class d2h_rsp_seq extends uvm_sequence;
+    `uvm_object_utils(d2h_rsp_seq)
+    rand int num_trans;
+    rand d2h_rsp_seq_item d2h_rsp_seq_item_h;
+
+    constraint num_of_trans_c{
+      soft num_trans inside {[10:100]};
+    }
+
+    function new(string name = "d2h_rsp_seq");
+      super.new(name);
+    endfunction
+
+    task body();
+      repeat(num_trans) begin
+        `uvm_do(d2h_rsp_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class d2h_data_seq extends uvm_sequence;
+    `uvm_object_utils(d2h_data_seq)
+    rand int num_trans;
+    rand d2h_data_seq_item d2h_data_seq_item_h;
+
+    constraint num_of_trans_c{
+      soft num_trans inside {[10:100]};
+    }
+
+    function new(string name = "d2h_data_seq");
+      super.new(name);
+    endfunction
+
+    task body();
+      repeat(num_trans) begin
+        `uvm_do(d2h_data_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class h2d_req_seq extends uvm_sequence;
+    `uvm_object_utils(h2d_req_seq)
+    rand int num_trans;
+    rand h2d_req_seq_item h2d_req_seq_item_h;
+
+    constraint num_of_trans_c{
+      soft num_trans inside {[10:100]};
+    }
+
+    function new(string name = "h2d_req_seq");
+      super.new(name);
+    endfunction
+
+    task body();
+      repeat(num_trans) begin
+        `uvm_do(h2d_req_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class h2d_rsp_seq extends uvm_sequence;
+    `uvm_object_utils(h2d_rsp_seq)
+    rand int num_trans;
+    rand h2d_rsp_seq_item h2d_rsp_seq_item_h;
+
+    constraint num_of_trans_c{
+      soft num_trans inside {[10:100]};
+    }
+
+    function new(string name = "h2d_rsp_seq");
+      super.new(name);
+    endfunction
+
+    task body();
+      repeat(num_trans) begin
+        `uvm_do(h2d_rsp_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class h2d_data_seq extends uvm_sequence;
+    `uvm_object_utils(h2d_data_seq)
+    rand int num_trans;
+    rand h2d_data_seq_item h2d_data_seq_item_h;
+
+    constraint num_of_trans_c{
+      soft num_trans inside {[10:100]};
+    }
+
+    function new(string name = "h2d_data_seq");
+      super.new(name);
+    endfunction
+
+    task body();
+      repeat(num_trans) begin
+        `uvm_do(h2d_data_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class m2s_req_seq extends uvm_sequence;
+    `uvm_object_utils(m2s_req_seq)
+    rand int num_trans;
+    rand m2s_req_seq_item m2s_req_seq_item_h;
+
+    constraint num_of_trans_c{
+      soft num_trans inside {[10:100]};
+    }
+
+    function new(string name = "m2s_req_seq");
+      super.new(name);
+    endfunction
+
+    task body();
+      repeat(num_trans) begin
+        `uvm_do(m2s_req_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class m2s_rwd_seq extends uvm_sequence;
+    `uvm_object_utils(m2s_rwd_seq)
+    rand int num_trans;
+    rand m2s_rwd_seq_item m2s_rwd_seq_item_h;
+
+    constraint num_of_trans_c{
+      soft num_trans inside {[10:100]};
+    }
+
+    function new(string name = "m2s_rwd_seq");
+      super.new(name);
+    endfunction
+
+    task body();
+      repeat(num_trans) begin
+        `uvm_do(m2s_rwd_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class s2m_ndr_seq extends uvm_sequence;
+    `uvm_object_utils(s2m_ndr_seq)
+    rand int num_trans;
+    rand s2m_ndr_seq_item s2m_ndr_seq_item_h;
+
+    constraint num_of_trans_c{
+      soft num_trans inside {[10:100]};
+    }
+
+    function new(string name = "s2m_ndr_seq");
+      super.new(name);
+    endfunction
+
+    task body();
+      repeat(num_trans) begin
+        `uvm_do(s2m_ndr_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class s2m_drs_seq extends uvm_sequence;
+    `uvm_object_utils(s2m_drs_seq)
+    rand int num_trans;
+    rand s2m_drs_seq_item s2m_drs_seq_item_h;
+
+    constraint num_of_trans_c{
+      soft num_trans inside {[10:100]};
+    }
+
+    function new(string name = "s2m_drs_seq");
+      super.new(name);
+    endfunction
+
+    task body();
+      repeat(num_trans) begin
+        `uvm_do(s2m_drs_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class cxl_vseq extends uvm_sequence;
+    `uvm_object_utils(cxl_vseq)
+    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    d2h_req_seq   d2h_req_seq_h;
+    d2h_rsp_seq   d2h_rsp_seq_h;
+    d2h_data_seq  d2h_data_seq_h;
+    h2d_req_seq   h2d_req_seq_h;
+    h2d_rsp_seq   h2d_rsp_seq_h;
+    h2d_data_seq  h2d_data_seq_h;
+    m2s_req_seq   m2s_req_seq_h;
+    m2s_rwd_seq   m2s_rwd_seq_h;
+    s2m_ndr_seq   s2m_ndr_seq_h;
+    s2m_drs_seq   s2m_drs_seq_h;
+
+    function new(string name = "cxl_vseq");
+      super.new(name);
+    endfunction
+
+    task body();
+      fork 
+        begin
+          `uvm_do_on(d2h_req_seq_h, p_sequencer.d2h_req_seqr);
+        end
+        begin
+          `uvm_do_on(d2h_rsp_seq_h, p_sequencer.d2h_rsp_seqr);
+        end
+        begin
+          `uvm_do_on(d2h_data_seq_h, p_sequencer.d2h_data_seqr);
+        end
+        begin
+          `uvm_do_on(h2d_req_seq_h, p_sequencer.h2d_req_seqr);
+        end
+        begin
+          `uvm_do_on(h2d_rsp_seq_h, p_sequencer.h2d_rsp_seqr);
+        end
+        begin
+          `uvm_do_on(h2d_data_seq_h, p_sequencer.h2d_data_seqr);
+        end
+        begin
+          `uvm_do_on(m2s_req_seq_h, p_sequencer.m2s_req_seqr);
+        end
+        begin
+          `uvm_do_on(m2s_rwd_seq_h, p_sequencer.m2s_rwd_seqr);
+        end
+        begin
+          `uvm_do_on(s2m_ndr_seq_h, p_sequencer.s2m_ndr_seqr);
+        end
+        begin
+          `uvm_do_on(s2m_drs_seq_h, p_sequencer.s2m_drs_seqr);
+        end
+      join;
+    endtask
+
+  endclass
+
+  class cxl_base_test extends uvm_test;
+    `uvm_component_utils(cxl_base_test)
+    cxl_cm_env cxl_cm_env_h;
+    cxl_vseq cxl_vseq_h;
+
+    function new(string name = cxl_base_test, uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      cxl_cm_env_h = cxl_cm_env::type_id::create("cxl_cm_env_h", this);
+    endfunction     
+
+    virtual task void run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      cxl_vseq_h = cxl_vseq::type_id::create("cxl_vseq_h", this);
+      cxl_vseq_h.start(cxl_cm_env_h.cxl_cm_vseqr);
+
+    endtask
+
+  endclass
 
 endmodule
