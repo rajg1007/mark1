@@ -1,6 +1,15 @@
 
 package cxl_uvm_pkg;
 
+parameter GEET_CXL_ADDR_WIDTH = 52;
+parameter GEET_CXL_DATA_WIDTH = 512;
+parameter GEET_CXL_CACHE_CQID_WIDTH = 12;
+parameter GEET_CXL_CACHE_UQID_WIDTH = 12;
+parameter GEET_CXL_CACHE_RSPPRE_WIDTH = 2;
+parameter GEET_CXL_CACHE_RSPDATA_WIDTH = 12;
+parameter GEET_CXL_MEM_TAG_WIDTH = 16;
+parameter GEET_CXL_MEM_TC_WIDTH = 16;
+
 typedef enum {
     RDCURR, 
     RDOWN,
@@ -101,6 +110,91 @@ typedef enum {
   LONG_DLY;
 } delay_type;
 
+typedef struct {
+  logic valid;
+  d2h_req_opcode_t opcode;
+  logic [GEET_CXL_ADDR_WIDTH-1:0] address;
+  logic [GEET_CXL_CACHE_CQID_WIDTH-1:0] cqid;
+  logic nt;
+} d2h_req_txn_t;
+
+typedef struct {
+  logic valid;
+  d2h_rsp_opcode_t opcode;
+  logic [GEET_CXL_CACHE_UQID_WIDTH-1:0] uqid;
+} d2h_rsp_txn_t;
+
+typedef struct {
+  logic valid;
+  logic [GEET_CXL_CACHE_UQID_WIDTH-1:0] uqid;
+  logic chunkvalid;
+  logic bogus;
+  logic poison;
+} d2h_data_txn_t;
+
+typedef struct {
+  logic valid;
+  h2d_req_opcode_t opcode;
+  logic [GEET_CXL_ADDR_WIDTH-1:0] address;
+  logic [GEET_CXL_CACHE_UQID_WIDTH-1:0] uqid;
+} h2d_req_txn_t;
+
+typedef struct {
+  logic valid;
+  h2d_rsp_opcode_t opcode;
+  logic [11:0] rspdata;
+  logic [1:0] rsppre;
+  logic [GEET_CXL_CACHE_CQID_WIDTH-1:0] cqid;
+} h2d_rsp_txn_t;
+
+typedef struct {
+  logic valid;
+  logic [GEET_CXL_CACHE_CQID_WIDTH-1:0] cqid;
+  logic chunkvalid;
+  logic poison;
+  logic goerr;
+} h2d_data_txn_t;
+
+typedef struct {
+  logic valid;
+  m2s_req_opcode_t memopcode;
+  metafield_t metafield;
+  metavalue_t metavalue;
+  snptype_t snptype;
+  logic [GEET_CXL_ADDR_WIDTH-1:0] address;
+  logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
+  logic [GEET_CXL_MEM_TC_WIDTH-1:0] tc;
+} m2s_req_txn_t;
+
+typedef struct {
+  logic valid;
+  m2s_rwd_opcode_t memopcode;
+  metafield_tmetafield;
+  metavalue_t metavalue;
+  snptype_t snptype;
+  logic [GEET_CXL_ADDR_WIDTH-1:0] address;
+  logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
+  logic [GEET_CXL_MEM_TC_WIDTH-1:0] tc;
+  logic poison;
+} m2s_rwd_txn_t;
+
+typedef struct {
+  logic valid;
+  s2m_ndr_opcode_t opcode;
+  metafield_t metafield;
+  metavalue_t metavalue;
+  logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
+} s2m_ndr_txn_t;
+
+typedef struct {
+  logic valid;
+  s2m_ndr_opcode_t opcode;
+  metafield_t metafield;
+  metavalue_t metavalue;
+  logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
+  logic poison;
+} s2m_drs_txn_t;
+
 endpackage
 
 import cxl_uvm_pkg::*;
@@ -108,90 +202,110 @@ import cxl_uvm_pkg::*;
 interface cxl_cache_d2h_req_if(input logic clk);
   logic ready;
   logic rstn;
-  logic valid;
-  logic [51:0] address;
-  d2h_req_opcode opcode;
-  logic [11:0] cqid;
-  logic nt;
+  d2h_req_txn_t d2h_req_txn;
 
-  modport dut(
-    output ready,
+  modport host_if_mp(
+    input ready,
     input rstn,
-    input valid,
-    input address,
-    input opcode,
-    input cqid,
-    input nt
+    output d2h_req_txn
   );
 
-  modport drvr(
+  modport dev_if_mp(
+    output ready,
+    input rstn,
+    input d2h_req_txn
+  );
+
+  modport dev_actv_drvr_mp(
     input ready,
     output rstn,
-    output valid,
-    output address,
-    output opcode,
-    output cqid,
-    output nt
+    output d2h_req_txn
+  );
+
+  modport host_pasv_drvr_mp(
+    output ready,
+    output rstn,
+    input d2h_req_txn
+  );
+
+  modport mon(
+    input ready,
+    input rstn,
+    input d2h_req_txn
   );
 
 endinterface
 
 interface cxl_cache_d2h_rsp_if(input logic clk);
+  logic ready;
   logic rstn;
-  logic valid;
-  d2h_rsp_opcode opcode;
-  logic [11:0] uqid;
+  d2h_rsp_txn_t d2h_rsp_txn;
 
-  modport dut(
-    output ready,
+  modport host_if_mp(
+    input ready,
     input rstn,
-    input valid,
-    input opcode,
-    input uqid
+    output d2h_rsp_txn
   );
 
-  modport drvr(
+  modport dev_if_mp(
+    output ready,
+    input rstn,
+    input d2h_rsp_txn
+  );
+
+  modport dev_actv_drvr_mp(
     input ready,
     output rstn,
-    output valid,
-    output opcode,
-    output uqid
+    output d2h_rsp_txn
+  );
+
+  modport host_pasv_drvr_mp(
+    output ready,
+    output rstn,
+    input d2h_rsp_txn
+  );
+
+  modport mon(
+    input ready,
+    input rstn,
+    input d2h_rsp_txn
   );
 
 endinterface
 
 interface cxl_cache_d2h_data_if(input logic clk);
+  logic ready;
   logic rstn;
-  logic valid;
-  logic [11:0] uqid;
-  logic chunkvalid;
-  logic bogus;
-  logic poison;
-  logic [63:0] be;
-  logic [511:0] data;
+  d2h_data_txn_t d2h_data_txn;
 
-  modport dut(
-    output ready,
+  modport host_if_mp(
+    input ready,
     input rstn,
-    input valid,
-    input uqid,
-    input chunkvalid,
-    input bogus,
-    input poison, 
-    input be,
-    input data
+    output d2h_data_txn
   );
 
-  modport drvr(
+  modport dev_if_mp(
+    output ready,
+    input rstn,
+    input d2h_data_txn
+  );
+
+  modport dev_actv_drvr_mp(
     input ready,
     output rstn,
-    output valid,
-    output uqid,
-    output chunkvalid,
-    output bogus,
-    output poison,
-    output be,
-    output data
+    output d2h_data_txn
+  );
+
+  modport host_pasv_drvr_mp(
+    output ready,
+    output rstn,
+    input d2h_data_txn
+  );
+
+  modport mon(
+    input ready,
+    input rstn,
+    input d2h_data_txn
   );
 
 endinterface
@@ -199,27 +313,36 @@ endinterface
 interface cxl_cache_h2d_req_if(input logic clk);
   logic ready;
   logic rstn;
-  logic valid;
-  logic [51:0] address;
-  h2d_req_opcode opcode;
-  logic [11:0] uqid;
+  h2d_req_txn_t h2d_req_txn;
 
-  modport dut(
+  modport host_if_mp(
     output ready,
     input rstn,
-    input valid,
-    input address,
-    input opcode,
-    input uqid
+    input h2d_req_txn
   );
 
-  modport drvr(
+  modport dev_if_mp(
+    input ready,
+    input rstn,
+    output h2d_req_txn
+  );
+
+  modport host_actv_drvr_mp(
     input ready,
     output rstn,
-    output valid,
-    output address,
-    output opcode,
-    output uqid
+    output h2d_req_txn
+  );
+
+  modport dev_pasv_drvr_mp(
+    output ready,
+    output rstn,
+    input h2d_req_txn
+  );
+
+  modport mon(
+    input ready,
+    input rstn,
+    input h2d_req_txn
   );
 
 endinterface
@@ -227,33 +350,36 @@ endinterface
 interface cxl_cache_h2d_rsp_if(input logic clk);
   logic ready;
   logic rstn;
-  logic valid;
-  logic [51:0] address;
-  h2d_rsp_opcode opcode;
-  logic [11:0] rspdata;
-  logic [1:0] rsppre;
-  logic [11:0] cqid;
+  h2d_rsp_txn_t h2d_rsp_txn;
 
-  modport dut(
+  modport host_if_mp(
     output ready,
     input rstn,
-    input valid,
-    input address,
-    input opcode,
-    input rspdata,
-    input rsppre,
-    input cqid
+    input h2d_rsp_txn
   );
 
-  modport drvr(
+  modport dev_if_mp(
+    input ready,
+    input rstn,
+    output h2d_rsp_txn
+  );
+
+  modport host_actv_drvr_mp(
     input ready,
     output rstn,
-    output valid,
-    output address,
-    output opcode,
-    input rspdata,
-    input rsppre,
-    input cqid
+    output h2d_rsp_txn
+  );
+
+  modport dev_pasv_drvr_mp(
+    output ready,
+    output rstn,
+    input h2d_rsp_txn
+  );
+
+  modport mon(
+    input ready,
+    input rstn,
+    input h2d_rsp_txn
   );
 
 endinterface
@@ -261,33 +387,36 @@ endinterface
 interface cxl_cache_h2d_data_if(input logic clk);
   logic ready;
   logic rstn;
-  logic valid;
-  logic [11:0] cqid;
-  logic chunkvalid;
-  logic poison;
-  logic goerr;
-  logic [511:0] data;
+  h2d_data_txn_t h2d_data_txn;
 
-  modport dut(
+  modport host_if_mp(
     output ready,
     input rstn,
-    input valid,
-    input cqid,
-    input chunkvalid,
-    input poison,
-    input goerr,
-    input data
+    input h2d_data_txn
   );
 
-  modport drvr(
+  modport dev_if_mp(
+    input ready,
+    input rstn,
+    output h2d_data_txn
+  );
+
+  modport host_actv_drvr_mp(
     input ready,
     output rstn,
-    output valid,
-    output cqid,
-    output chunkvalid,
-    output poison,
-    output goerr,
-    output data
+    output h2d_data_txn
+  );
+
+  modport dev_pasv_drvr_mp(
+    output ready,
+    output rstn,
+    input h2d_data_txn
+  );
+
+  modport mon(
+    input ready,
+    input rstn,
+    input h2d_data_txn
   );
 
 endinterface
@@ -295,39 +424,36 @@ endinterface
 interface cxl_mem_m2s_req_if(input logic clk);
   logic ready;
   logic rstn;
-  logic valid;
-  m2s_req_opcode_t memopcode;
-  metafield_t metafield;
-  metavalue_t metavalue;
-  snptype_t snptype;
-  logic [51:0] address;
-  logic [15:0] tag;
-  logic [1:0] tc;
+  m2s_req_txn_t m2s_req_txn;
 
-  modport dut(
+  modport host_if_mp(
     output ready,
     input rstn,
-    input valid,
-    input memopcode,
-    input metafield,
-    input metavalue,
-    input snptype,
-    input address,
-    input tag,
-    input tc
+    input m2s_req_txn
   );
 
-  modport drvr(
+  modport dev_if_mp(
+    input ready,
+    input rstn,
+    output m2s_req_txn
+  );
+
+  modport host_actv_drvr_mp(
     input ready,
     output rstn,
-    output valid,
-    output memopcode,
-    output metafield,
-    output metavalue,
-    output snptype,
-    output address,
-    output tag,
-    output tc
+    output m2s_req_txn
+  );
+
+  modport dev_pasv_drvr_mp(
+    output ready,
+    output rstn,
+    input m2s_req_txn
+  );
+
+  modport mon(
+    input ready,
+    input rstn,
+    input m2s_req_txn
   );
 
 endinterface
@@ -335,42 +461,36 @@ endinterface
 interface cxl_mem_m2s_rwd_if(input logic clk);
   logic ready;
   logic rstn;
-  logic valid;
-  m2s_rwd_opcode_t memopcode;
-  metafield_t metafield;
-  metavalue_t metavalue;
-  snptype_t snptype;
-  logic [51:0] address;
-  logic [15:0] tag;
-  logic [1:0] tc;
-  logic [511:0] data;
+  m2s_rwd_txn_t m2s_rwd_txn;
 
-  modport dut(
+  modport host_if_mp(
     output ready,
     input rstn,
-    input valid,
-    input memopcode,
-    input metafield,
-    input metavalue,
-    input snptype,
-    input address,
-    input tag,
-    input tc,
-    input data
+    input m2s_rwd_txn
   );
 
-  modport drvr(
+  modport dev_if_mp(
+    input ready,
+    input rstn,
+    output m2s_rwd_txn
+  );
+
+  modport host_actv_drvr_mp(
     input ready,
     output rstn,
-    output valid,
-    output memopcode,
-    output metafield,
-    output metavalue,
-    output snptype,
-    output address,
-    output tag,
-    output tc,
-    output data
+    output m2s_rwd_txn
+  );
+
+  modport dev_actv_drvr_mp(
+    output ready,
+    output rstn,
+    input m2s_rwd_txn
+  );
+
+  modport mon(
+    input ready,
+    input rstn,
+    input m2s_rwd_txn
   );
 
 endinterface
@@ -378,103 +498,641 @@ endinterface
 interface cxl_mem_s2m_ndr_if(input logic clk);
   logic ready;
   logic rstn;
-  logic valid;
-  s2m_ndr_opcode_t opcode
-  metafield_t metafield;
-  metavalue_t metavalue;
-  logic [15:0] tag;
+  s2m_ndr_txn_t s2m_ndr_txn;
+
+  modport host_if_mp(
+    input ready,
+    input rstn,
+    output s2m_ndr_txn
+  );
+
+  modport dev_if_mp(
+    output ready,
+    input rstn,
+    input s2m_ndr_txn
+  );
+
+  modport dev_actv_drvr_mp(
+    input ready,
+    output rstn,
+    output s2m_ndr_txn
+  );
+
+  modport host_pasv_drvr_mp(
+    output ready,
+    output rstn,
+    input s2m_ndr_txn
+  );
+
+  modport mon(
+    input ready,
+    input rstn,
+    input s2m_ndr_txn
+  );
 
 endinterface
 
 interface cxl_mem_s2m_drs_if(input logic clk);
   logic ready;
   logic rstn;
-  logic valid;
-  s2m_ndr_opcode_t opcode;
-  metafield_t metafield;
-  metavalue_t metavalue;
-  logic [15:0] tag;
-  logic poison;
-  logic [511:0] data;
+  s2m_drs_txn_t s2m_drs_txn;
 
-  modport dut(
-    output ready,
+  modport host_if_mp(
+    input ready,
     input rstn,
-    input valid,
-    input opcode,
-    input metafield,
-    input metavalue,
-    input tag,
-    input poison,
-    input data
+    output s2m_drs_txn
   );
 
-  modport drvr(
+  modport dev_if_mp(
+    output ready,
+    input rstn,
+    input s2m_drs_txn
+  );
+
+  modport dev_actv_drvr_mp(
     input ready,
     output rstn,
-    output valid,
-    output opcode,
-    output metafield,
-    output metavalue,
-    output tag,
-    output poison,
-    output data
+    output s2m_drs_txn
+  );
+
+  modport host_pasv_drvr_mp(
+    output ready,
+    output rstn,
+    input s2m_drs_txn
+  );
+
+  modport mon(
+    input ready,
+    input rstn,
+    input s2m_drs_txn
   );
 
 endinterface
+
+ module buffer#(
+  parameter DEPTH = 256,
+  parameter ADDR_WIDTH = $clog2(DEPTH),
+  type FIFO_DATA_TYPE = int
+ )(
+	  input logic clk,
+  	input logic rstn,
+  	input logic rval,
+  	input logic wval,
+    input FIFO_DATA_TYPE datain,
+    output FIFO_DATA_TYPE dataout,
+  	output logic [ADDR_WIDTH-1:0] eseq,
+  	output logic [ADDR_WIDTH:0] wptr,
+  	output logic empty,
+  	output logic full,
+  	output logic undrflw,
+  	output logic ovrflw,
+  	output logic near_full,
+  	output logic [ADDR_WIDTH-1:0] occupancy
+  );
+  
+    logic FIFO_DATA_TYPE fifo_h[DEPTH];
+    logic [ADDR_WIDTH:0] rdptr;
+  	logic [ADDR_WIDTH:0] wrptr;
+ 
+  	assign wptr = wrptr;
+  
+  	always@(posedge clk) begin
+      if(!rstn) begin
+      	rdptr <= 0;
+      	wrptr <= 0;
+      	dataout <= 0;
+      	empty <= 0;
+      	full <= 0;
+      	ovrflw <= 'h0;
+      	undrflw <= 'h0;
+      	eseq <= 'h0;
+      end else begin
+      	if(rval || wval) begin
+          if(wval && !full) begin
+          	fifo_h[wrptr] <= datain;
+          	wrptr <= wrptr + 1;
+          	eseq <= eseq + 1;
+          end else if(rval && !empty) begin
+          	dataout <= fifo_h[rdptr];
+          	rdptr <= rdptr + 1;
+          end
+        	occupancy <= ('d256 - (wrptr - rdptr));
+          if(rdptr == wrptr) begin
+          	empty <= 'h1;
+          end else begin 
+          	empty <= 'h0;
+          end
+          if((rdptr[8] != wrptr[8]) && (rdptr[7:0] == wrptr[7:0])) begin
+          	full <= 'h1;
+          end else begin
+          	full <= 'h0;
+          end
+          if((empty == 'h1) && (rval)) begin
+          	undrflw <= 'h1;
+          end else begin
+          	undrflw <= 'h0;
+          end
+          if((full == 'h1) && wval) begin
+          	ovrflw <= 'h1;
+          end else begin
+          	ovrflw <= 'h0;
+          end
+      	end
+      end
+  	end
+  
+  endmodule
+
+module cxl_master
+   #(
+  
+   ) (
+    cxl_cache_d2h_req_if.host_if_mp host_d2h_req_if,
+    cxl_cache_d2h_rsp_if.host_if_mp host_d2h_rsp_if,
+    cxl_cache_d2h_data_if.host_if_mp host_d2h_data_if,
+    cxl_cache_h2d_req_if.host_if_mp host_h2d_req_if,
+    cxl_cache_h2d_rsp_if.host_if_mp host_h2d_rsp_if,
+    cxl_cache_h2d_data_if.host_if_mp host_h2d_data_if,
+    cxl_mem_m2s_req_if.host_if_mp host_m2s_req_if,
+    cxl_mem_m2s_rwd_if.host_if_mp host_m2s_rwd_if,
+    cxl_mem_s2m_ndr_if.host_if_mp host_s2m_ndr_if,
+    cxl_mem_s2m_drs_if.host_if_mp host_s2m_drs_if
+);
+
+  buffer d2h_req_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = d2h_req_txn_t
+  )(
+	  .clk(host_d2h_req_if.clk),
+  	.rstn(host_d2h_req_if.rstn),
+  	.rval(host_d2h_req_if.ready),
+  	.wval,
+    .datain,
+    .dataout(host_d2h_req_if.d2h_req_txn),
+  	.eseq,
+  	.wptr,
+  	.empty(!host_d2h_req_if.d2h_req_txn.valid),
+  	.full,
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer d2h_rsp_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = d2h_rsp_txn_t
+  )(
+	  .clk(host_d2h_rsp_if.clk),
+  	.rstn(host_d2h_rsp_if.rstn),
+  	.rval(host_d2h_rsp_if.ready),
+  	.wval,
+    .datain,
+    .dataout(host_d2h_rsp_if.d2h_rsp_txn),
+  	.eseq,
+  	.wptr,
+  	.empty(!host_d2h_rsp_if.d2h_rsp_txn.valid),
+  	.full,
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer d2h_data_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = d2h_data_txn_t
+  )(
+	  .clk(host_d2h_data_if.clk),
+  	.rstn(host_d2h_data_if.rstn),
+  	.rval(host_d2h_data_if.ready),
+  	.wval,
+    .datain,
+    .dataout(host_d2h_data_if.d2h_data_txn),
+  	.eseq,
+  	.wptr,
+  	.empty(!host_d2h_data_if.d2h_data_txn.valid),
+  	.full,
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer s2m_ndr_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = s2m_ndr_txn_t
+  )(
+	  .clk(host_s2m_ndr_if.clk),
+  	.rstn(host_s2m_ndr_if.rstn),
+  	.rval(host_s2m_ndr_if.ready),
+  	.wval,
+    .datain,
+    .dataout(host_s2m_ndr_if.s2m_ndr_txn),
+  	.eseq,
+  	.wptr,
+  	.empty(!host_s2m_ndr_if.s2m_ndr_txn.valid),
+  	.full,
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer s2m_drs_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = s2m_drs_txn_t
+  )(
+	  .clk(host_s2m_drs_if.clk),
+  	.rstn(host_s2m_drs_if.rstn),
+  	.rval(host_s2m_drs_if.ready),
+  	.wval,
+    .datain,
+    .dataout(host_s2m_drs_if.s2m_drs_txn),
+  	.eseq,
+  	.wptr,
+  	.empty(!host_s2m_drs_if.s2m_drs_txn.valid),
+  	.full,
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer m2s_req_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = m2s_req_txn_t
+  )(
+	  .clk(host_m2s_req_if.clk),
+  	.rstn(host_m2s_req_if.rstn),
+  	.rval,
+  	.wval(host_m2s_req_if.m2s_req_txn.valid),
+    .datain(host_m2s_req_if.m2s_req_txn),
+    .dataout,
+  	.eseq,
+  	.wptr,
+  	.empty,
+    .full(!host_m2s_req_if.ready),
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer m2s_rwd_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = m2s_rwd_txn_t
+  )(
+	  .clk(host_m2s_rwd_if.clk),
+  	.rstn(host_m2s_rwd_if.rstn),
+  	.rval,
+  	.wval(host_m2s_rwd_if.m2s_rwd_txn.valid),
+    .datain(host_m2s_rwd_if.m2s_rwd_txn),
+    .dataout,
+  	.eseq,
+  	.wptr,
+  	.empty,
+    .full(!host_m2s_rwd_if.ready),
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer h2d_req_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = h2d_req_txn_t
+  )(
+	  .clk(host_h2d_req_if.clk),
+  	.rstn(host_h2d_req_if.rstn),
+  	.rval,
+  	.wval(host_h2d_req_if.h2d_req_txn.valid),
+    .datain(host_h2d_req_if.h2d_req_txn),
+    .dataout,
+  	.eseq,
+  	.wptr,
+  	.empty,
+    .full(!host_h2d_req_if.ready),
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer h2d_rsp_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = h2d_rsp_txn_t
+  )(
+	  .clk(host_h2d_rsp_if.clk),
+  	.rstn(host_h2d_rsp_if.rstn),
+  	.rval,
+  	.wval(host_h2d_rsp_if.h2d_rsp_txn.valid),
+    .datain(host_h2d_rsp_if.h2d_rsp_txn),
+    .dataout,
+  	.eseq,
+  	.wptr,
+  	.empty,
+    .full(!host_h2d_rsp_if.ready),
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer h2d_data_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = h2d_data_txn_t
+  )(
+	  .clk(host_h2d_data_if.clk),
+  	.rstn(host_h2d_data_if.rstn),
+  	.rval,
+  	.wval(host_h2d_data_if.h2d_data_txn.valid),
+    .datain(host_h2d_data_if.h2d_data_txn),
+    .dataout,
+  	.eseq,
+  	.wptr,
+  	.empty,
+    .full(!host_h2d_data_if.ready),
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+endmodule
+
+module cxl_slave
+   #(
+  
+   ) (
+    dev_d2h_req_if.dev_if_mp dev_d2h_req_if,
+    dev_d2h_rsp_if.dev_if_mp dev_d2h_rsp_if,
+    dev_d2h_data_if.dev_if_mp dev_d2h_data_if,
+    dev_h2d_req_if.dev_if_mp dev_h2d_req_if,
+    dev_h2d_rsp_if.dev_if_mp dev_h2d_rsp_if,
+    dev_h2d_data_if.dev_if_mp dev_h2d_data_if,
+    dev_m2s_req_if.dev_if_mp dev_m2s_req_if,
+    dev_m2s_rwd_if.dev_if_mp dev_m2s_rwd_if,
+    dev_s2m_ndr_if.dev_if_mp dev_s2m_ndr_if,
+    dev_s2m_drs_if.dev_if_mp dev_s2m_drs_if
+);
+
+  buffer d2h_req_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = d2h_req_txn_t
+  )(
+	  .clk(dev_d2h_req_if.clk),
+  	.rstn(dev_d2h_req_if.rstn),
+  	.rval,
+  	.wval(dev_d2h_req_if.d2h_req_txn.valid),
+    .datain(dev_d2h_req_if.d2h_req_txn),
+    .dataout,
+  	.eseq,
+  	.wptr,
+  	.empty,
+  	.full(!dev_d2h_req_if.ready),
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer d2h_rsp_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = d2h_rsp_txn_t
+  )(
+	  .clk(dev_d2h_rsp_if.clk),
+  	.rstn(dev_d2h_rsp_if.rstn),
+  	.rval,
+  	.wval(dev_d2h_rsp_if.d2h_rsp_txn.valid),
+    .datain(dev_d2h_rsp_if.d2h_rsp_txn),
+    .dataout,
+  	.eseq,
+  	.wptr,
+  	.empty,
+  	.full(!dev_d2h_rsp_if.ready),
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer d2h_data_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = d2h_data_txn_t
+  )(
+	  .clk(dev_d2h_data_if.clk),
+  	.rstn(dev_d2h_data_if.rstn),
+  	.rval,
+  	.wval(dev_d2h_data_if.d2h_data_txn.valid),
+    .datain(dev_d2h_data_if.d2h_data_txn),
+    .dataout,
+  	.eseq,
+  	.wptr,
+  	.empty,
+  	.full(!dev_d2h_data_if.ready),
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer s2m_ndr_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = s2m_ndr_txn_t
+  )(
+	  .clk(dev_s2m_ndr_if.clk),
+  	.rstn(dev_s2m_ndr_if.rstn),
+  	.rval,
+  	.wval(dev_s2m_ndr_if.s2m_ndr_txn.valid),
+    .datain(dev_s2m_ndr_if.s2m_ndr_txn),
+    .dataout,
+  	.eseq,
+  	.wptr,
+  	.empty,
+  	.full(!dev_s2m_ndr_if.ready),
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer s2m_drs_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = s2m_drs_txn_t
+  )(
+	  .clk(dev_s2m_drs_if.clk),
+  	.rstn(dev_s2m_drs_if.rstn),
+  	.rval,
+  	.wval(dev_s2m_drs_if.s2m_drs_txn.valid),
+    .datain(dev_s2m_drs_if.s2m_drs_txn),
+    .dataout,
+  	.eseq,
+  	.wptr,
+  	.empty,
+  	.full(!dev_s2m_drs_if.ready),
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer m2s_req_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = m2s_req_txn_t
+  )(
+	  .clk(dev_m2s_req_if.clk),
+  	.rstn(dev_m2s_req_if.rstn),
+  	.rval(dev_m2s_req_if.ready),
+  	.wval,
+    .datain,
+    .dataout(dev_m2s_req_if.m2s_req_txn),
+  	.eseq,
+  	.wptr,
+  	.empty(!dev_m2s_req_if.m2s_req_txn.valid),
+  	.full,
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer m2s_rwd_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = m2s_rwd_txn_t
+  )(
+	  .clk(dev_m2s_rwd_if.clk),
+  	.rstn(dev_m2s_rwd_if.rstn),
+  	.rval(dev_m2s_rwd_if.ready),
+  	.wval,
+    .datain,
+    .dataout(dev_m2s_rwd_if.m2s_rwd_txn),
+  	.eseq,
+  	.wptr,
+  	.empty(!dev_m2s_rwd_if.m2s_rwd_txn.valid),
+  	.full,
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer h2d_req_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = h2d_req_txn_t
+  )(
+	  .clk(dev_h2d_req_if.clk),
+  	.rstn(dev_h2d_req_if.rstn),
+  	.rval(dev_h2d_req_if.ready),
+  	.wval,
+    .datain,
+    .dataout(dev_h2d_req_if.h2d_req_txn),
+  	.eseq,
+  	.wptr,
+  	.empty(!dev_h2d_req_if.h2d_req_txn.valid),
+  	.full,
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer h2d_rsp_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = h2d_rsp_txn_t
+  )(
+	  .clk(dev_h2d_rsp_if.clk),
+  	.rstn(dev_h2d_rsp_if.rstn),
+  	.rval(dev_h2d_rsp_if.ready),
+  	.wval,
+    .datain,
+    .dataout(dev_h2d_rsp_if.h2d_rsp_txn),
+  	.eseq,
+  	.wptr,
+  	.empty(!dev_h2d_rsp_if.h2d_rsp_txn.valid),
+  	.full,
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+  buffer h2d_data_fifo_inst#(
+    DEPTH = 32,
+    ADDR_WIDTH = 5,
+    type FIFO_DATA_TYPE = h2d_data_txn_t
+  )(
+	  .clk(dev_h2d_data_if.clk),
+  	.rstn(dev_h2d_data_if.rstn),
+  	.rval(dev_h2d_data_if.ready),
+  	.wval,
+    .datain,
+    .dataout(dev_h2d_data_if.h2d_data_txn),
+  	.eseq,
+  	.wptr,
+  	.empty(!dev_h2d_data_if.h2d_data_txn.valid),
+  	.full,
+  	.undrflw,
+  	.ovrflw,
+  	.near_full,
+  	.occupancy
+  );
+
+endmodule
 
 module tb_top;
 
   logic clk;
 
-  cxl_cache_d2h_req_if  d2h_req_m_if(clk);
-  cxl_cache_d2h_rsp_if  d2h_rsp_m_if(clk);
-  cxl_cache_d2h_data_if d2h_data_m_if(clk);
-  cxl_cache_h2d_req_if  h2d_req_m_if(clk);
-  cxl_cache_h2d_rsp_if  h2d_rsp_m_if(clk);
-  cxl_cache_h2d_data_if h2d_data_m_if(clk);
+  cxl_cache_d2h_req_if  host_d2h_req_if(clk);
+  cxl_cache_d2h_rsp_if  host_d2h_rsp_if(clk);
+  cxl_cache_d2h_data_if host_d2h_data_if(clk);
+  cxl_cache_h2d_req_if  host_h2d_req_if(clk);
+  cxl_cache_h2d_rsp_if  host_h2d_rsp_if(clk);
+  cxl_cache_h2d_data_if host_h2d_data_if(clk);
 
-  cxl_cache_d2h_req_if  d2h_req_s_if(clk);
-  cxl_cache_d2h_rsp_if  d2h_rsp_s_if(clk);
-  cxl_cache_d2h_data_if d2h_data_s_if(clk);
-  cxl_cache_h2d_req_if  h2d_req_s_if(clk);
-  cxl_cache_h2d_rsp_if  h2d_rsp_s_if(clk);
-  cxl_cache_h2d_data_if h2d_data_s_if(clk);
+  cxl_cache_d2h_req_if  dev_d2h_req_if(clk);
+  cxl_cache_d2h_rsp_if  dev_d2h_rsp_if(clk);
+  cxl_cache_d2h_data_if dev_d2h_data_if(clk);
+  cxl_cache_h2d_req_if  dev_h2d_req_if(clk);
+  cxl_cache_h2d_rsp_if  dev_h2d_rsp_if(clk);
+  cxl_cache_h2d_data_if dev_h2d_data_if(clk);
 
-  cxl_mem_m2s_req_if  m2s_req_m_if(clk);
-  cxl_mem_m2s_rwd_if  m2s_rwd_m_if(clk);
-  cxl_mem_s2m_ndr_if  s2m_ndr_m_if(clk);
-  cxl_mem_s2m_drs_if  s2m_drs_m_if(clk);
+  cxl_mem_m2s_req_if  host_m2s_req_if(clk);
+  cxl_mem_m2s_rwd_if  host_m2s_rwd_if(clk);
+  cxl_mem_s2m_ndr_if  host_s2m_ndr_if(clk);
+  cxl_mem_s2m_drs_if  host_s2m_drs_if(clk);
 
-  cxl_mem_m2s_req_if  m2s_req_s_if(clk);
-  cxl_mem_m2s_rwd_if  m2s_rwd_s_if(clk);
-  cxl_mem_s2m_ndr_if  s2m_ndr_s_if(clk);
-  cxl_mem_s2m_drs_if  s2m_drs_s_if(clk);
+  cxl_mem_m2s_req_if  dev_m2s_req_if(clk);
+  cxl_mem_m2s_rwd_if  dev_m2s_rwd_if(clk);
+  cxl_mem_s2m_ndr_if  dev_s2m_ndr_if(clk);
+  cxl_mem_s2m_drs_if  dev_s2m_drs_if(clk);
 
   cxl_master cxl_master_inst(
-    .d2h_req_m_if.dut(d2h_req_m_if.drvr),
-    .d2h_rsp_m_if.dut(d2h_rsp_m_if.drvr),
-    .d2h_data_m_if.dut(d2h_data_m_if.drvr),
-    .h2d_req_m_if.dut(h2d_req_m_if.drvr),
-    .h2d_rsp_m_if.dut(h2d_rsp_m_if.drvr),
-    .h2d_data_m_if.dut(h2d_data_m_if.drvr),
-    .m2s_req_m_if.dut(m2s_req_m_if.drvr),
-    .m2s_rwd_m_if.dut(m2s_rwd_m_if.drvr),
-    .s2m_ndr_m_if.dut(s2m_ndr_m_if.drvr),
-    .s2m_drs_m_if.dut(s2m_drs_m_if.drvr),
+    .*
   );
 
   cxl_device cxl_device_inst(
-    .d2h_req_s_if.dut(d2h_req_s_if.drvr),
-    .d2h_rsp_s_if.dut(d2h_rsp_s_if.drvr),
-    .d2h_data_s_if.dut(d2h_data_s_if.drvr),
-    .h2d_req_s_if.dut(h2d_req_s_if.drvr),
-    .h2d_rsp_s_if.dut(h2d_rsp_s_if.drvr),
-    .h2d_data_s_if.dut(h2d_data_s_if.drvr)
-    .m2s_req_s_if.dut(m2s_req_s_if.drvr),
-    .m2s_rwd_s_if.dut(m2s_rwd_s_if.drvr),
-    .s2m_ndr_s_if.dut(s2m_ndr_s_if.drvr),
-    .s2m_drs_s_if.dut(s2m_drs_s_if.drvr),
+    .*
   );
 
   initial begin
@@ -489,27 +1147,27 @@ module tb_top;
         end 
     join_none 
     
-    uvm_config_db#(virtual cxl_cache_d2h_req_if)::set(null, "*", "d2h_req_m_if", d2h_req_m_if);
-    uvm_config_db#(virtual cxl_cache_d2h_rsp_if)::set(null, "*", "d2h_rsp_m_if", d2h_rsp_m_if);
-    uvm_config_db#(virtual cxl_cache_d2h_data_if)::set(null, "*", "d2h_data_m_if", d2h_data_m_if);
-    uvm_config_db#(virtual cxl_cache_h2d_req_if)::set(null, "*", "h2d_req_m_if", h2d_req_m_if);
-    uvm_config_db#(virtual cxl_cache_h2d_rsp_if)::set(null, "*", "h2d_rsp_m_if", h2d_rsp_m_if);
-    uvm_config_db#(virtual cxl_cache_h2d_data_if)::set(null, "*", "h2d_data_m_if", h2d_data_m_if);
-    uvm_config_db#(virtual cxl_mem_m2s_req_if)::set(null, "*", "m2s_req_m_if", m2s_req_m_if);
-    uvm_config_db#(virtual cxl_mem_m2s_rwd_if)::set(null, "*", "m2s_rwd_m_if", m2s_rwd_m_if);
-    uvm_config_db#(virtual cxl_mem_m2s_ndr_if)::set(null, "*", "s2m_ndr_m_if", s2m_ndr_m_if);
-    uvm_config_db#(virtual cxl_mem_m2s_drs_if)::set(null, "*", "s2m_drs_m_if", s2m_drs_m_if);
+    uvm_config_db#(virtual cxl_cache_d2h_req_if)::set(null, "*", "host_d2h_req_if", host_d2h_req_if);
+    uvm_config_db#(virtual cxl_cache_d2h_rsp_if)::set(null, "*", "host_d2h_rsp_if", host_d2h_rsp_if);
+    uvm_config_db#(virtual cxl_cache_d2h_data_if)::set(null, "*", "host_d2h_data_if", host_d2h_data_if);
+    uvm_config_db#(virtual cxl_cache_h2d_req_if)::set(null, "*", "host_h2d_req_if", host_h2d_req_if);
+    uvm_config_db#(virtual cxl_cache_h2d_rsp_if)::set(null, "*", "host_h2d_rsp_if", host_h2d_rsp_if);
+    uvm_config_db#(virtual cxl_cache_h2d_data_if)::set(null, "*", "host_h2d_data_if", host_h2d_data_if);
+    uvm_config_db#(virtual cxl_mem_m2s_req_if)::set(null, "*", "host_m2s_req_if", host_m2s_req_if);
+    uvm_config_db#(virtual cxl_mem_m2s_rwd_if)::set(null, "*", "host_m2s_rwd_if", host_m2s_rwd_if);
+    uvm_config_db#(virtual cxl_mem_m2s_ndr_if)::set(null, "*", "host_s2m_ndr_if", host_s2m_ndr_if);
+    uvm_config_db#(virtual cxl_mem_m2s_drs_if)::set(null, "*", "host_s2m_drs_if", host_s2m_drs_if);
 
-    uvm_config_db#(virtual cxl_cache_d2h_req_if)::set(null, "*", "d2h_req_s_if", d2h_req_s_if);
-    uvm_config_db#(virtual cxl_cache_d2h_rsp_if)::set(null, "*", "d2h_rsp_s_if", d2h_rsp_s_if);
-    uvm_config_db#(virtual cxl_cache_d2h_data_if)::set(null, "*", "d2h_data_s_if", d2h_data_s_if);
-    uvm_config_db#(virtual cxl_cache_h2d_req_if)::set(null, "*", "h2d_req_s_if", h2d_req_s_if);
-    uvm_config_db#(virtual cxl_cache_h2d_rsp_if)::set(null, "*", "h2d_rsp_s_if", h2d_rsp_s_if);
-    uvm_config_db#(virtual cxl_cache_h2d_data_if)::set(null, "*", "h2d_data_s_if", h2d_data_s_if);
-    uvm_config_db#(virtual cxl_mem_m2s_req_if)::set(null, "*", "m2s_req_s_if", m2s_req_s_if);
-    uvm_config_db#(virtual cxl_mem_m2s_rwd_if)::set(null, "*", "m2s_rwd_s_if", m2s_rwd_s_if);
-    uvm_config_db#(virtual cxl_mem_m2s_ndr_if)::set(null, "*", "s2m_ndr_s_if", s2m_ndr_s_if);
-    uvm_config_db#(virtual cxl_mem_m2s_drs_if)::set(null, "*", "s2m_drs_s_if", s2m_drs_s_if);
+    uvm_config_db#(virtual cxl_cache_d2h_req_if)::set(null, "*", "dev_d2h_req_if", dev_d2h_req_if);
+    uvm_config_db#(virtual cxl_cache_d2h_rsp_if)::set(null, "*", "dev_d2h_rsp_if", dev_d2h_rsp_if);
+    uvm_config_db#(virtual cxl_cache_d2h_data_if)::set(null, "*", "dev_d2h_data_if", dev_d2h_data_if);
+    uvm_config_db#(virtual cxl_cache_h2d_req_if)::set(null, "*", "dev_h2d_req_if", dev_h2d_req_if);
+    uvm_config_db#(virtual cxl_cache_h2d_rsp_if)::set(null, "*", "dev_h2d_rsp_if", dev_h2d_rsp_if);
+    uvm_config_db#(virtual cxl_cache_h2d_data_if)::set(null, "*", "dev_h2d_data_if", dev_h2d_data_if);
+    uvm_config_db#(virtual cxl_mem_m2s_req_if)::set(null, "*", "dev_m2s_req_if", dev_m2s_req_if);
+    uvm_config_db#(virtual cxl_mem_m2s_rwd_if)::set(null, "*", "dev_m2s_rwd_if", dev_m2s_rwd_if);
+    uvm_config_db#(virtual cxl_mem_m2s_ndr_if)::set(null, "*", "dev_s2m_ndr_if", dev_s2m_ndr_if);
+    uvm_config_db#(virtual cxl_mem_m2s_drs_if)::set(null, "*", "dev_s2m_drs_if", dev_s2m_drs_if);
     run_test("cxl_base_test");
   end
 
@@ -558,6 +1216,7 @@ module tb_top;
     rand logic [11:0] cqid;
     rand logic nt;
     int d2h_req_crdt;
+    d2h_req_txn_t d2h_req_txn;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -579,6 +1238,7 @@ module tb_top;
     rand d2h_rsp_opcode_t opcode;
     rand logic [11:0] uqid;
     int d2h_rsp_crdt;
+    d2h_rsp_txn_t d2h_rsp_txn;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -599,6 +1259,7 @@ module tb_top;
     rand logic poison;
     rand logic [511:0] data;
     int d2h_data_crdt;
+    d2h_data_txn_t d2h_data_txn;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -626,6 +1287,7 @@ module tb_top;
     rand logic [51:0] address;
     rand logic [11:0] uqid;
     int h2d_req_crdt;
+    h2d_req_txn_t h2d_req_txn;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -649,6 +1311,7 @@ module tb_top;
     rand logic [1:0] rsppre;
     rand logic [11:0] cqid;
     int h2d_rsp_crdt;
+    h2d_rsp_txn_t h2d_rsp_txn;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -674,6 +1337,7 @@ module tb_top;
     rand logic goerr;
     rand logic [511:0] data;
     int h2d_data_crdt;
+    h2d_data_txn_t h2d_data_txn;
 
     constraint always_valid_c{
       soft valid == 'h1;
@@ -705,6 +1369,7 @@ module tb_top;
     rand logic [15:0] tag;
     rand logic [1:0] tc;
     int m2s_req_crdt;
+    m2s_req_txn_t m2s_req_txn;
 
     constraint always_valid_c{
       soft valid ='h1;
@@ -745,6 +1410,7 @@ module tb_top;
     rand logic poison;
     rand logic [511:0] data;
     int m2s_rwd_crdt;
+    m2s_rwd_txn_t m2s_rwd_txn;
 
     constraint always_valid_c{
       soft valid ='h1;
@@ -784,6 +1450,7 @@ module tb_top;
     rand metavalue_t metavalue;
     rand logic [15:0] tag;
     int s2m_ndr_crdt;
+    s2m_ndr_txn_t s2m_ndr_txn;
 
     constraint always_valid_c{
       soft valid == 'h1;
@@ -817,6 +1484,7 @@ module tb_top;
     rand logic poison;
     rand logic [511:0] data;
     int s2m_drs_crdt;
+    s2m_drs_txn_t s2m_drs_txn;
 
     constraint always_valid_c{
       soft valid == 'h1;
@@ -844,7 +1512,17 @@ module tb_top;
 
   endclass
 
-  class d2h_req_sequencer extends uvm_sequencer#(d2h_req_seq_item);
+
+  class cxl_base_sequencer extends uvm_sequencer#(cxl_base_txn_seq_item);
+    `uvm_component_utils(cxl_base_sequencer)
+
+    function new(string name = "cxl_base_sequencer", uvm_component parent = null );
+      super.new(name, parent);
+    endfunction
+
+  endclass
+
+  class d2h_req_sequencer extends cxl_base_sequencer#(d2h_req_seq_item);
     `uvm_component_utils(d2h_req_sequencer)
     int d2h_req_crdt;
 
@@ -854,7 +1532,7 @@ module tb_top;
 
   endclass
 
-  class d2h_rsp_sequencer extends uvm_sequencer#(d2h_rsp_seq_item);
+  class d2h_rsp_sequencer extends cxl_base_sequencer#(d2h_rsp_seq_item);
     `uvm_component_utils(d2h_rsp_sequencer)
     int d2h_rsp_crdt;
 
@@ -864,7 +1542,7 @@ module tb_top;
 
   endclass
 
-  class d2h_data_sequencer extends uvm_sequencer#(d2h_data_seq_item);
+  class d2h_data_sequencer extends cxl_base_sequencer#(d2h_data_seq_item);
     `uvm_component_utils(d2h_data_sequencer)
     int d2h_data_crdt;
 
@@ -874,7 +1552,7 @@ module tb_top;
 
   endclass
 
-  class h2d_req_sequencer extends uvm_sequencer#(h2d_req_seq_item);
+  class h2d_req_sequencer extends cxl_base_sequencer#(h2d_req_seq_item);
     `uvm_component_utils(h2d_req_sequencer)
     int h2d_req_crdt;
 
@@ -884,7 +1562,7 @@ module tb_top;
 
   endclass
 
-  class h2d_rsp_sequencer extends uvm_sequencer#(h2d_rsp_seq_item);
+  class h2d_rsp_sequencer extends cxl_base_sequencer#(h2d_rsp_seq_item);
     `uvm_component_utils(h2d_rsp_sequencer)
     int h2d_rsp_crdt;
 
@@ -894,7 +1572,7 @@ module tb_top;
 
   endclass
 
-  class h2d_data_sequencer extends uvm_sequencer#(h2d_data_seq_item);
+  class h2d_data_sequencer extends cxl_base_sequencer#(h2d_data_seq_item);
     `uvm_component_utils(h2d_data_sequencer)
     int h2d_data_crdt;
 
@@ -904,7 +1582,7 @@ module tb_top;
 
   endclass
 
-  class m2s_req_sequencer extends uvm_sequencer#(m2s_req_seq_item);
+  class m2s_req_sequencer extends cxl_base_sequencer#(m2s_req_seq_item);
     `uvm_component_utils(m2s_req_sequencer)
     int m2s_req_crdt;
 
@@ -914,7 +1592,7 @@ module tb_top;
 
   endclass
 
-  class m2s_rwd_sequencer extends uvm_sequencer#(m2s_rwd_seq_item);
+  class m2s_rwd_sequencer extends cxl_base_sequencer#(m2s_rwd_seq_item);
     `uvm_component_utils(m2s_rwd_sequencer)
     int m2s_rwd_crdt;
 
@@ -924,7 +1602,7 @@ module tb_top;
 
   endclass
 
-  class s2m_ndr_sequencer extends uvm_sequencer#(s2m_ndr_seq_item);
+  class s2m_ndr_sequencer extends cxl_base_sequencer#(s2m_ndr_seq_item);
     `uvm_component_utils(s2m_ndr_sequencer)
     int s2m_ndr_crdt;
 
@@ -934,7 +1612,7 @@ module tb_top;
 
   endclass
 
-  class s2m_drs_sequencer extends uvm_sequencer#(s2m_drs_seq_item);
+  class s2m_drs_sequencer extends cxl_base_sequencer#(s2m_drs_seq_item);
     `uvm_component_utils(s2m_drs_sequencer)
     int s2m_drs_crdt;
 
@@ -944,33 +1622,33 @@ module tb_top;
 
   endclass
 
-  class d2h_req_m_monitor extends uvm_monitor;
-    `uvm_component_utils(d2h_req_m_monitor)
+  class dev_d2h_req_monitor extends uvm_monitor;
+    `uvm_component_utils(dev_d2h_req_monitor)
     uvm_analysis_port#(d2h_req_seq_item) d2h_req_port;
-    virtual cxl_cache_d2h_req_if d2h_req_s_if;
+    virtual cxl_cache_d2h_req_if.mon dev_d2h_req_if;
     d2h_req_seq_item d2h_req_seq_item_h;
 
-    function new(string name = "d2h_req_m_monitor", uvm_component parent = null);
+    function new(string name = "dev_d2h_req_monitor", uvm_component parent = null);
       super.new(name, parent);
       d2h_req_port = new("d2h_req_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "d2h_req_s_if", d2h_req_s_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface d2h_req_s_if"));
+      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "dev_d2h_req_if", dev_d2h_req_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_req_if"));
       end
       fork
         begin
           forever begin
-            @(negedge d2h_req_s_if.clk);
-            if(d2h_req_s_if.valid) begin
+            @(posedge dev_d2h_req_if.clk);
+            if(dev_d2h_req_if.d2h_req_txn.valid && dev_d2h_req_if.ready) begin
               d2h_req_seq_item_h = d2h_req_seq_item::type_id::create("d2h_req_seq_item_h", this);
-              d2h_req_seq_item_h.valid    = d2h_req_s_if.valid;
-              d2h_req_seq_item_h.opcode   = d2h_req_s_if.opcode;
-              d2h_req_seq_item_h.address  = d2h_req_s_if.address;
-              d2h_req_seq_item_h.cqid     = d2h_req_s_if.cqid;
-              d2h_req_seq_item_h.nt       = d2h_req_s_if.nt;
+              d2h_req_seq_item_h.valid    = dev_d2h_req_if.d2h_req_txn.valid;
+              d2h_req_seq_item_h.opcode   = dev_d2h_req_if.d2h_req_txn.opcode;
+              d2h_req_seq_item_h.address  = dev_d2h_req_if.d2h_req_txn.address;
+              d2h_req_seq_item_h.cqid     = dev_d2h_req_if.d2h_req_txn.cqid;
+              d2h_req_seq_item_h.nt       = dev_d2h_req_if.d2h_req_txn.nt;
               d2h_req_port.write(d2h_req_seq_item_h);
             end  
           end
@@ -979,31 +1657,31 @@ module tb_top;
     endtask
   endclass
 
-  class d2h_rsp_m_monitor extends uvm_monitor;
-    `uvm_component_utils(d2h_rsp_m_monitor)
+  class dev_d2h_rsp_monitor extends uvm_monitor;
+    `uvm_component_utils(dev_d2h_rsp_monitor)
     uvm_analysis_port#(d2h_rsp_seq_item) d2h_rsp_port;
-    virtual cxl_cache_d2h_rsp_if d2h_rsp_s_if;
+    virtual cxl_cache_d2h_rsp_if.mon dev_d2h_rsp_if;
     d2h_rsp_seq_item d2h_rsp_seq_item_h;
 
-    function new(string name = "d2h_rsp_m_monitor", uvm_component parent = null);
+    function new(string name = "dev_d2h_rsp_monitor", uvm_component parent = null);
       super.new(name, parent);
       d2h_rsp_port = new("d2h_rsp_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_rsp_if)::get(this, "", "d2h_rsp_s_if", d2h_rsp_s_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface d2h_rsp_s_if"));
+      if(!(uvm_config_db#(cxl_cache_d2h_rsp_if)::get(this, "", "dev_d2h_rsp_if", dev_d2h_rsp_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_rsp_if"));
       end
       fork
         begin
           forever begin
-            @(negedge d2h_rsp_s_if.clk);
-            if(d2h_rsp_s_if.valid) begin
+            @(posedge dev_d2h_rsp_if.clk);
+            if(dev_d2h_rsp_if.d2h_rsp_txn.valid && dev_d2h_rsp_if.ready) begin
               d2h_rsp_seq_item_h = d2h_rsp_seq_item::type_id::create("d2h_rsp_seq_item_h", this);
-              d2h_rsp_seq_item_h.valid   = d2h_rsp_s_if.valid;
-              d2h_rsp_seq_item_h.opcode  = d2h_rsp_s_if.opcode;
-              d2h_rsp_seq_item_h.uqid    = d2h_rsp_s_if.uqid;
+              d2h_rsp_seq_item_h.valid   = dev_d2h_rsp_if.d2h_rsp_txn.valid;
+              d2h_rsp_seq_item_h.opcode  = dev_d2h_rsp_if.d2h_rsp_txn.opcode;
+              d2h_rsp_seq_item_h.uqid    = dev_d2h_rsp_if.d2h_rsp_txn.uqid;
               d2h_rsp_port.write(d2h_rsp_seq_item_h);
             end  
           end
@@ -1013,34 +1691,34 @@ module tb_top;
 
   endclass
 
-  class d2h_data_m_monitor extends uvm_monitor;
-    `uvm_component_utils(d2h_data_m_monitor)
+  class dev_d2h_data_monitor extends uvm_monitor;
+    `uvm_component_utils(dev_d2h_data_monitor)
     uvm_analysis_port#(d2h_data_seq_item) d2h_data_port;
-    virtual cxl_cache_d2h_data_if d2h_data_s_if;
+    virtual cxl_cache_d2h_data_if.mon dev_d2h_data_if;
     d2h_data_seq_item d2h_data_seq_item_h;
 
-    function new(string name = "d2h_data_m_monitor", uvm_component parent = null);
+    function new(string name = "dev_d2h_data_monitor", uvm_component parent = null);
       super.new(name, parent);
       d2h_data_port = new("d2h_data_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_data_if)::get(this, "", "d2h_data_s_if", d2h_data_s_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface d2h_data_s_if"));
+      if(!(uvm_config_db#(cxl_cache_d2h_data_if)::get(this, "", "dev_d2h_data_if", dev_d2h_data_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_data_if"));
       end
       fork
         begin
           forever begin
-            @(negedge d2h_data_s_if.clk);
-            if(d2h_data_s_if.valid) begin
+            @(posedge dev_d2h_data_if.clk);
+            if(dev_d2h_data_if.d2h_data_txn.valid && dev_d2h_data_if.ready) begin
               d2h_data_seq_item_h = d2h_data_seq_item::type_id::create("d2h_data_seq_item_h", this);
-              d2h_data_seq_item_h.valid         = d2h_data_s_if.valid;
-              d2h_data_seq_item_h.uqid          = d2h_data_s_if.uqid;
-              d2h_data_seq_item_h.chunkvalid    = d2h_data_s_if.chunkvalid;
-              d2h_data_seq_item_h.bogus         = d2h_data_s_if.bogus;
-              d2h_data_seq_item_h.poison        = d2h_data_s_if.poison;
-              d2h_data_seq_item_h.data          = d2h_data_s_if.data;
+              d2h_data_seq_item_h.valid         = dev_d2h_data_if.d2h_data_txn.valid;
+              d2h_data_seq_item_h.uqid          = dev_d2h_data_if.d2h_data_txn.uqid;
+              d2h_data_seq_item_h.chunkvalid    = dev_d2h_data_if.d2h_data_txn.chunkvalid;
+              d2h_data_seq_item_h.bogus         = dev_d2h_data_if.d2h_data_txn.bogus;
+              d2h_data_seq_item_h.poison        = dev_d2h_data_if.d2h_data_txn.poison;
+              d2h_data_seq_item_h.data          = dev_d2h_data_if.d2h_data_txn.data;
               d2h_data_port.write(d2h_data_seq_item_h);
             end  
           end
@@ -1050,31 +1728,31 @@ module tb_top;
 
   endclass
 
-  class h2d_req_m_monitor extends uvm_monitor;
-    `uvm_component_utils(h2d_req_m_monitor)
+  class host_h2d_req_monitor extends uvm_monitor;
+    `uvm_component_utils(host_h2d_req_monitor)
     uvm_analysis_port#(h2d_req_seq_item) h2d_req_port;
-    virtual cxl_cache_h2d_req_if h2d_req_m_if;
+    virtual cxl_cache_h2d_req_if.mon host_h2d_req_if;
 
-    function new(string name = "h2d_req_m_monitor", uvm_component parent = null);
+    function new(string name = "host_h2d_req_monitor", uvm_component parent = null);
       super.new(name, parent);
       h2d_req_port = new("h2d_req_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_req_if)::get(this, "", "h2d_req_m_if", h2d_req_m_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface h2d_req_m_if"));
+      if(!(uvm_config_db#(cxl_cache_h2d_req_if)::get(this, "", "host_h2d_req_if", host_h2d_req_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_req_if"));
       end
       fork
         begin
           forever begin
-            @(negedge h2d_req_m_if.clk);
-            if(h2d_req_m_if.valid) begin
+            @(posedge host_h2d_req_if.clk);
+            if(host_h2d_req_if.h2d_req_txn.valid && host_h2d_req_if.ready) begin
               h2d_req_seq_item_h = h2d_req_seq_item::type_id::create("h2d_req_seq_item_h", this);
-              h2d_req_seq_item_h.valid         = h2d_req_m_if.valid;
-              h2d_req_seq_item_h.opcode        = h2d_req_m_if.opcode;
-              h2d_req_seq_item_h.address       = h2d_req_m_if.address;
-              h2d_req_seq_item_h.uqid          = h2d_req_m_if.uqid;
+              h2d_req_seq_item_h.valid         = host_h2d_req_if.h2d_req_txn.valid;
+              h2d_req_seq_item_h.opcode        = host_h2d_req_if.h2d_req_txn.opcode;
+              h2d_req_seq_item_h.address       = host_h2d_req_if.h2d_req_txn.address;
+              h2d_req_seq_item_h.uqid          = host_h2d_req_if.h2d_req_txn.uqid;
               h2d_req_port.write(h2d_req_seq_item_h);
             end  
           end
@@ -1084,33 +1762,33 @@ module tb_top;
 
   endclass
   
-  class h2d_rsp_m_monitor extends uvm_monitor;
-    `uvm_component_utils(h2d_rsp_m_monitor)
+  class host_h2d_rsp_monitor extends uvm_monitor;
+    `uvm_component_utils(host_h2d_rsp_monitor)
     uvm_analysis_port#(h2d_rsp_seq_item) h2d_rsp_port;
-    virtual cxl_cache_h2d_rsp_if h2d_rsp_m_if;
+    virtual cxl_cache_h2d_rsp_if.mon host_h2d_rsp_if;
     h2d_rsp_seq_item h2d_rsp_seq_item_h;
 
-    function new(string name = "h2d_rsp_m_monitor", uvm_component parent = null);
+    function new(string name = "host_h2d_rsp_monitor", uvm_component parent = null);
       super.new(name, parent);
       h2d_rsp_port = new("h2d_rsp_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_rsp_if)::get(this, "", "h2d_rsp_m_if", h2d_rsp_m_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface h2d_rsp_m_if"));
+      if(!(uvm_config_db#(cxl_cache_h2d_rsp_if)::get(this, "", "host_h2d_rsp_if", host_h2d_rsp_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_rsp_if"));
       end
       fork
         begin
           forever begin
-            @(negedge h2d_rsp_m_if.clk);
-            if(h2d_rsp_m_if.valid) begin
+            @(posedge host_h2d_rsp_if.clk);
+            if(host_h2d_rsp_if.h2d_rsp_txn.valid && host_h2d_rsp_if.ready) begin
               h2d_rsp_seq_item_h = h2d_rsp_seq_item::type_id::create("h2d_rsp_seq_item_h", this);
-              h2d_rsp_seq_item_h.valid         = h2d_rsp_m_if.valid;
-              h2d_rsp_seq_item_h.opcode        = h2d_rsp_m_if.opcode;
-              h2d_rsp_seq_item_h.rspdata       = h2d_rsp_m_if.rspdata;
-              h2d_rsp_seq_item_h.rsppre        = h2d_rsp_m_if.rsppre;
-              h2d_rsp_seq_item_h.cqid          = h2d_rsp_m_if.cqid;
+              h2d_rsp_seq_item_h.valid         = host_h2d_rsp_if.h2d_rsp_txn.valid;
+              h2d_rsp_seq_item_h.opcode        = host_h2d_rsp_if.h2d_rsp_txn.opcode;
+              h2d_rsp_seq_item_h.rspdata       = host_h2d_rsp_if.h2d_rsp_txn.rspdata;
+              h2d_rsp_seq_item_h.rsppre        = host_h2d_rsp_if.h2d_rsp_txn.rsppre;
+              h2d_rsp_seq_item_h.cqid          = host_h2d_rsp_if.h2d_rsp_txn.cqid;
               h2d_rsp_port.write(h2d_rsp_seq_item_h);
             end  
           end
@@ -1120,34 +1798,34 @@ module tb_top;
 
   endclass
 
-  class h2d_data_m_monitor extends uvm_monitor;
-    `uvm_component_utils(h2d_data_m_monitor)
+  class host_h2d_data_monitor extends uvm_monitor;
+    `uvm_component_utils(host_h2d_data_monitor)
     uvm_analysis_port#(h2d_data_seq_item) h2d_data_port;
-    virtual cxl_cache_h2d_data_if h2d_data_m_if;
+    virtual cxl_cache_h2d_data_if.mon host_h2d_data_if;
     h2d_data_seq_item h2d_data_seq_item_h;
 
-    function new(string name = "h2d_data_m_monitor", uvm_component parent = null);
+    function new(string name = "host_h2d_data_monitor", uvm_component parent = null);
       super.new(name, parent);
       h2d_data_port = new("h2d_data_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_data_if)::get(this, "", "h2d_data_m_if", h2d_data_m_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface h2d_data_m_if"));
+      if(!(uvm_config_db#(cxl_cache_h2d_data_if)::get(this, "", "host_h2d_data_if", host_h2d_data_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_data_if"));
       end
       fork
         begin
           forever begin
-            @(negedge h2d_data_m_if.clk);
-            if(h2d_data_m_if.valid) begin
+            @(posedge host_h2d_data_if.clk);
+            if(host_h2d_data_if.h2d_data_txn.valid && host_h2d_data_if.ready) begin
               h2d_data_seq_item_h = h2d_data_seq_item::type_id::create("h2d_data_seq_item_h", this);
-              h2d_data_seq_item_h.valid         = h2d_data_m_if.valid;
-              h2d_data_seq_item_h.cqid          = h2d_data_m_if.cqid;
-              h2d_data_seq_item_h.chunkvalid    = h2d_data_m_if.chunkvalid;
-              h2d_data_seq_item_h.poison        = h2d_data_m_if.poison;
-              h2d_data_seq_item_h.goerr         = h2d_data_m_if.goerr;
-              h2d_data_seq_item_h.data         = h2d_data_m_if.data;
+              h2d_data_seq_item_h.valid         = host_h2d_data_if.h2d_data_txn.valid;
+              h2d_data_seq_item_h.cqid          = host_h2d_data_if.h2d_data_txn.cqid;
+              h2d_data_seq_item_h.chunkvalid    = host_h2d_data_if.h2d_data_txn.chunkvalid;
+              h2d_data_seq_item_h.poison        = host_h2d_data_if.h2d_data_txn.poison;
+              h2d_data_seq_item_h.goerr         = host_h2d_data_if.h2d_data_txn.goerr;
+              h2d_data_seq_item_h.data          = host_h2d_data_if.h2d_data_txn.data;
               h2d_data_port.write(h2d_data_seq_item_h);
             end  
           end
@@ -1157,36 +1835,36 @@ module tb_top;
 
   endclass
 
-  class m2s_req_m_monitor extends uvm_monitor;
-    `uvm_component_utils(m2s_req_m_monitor)
+  class host_m2s_req_monitor extends uvm_monitor;
+    `uvm_component_utils(host_m2s_req_monitor)
     uvm_analysis_port#(m2s_req_seq_item) m2s_req_port;
-    virtual cxl_mem_m2s_req_if m2s_req_m_if;
+    virtual cxl_mem_m2s_req_if.mon host_m2s_req_if;
     m2s_req_seq_item m2s_req_seq_item_h;
 
-    function new(string name = "m2s_req_m_monitor", uvm_component parent = null);
+    function new(string name = "host_m2s_req_monitor", uvm_component parent = null);
       super.new(name, parent);
       m2s_req_port = new("m2s_req_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_m2s_req_if)::get(this, "", "m2s_req_m_if", m2s_req_m_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface m2s_req_m_if"));
+      if(!(uvm_config_db#(cxl_mem_m2s_req_if)::get(this, "", "host_m2s_req_if", host_m2s_req_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_req_if"));
       end
       fork
         begin
           forever begin
-            @(negedge m2s_req_m_if.clk);
-            if(m2s_req_m_if.valid) begin
+            @(posedge host_m2s_req_if.clk);
+            if(host_m2s_req_if.m2s_req_txn.valid && host_m2s_req_if.ready) begin
               m2s_req_seq_item_h = m2s_req_seq_item::type_id::create("m2s_req_seq_item_h", this);
-              m2s_req_seq_item_h.valid         = m2s_req_m_if.valid;
-              m2s_req_seq_item_h.address       = m2s_req_m_if.address;
-              m2s_req_seq_item_h.opcode        = m2s_req_m_if.opcode;
-              m2s_req_seq_item_h.metafield     = m2s_req_m_if.metafield;
-              m2s_req_seq_item_h.metavalue     = m2s_req_m_if.metavalue;
-              m2s_req_seq_item_h.snptype       = m2s_req_m_if.snptype;
-              m2s_req_seq_item_h.tag           = m2s_req_m_if.tag;
-              m2s_req_seq_item_h.tc            = m2s_req_m_if.tc;
+              m2s_req_seq_item_h.valid         = host_m2s_req_if.m2s_req_txn.valid;
+              m2s_req_seq_item_h.address       = host_m2s_req_if.m2s_req_txn.address;
+              m2s_req_seq_item_h.opcode        = host_m2s_req_if.m2s_req_txn.opcode;
+              m2s_req_seq_item_h.metafield     = host_m2s_req_if.m2s_req_txn.metafield;
+              m2s_req_seq_item_h.metavalue     = host_m2s_req_if.m2s_req_txn.metavalue;
+              m2s_req_seq_item_h.snptype       = host_m2s_req_if.m2s_req_txn.snptype;
+              m2s_req_seq_item_h.tag           = host_m2s_req_if.m2s_req_txn.tag;
+              m2s_req_seq_item_h.tc            = host_m2s_req_if.m2s_req_txn.tc;
               m2s_req_port.write(m2s_req_seq_item_h);
             end  
           end
@@ -1196,38 +1874,38 @@ module tb_top;
 
   endclass
 
-  class m2s_rwd_m_monitor extends uvm_monitor;
-    `uvm_component_utils(m2s_rwd_m_monitor)
+  class host_m2s_rwd_monitor extends uvm_monitor;
+    `uvm_component_utils(host_m2s_rwd_monitor)
     uvm_analysis_port#(m2s_rwd_seq_item) m2s_rwd_port;
-    virtual cxl_mem_m2s_rwd_if m2s_rwd_m_if;
+    virtual cxl_mem_m2s_rwd_if.mon host_m2s_rwd_if;
     m2s_rwd_seq_item m2s_rwd_seq_item_h;
 
-    function new(string name = "m2s_rwd_m_monitor", uvm_component parent = null);
+    function new(string name = "host_m2s_rwd_monitor", uvm_component parent = null);
       super.new(name, parent);
       m2s_rwd_port = new("m2s_rwd_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_m2s_rwd_if)::get(this, "", "m2s_rwd_m_if", m2s_rwd_m_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface m2s_rwd_m_if"));
+      if(!(uvm_config_db#(cxl_mem_m2s_rwd_if)::get(this, "", "host_m2s_rwd_if", host_m2s_rwd_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_rwd_if"));
       end
       fork
         begin
           forever begin
-            @(negedge m2s_rwd_m_if.clk);
-            if(m2s_rwd_m_if.valid) begin
+            @(posedge host_m2s_rwd_if.clk);
+            if(host_m2s_rwd_if.m2s_rwd_txn.valid && host_m2s_rwd_if.ready) begin
               m2s_rwd_seq_item_h = m2s_rwd_seq_item::type_id::create("m2s_rwd_seq_item_h", this);
-              m2s_rwd_seq_item_h.valid         = m2s_rwd_m_if.valid;
-              m2s_rwd_seq_item_h.address       = m2s_rwd_m_if.address;
-              m2s_rwd_seq_item_h.opcode        = m2s_rwd_m_if.opcode;
-              m2s_rwd_seq_item_h.metafield     = m2s_rwd_m_if.metafield;
-              m2s_rwd_seq_item_h.metavalue     = m2s_rwd_m_if.metavalue;
-              m2s_rwd_seq_item_h.snptype       = m2s_rwd_m_if.snptype;
-              m2s_rwd_seq_item_h.tag           = m2s_rwd_m_if.tag;
-              m2s_rwd_seq_item_h.tc            = m2s_rwd_m_if.tc;
-              m2s_rwd_seq_item_h.poison        = m2s_rwd_m_if.poison;
-              m2s_rwd_seq_item_h.data          = m2s_rwd_m_if.data;
+              m2s_rwd_seq_item_h.valid         = host_m2s_rwd_if.m2s_rwd_txn.valid;
+              m2s_rwd_seq_item_h.address       = host_m2s_rwd_if.m2s_rwd_txn.address;
+              m2s_rwd_seq_item_h.opcode        = host_m2s_rwd_if.m2s_rwd_txn.opcode;
+              m2s_rwd_seq_item_h.metafield     = host_m2s_rwd_if.m2s_rwd_txn.metafield;
+              m2s_rwd_seq_item_h.metavalue     = host_m2s_rwd_if.m2s_rwd_txn.metavalue;
+              m2s_rwd_seq_item_h.snptype       = host_m2s_rwd_if.m2s_rwd_txn.snptype;
+              m2s_rwd_seq_item_h.tag           = host_m2s_rwd_if.m2s_rwd_txn.tag;
+              m2s_rwd_seq_item_h.tc            = host_m2s_rwd_if.m2s_rwd_txn.tc;
+              m2s_rwd_seq_item_h.poison        = host_m2s_rwd_if.m2s_rwd_txn.poison;
+              m2s_rwd_seq_item_h.data          = host_m2s_rwd_if.m2s_rwd_txn.data;
               m2s_rwd_port.write(m2s_rwd_seq_item_h);
             end  
           end
@@ -1237,33 +1915,33 @@ module tb_top;
   
   endclass
 
-  class s2m_ndr_m_monitor extends uvm_monitor;
-    `uvm_component_utils(s2m_ndr_m_monitor)
+  class dev_s2m_ndr_monitor extends uvm_monitor;
+    `uvm_component_utils(dev_s2m_ndr_monitor)
     uvm_analysis_port#(s2m_ndr_seq_item) s2m_ndr_port;
-    virtual cxl_mem_s2m_ndr_if s2m_ndr_s_if;
+    virtual cxl_mem_s2m_ndr_if.mon dev_s2m_ndr_if;
     s2m_ndr_seq_item s2m_ndr_seq_item_h;
 
-    function new(string name = "s2m_ndr_m_monitor", uvm_component parent = null);
+    function new(string name = "dev_s2m_ndr_monitor", uvm_component parent = null);
       super.new(name, parent);
       s2m_ndr_port = new("s2m_ndr_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_s2m_ndr_if)::get(this, "", "s2m_ndr_s_if", s2m_ndr_s_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface s2m_ndr_s_if"));
+      if(!(uvm_config_db#(cxl_mem_s2m_ndr_if)::get(this, "", "dev_s2m_ndr_if", dev_s2m_ndr_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_ndr_if"));
       end
       fork
         begin
           forever begin
-            @(negedge s2m_ndr_s_if.clk);
-            if(s2m_ndr_s_if.valid) begin
+            @(posedge dev_s2m_ndr_if.clk);
+            if(dev_s2m_ndr_if.s2m_ndr_txn.valid && dev_s2m_ndr_if.ready) begin
               s2m_ndr_seq_item_h = s2m_ndr_seq_item::type_id::create("s2m_ndr_seq_item_h", this);
-              s2m_ndr_seq_item_h.valid         = s2m_ndr_s_if.valid;
-              s2m_ndr_seq_item_h.opcode        = s2m_ndr_s_if.opcode;
-              s2m_ndr_seq_item_h.metafield     = s2m_ndr_s_if.metafield;
-              s2m_ndr_seq_item_h.metavalue     = s2m_ndr_s_if.metavalue;
-              s2m_ndr_seq_item_h.tag           = s2m_ndr_s_if.tag;
+              s2m_ndr_seq_item_h.valid         = dev_s2m_ndr_if.s2m_ndr_txn.valid;
+              s2m_ndr_seq_item_h.opcode        = dev_s2m_ndr_if.s2m_ndr_txn.opcode;
+              s2m_ndr_seq_item_h.metafield     = dev_s2m_ndr_if.s2m_ndr_txn.metafield;
+              s2m_ndr_seq_item_h.metavalue     = dev_s2m_ndr_if.s2m_ndr_txn.metavalue;
+              s2m_ndr_seq_item_h.tag           = dev_s2m_ndr_if.s2m_ndr_txn.tag;
               s2m_ndr_port.write(s2m_ndr_seq_item_h);
             end  
           end
@@ -1273,35 +1951,35 @@ module tb_top;
 
   endclass
 
-  class s2m_drs_m_monitor extends uvm_monitor;
-    `uvm_component_utils(s2m_drs_m_monitor)
+  class dev_s2m_drs_monitor extends uvm_monitor;
+    `uvm_component_utils(dev_s2m_drs_monitor)
     uvm_analysis_port#(s2m_drs_seq_item) s2m_drs_port;
-    virtual cxl_mem_s2m_drs_if s2m_drs_s_if;
+    virtual cxl_mem_s2m_drs_if.mon dev_s2m_drs_if;
     s2m_drs_seq_item s2m_drs_seq_item_h;
 
-    function new(string name = "s2m_drs_m_monitor", uvm_component parent = null);
+    function new(string name = "dev_s2m_drs_monitor", uvm_component parent = null);
       super.new(name, parent);
       s2m_drs_port = new("s2m_drs_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_s2m_drs_if)::get(this, "", "s2m_drs_s_if", s2m_drs_s_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface s2m_drs_s_if"));
+      if(!(uvm_config_db#(cxl_mem_s2m_drs_if)::get(this, "", "dev_s2m_drs_if", dev_s2m_drs_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_drs_if"));
       end
       fork
         begin
           forever begin
-            @(negedge s2m_drs_s_if.clk);
-            if(s2m_drs_s_if.valid) begin
+            @(posedge dev_s2m_drs_if.clk);
+            if(dev_s2m_drs_if.s2m_drs_txn.valid && dev_s2m_drs_if.ready) begin
               s2m_drs_seq_item_h = s2m_drs_seq_item::type_id::create("s2m_drs_seq_item_h", this);
-              s2m_drs_seq_item_h.valid         = s2m_drs_s_if.valid;
-              s2m_drs_seq_item_h.opcode        = s2m_drs_s_if.opcode;
-              s2m_drs_seq_item_h.metafield     = s2m_drs_s_if.metafield;
-              s2m_drs_seq_item_h.metavalue     = s2m_drs_s_if.metavalue;
-              s2m_drs_seq_item_h.tag           = s2m_drs_s_if.tag;
-              s2m_drs_seq_item_h.poison        = s2m_drs_s_if.poison;
-              s2m_drs_seq_item_h.data          = s2m_drs_s_if.data;
+              s2m_drs_seq_item_h.valid         = dev_s2m_drs_if.s2m_drs_txn.valid;
+              s2m_drs_seq_item_h.opcode        = dev_s2m_drs_if.s2m_drs_txn.opcode;
+              s2m_drs_seq_item_h.metafield     = dev_s2m_drs_if.s2m_drs_txn.metafield;
+              s2m_drs_seq_item_h.metavalue     = dev_s2m_drs_if.s2m_drs_txn.metavalue;
+              s2m_drs_seq_item_h.tag           = dev_s2m_drs_if.s2m_drs_txn.tag;
+              s2m_drs_seq_item_h.poison        = dev_s2m_drs_if.s2m_drs_txn.poison;
+              s2m_drs_seq_item_h.data          = dev_s2m_drs_if.s2m_drs_txn.data;
               s2m_drs_port.write(s2m_drs_seq_item_h);
             end  
           end
@@ -1311,33 +1989,33 @@ module tb_top;
 
   endclass
 
-  class d2h_req_p_monitor extends uvm_monitor;
-    `uvm_component_utils(d2h_req_p_monitor)
+  class host_d2h_req_monitor extends uvm_monitor;
+    `uvm_component_utils(host_d2h_req_monitor)
     uvm_analysis_port#(d2h_req_seq_item) d2h_req_port;
-    virtual cxl_cache_d2h_req_if d2h_req_m_if;
+    virtual cxl_cache_d2h_req_if.mon host_d2h_req_if;
     d2h_req_seq_item d2h_req_seq_item_h;
 
-    function new(string name = "d2h_req_p_monitor", uvm_component parent = null);
+    function new(string name = "host_d2h_req_monitor", uvm_component parent = null);
       super.new(name, parent);
       d2h_req_port = new("d2h_req_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "d2h_req_m_if", d2h_req_m_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface d2h_req_m_if"));
+      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "host_d2h_req_if", host_d2h_req_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_req_if"));
       end
       fork
         begin
           forever begin
-            @(negedge d2h_req_m_if.clk);
-            if(d2h_req_m_if.valid) begin
+            @(posedge host_d2h_req_if.clk);
+            if(host_d2h_req_if.d2h_req_txn.valid && host_d2h_req_if.ready) begin
               d2h_req_seq_item_h = d2h_req_seq_item::type_id::create("d2h_req_seq_item_h", this);
-              d2h_req_seq_item_h.valid    = d2h_req_m_if.valid;
-              d2h_req_seq_item_h.opcode   = d2h_req_m_if.opcode;
-              d2h_req_seq_item_h.address  = d2h_req_m_if.address;
-              d2h_req_seq_item_h.cqid     = d2h_req_m_if.cqid;
-              d2h_req_seq_item_h.nt       = d2h_req_m_if.nt;
+              d2h_req_seq_item_h.valid    = host_d2h_req_if.d2h_req_txn.valid;
+              d2h_req_seq_item_h.opcode   = host_d2h_req_if.d2h_req_txn.opcode;
+              d2h_req_seq_item_h.address  = host_d2h_req_if.d2h_req_txn.address;
+              d2h_req_seq_item_h.cqid     = host_d2h_req_if.d2h_req_txn.cqid;
+              d2h_req_seq_item_h.nt       = host_d2h_req_if.d2h_req_txn.nt;
               d2h_req_port.write(d2h_req_seq_item_h);
             end  
           end
@@ -1346,31 +2024,31 @@ module tb_top;
     endtask
   endclass
 
-  class d2h_rsp_p_monitor extends uvm_monitor;
-    `uvm_component_utils(d2h_rsp_p_monitor)
+  class host_d2h_rsp_monitor extends uvm_monitor;
+    `uvm_component_utils(host_d2h_rsp_monitor)
     uvm_analysis_port#(d2h_rsp_seq_item) d2h_rsp_port;
-    virtual cxl_cache_d2h_rsp_if d2h_rsp_m_if;
+    virtual cxl_cache_d2h_rsp_if.mon host_d2h_rsp_if;
     d2h_rsp_seq_item d2h_rsp_seq_item_h;
 
-    function new(string name = "d2h_rsp_p_monitor", uvm_component parent = null);
+    function new(string name = "host_d2h_rsp_monitor", uvm_component parent = null);
       super.new(name, parent);
       d2h_rsp_port = new("d2h_rsp_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_rsp_if)::get(this, "", "d2h_rsp_m_if", d2h_rsp_m_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface d2h_rsp_m_if"));
+      if(!(uvm_config_db#(cxl_cache_d2h_rsp_if)::get(this, "", "host_d2h_rsp_if", host_d2h_rsp_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_rsp_if"));
       end
       fork
         begin
           forever begin
-            @(negedge d2h_rsp_m_if.clk);
-            if(d2h_rsp_m_if.valid) begin
+            @(posedge host_d2h_rsp_if.clk);
+            if(host_d2h_rsp_if.d2h_rsp_txn.valid && host_d2h_rsp_if.ready) begin
               d2h_rsp_seq_item_h = d2h_rsp_seq_item::type_id::create("d2h_rsp_seq_item_h", this);
-              d2h_rsp_seq_item_h.valid   = d2h_rsp_m_if.valid;
-              d2h_rsp_seq_item_h.opcode  = d2h_rsp_m_if.opcode;
-              d2h_rsp_seq_item_h.uqid    = d2h_rsp_m_if.uqid;
+              d2h_rsp_seq_item_h.valid   = host_d2h_rsp_if.d2h_rsp_txn.valid;
+              d2h_rsp_seq_item_h.opcode  = host_d2h_rsp_if.d2h_rsp_txn.opcode;
+              d2h_rsp_seq_item_h.uqid    = host_d2h_rsp_if.d2h_rsp_txn.uqid;
               d2h_rsp_port.write(d2h_rsp_seq_item_h);
             end  
           end
@@ -1380,34 +2058,34 @@ module tb_top;
 
   endclass
 
-  class d2h_data_p_monitor extends uvm_monitor;
-    `uvm_component_utils(d2h_data_p_monitor)
+  class host_d2h_data_monitor extends uvm_monitor;
+    `uvm_component_utils(host_d2h_data_monitor)
     uvm_analysis_port#(d2h_data_seq_item) d2h_data_port;
-    virtual cxl_cache_d2h_data_if d2h_data_m_if;
+    virtual cxl_cache_d2h_data_if.mon host_d2h_data_if;
     d2h_data_seq_item d2h_data_seq_item_h;
 
-    function new(string name = "d2h_data_p_monitor", uvm_component parent = null);
+    function new(string name = "host_d2h_data_monitor", uvm_component parent = null);
       super.new(name, parent);
       d2h_data_port = new("d2h_data_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_data_if)::get(this, "", "d2h_data_m_if", d2h_data_m_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface d2h_data_m_if"));
+      if(!(uvm_config_db#(cxl_cache_d2h_data_if)::get(this, "", "host_d2h_data_if", host_d2h_data_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_data_if"));
       end
       fork
         begin
           forever begin
-            @(negedge d2h_data_m_if.clk);
-            if(d2h_data_m_if.valid) begin
+            @(posedge host_d2h_data_if.clk);
+            if(host_d2h_data_if.d2h_data_txn.valid && host_d2h_data_if.ready) begin
               d2h_data_seq_item_h = d2h_data_seq_item::type_id::create("d2h_data_seq_item_h", this);
-              d2h_data_seq_item_h.valid         = d2h_data_m_if.valid;
-              d2h_data_seq_item_h.uqid          = d2h_data_m_if.uqid;
-              d2h_data_seq_item_h.chunkvalid    = d2h_data_m_if.chunkvalid;
-              d2h_data_seq_item_h.bogus         = d2h_data_m_if.bogus;
-              d2h_data_seq_item_h.poison        = d2h_data_m_if.poison;
-              d2h_data_seq_item_h.data          = d2h_data_m_if.data;
+              d2h_data_seq_item_h.valid         = host_d2h_data_if.d2h_data_txn.valid;
+              d2h_data_seq_item_h.uqid          = host_d2h_data_if.d2h_data_txn.uqid;
+              d2h_data_seq_item_h.chunkvalid    = host_d2h_data_if.d2h_data_txn.chunkvalid;
+              d2h_data_seq_item_h.bogus         = host_d2h_data_if.d2h_data_txn.bogus;
+              d2h_data_seq_item_h.poison        = host_d2h_data_if.d2h_data_txn.poison;
+              d2h_data_seq_item_h.data          = host_d2h_data_if.d2h_data_txn.data;
               d2h_data_port.write(d2h_data_seq_item_h);
             end  
           end
@@ -1417,31 +2095,31 @@ module tb_top;
 
   endclass
 
-  class h2d_req_p_monitor extends uvm_monitor;
-    `uvm_component_utils(h2d_req_p_monitor)
+  class dev_h2d_req_monitor extends uvm_monitor;
+    `uvm_component_utils(dev_h2d_req_monitor)
     uvm_analysis_port#(h2d_req_seq_item) h2d_req_port;
-    virtual cxl_cache_h2d_req_if h2d_req_s_if;
+    virtual cxl_cache_h2d_req_if.mon dev_h2d_req_if;
 
-    function new(string name = "h2d_req_p_monitor", uvm_component parent = null);
+    function new(string name = "dev_h2d_req_monitor", uvm_component parent = null);
       super.new(name, parent);
       h2d_req_port = new("h2d_req_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_req_if)::get(this, "", "h2d_req_s_if", h2d_req_s_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface h2d_req_s_if"));
+      if(!(uvm_config_db#(cxl_cache_h2d_req_if)::get(this, "", "dev_h2d_req_if", dev_h2d_req_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_req_if"));
       end
       fork
         begin
           forever begin
-            @(negedge h2d_req_s_if.clk);
-            if(h2d_req_s_if.valid) begin
+            @(posedge dev_h2d_req_if.clk);
+            if(dev_h2d_req_if.h2d_req_txn.valid && dev_h2d_req_if.ready) begin
               h2d_req_seq_item_h = h2d_req_seq_item::type_id::create("h2d_req_seq_item_h", this);
-              h2d_req_seq_item_h.valid         = h2d_req_s_if.valid;
-              h2d_req_seq_item_h.opcode        = h2d_req_s_if.opcode;
-              h2d_req_seq_item_h.address       = h2d_req_s_if.address;
-              h2d_req_seq_item_h.uqid          = h2d_req_s_if.uqid;
+              h2d_req_seq_item_h.valid         = dev_h2d_req_if.h2d_req_txn.valid;
+              h2d_req_seq_item_h.opcode        = dev_h2d_req_if.h2d_req_txn.opcode;
+              h2d_req_seq_item_h.address       = dev_h2d_req_if.h2d_req_txn.address;
+              h2d_req_seq_item_h.uqid          = dev_h2d_req_if.h2d_req_txn.uqid;
               h2d_req_port.write(h2d_req_seq_item_h);
             end  
           end
@@ -1451,33 +2129,33 @@ module tb_top;
 
   endclass
   
-  class h2d_rsp_p_monitor extends uvm_monitor;
-    `uvm_component_utils(h2d_rsp_p_monitor)
+  class dev_h2d_rsp_monitor extends uvm_monitor;
+    `uvm_component_utils(dev_h2d_rsp_monitor)
     uvm_analysis_port#(h2d_rsp_seq_item) h2d_rsp_port;
-    virtual cxl_cache_h2d_rsp_if h2d_rsp_s_if;
+    virtual cxl_cache_h2d_rsp_if.mon dev_h2d_rsp_if;
     h2d_rsp_seq_item h2d_rsp_seq_item_h;
 
-    function new(string name = "h2d_rsp_p_monitor", uvm_component parent = null);
+    function new(string name = "dev_h2d_rsp_monitor", uvm_component parent = null);
       super.new(name, parent);
       h2d_rsp_port = new("h2d_rsp_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_rsp_if)::get(this, "", "h2d_rsp_s_if", h2d_rsp_s_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface h2d_rsp_s_if"));
+      if(!(uvm_config_db#(cxl_cache_h2d_rsp_if)::get(this, "", "dev_h2d_rsp_if", dev_h2d_rsp_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_rsp_if"));
       end
       fork
         begin
           forever begin
-            @(negedge h2d_rsp_s_if.clk);
-            if(h2d_rsp_s_if.valid) begin
+            @(posedge dev_h2d_rsp_if.clk);
+            if(dev_h2d_rsp_if.h2d_rsp_txn.valid && dev_h2d_rsp_if.ready) begin
               h2d_rsp_seq_item_h = h2d_rsp_seq_item::type_id::create("h2d_rsp_seq_item_h", this);
-              h2d_rsp_seq_item_h.valid         = h2d_rsp_s_if.valid;
-              h2d_rsp_seq_item_h.opcode        = h2d_rsp_s_if.opcode;
-              h2d_rsp_seq_item_h.rspdata       = h2d_rsp_s_if.rspdata;
-              h2d_rsp_seq_item_h.rsppre        = h2d_rsp_s_if.rsppre;
-              h2d_rsp_seq_item_h.cqid          = h2d_rsp_s_if.cqid;
+              h2d_rsp_seq_item_h.valid         = dev_h2d_rsp_if.h2d_rsp_txn.valid;
+              h2d_rsp_seq_item_h.opcode        = dev_h2d_rsp_if.h2d_rsp_txn.opcode;
+              h2d_rsp_seq_item_h.rspdata       = dev_h2d_rsp_if.h2d_rsp_txn.rspdata;
+              h2d_rsp_seq_item_h.rsppre        = dev_h2d_rsp_if.h2d_rsp_txn.rsppre;
+              h2d_rsp_seq_item_h.cqid          = dev_h2d_rsp_if.h2d_rsp_txn.cqid;
               h2d_rsp_port.write(h2d_rsp_seq_item_h);
             end  
           end
@@ -1487,34 +2165,34 @@ module tb_top;
 
   endclass
 
-  class h2d_data_p_monitor extends uvm_monitor;
-    `uvm_component_utils(h2d_data_p_monitor)
+  class dev_h2d_data_monitor extends uvm_monitor;
+    `uvm_component_utils(dev_h2d_data_monitor)
     uvm_analysis_port#(h2d_data_seq_item) h2d_data_port;
-    virtual cxl_cache_h2d_data_if h2d_data_s_if;
+    virtual cxl_cache_h2d_data_if.mon dev_h2d_data_if;
     h2d_data_seq_item h2d_data_seq_item_h;
 
-    function new(string name = "h2d_data_p_monitor", uvm_component parent = null);
+    function new(string name = "dev_h2d_data_monitor", uvm_component parent = null);
       super.new(name, parent);
       h2d_data_port = new("h2d_data_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_data_if)::get(this, "", "h2d_data_s_if", h2d_data_s_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface h2d_data_s_if"));
+      if(!(uvm_config_db#(cxl_cache_h2d_data_if)::get(this, "", "dev_h2d_data_if", dev_h2d_data_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_data_if"));
       end
       fork
         begin
           forever begin
-            @(negedge h2d_data_s_if.clk);
-            if(h2d_data_s_if.valid) begin
+            @(posedge dev_h2d_data_if.clk);
+            if(dev_h2d_data_if.h2d_data_txn.valid && dev_h2d_data_if.ready) begin
               h2d_data_seq_item_h = h2d_data_seq_item::type_id::create("h2d_data_seq_item_h", this);
-              h2d_data_seq_item_h.valid         = h2d_data_s_if.valid;
-              h2d_data_seq_item_h.cqid          = h2d_data_s_if.cqid;
-              h2d_data_seq_item_h.chunkvalid    = h2d_data_s_if.chunkvalid;
-              h2d_data_seq_item_h.poison        = h2d_data_s_if.poison;
-              h2d_data_seq_item_h.goerr         = h2d_data_s_if.goerr;
-              h2d_data_seq_item_h.data          = h2d_data_s_if.data;
+              h2d_data_seq_item_h.valid         = dev_h2d_data_if.h2d_data_txn.valid;
+              h2d_data_seq_item_h.cqid          = dev_h2d_data_if.h2d_data_txn.cqid;
+              h2d_data_seq_item_h.chunkvalid    = dev_h2d_data_if.h2d_data_txn.chunkvalid;
+              h2d_data_seq_item_h.poison        = dev_h2d_data_if.h2d_data_txn.poison;
+              h2d_data_seq_item_h.goerr         = dev_h2d_data_if.h2d_data_txn.goerr;
+              h2d_data_seq_item_h.data          = dev_h2d_data_if.h2d_data_txn.data;
               h2d_data_port.write(h2d_data_seq_item_h);
             end  
           end
@@ -1524,36 +2202,36 @@ module tb_top;
 
   endclass
 
-  class m2s_req_p_monitor extends uvm_monitor;
-    `uvm_component_utils(m2s_req_p_monitor)
+  class dev_m2s_req_monitor extends uvm_monitor;
+    `uvm_component_utils(dev_m2s_req_monitor)
     uvm_analysis_port#(m2s_req_seq_item) m2s_req_port;
-    virtual cxl_mem_m2s_req_if m2s_req_s_if;
+    virtual cxl_mem_m2s_req_if.mon dev_m2s_req_if;
     m2s_req_seq_item m2s_req_seq_item_h;
 
-    function new(string name = "m2s_req_p_monitor", uvm_component parent = null);
+    function new(string name = "dev_m2s_req_monitor", uvm_component parent = null);
       super.new(name, parent);
       m2s_req_port = new("m2s_req_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_m2s_req_if)::get(this, "", "m2s_req_s_if", m2s_req_s_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface m2s_req_s_if"));
+      if(!(uvm_config_db#(cxl_mem_m2s_req_if)::get(this, "", "dev_m2s_req_if", dev_m2s_req_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_req_if"));
       end
       fork
         begin
           forever begin
-            @(negedge m2s_req_s_if.clk);
-            if(m2s_req_s_if.valid) begin
+            @(posedge dev_m2s_req_if.clk);
+            if(dev_m2s_req_if.m2s_req_txn.valid && dev_m2s_req_if.ready) begin
               m2s_req_seq_item_h = m2s_req_seq_item::type_id::create("m2s_req_seq_item_h", this);
-              m2s_req_seq_item_h.valid         = m2s_req_s_if.valid;
-              m2s_req_seq_item_h.address       = m2s_req_s_if.address;
-              m2s_req_seq_item_h.opcode        = m2s_req_s_if.opcode;
-              m2s_req_seq_item_h.metafield     = m2s_req_s_if.metafield;
-              m2s_req_seq_item_h.metavalue     = m2s_req_s_if.metavalue;
-              m2s_req_seq_item_h.snptype       = m2s_req_s_if.snptype;
-              m2s_req_seq_item_h.tag           = m2s_req_s_if.tag;
-              m2s_req_seq_item_h.tc            = m2s_req_s_if.tc;
+              m2s_req_seq_item_h.valid         = dev_m2s_req_if.m2s_req_txn.valid;
+              m2s_req_seq_item_h.address       = dev_m2s_req_if.m2s_req_txn.address;
+              m2s_req_seq_item_h.opcode        = dev_m2s_req_if.m2s_req_txn.opcode;
+              m2s_req_seq_item_h.metafield     = dev_m2s_req_if.m2s_req_txn.metafield;
+              m2s_req_seq_item_h.metavalue     = dev_m2s_req_if.m2s_req_txn.metavalue;
+              m2s_req_seq_item_h.snptype       = dev_m2s_req_if.m2s_req_txn.snptype;
+              m2s_req_seq_item_h.tag           = dev_m2s_req_if.m2s_req_txn.tag;
+              m2s_req_seq_item_h.tc            = dev_m2s_req_if.m2s_req_txn.tc;
               m2s_req_port.write(m2s_req_seq_item_h);
             end  
           end
@@ -1563,38 +2241,38 @@ module tb_top;
 
   endclass
 
-  class m2s_rwd_p_monitor extends uvm_monitor;
-    `uvm_component_utils(m2s_rwd_p_monitor)
+  class dev_m2s_rwd_monitor extends uvm_monitor;
+    `uvm_component_utils(dev_m2s_rwd_monitor)
     uvm_analysis_port#(m2s_rwd_seq_item) m2s_rwd_port;
-    virtual cxl_mem_m2s_rwd_if m2s_rwd_s_if;
+    virtual cxl_mem_m2s_rwd_if.mon dev_m2s_rwd_if;
     m2s_rwd_seq_item m2s_rwd_seq_item_h;
 
-    function new(string name = "m2s_rwd_p_monitor", uvm_component parent = null);
+    function new(string name = "dev_m2s_rwd_monitor", uvm_component parent = null);
       super.new(name, parent);
       m2s_rwd_port = new("m2s_rwd_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_m2s_rwd_if)::get(this, "", "m2s_rwd_s_if", m2s_rwd_s_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface m2s_rwd_s_if"));
+      if(!(uvm_config_db#(cxl_mem_m2s_rwd_if)::get(this, "", "dev_m2s_rwd_if", dev_m2s_rwd_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_rwd_if"));
       end
       fork
         begin
           forever begin
-            @(negedge m2s_rwd_s_if.clk);
-            if(m2s_rwd_s_if.valid) begin
+            @(posedge dev_m2s_rwd_if.clk);
+            if(dev_m2s_rwd_if.m2s_rwd_txn.valid && dev_m2s_rwd_if.ready) begin
               m2s_rwd_seq_item_h = m2s_rwd_seq_item::type_id::create("m2s_rwd_seq_item_h", this);
-              m2s_rwd_seq_item_h.valid         = m2s_rwd_s_if.valid;
-              m2s_rwd_seq_item_h.address       = m2s_rwd_s_if.address;
-              m2s_rwd_seq_item_h.opcode        = m2s_rwd_s_if.opcode;
-              m2s_rwd_seq_item_h.metafield     = m2s_rwd_s_if.metafield;
-              m2s_rwd_seq_item_h.metavalue     = m2s_rwd_s_if.metavalue;
-              m2s_rwd_seq_item_h.snptype       = m2s_rwd_s_if.snptype;
-              m2s_rwd_seq_item_h.tag           = m2s_rwd_s_if.tag;
-              m2s_rwd_seq_item_h.tc            = m2s_rwd_s_if.tc;
-              m2s_rwd_seq_item_h.poison        = m2s_rwd_s_if.poison;
-              m2s_rwd_seq_item_h.data          = m2s_rwd_s_if.data;
+              m2s_rwd_seq_item_h.valid         = dev_m2s_rwd_if.m2s_rwd_txn.valid;
+              m2s_rwd_seq_item_h.address       = dev_m2s_rwd_if.m2s_rwd_txn.address;
+              m2s_rwd_seq_item_h.opcode        = dev_m2s_rwd_if.m2s_rwd_txn.opcode;
+              m2s_rwd_seq_item_h.metafield     = dev_m2s_rwd_if.m2s_rwd_txn.metafield;
+              m2s_rwd_seq_item_h.metavalue     = dev_m2s_rwd_if.m2s_rwd_txn.metavalue;
+              m2s_rwd_seq_item_h.snptype       = dev_m2s_rwd_if.m2s_rwd_txn.snptype;
+              m2s_rwd_seq_item_h.tag           = dev_m2s_rwd_if.m2s_rwd_txn.tag;
+              m2s_rwd_seq_item_h.tc            = dev_m2s_rwd_if.m2s_rwd_txn.tc;
+              m2s_rwd_seq_item_h.poison        = dev_m2s_rwd_if.m2s_rwd_txn.poison;
+              m2s_rwd_seq_item_h.data          = dev_m2s_rwd_if.m2s_rwd_txn.data;
               m2s_rwd_port.write(m2s_rwd_seq_item_h);
             end  
           end
@@ -1604,33 +2282,33 @@ module tb_top;
   
   endclass
 
-  class s2m_ndr_p_monitor extends uvm_monitor;
-    `uvm_component_utils(s2m_ndr_p_monitor)
+  class host_s2m_ndr_monitor extends uvm_monitor;
+    `uvm_component_utils(host_s2m_ndr_monitor)
     uvm_analysis_port#(s2m_ndr_seq_item) s2m_ndr_port;
-    virtual cxl_mem_s2m_ndr_if s2m_ndr_m_if;
+    virtual cxl_mem_s2m_ndr_if.mon host_s2m_ndr_if;
     s2m_ndr_seq_item s2m_ndr_seq_item_h;
 
-    function new(string name = "s2m_ndr_p_monitor", uvm_component parent = null);
+    function new(string name = "host_s2m_ndr_monitor", uvm_component parent = null);
       super.new(name, parent);
       s2m_ndr_port = new("s2m_ndr_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_s2m_ndr_if)::get(this, "", "s2m_ndr_m_if", s2m_ndr_m_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface s2m_ndr_m_if"));
+      if(!(uvm_config_db#(cxl_mem_s2m_ndr_if)::get(this, "", "host_s2m_ndr_if", host_s2m_ndr_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_ndr_if"));
       end
       fork
         begin
           forever begin
-            @(negedge s2m_ndr_m_if.clk);
-            if(s2m_ndr_m_if.valid) begin
+            @(posedge host_s2m_ndr_if.clk);
+            if(host_s2m_ndr_if.s2m_ndr_txn.valid && host_s2m_ndr_if.ready) begin
               s2m_ndr_seq_item_h = s2m_ndr_seq_item::type_id::create("s2m_ndr_seq_item_h", this);
-              s2m_ndr_seq_item_h.valid         = s2m_ndr_m_if.valid;
-              s2m_ndr_seq_item_h.opcode        = s2m_ndr_m_if.opcode;
-              s2m_ndr_seq_item_h.metafield     = s2m_ndr_m_if.metafield;
-              s2m_ndr_seq_item_h.metavalue     = s2m_ndr_m_if.metavalue;
-              s2m_ndr_seq_item_h.tag           = s2m_ndr_m_if.tag;
+              s2m_ndr_seq_item_h.valid         = host_s2m_ndr_if.s2m_ndr_txn.valid;
+              s2m_ndr_seq_item_h.opcode        = host_s2m_ndr_if.s2m_ndr_txn.opcode;
+              s2m_ndr_seq_item_h.metafield     = host_s2m_ndr_if.s2m_ndr_txn.metafield;
+              s2m_ndr_seq_item_h.metavalue     = host_s2m_ndr_if.s2m_ndr_txn.metavalue;
+              s2m_ndr_seq_item_h.tag           = host_s2m_ndr_if.s2m_ndr_txn.tag;
               s2m_ndr_port.write(s2m_ndr_seq_item_h);
             end  
           end
@@ -1640,35 +2318,35 @@ module tb_top;
 
   endclass
 
-  class s2m_drs_p_monitor extends uvm_monitor;
-    `uvm_component_utils(s2m_drs_p_monitor)
+  class host_s2m_drs_monitor extends uvm_monitor;
+    `uvm_component_utils(host_s2m_drs_monitor)
     uvm_analysis_port#(s2m_drs_seq_item) s2m_drs_port;
-    virtual cxl_mem_s2m_drs_if s2m_drs_m_if;
+    virtual cxl_mem_s2m_drs_if.mon host_s2m_drs_if;
     s2m_drs_seq_item s2m_drs_seq_item_h;
 
-    function new(string name = "s2m_drs_p_monitor", uvm_component parent = null);
+    function new(string name = "host_s2m_drs_monitor", uvm_component parent = null);
       super.new(name, parent);
       s2m_drs_port = new("s2m_drs_port", this);
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_s2m_drs_if)::get(this, "", "s2m_drs_m_if", s2m_drs_m_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface s2m_drs_m_if"));
+      if(!(uvm_config_db#(cxl_mem_s2m_drs_if)::get(this, "", "host_s2m_drs_if", host_s2m_drs_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_drs_if"));
       end
       fork
         begin
           forever begin
-            @(negedge s2m_drs_m_if.clk);
-            if(s2m_drs_m_if.valid) begin
+            @(posedge host_s2m_drs_if.clk);
+            if(host_s2m_drs_if.s2m_drs_txn.valid && host_s2m_drs_if.ready) begin
               s2m_drs_seq_item_h = s2m_drs_seq_item::type_id::create("s2m_drs_seq_item_h", this);
-              s2m_drs_seq_item_h.valid         = s2m_drs_m_if.valid;
-              s2m_drs_seq_item_h.opcode        = s2m_drs_m_if.opcode;
-              s2m_drs_seq_item_h.metafield     = s2m_drs_m_if.metafield;
-              s2m_drs_seq_item_h.metavalue     = s2m_drs_m_if.metavalue;
-              s2m_drs_seq_item_h.tag           = s2m_drs_m_if.tag;
-              s2m_drs_seq_item_h.poison        = s2m_drs_m_if.poison;
-              s2m_drs_seq_item_h.data          = s2m_drs_m_if.data;
+              s2m_drs_seq_item_h.valid         = host_s2m_drs_if.s2m_drs_txn.valid;
+              s2m_drs_seq_item_h.opcode        = host_s2m_drs_if.s2m_drs_txn.opcode;
+              s2m_drs_seq_item_h.metafield     = host_s2m_drs_if.s2m_drs_txn.metafield;
+              s2m_drs_seq_item_h.metavalue     = host_s2m_drs_if.s2m_drs_txn.metavalue;
+              s2m_drs_seq_item_h.tag           = host_s2m_drs_if.s2m_drs_txn.tag;
+              s2m_drs_seq_item_h.poison        = host_s2m_drs_if.s2m_drs_txn.poison;
+              s2m_drs_seq_item_h.data          = host_s2m_drs_if.s2m_drs_txn.data;
               s2m_drs_port.write(s2m_drs_seq_item_h);
             end  
           end
@@ -1678,380 +2356,748 @@ module tb_top;
 
   endclass
 
-  class d2h_req_driver extends uvm_driver;
-    `uvm_component_utils(d2h_req_driver)
-    virtual cxl_cache_d2h_req_if d2h_req_s_if;
+  class host_d2h_req_driver extends uvm_driver;
+    `uvm_component_utils(host_d2h_req_driver)
+    virtual cxl_cache_d2h_req_if.host_pasv_drvr_mp host_d2h_req_if;
     d2h_req_seq_item d2h_req_seq_item_h;
 
-    function new(string name = "d2h_req_driver", uvm_component parent = null);
+    function new(string name = "host_d2h_req_driver", uvm_component parent = null);
       super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "host_d2h_req_if", host_d2h_req_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_req_if"));
+      end
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "d2h_req_s_if", d2h_req_s_if)) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface d2h_req_s_if"));
-      end
-      fork
-        begin
-          forever begin
-            seq_item_port.get_next_item(d2h_req_seq_item_h);
-            if(d2h_req_seq_item_h.delay_set) begin
-              repeat(d2h_req_seq_item_h.delay_value) @(negedge d2h_req_s_if.clk);
-            end else begin
-              @(negedge d2h_req_s_if.clk);
-            end
-            d2h_req_s_if.valid    =  d2h_req_seq_item_h.valid;//    = d2h_req_s_if.valid;
-            d2h_req_s_if.opcode   =  d2h_req_seq_item_h.opcode;//   = d2h_req_s_if.opcode;
-            d2h_req_s_if.address  =  d2h_req_seq_item_h.address;//  = d2h_req_s_if.address;
-            d2h_req_s_if.cqid     =  d2h_req_seq_item_h.cqid;//     = d2h_req_s_if.cqid;
-            d2h_req_s_if.nt       =  d2h_req_seq_item_h.nt;//       = d2h_req_s_if.nt;
-            seq_item_port.item_done(d2h_req_seq_item_h);
-          end
+      forever begin
+        seq_item_port.get_next_item(d2h_req_seq_item_h);  
+        if(d2h_req_seq_item_h.delay_set) begin
+          repeat(d2h_req_seq_item_h.delay_value) @(negedge host_d2h_req_if.clk);
         end
-      join_none
+        @(negedge host_d2h_req_if.clk);
+        host_d2h_req_if.ready <= 'h1;
+        do begin
+          @(negedge host_d2h_req_if.clk);
+        end while(!host_d2h_req_if.d2h_req_txn.valid);
+        host_d2h_req_if.ready <= 'h0;
+        seq_item_port.item_done(d2h_req_seq_item_h);
+      end
     endtask
+
   endclass
 
-  class d2h_rsp_driver extends uvm_driver;
-    `uvm_component_utils(d2h_rsp_driver)
-    virtual cxl_cache_d2h_rsp_if d2h_rsp_s_if;
+  class host_d2h_rsp_driver extends uvm_driver;
+    `uvm_component_utils(host_d2h_rsp_driver)
+    virtual cxl_cache_d2h_rsp_if.host_pasv_drvr_mp host_d2h_rsp_if;
     d2h_rsp_seq_item d2h_rsp_seq_item_h;
 
-    function new(string name = "d2h_rsp_driver", uvm_component parent = null);
+    function new(string name = "host_d2h_rsp_driver", uvm_component parent = null);
       super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_cache_d2h_rsp_if)::get(this, "", "host_d2h_rsp_if", host_d2h_rsp_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_rsp_if"));
+      end
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_rsp_if)::get(this, "", "d2h_rsp_s_if", d2h_rsp_s_if))) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface d2h_rsp_s_if"));
-      end
-      fork
-        begin
-          forever begin
-            seq_item_port.get_next_item(d2h_rsp_seq_item_h);
-            if(d2h_rsp_seq_item_h.delay_set) begin
-              repeat(d2h_rsp_seq_item_h.delay_value) @(negedge d2h_rsp_s_if.clk);
-            end else begin
-              @(negedge d2h_rsp_s_if.clk);
-            end
-            d2h_rsp_s_if.valid  =  d2h_rsp_seq_item_h.valid;//   = d2h_rsp_s_if.valid;
-            d2h_rsp_s_if.opcode =  d2h_rsp_seq_item_h.opcode;//  = d2h_rsp_s_if.opcode;
-            d2h_rsp_s_if.uqid   =  d2h_rsp_seq_item_h.uqid;//    = d2h_rsp_s_if.uqid;
-            seq_item_port.item_done(d2h_rsp_seq_item_h);
-          end
+      forever begin
+        seq_item_port.get_next_item(d2h_rsp_seq_item_h);  
+        if(d2h_rsp_seq_item_h.delay_set) begin
+          repeat(d2h_rsp_seq_item_h.delay_value) @(negedge host_d2h_rsp_if.clk);
         end
-      join_none
+        @(negedge host_d2h_rsp_if.clk);
+        host_d2h_rsp_if.ready <= 'h1;
+        do begin
+          @(negedge host_d2h_rsp_if.clk);
+        end while(!host_d2h_rsp_if.d2h_rsp_txn.valid);
+        host_d2h_rsp_if.ready <= 'h0;
+        seq_item_port.item_done(d2h_rsp_seq_item_h);
+      end
     endtask
 
   endclass
 
-  class d2h_data_driver extends uvm_driver;
-    `uvm_component_utils(d2h_data_driver)
-    virtual cxl_cache_d2h_data_if d2h_data_s_if;
+  class host_d2h_data_driver extends uvm_driver;
+    `uvm_component_utils(host_d2h_data_driver)
+    virtual cxl_cache_d2h_data_if.host_pasv_drvr_mp host_d2h_data_if;
     d2h_data_seq_item d2h_data_seq_item_h;
 
-    function new(string name = "d2h_data_driver", uvm_component parent = null);
+    function new(string name = "host_d2h_data_driver", uvm_component parent = null);
       super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_cache_d2h_data_if)::get(this, "", "host_d2h_data_if", host_d2h_data_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_data_if"));
+      end
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_data_if)::get(this, "", "d2h_data_s_if", d2h_data_s_if)) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface d2h_data_s_if"));
-      end
-      fork
-        begin
-          forever begin
-            seq_item_port.get_next_item(d2h_data_seq_item_h);
-            if(d2h_data_seq_item_h.delay_set) begin
-              repeat(d2h_data_seq_item_h.delay_value) @(negedge d2h_data_s_if.clk);
-            end else begin
-              @(negedge d2h_data_s_if.clk);
-            end
-            d2h_data_s_if.valid     =  d2h_data_seq_item_h.valid;//         = d2h_data_s_if.valid;
-            d2h_data_s_if.uqid      =  d2h_data_seq_item_h.uqid;//          = d2h_data_s_if.uqid;
-            d2h_data_s_if.chunkvalid=  d2h_data_seq_item_h.chunkvalid;//    = d2h_data_s_if.chunkvalid;
-            d2h_data_s_if.bogus     =  d2h_data_seq_item_h.bogus;//         = d2h_data_s_if.bogus;
-            d2h_data_s_if.poison    =  d2h_data_seq_item_h.poison;//        = d2h_data_s_if.poison;
-            d2h_data_s_if.data      =  d2h_data_seq_item_h.data;//          = d2h_data_s_if.data;
-            seq_item_port.item_done(d2h_data_seq_item_h);
-          end
+      forever begin
+        seq_item_port.get_next_item(d2h_data_seq_item_h);  
+        if(d2h_data_seq_item_h.delay_set) begin
+          repeat(d2h_data_seq_item_h.delay_value) @(negedge host_d2h_data_if.clk);
         end
-      join_none
+        @(negedge host_d2h_data_if.clk);
+        host_d2h_data_if.ready <= 'h1;
+        do begin
+          @(negedge host_d2h_data_if.clk);
+        end while(!host_d2h_data_if.d2h_data_txn.valid);
+        host_d2h_data_if.ready <= 'h0;
+        seq_item_port.item_done(d2h_data_seq_item_h);
+      end
     endtask
 
   endclass
 
-  class h2d_req_driver extends uvm_driver;
-    `uvm_component_utils(h2d_req_driver)
-    virtual cxl_cache_h2d_req_if h2d_req_m_if;
+  class host_s2m_ndr_driver extends uvm_driver;
+    `uvm_component_utils(host_s2m_ndr_driver)
+    virtual cxl_mem_s2m_ndr_if.host_pasv_drvr_mp host_s2m_ndr_if;
+    s2m_ndr_seq_item s2m_ndr_seq_item_h;
 
-    function new(string name = "h2d_req_driver", uvm_component parent = null);
+    function new(string name = "host_s2m_ndr_driver", uvm_component parent = null);
       super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase)
+      if(!(uvm_config_db#(cxl_mem_s2m_ndr_if)::get(this, "", "host_s2m_ndr_if", host_s2m_ndr_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_ndr_if"));
+      end
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_req_if)::get(this, "", "h2d_req_m_if", h2d_req_m_if)) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface h2d_req_m_if"));
-      end
-      fork
-        begin
-          forever begin
-            seq_item_port.get_next_item(h2d_req_seq_item_h);
-            if(h2d_req_seq_item_h.delay_set) begin
-              repeat(h2d_req_seq_item_h.delay_value) @(negedge h2d_req_m_if.clk);
-            end else begin
-              @(negedge h2d_req_m_if.clk);
-            end
-            h2d_req_m_if.valid    =  h2d_req_seq_item_h.valid;//         = h2d_req_m_if.valid;
-            h2d_req_m_if.opcode   =  h2d_req_seq_item_h.opcode;//        = h2d_req_m_if.opcode;
-            h2d_req_m_if.address  =  h2d_req_seq_item_h.address;//       = h2d_req_m_if.address;
-            h2d_req_m_if.uqid     =  h2d_req_seq_item_h.uqid;//          = h2d_req_m_if.uqid;
-            seq_item_port.item_done(h2d_req_seq_item_h);
-          end
+      forever begin
+        seq_item_port.get_next_item(s2m_ndr_seq_item_h);  
+        if(s2m_ndr_seq_item_h.delay_set) begin
+          repeat(s2m_ndr_seq_item_h.delay_value) @(negedge host_s2m_ndr_if.clk);
         end
-      join_none
+        @(negedge host_s2m_ndr_if.clk);
+        host_s2m_ndr_if.ready <= 'h1;
+        do begin
+          @(negedge host_s2m_ndr_if.clk);
+        end while(!host_s2m_ndr_if.s2m_ndr_txn.valid);
+        host_s2m_ndr_if.ready <= 'h0;
+        seq_item_port.item_done(s2m_ndr_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class host_s2m_drs_driver extends uvm_driver;
+    `uvm_component_utils(host_s2m_drs_driver)
+    virtual cxl_mem_s2m_drs_if.host_pasv_drvr_mp host_s2m_drs_if;
+    s2m_drs_seq_item s2m_drs_seq_item_h;
+
+    function new(string name = "host_s2m_drs_driver", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_host_s2m_drs_if)::get(this, "", "host_s2m_drs_if", host_s2m_drs_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_drs_if"));
+      end
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      forever begin
+        seq_item_port.get_next_item(s2m_drs_seq_item_h);  
+        if(s2m_drs_seq_item_h.delay_set) begin
+          repeat(s2m_drs_seq_item_h.delay_value) @(negedge host_s2m_drs_if.clk);
+        end
+        @(negedge host_s2m_drs_if.clk);
+        host_s2m_drs_if.ready <= 'h1;
+        do begin
+          @(negedge host_s2m_drs_if.clk);
+        end while(!host_s2m_drs_if.s2m_drs_txn.valid);
+        host_s2m_drs_if.ready <= 'h0;
+        seq_item_port.item_done(s2m_drs_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class dev_h2d_req_driver extends uvm_driver;
+    `uvm_component_utils(dev_h2d_req_driver)
+    virtual cxl_cache_h2d_req_if.dev_pasv_drvr_mp dev_h2d_req_if;
+    h2d_req_seq_item h2d_req_seq_item_h;
+
+    function new(string name = "dev_h2d_req_driver", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_cache_h2d_req_if)::get(this, "", "dev_h2d_req_if", dev_h2d_req_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_req_if"));
+      end
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      forever begin
+        seq_item_port.get_next_item(h2d_req_seq_item_h);  
+        if(h2d_req_seq_item_h.delay_set) begin
+          repeat(h2d_req_seq_item_h.delay_value) @(negedge dev_h2d_req_if.clk);
+        end
+        @(negedge dev_h2d_req_if.clk);
+        dev_h2d_req_if.ready <= 'h1;
+        do begin
+          @(negedge dev_h2d_req_if.clk);
+        end while(!dev_h2d_req_if.h2d_req_txn.valid);
+        dev_h2d_req_if.ready <= 'h0;
+        seq_item_port.item_done(h2d_req_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class dev_h2d_rsp_driver extends uvm_driver;
+    `uvm_component_utils(dev_h2d_rsp_driver)
+    virtual cxl_cache_h2d_rsp_if.dev_pasv_drvr_mp dev_h2d_rsp_if;
+    h2d_rsp_seq_item h2d_rsp_seq_item_h;
+
+    function new(string name = "dev_h2d_rsp_driver", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_cache_h2d_rsp_if)::get(this, "", "dev_h2d_rsp_if", dev_h2d_rsp_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_rsp_if"));
+      end
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      forever begin
+        seq_item_port.get_next_item(h2d_rsp_seq_item_h);  
+        if(h2d_rsp_seq_item_h.delay_set) begin
+          repeat(h2d_rsp_seq_item_h.delay_value) @(negedge dev_h2d_rsp_if.clk);
+        end
+        @(negedge dev_h2d_rsp_if.clk);
+        dev_h2d_rsp_if.ready <= 'h1;
+        do begin
+          @(negedge dev_h2d_rsp_if.clk);
+        end while(!dev_h2d_rsp_if.h2d_rsp_txn.valid);
+        dev_h2d_rsp_if.ready <= 'h0;
+        seq_item_port.item_done(h2d_rsp_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class dev_h2d_data_driver extends uvm_driver;
+    `uvm_component_utils(dev_h2d_data_driver)
+    virtual cxl_cache_h2d_data_if.dev_pasv_drvr_mp dev_h2d_data_if;
+    h2d_data_seq_item h2d_data_seq_item_h;
+
+    function new(string name = "dev_h2d_data_driver", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "dev_h2d_data_if", dev_h2d_data_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_data_if"));
+      end
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      forever begin
+        seq_item_port.get_next_item(h2d_data_seq_item_h);  
+        if(h2d_data_seq_item_h.delay_set) begin
+          repeat(h2d_data_seq_item_h.delay_value) @(negedge dev_h2d_data_if.clk);
+        end
+        @(negedge dev_h2d_data_if.clk);
+        dev_h2d_data_if.ready <= 'h1;
+        do begin
+          @(negedge dev_h2d_data_if.clk);
+        end while(!dev_h2d_data_if.h2d_data_txn.valid);
+        dev_h2d_data_if.ready <= 'h0;
+        seq_item_port.item_done(h2d_data_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class dev_m2s_req_driver extends uvm_driver;
+    `uvm_component_utils(dev_m2s_req_driver)
+    virtual cxl_mem_m2s_req_if.dev_pasv_drvr_mp dev_m2s_req_if;
+    m2s_req_seq_item m2s_req_seq_item_h;
+
+    function new(string name = "dev_m2s_req_driver", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_mem_m2s_req_if)::get(this, "", "dev_m2s_req_if", dev_m2s_req_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_req_if"));
+      end
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      forever begin
+        seq_item_port.get_next_item(m2s_req_seq_item_h);  
+        if(m2s_req_seq_item_h.delay_set) begin
+          repeat(m2s_req_seq_item_h.delay_value) @(negedge dev_m2s_req_if.clk);
+        end
+        @(negedge dev_m2s_req_if.clk);
+        dev_m2s_req_if.ready <= 'h1;
+        do begin
+          @(negedge dev_m2s_req_if.clk);
+        end while(!dev_m2s_req_if.m2s_req_txn.valid);
+        dev_m2s_req_if.ready <= 'h0;
+        seq_item_port.item_done(m2s_req_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class dev_m2s_rwd_driver extends uvm_driver;
+    `uvm_component_utils(dev_m2s_rwd_driver)
+    virtual cxl_mem_m2s_rwd_if.dev_pasv_drvr_mp dev_m2s_rwd_if;
+    m2s_rwd_seq_item m2s_rwd_seq_item_h;
+
+    function new(string name = "dev_m2s_rwd_driver", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "dev_m2s_rwd_if", dev_m2s_rwd_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_rwd_if"));
+      end
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      forever begin
+        seq_item_port.get_next_item(m2s_rwd_seq_item_h);  
+        if(m2s_rwd_seq_item_h.delay_set) begin
+          repeat(m2s_rwd_seq_item_h.delay_value) @(negedge dev_m2s_rwd_if.clk);
+        end
+        @(negedge dev_m2s_rwd_if.clk);
+        dev_m2s_rwd_if.ready <= 'h1;
+        do begin
+          @(negedge dev_m2s_rwd_if.clk);
+        end while(!dev_m2s_rwd_if.m2s_rwd_txn.valid);
+        dev_m2s_rwd_if.ready <= 'h0;
+        seq_item_port.item_done(m2s_rwd_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class dev_d2h_req_driver extends uvm_driver;
+    `uvm_component_utils(dev_d2h_req_driver)
+    virtual cxl_cache_d2h_req_if.dev_actv_drvr_mp dev_d2h_req_if;
+    d2h_req_seq_item d2h_req_seq_item_h;
+
+    function new(string name = "dev_d2h_req_driver", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "dev_d2h_req_if", dev_d2h_req_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_req_if"));
+      end
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      forever begin
+        seq_item_port.get_next_item(d2h_req_seq_item_h);
+        if(d2h_req_seq_item_h.delay_set) begin
+          repeat(d2h_req_seq_item_h.delay_value) @(negedge dev_d2h_req_if.clk);
+        end
+        dev_d2h_req_if.d2h_req_txn.valid    <=  d2h_req_seq_item_h.valid;
+        dev_d2h_req_if.d2h_req_txn.opcode   <=  d2h_req_seq_item_h.opcode;
+        dev_d2h_req_if.d2h_req_txn.address  <=  d2h_req_seq_item_h.address;
+        dev_d2h_req_if.d2h_req_txn.cqid     <=  d2h_req_seq_item_h.cqid;
+        dev_d2h_req_if.d2h_req_txn.nt       <=  d2h_req_seq_item_h.nt;
+        do begin
+          @(negedge dev_d2h_req_if.clk);
+        end while(!dev_d2h_req_if.ready);
+        dev_d2h_req_if.d2h_req_txn.valid <= 'h0;
+        seq_item_port.item_done(d2h_req_seq_item_h);
+      end
+    endtask
+  endclass
+
+  class dev_d2h_rsp_driver extends uvm_driver;
+    `uvm_component_utils(dev_d2h_rsp_driver)
+    virtual cxl_cache_d2h_rsp_if.dev_actv_drvr_mp dev_d2h_rsp_if;
+    d2h_rsp_seq_item d2h_rsp_seq_item_h;
+
+    function new(string name = "dev_d2h_rsp_driver", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      if(!(uvm_config_db#(cxl_cache_d2h_rsp_if)::get(this, "", "dev_d2h_rsp_if", dev_d2h_rsp_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_rsp_if"));
+      end
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      forever begin
+        seq_item_port.get_next_item(d2h_rsp_seq_item_h);
+        if(d2h_rsp_seq_item_h.delay_set) begin
+          repeat(d2h_rsp_seq_item_h.delay_value) @(negedge dev_d2h_rsp_if.clk);
+        end
+        dev_d2h_rsp_if.d2h_rsp_txn.valid  <=  d2h_rsp_seq_item_h.valid;
+        dev_d2h_rsp_if.d2h_rsp_txn.opcode <=  d2h_rsp_seq_item_h.opcode;
+        dev_d2h_rsp_if.d2h_rsp_txn.uqid   <=  d2h_rsp_seq_item_h.uqid;
+        do begin
+          @(negedge dev_d2h_rsp_if.clk);
+        end while(!dev_d2h_rsp_if.ready);
+        dev_d2h_rsp_if.d2h_rsp_txn.valid <= 'h0;
+        seq_item_port.item_done(d2h_rsp_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class dev_d2h_data_driver extends uvm_driver;
+    `uvm_component_utils(dev_d2h_data_driver)
+    virtual cxl_cache_d2h_data_if.dev_actv_drvr_mp dev_d2h_data_if;
+    d2h_data_seq_item d2h_data_seq_item_h;
+
+    function new(string name = "dev_d2h_data_driver", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_cache_d2h_data_if)::get(this, "", "dev_d2h_data_if", dev_d2h_data_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_data_if"));
+      end
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      forever begin
+        seq_item_port.get_next_item(d2h_data_seq_item_h);
+        if(d2h_data_seq_item_h.delay_set) begin
+          repeat(d2h_data_seq_item_h.delay_value) @(negedge dev_d2h_data_if.clk);
+        end
+        dev_d2h_data_if.d2h_data_txn.valid     <=  d2h_data_seq_item_h.valid;
+        dev_d2h_data_if.d2h_data_txn.uqid      <=  d2h_data_seq_item_h.uqid;
+        dev_d2h_data_if.d2h_data_txn.chunkvalid<=  d2h_data_seq_item_h.chunkvalid;
+        dev_d2h_data_if.d2h_data_txn.bogus     <=  d2h_data_seq_item_h.bogus;
+        dev_d2h_data_if.d2h_data_txn.poison    <=  d2h_data_seq_item_h.poison;
+        dev_d2h_data_if.d2h_data_txn.data      <=  d2h_data_seq_item_h.data;
+        do begin
+          @(negedge dev_d2h_data_if.clk);
+        end while(!dev_d2h_data_if.ready);
+        dev_d2h_data_if.d2h_data_txn.valid <= 'h0;
+        seq_item_port.item_done(d2h_data_seq_item_h);
+      end
+    endtask
+
+  endclass
+
+  class host_h2d_req_driver extends uvm_driver;
+    `uvm_component_utils(host_h2d_req_driver)
+    virtual cxl_cache_h2d_req_if.host_actv_drvr_mp host_h2d_req_if;
+
+    function new(string name = "host_h2d_req_driver", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_cache_h2d_req_if)::get(this, "", "host_h2d_req_if", host_h2d_req_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_req_if"));
+      end
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      forever begin
+        seq_item_port.get_next_item(h2d_req_seq_item_h);
+        if(h2d_req_seq_item_h.delay_set) begin
+          repeat(h2d_req_seq_item_h.delay_value) @(negedge host_h2d_req_if.clk);
+        end
+        host_h2d_req_if.h2d_req_txn.valid    <=  h2d_req_seq_item_h.valid;
+        host_h2d_req_if.h2d_req_txn.opcode   <=  h2d_req_seq_item_h.opcode;
+        host_h2d_req_if.h2d_req_txn.address  <=  h2d_req_seq_item_h.address;
+        host_h2d_req_if.h2d_req_txn.uqid     <=  h2d_req_seq_item_h.uqid;
+        do begin
+          @(negedge host_h2d_req_if.clk);
+        end while(!host_h2d_req_if.ready);
+        host_h2d_req_if.h2d_req_txn.valid <= 'h0;
+        seq_item_port.item_done(h2d_req_seq_item_h);
+      end
     endtask
 
   endclass
   
-  class h2d_rsp_driver extends uvm_driver;
-    `uvm_component_utils(h2d_rsp_driver)
-    virtual cxl_cache_h2d_rsp_if h2d_rsp_m_if;
+  class host_h2d_rsp_driver extends uvm_driver;
+    `uvm_component_utils(host_h2d_rsp_driver)
+    virtual cxl_cache_h2d_rsp_if.host_actv_drvr_mp host_h2d_rsp_if;
     h2d_rsp_seq_item h2d_rsp_seq_item_h;
 
-    function new(string name = "h2d_rsp_m_monitor", uvm_component parent = null);
+    function new(string name = "host_h2d_rsp_monitor", uvm_component parent = null);
       super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_cache_h2d_rsp_if)::get(this, "", "host_h2d_rsp_if", host_h2d_rsp_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_rsp_if"));
+      end
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_rsp_if)::get(this, "", "h2d_rsp_m_if", h2d_rsp_m_if)) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface h2d_rsp_m_if"));
-      end
-      fork
-        begin
-          forever begin
-            seq_item_port.get_next_item(h2d_rsp_seq_item_h);
-            if(h2d_rsp_seq_item_h.delay_set) begin
-              repeat(h2d_rsp_seq_item_h.delay_value) @(negedge h2d_rsp_m_if.clk);
-            end else begin
-              @(negedge h2d_rsp_m_if.clk);
-            end
-            h2d_rsp_m_if.valid  =  h2d_rsp_seq_item_h.valid;//         = h2d_rsp_m_if.valid;
-            h2d_rsp_m_if.opcode =  h2d_rsp_seq_item_h.opcode;//        = h2d_rsp_m_if.opcode;
-            h2d_rsp_m_if.rspdata=  h2d_rsp_seq_item_h.rspdata;//       = h2d_rsp_m_if.rspdata;
-            h2d_rsp_m_if.rsppre =  h2d_rsp_seq_item_h.rsppre;//        = h2d_rsp_m_if.rsppre;
-            h2d_rsp_m_if.cqid   =  h2d_rsp_seq_item_h.cqid;//          = h2d_rsp_m_if.cqid;
-            seq_item_port.item_done(h2d_rsp_seq_item_h);
-          end
+      forever begin
+        seq_item_port.get_next_item(h2d_rsp_seq_item_h);
+        if(h2d_rsp_seq_item_h.delay_set) begin
+          repeat(h2d_rsp_seq_item_h.delay_value) @(negedge host_h2d_rsp_if.clk);
         end
-      join_none
+        host_h2d_rsp_if.h2d_rsp_txn.valid  <=  h2d_rsp_seq_item_h.valid;
+        host_h2d_rsp_if.h2d_rsp_txn.opcode <=  h2d_rsp_seq_item_h.opcode;
+        host_h2d_rsp_if.h2d_rsp_txn.rspdata<=  h2d_rsp_seq_item_h.rspdata;
+        host_h2d_rsp_if.h2d_rsp_txn.rsppre <=  h2d_rsp_seq_item_h.rsppre;
+        host_h2d_rsp_if.h2d_rsp_txn.cqid   <=  h2d_rsp_seq_item_h.cqid;
+        do begin
+          @(negedge host_h2d_rsp_if.clk);
+        end while(!host_h2d_rsp_if.ready);
+        host_h2d_rsp_if.h2d_rsp_txn.valid <= 'h0;
+        seq_item_port.item_done(h2d_rsp_seq_item_h);
+      end
     endtask
 
   endclass
 
-  class h2d_data_driver extends uvm_driver;
-    `uvm_component_utils(h2d_data_driver)
-    virtual cxl_cache_h2d_data_if h2d_data_m_if;
+  class host_h2d_data_driver extends uvm_driver;
+    `uvm_component_utils(host_h2d_data_driver)
+    virtual cxl_cache_h2d_data_if.host_actv_drvr_mp host_h2d_data_if;
     h2d_data_seq_item h2d_data_seq_item_h;
 
-    function new(string name = "h2d_data_driver", uvm_component parent = null);
+    function new(string name = "host_h2d_data_driver", uvm_component parent = null);
       super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_cache_h2d_data_if)::get(this, "", "host_h2d_data_if", host_h2d_data_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_data_if"));
+      end
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_data_if)::get(this, "", "h2d_data_m_if", h2d_data_m_if)) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface h2d_data_m_if"));
-      end
-      fork
-        begin
-          forever begin
-            seq_item_port.get_next_item(h2d_data_seq_item_h);
-            if(h2d_data_seq_item_h.delay_set) begin
-              repeat(h2d_data_seq_item_h.delay_value) @(negedge h2d_data_m_if.clk);
-            end else begin
-              @(negedge h2d_data_m_if.clk);
-            end
-            h2d_data_m_if.valid     =  h2d_data_seq_item_h.valid;//         = h2d_data_m_if.valid;
-            h2d_data_m_if.cqid      =  h2d_data_seq_item_h.cqid;//          = h2d_data_m_if.cqid;
-            h2d_data_m_if.chunkvalid=  h2d_data_seq_item_h.chunkvalid;//    = h2d_data_m_if.chunkvalid;
-            h2d_data_m_if.poison    =  h2d_data_seq_item_h.poison;//        = h2d_data_m_if.poison;
-            h2d_data_m_if.goerr     =  h2d_data_seq_item_h.goerr;//         = h2d_data_m_if.goerr;
-            h2d_data_m_if.data      =  h2d_data_seq_item_h.data;//         = h2d_data_m_if.data;
-            seq_item_port.item_done(h2d_data_seq_item_h);
-          end
+      forever begin
+        seq_item_port.get_next_item(h2d_data_seq_item_h);
+        if(h2d_data_seq_item_h.delay_set) begin
+          repeat(h2d_data_seq_item_h.delay_value) @(negedge host_h2d_data_if.clk);
         end
-      join_none
+        host_h2d_data_if.h2d_data_txn.valid     <=  h2d_data_seq_item_h.valid;
+        host_h2d_data_if.h2d_data_txn.cqid      <=  h2d_data_seq_item_h.cqid;
+        host_h2d_data_if.h2d_data_txn.chunkvalid<=  h2d_data_seq_item_h.chunkvalid;
+        host_h2d_data_if.h2d_data_txn.poison    <=  h2d_data_seq_item_h.poison;
+        host_h2d_data_if.h2d_data_txn.goerr     <=  h2d_data_seq_item_h.goerr;
+        host_h2d_data_if.h2d_data_txn.data      <=  h2d_data_seq_item_h.data;
+        do begin
+          @(negedge host_h2d_data_if.clk);
+        end while(!host_h2d_data_if.ready);
+        host_h2d_data_if.h2d_data_txn.valid <= 'h0;
+        seq_item_port.item_done(h2d_data_seq_item_h);
+      end
     endtask
 
   endclass
 
-  class m2s_req_driver extends uvm_driver;
-    `uvm_component_utils(m2s_req_driver)
-    virtual cxl_mem_m2s_req_if m2s_req_m_if;
+  class host_m2s_req_driver extends uvm_driver;
+    `uvm_component_utils(host_m2s_req_driver)
+    virtual cxl_mem_m2s_req_if.host_actv_drvr_mp host_m2s_req_if;
     m2s_req_seq_item m2s_req_seq_item_h;
 
-    function new(string name = "m2s_req_driver", uvm_component parent = null);
+    function new(string name = "host_m2s_req_driver", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_mem_m2s_req_if)::get(this, "", "host_m2s_req_if", host_m2s_req_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_req_if"));
+      end
+    endfunction 
+
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_m2s_req_if)::get(this, "", "m2s_req_m_if", m2s_req_m_if)) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface m2s_req_m_if"));
-      end
-      fork
-        begin
-          forever begin
-            seq_item_port.get_next_item(m2s_req_seq_item_h);
-            if(m2s_req_seq_item_h.delay_set) begin
-              repeat(m2s_req_seq_item_h.delay_value) @(negedge m2s_req_m_if.clk);
-            end else begin
-              @(negedge m2s_req_m_if.clk);
-            end
-            m2s_req_m_if.valid    =  m2s_req_seq_item_h.valid;//         = m2s_req_m_if.valid;
-            m2s_req_m_if.address  =  m2s_req_seq_item_h.address;//       = m2s_req_m_if.address;
-            m2s_req_m_if.opcode   =  m2s_req_seq_item_h.opcode;//        = m2s_req_m_if.opcode;
-            m2s_req_m_if.metafield=  m2s_req_seq_item_h.metafield;//     = m2s_req_m_if.metafield;
-            m2s_req_m_if.metavalue=  m2s_req_seq_item_h.metavalue;//     = m2s_req_m_if.metavalue;
-            m2s_req_m_if.snptype  =  m2s_req_seq_item_h.snptype;//       = m2s_req_m_if.snptype;
-            m2s_req_m_if.tag      =  m2s_req_seq_item_h.tag;//           = m2s_req_m_if.tag;
-            m2s_req_m_if.tc       =  m2s_req_seq_item_h.tc;//            = m2s_req_m_if.tc;
-            seq_item_port.item_done(m2s_req_seq_item_h);
-          end
+      forever begin  
+        seq_item_port.get_next_item(m2s_req_seq_item_h);
+        if(m2s_req_seq_item_h.delay_set) begin
+          repeat(m2s_req_seq_item_h.delay_value) @(negedge host_m2s_req_if.clk);
         end
-      join_none
+        host_m2s_req_if.m2s_req_txn.valid    <=  m2s_req_seq_item_h.valid;
+        host_m2s_req_if.m2s_req_txn.address  <=  m2s_req_seq_item_h.address;
+        host_m2s_req_if.m2s_req_txn.opcode   <=  m2s_req_seq_item_h.opcode;
+        host_m2s_req_if.m2s_req_txn.metafield<=  m2s_req_seq_item_h.metafield;
+        host_m2s_req_if.m2s_req_txn.metavalue<=  m2s_req_seq_item_h.metavalue;
+        host_m2s_req_if.m2s_req_txn.snptype  <=  m2s_req_seq_item_h.snptype;
+        host_m2s_req_if.m2s_req_txn.tag      <=  m2s_req_seq_item_h.tag;
+        host_m2s_req_if.m2s_req_txn.tc       <=  m2s_req_seq_item_h.tc;
+        do begin
+          @(negedge host_m2s_req_if.clk);
+        end while(!host_m2s_req_if.ready);
+        host_m2s_req_if.m2s_req_txn.valid <= 'h0;
+        seq_item_port.item_done(m2s_req_seq_item_h);
+      end
     endtask
 
   endclass
 
-  class m2s_rwd_driver extends uvm_driver;
-    `uvm_component_utils(m2s_rwd_driver)
-    virtual cxl_mem_m2s_rwd_if m2s_rwd_m_if;
+  class host_m2s_rwd_driver extends uvm_driver;
+    `uvm_component_utils(host_m2s_rwd_driver)
+    virtual cxl_mem_m2s_rwd_if.host_actv_drvr_mp host_m2s_rwd_if;
     m2s_rwd_seq_item m2s_rwd_seq_item_h;
 
-    function new(string name = "m2s_rwd_driver", uvm_component parent = null);
+    function new(string name = "host_m2s_rwd_driver", uvm_component parent = null);
       super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_mem_m2s_rwd_if)::get(this, "", "host_m2s_rwd_if", host_m2s_rwd_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_rwd_if"));
+      end
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_m2s_rwd_if)::get(this, "", "m2s_rwd_m_if", m2s_rwd_m_if)) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface m2s_rwd_m_if"));
-      end
-      fork
-        begin
-          forever begin
-            seq_item_port.get_next_item(m2s_rwd_seq_item_h);
-            if(m2s_rwd_seq_item_h.delay_set) begin
-              repeat(m2s_rwd_seq_item_h.delay_value) @(negedge m2s_rwd_m_if.clk);
-            end else begin
-              @(negedge m2s_rwd_m_if.clk);
-            end
-            m2s_rwd_m_if.valid    =  m2s_rwd_seq_item_h.valid;//         = m2s_rwd_m_if.valid;
-            m2s_rwd_m_if.address  =  m2s_rwd_seq_item_h.address;//       = m2s_rwd_m_if.address;
-            m2s_rwd_m_if.opcode   =  m2s_rwd_seq_item_h.opcode;//        = m2s_rwd_m_if.opcode;
-            m2s_rwd_m_if.metafield=  m2s_rwd_seq_item_h.metafield;//     = m2s_rwd_m_if.metafield;
-            m2s_rwd_m_if.metavalue=  m2s_rwd_seq_item_h.metavalue;//     = m2s_rwd_m_if.metavalue;
-            m2s_rwd_m_if.snptype  =  m2s_rwd_seq_item_h.snptype;//       = m2s_rwd_m_if.snptype;
-            m2s_rwd_m_if.tag      =  m2s_rwd_seq_item_h.tag;//           = m2s_rwd_m_if.tag;
-            m2s_rwd_m_if.tc       =  m2s_rwd_seq_item_h.tc;//            = m2s_rwd_m_if.tc;
-            m2s_rwd_m_if.poison   =  m2s_rwd_seq_item_h.poison;//        = m2s_rwd_m_if.poison;
-            m2s_rwd_m_if.data     =  m2s_rwd_seq_item_h.data;//          = m2s_rwd_m_if.data;
-            seq_item_port.item_done(m2s_rwd_seq_item_h);
-          end
+      forever begin  
+        seq_item_port.get_next_item(m2s_rwd_seq_item_h);
+        if(m2s_rwd_seq_item_h.delay_set) begin
+          repeat(m2s_rwd_seq_item_h.delay_value) @(negedge host_m2s_rwd_if.clk);
         end
-      join_none
+        host_m2s_rwd_if.m2s_rwd_txn.valid    <=  m2s_rwd_seq_item_h.valid;
+        host_m2s_rwd_if.m2s_rwd_txn.address  <=  m2s_rwd_seq_item_h.address;
+        host_m2s_rwd_if.m2s_rwd_txn.opcode   <=  m2s_rwd_seq_item_h.opcode;
+        host_m2s_rwd_if.m2s_rwd_txn.metafield<=  m2s_rwd_seq_item_h.metafield;
+        host_m2s_rwd_if.m2s_rwd_txn.metavalue<=  m2s_rwd_seq_item_h.metavalue;
+        host_m2s_rwd_if.m2s_rwd_txn.snptype  <=  m2s_rwd_seq_item_h.snptype;
+        host_m2s_rwd_if.m2s_rwd_txn.tag      <=  m2s_rwd_seq_item_h.tag;
+        host_m2s_rwd_if.m2s_rwd_txn.tc       <=  m2s_rwd_seq_item_h.tc;
+        host_m2s_rwd_if.m2s_rwd_txn.poison   <=  m2s_rwd_seq_item_h.poison;
+        host_m2s_rwd_if.m2s_rwd_txn.data     <=  m2s_rwd_seq_item_h.data;
+        do begin
+          @(negedge host_m2s_rwd_if.clk);
+        end while(!host_m2s_rwd_if.ready);
+        host_m2s_rwd_if.m2s_rwd_txn.valid <= 'h0;
+        seq_item_port.item_done(m2s_rwd_seq_item_h);
+      end
     endtask
 
   endclass
 
-  class s2m_ndr_driver extends uvm_driver;
-    `uvm_component_utils(s2m_ndr_driver)
-    virtual cxl_mem_m2s_rwd_if s2m_ndr_s_if;
+  class dev_s2m_ndr_driver extends uvm_driver;
+    `uvm_component_utils(dev_s2m_ndr_driver)
+    virtual cxl_mem_m2s_rwd_if.dev_actv_drvr_mp dev_s2m_ndr_if;
     s2m_ndr_seq_item s2m_ndr_seq_item_h;
 
-    function new(string name = "s2m_ndr_driver", uvm_component parent = null);
+    function new(string name = "dev_s2m_ndr_driver", uvm_component parent = null);
       super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_mem_s2m_ndr_if)::get(this, "", "dev_s2m_ndr_if", dev_s2m_ndr_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_ndr_if"));
+      end
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_s2m_ndr_if)::get(this, "", "s2m_ndr_s_if", s2m_ndr_s_if)) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface s2m_ndr_s_if"));
-      end
-      fork
-        begin
-          forever begin
-            seq_item_port.get_next_item(s2m_ndr_seq_item_h);
-            if(s2m_ndr_seq_item_h.delay_set) begin
-              repeat(s2m_ndr_seq_item_h.delay_value) @(negedge s2m_ndr_s_if.clk);
-            end else begin
-              @(negedge s2m_ndr_s_if.clk);
-            end
-            s2m_ndr_s_if.valid    =  s2m_ndr_seq_item_h.valid;//         = m2s_rwd_m_if.valid;
-            s2m_ndr_s_if.opcode   =  s2m_ndr_seq_item_h.opcode;//        = m2s_rwd_m_if.opcode;
-            s2m_ndr_s_if.metafield=  s2m_ndr_seq_item_h.metafield;//     = m2s_rwd_m_if.metafield;
-            s2m_ndr_s_if.metavalue=  s2m_ndr_seq_item_h.metavalue;//     = m2s_rwd_m_if.metavalue;
-            s2m_ndr_s_if.tag      =  s2m_ndr_seq_item_h.tag;//           = m2s_rwd_m_if.tag;
-            seq_item_port.item_done(s2m_ndr_seq_item_h);
-          end
+      forever begin  
+        seq_item_port.get_next_item(s2m_ndr_seq_item_h);
+        if(s2m_ndr_seq_item_h.delay_set) begin
+          repeat(s2m_ndr_seq_item_h.delay_value) @(negedge dev_s2m_ndr_if.clk);
         end
-      join_none
+        dev_s2m_ndr_if.s2m_ndr_txn.valid    <=  s2m_ndr_seq_item_h.valid;
+        dev_s2m_ndr_if.s2m_ndr_txn.opcode   <=  s2m_ndr_seq_item_h.opcode;
+        dev_s2m_ndr_if.s2m_ndr_txn.metafield<=  s2m_ndr_seq_item_h.metafield;
+        dev_s2m_ndr_if.s2m_ndr_txn.metavalue<=  s2m_ndr_seq_item_h.metavalue;
+        dev_s2m_ndr_if.s2m_ndr_txn.tag      <=  s2m_ndr_seq_item_h.tag;
+        do begin
+          @(negedge dev_s2m_ndr_if.clk);
+        end while(!dev_s2m_ndr_if.ready);
+        dev_s2m_ndr_if.s2m_ndr_txn.valid <= 'h0;
+        seq_item_port.item_done(s2m_ndr_seq_item_h);
+      end
     endtask
 
   endclass
 
-  class s2m_drs_driver extends uvm_driver;
-    `uvm_component_utils(s2m_drs_driver)
-    virtual cxl_mem_s2m_drs_if s2m_drs_s_if;
+  class dev_s2m_drs_driver extends uvm_driver;
+    `uvm_component_utils(dev_s2m_drs_driver)
+    virtual cxl_mem_s2m_drs_if.dev_actv_drvr_mp dev_s2m_drs_if;
     s2m_drs_seq_item s2m_drs_seq_item_h;
 
-    function new(string name = "s2m_drs_driver", uvm_component parent = null);
+    function new(string name = "dev_s2m_drs_driver", uvm_component parent = null);
       super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(!(uvm_config_db#(cxl_mem_s2m_drs_if)::get(this, "", "dev_s2m_drs_if", dev_s2m_drs_if))) begin
+        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_drs_if"));
+      end
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_s2m_drs_if)::get(this, "", "s2m_drs_s_if", s2m_drs_s_if)) begin
-        `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface s2m_drs_s_if"));
-      end
-      fork
-        begin
-          forever begin
-            seq_item_port.get_next_item(s2m_drs_seq_item_h);
-            if(s2m_drs_seq_item_h.delay_set) begin
-              repeat(s2m_drs_seq_item_h.delay_value) @(negedge s2m_drs_s_if.clk);
-            end else begin
-              @(negedge s2m_drs_s_if.clk);
-            end
-            s2m_drs_s_if.valid    =  s2m_drs_seq_item_h.valid;//         = m2s_rwd_m_if.valid;
-            s2m_drs_s_if.opcode   =  s2m_drs_seq_item_h.opcode;//        = m2s_rwd_m_if.opcode;
-            s2m_drs_s_if.metafield=  s2m_drs_seq_item_h.metafield;//     = m2s_rwd_m_if.metafield;
-            s2m_drs_s_if.metavalue=  s2m_drs_seq_item_h.metavalue;//     = m2s_rwd_m_if.metavalue;
-            s2m_drs_s_if.tag      =  s2m_drs_seq_item_h.tag;//           = m2s_rwd_m_if.tag;
-            s2m_drs_s_if.poison   =  s2m_drs_seq_item_h.poison;//        = m2s_rwd_m_if.poison;
-            s2m_drs_s_if.data     =  s2m_drs_seq_item_h.data;//          = m2s_rwd_m_if.data;
-            seq_item_port.item_done(s2m_drs_seq_item_h);
-          end
+      forever begin  
+        seq_item_port.get_next_item(s2m_drs_seq_item_h);
+        if(s2m_drs_seq_item_h.delay_set) begin
+          repeat(s2m_drs_seq_item_h.delay_value) @(negedge dev_s2m_drs_if.clk);
         end
-      join_none
+        dev_s2m_drs_if.s2m_drs_txn.valid    <=  s2m_drs_seq_item_h.valid;
+        dev_s2m_drs_if.s2m_drs_txn.opcode   <=  s2m_drs_seq_item_h.opcode;
+        dev_s2m_drs_if.s2m_drs_txn.metafield<=  s2m_drs_seq_item_h.metafield;
+        dev_s2m_drs_if.s2m_drs_txn.metavalue<=  s2m_drs_seq_item_h.metavalue;
+        dev_s2m_drs_if.s2m_drs_txn.tag      <=  s2m_drs_seq_item_h.tag;
+        dev_s2m_drs_if.s2m_drs_txn.poison   <=  s2m_drs_seq_item_h.poison;
+        dev_s2m_drs_if.s2m_drs_txn.data     <=  s2m_drs_seq_item_h.data;
+        do begin
+          @(negedge dev_s2m_drs_if.clk);
+        end while(!dev_s2m_drs_if.ready);
+        dev_s2m_drs_if.s2m_drs_txn.valid <= 'h0;
+        seq_item_port.item_done(s2m_drs_seq_item_h);
+      end
     endtask
 
   endclass
 
-  class d2h_req_agent extends uvm_agent;
-    `uvm_component_utils(d2h_req_agent)
-    d2h_req_driver d2h_req_driver_h;
-    d2h_req_m_monitor d2h_req_m_monitor_h;
+  class dev_d2h_req_agent extends uvm_agent;
+    `uvm_component_utils(dev_d2h_req_agent)
+    dev_d2h_req_driver dev_d2h_req_driver_h;
+    dev_d2h_req_monitor dev_d2h_req_monitor_h;
     d2h_req_sequencer d2h_req_sequencer_h;
 
-    function new(string name = "d2h_req_agent", uvm_component parent = null);
+    function new(string name = "dev_d2h_req_agent", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
@@ -2059,42 +3105,28 @@ module tb_top;
       super.build_phase(phase);
       if(is_active == UVM_ACTIVE) begin
         d2h_req_sequencer_h = d2h_req_sequencer::type_id::create("d2h_req_sequencer_h", this);
-        d2h_req_driver_h = d2h_req_driver::type_id::create("d2h_req_driver_h", this);
+        dev_d2h_req_driver_h = dev_d2h_req_driver::type_id::create("dev_d2h_req_driver_h", this);
       end
-      d2h_req_m_monitor_h = d2h_req_m_monitor::type_id::create("d2h_req_m_monitor_h", this);
+      dev_d2h_req_monitor_h = dev_d2h_req_monitor::type_id::create("dev_d2h_req_monitor_h", this);
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       if(is_active == UVM_ACTIVE) begin
-        d2h_req_driver_h.seq_item_port.connect(d2h_req_sequencer_h.seq_item_export);
+        dev_d2h_req_driver_h.seq_item_port.connect(d2h_req_sequencer_h.seq_item_export);
       end
     endfunction
 
   endclass
   
-  class d2h_req_p_agent extends uvm_agent;
-    `uvm_component_utils(d2h_req_p_agent)
-    d2h_req_p_monitor d2h_req_p_monitor_h;
-
-    function new(string name = "d2h_req_p_agent", uvm_component parent = null);
-      super.new(name, parent);
-    endfunction
-
-    virtual function void build_phase(uvm_phase phase);
-      super.build_phase(phase);
-      d2h_req_p_monitor_h = d2h_req_p_monitor::type_id::create("d2h_req_p_monitor_h", this);
-    endfunction
-
-  endclass
   
-  class d2h_rsp_agent extends uvm_agent;
-    `uvm_component_utils(d2h_rsp_agent)
-    d2h_rsp_driver d2h_rsp_driver_h;
-    d2h_rsp_m_monitor d2h_rsp_m_monitor_h;
+  class dev_d2h_rsp_agent extends uvm_agent;
+    `uvm_component_utils(dev_d2h_rsp_agent)
+    dev_d2h_rsp_driver dev_d2h_rsp_driver_h;
+    dev_d2h_rsp_monitor dev_d2h_rsp_monitor_h;
     d2h_rsp_sequencer d2h_rsp_sequencer_h;
 
-    function new(string name = "d2h_rsp_agent", uvm_component parent = null);
+    function new(string name = "dev_d2h_rsp_agent", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
@@ -2102,42 +3134,27 @@ module tb_top;
       super.build_phase(phase);
       if(is_active == UVM_ACTIVE) begin
         d2h_rsp_sequencer_h = d2h_rsp_sequencer::type_id::create("d2h_rsp_sequencer_h", this);
-        d2h_rsp_driver_h = d2h_rsp_driver::type_id::create("d2h_rsp_driver_h", this);
+        dev_d2h_rsp_driver_h = dev_d2h_rsp_driver::type_id::create("dev_d2h_rsp_driver_h", this);
       end
-      d2h_rsp_m_monitor_h = d2h_rsp_m_monitor::type_id::create("d2h_rsp_m_monitor_h", this);
+      dev_d2h_rsp_monitor_h = dev_d2h_rsp_monitor::type_id::create("dev_d2h_rsp_monitor_h", this);
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       if(is_active == UVM_ACTIVE) begin
-        d2h_rsp_driver_h.seq_item_port.connect(d2h_rsp_sequencer_h.seq_item_export);
+        dev_d2h_rsp_driver_h.seq_item_port.connect(d2h_rsp_sequencer_h.seq_item_export);
       end
     endfunction
 
   endclass
 
-  class d2h_rsp_p_agent extends uvm_agent;
-    `uvm_component_utils(d2h_rsp_p_agent)
-    d2h_rsp_p_monitor d2h_rsp_p_monitor_h;
-
-    function new(string name = "d2h_rsp_p_agent", uvm_component parent = null);
-      super.new(name, parent);
-    endfunction
-
-    virtual function void build_phase(uvm_phase phase);
-      super.build_phase(phase);
-      d2h_rsp_p_monitor_h = d2h_rsp_p_monitor::type_id::create("d2h_rsp_p_monitor_h", this);
-    endfunction
-
-  endclass
-  
-  class d2h_data_agent extends uvm_agent;
-    `uvm_component_utils(d2h_data_agent)
-    d2h_data_driver d2h_data_driver_h;
-    d2h_data_m_monitor d2h_data_m_monitor_h;
+  class dev_d2h_data_agent extends uvm_agent;
+    `uvm_component_utils(dev_d2h_data_agent)
+    dev_d2h_data_driver dev_d2h_data_driver_h;
+    dev_d2h_data_monitor dev_d2h_data_monitor_h;
     d2h_data_sequencer d2h_data_sequencer_h;
 
-    function new(string name = "d2h_data_agent", uvm_component parent = null);
+    function new(string name = "dev_d2h_data_agent", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
@@ -2145,42 +3162,28 @@ module tb_top;
       super.build_phase(phase);
       if(is_active == UVM_ACTIVE) begin
         d2h_data_sequencer_h = d2h_data_sequencer::type_id::create("d2h_data_sequencer_h", this);
-        d2h_data_driver_h = d2h_data_driver::type_id::create("d2h_data_driver_h", this);
+        dev_d2h_data_driver_h = dev_d2h_data_driver::type_id::create("dev_d2h_data_driver_h", this);
       end
-      d2h_data_m_monitor_h = d2h_data_m_monitor::type_id::create("d2h_data_m_monitor_h", this);
+      dev_d2h_data_monitor_h = dev_d2h_data_monitor::type_id::create("dev_d2h_data_monitor_h", this);
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       if(is_active == UVM_ACTIVE) begin
-        d2h_data_driver_h.seq_item_port.connect(d2h_data_sequencer_h.seq_item_export);
+        dev_d2h_data_driver_h.seq_item_port.connect(d2h_data_sequencer_h.seq_item_export);
       end
     endfunction
 
   endclass
   
-  class d2h_data_p_agent extends uvm_agent;
-    `uvm_component_utils(d2h_data_p_agent)
-    d2h_data_p_monitor d2h_data_p_monitor_h;
 
-    function new(string name = "d2h_data_p_agent", uvm_component parent = null);
-      super.new(name, parent);
-    endfunction
-
-    virtual function void build_phase(uvm_phase phase);
-      super.build_phase(phase);
-      d2h_data_p_monitor_h = d2h_data_p_monitor::type_id::create("d2h_data_p_monitor_h", this);
-    endfunction
-
-  endclass
-
-  class h2d_req_agent extends uvm_agent;
-    `uvm_component_utils(h2d_req_agent)
-    h2d_req_driver h2d_req_driver_h;
-    h2d_req_m_monitor h2d_req_m_monitor_h;
+  class host_h2d_req_agent extends uvm_agent;
+    `uvm_component_utils(host_h2d_req_agent)
+    host_h2d_req_driver host_h2d_req_driver_h;
+    host_h2d_req_monitor host_h2d_req_monitor_h;
     h2d_req_sequencer h2d_req_sequencer_h;
 
-    function new(string name = "h2d_req_agent", uvm_component parent = null);
+    function new(string name = "host_h2d_req_agent", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
@@ -2188,42 +3191,28 @@ module tb_top;
       super.build_phase(phase);
       if(is_active == UVM_ACTIVE) begin
         h2d_req_sequencer_h = h2d_req_sequencer::type_id::create("h2d_req_sequencer_h", this);
-        h2d_req_driver_h = h2d_req_driver::type_id::create("h2d_req_driver_h", this);
+        host_h2d_req_driver_h = host_h2d_req_driver::type_id::create("host_h2d_req_driver_h", this);
       end
-      h2d_req_m_monitor_h = h2d_req_m_monitor::type_id::create("h2d_req_m_monitor_h", this);
+      host_h2d_req_monitor_h = host_h2d_req_monitor::type_id::create("host_h2d_req_monitor_h", this);
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       if(is_active == UVM_ACTIVE) begin
-        h2d_req_driver_h.seq_item_port.connect(h2d_req_sequencer_h.seq_item_export);
+        host_h2d_req_driver_h.seq_item_port.connect(h2d_req_sequencer_h.seq_item_export);
       end
     endfunction
 
   endclass
   
-  class h2d_req_p_agent extends uvm_agent;
-    `uvm_component_utils(h2d_req_p_agent)
-    h2d_req_p_monitor h2d_req_p_monitor_h;
-
-    function new(string name = "h2d_req_p_agent", uvm_component parent = null);
-      super.new(name, parent);
-    endfunction
-
-    virtual function void build_phase(uvm_phase phase);
-      super.build_phase(phase);
-      h2d_req_p_monitor_h = h2d_req_p_monitor::type_id::create("h2d_req_p_monitor_h", this);
-    endfunction
-
-  endclass
   
-  class h2d_rsp_agent extends uvm_agent;
-    `uvm_component_utils(h2d_rsp_agent)
-    h2d_rsp_driver h2d_rsp_driver_h;
-    h2d_rsp_m_monitor h2d_rsp_m_monitor_h;
+  class host_h2d_rsp_agent extends uvm_agent;
+    `uvm_component_utils(host_h2d_rsp_agent)
+    host_h2d_rsp_driver host_h2d_rsp_driver_h;
+    host_h2d_rsp_monitor host_h2d_rsp_monitor_h;
     h2d_rsp_sequencer h2d_rsp_sequencer_h;
 
-    function new(string name = "h2d_rsp_agent", uvm_component parent = null);
+    function new(string name = "host_h2d_rsp_agent", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
@@ -2231,42 +3220,27 @@ module tb_top;
       super.build_phase(phase);
       if(is_active == UVM_ACTIVE) begin
         h2d_rsp_sequencer_h = h2d_rsp_sequencer::type_id::create("h2d_rsp_sequencer_h", this);
-        h2d_rsp_driver_h = h2d_rsp_driver::type_id::create("h2d_rsp_driver_h", this);
+        host_h2d_rsp_driver_h = host_h2d_rsp_driver::type_id::create("host_h2d_rsp_driver_h", this);
       end
-      h2d_rsp_m_monitor_h = h2d_rsp_m_monitor::type_id::create("h2d_rsp_m_monitor_h", this);
+      host_h2d_rsp_monitor_h = host_h2d_rsp_monitor::type_id::create("host_h2d_rsp_monitor_h", this);
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       if(is_active == UVM_ACTIVE) begin
-        h2d_rsp_driver_h.seq_item_port.connect(h2d_rsp_sequencer_h.seq_item_export);
+        host_h2d_rsp_driver_h.seq_item_port.connect(h2d_rsp_sequencer_h.seq_item_export);
       end
     endfunction
 
   endclass
   
-  class h2d_rsp_p_agent extends uvm_agent;
-    `uvm_component_utils(h2d_rsp_p_agent)
-    h2d_rsp_p_monitor h2d_rsp_p_monitor_h;
-
-    function new(string name = "h2d_rsp_p_agent", uvm_component parent = null);
-      super.new(name, parent);
-    endfunction
-
-    virtual function void build_phase(uvm_phase phase);
-      super.build_phase(phase);
-      h2d_rsp_p_monitor_h = h2d_rsp_p_monitor::type_id::create("h2d_rsp_p_monitor_h", this);
-    endfunction
-
-  endclass
-  
-  class h2d_data_agent extends uvm_agent;
-    `uvm_component_utils(h2d_data_agent)
-    h2d_data_driver h2d_data_driver_h;
-    h2d_data_m_monitor h2d_data_m_monitor_h;
+  class host_h2d_data_agent extends uvm_agent;
+    `uvm_component_utils(host_h2d_data_agent)
+    host_h2d_data_driver host_h2d_data_driver_h;
+    host_h2d_data_monitor host_h2d_data_monitor_h;
     h2d_data_sequencer h2d_data_sequencer_h;
 
-    function new(string name = "h2d_data_agent", uvm_component parent = null);
+    function new(string name = "host_h2d_data_agent", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
@@ -2274,42 +3248,27 @@ module tb_top;
       super.build_phase(phase);
       if(is_active == UVM_ACTIVE) begin
         h2d_data_sequencer_h = h2d_data_sequencer::type_id::create("h2d_data_sequencer_h", this);
-        h2d_data_driver_h = h2d_data_driver::type_id::create("h2d_data_driver_h", this);
+        host_h2d_data_driver_h = host_h2d_data_driver::type_id::create("host_h2d_data_driver_h", this);
       end
-      h2d_data_m_monitor_h = h2d_data_m_monitor::type_id::create("h2d_data_m_monitor_h", this);
+      host_h2d_data_monitor_h = host_h2d_data_monitor::type_id::create("host_h2d_data_monitor_h", this);
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       if(is_active == UVM_ACTIVE) begin
-        h2d_data_driver_h.seq_item_port.connect(h2d_data_sequencer_h.seq_item_export);
+        host_h2d_data_driver_h.seq_item_port.connect(h2d_data_sequencer_h.seq_item_export);
       end
     endfunction
 
   endclass
-  
-  class h2d_data_p_agent extends uvm_agent;
-    `uvm_component_utils(h2d_data_p_agent)
-    h2d_data_p_monitor h2d_data_p_monitor_h;
-
-    function new(string name = "h2d_data_p_agent", uvm_component parent = null);
-      super.new(name, parent);
-    endfunction
-
-    virtual function void build_phase(uvm_phase phase);
-      super.build_phase(phase);
-      h2d_data_p_monitor_h = h2d_data_p_monitor::type_id::create("h2d_data_p_monitor_h", this);
-    endfunction
-
-  endclass
-  
-  class m2s_req_agent extends uvm_agent;
-    `uvm_component_utils(m2s_req_agent)
-    m2s_req_driver m2s_req_driver_h;
-    m2s_req_m_monitor m2s_req_m_monitor_h;
+ 
+  class host_m2s_req_agent extends uvm_agent;
+    `uvm_component_utils(host_m2s_req_agent)
+    host_m2s_req_driver host_m2s_req_driver_h;
+    host_m2s_req_monitor host_m2s_req_monitor_h;
     m2s_req_sequencer m2s_req_sequencer_h;
 
-    function new(string name = "m2s_req_agent", uvm_component parent = null);
+    function new(string name = "host_m2s_req_agent", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
@@ -2317,42 +3276,27 @@ module tb_top;
       super.build_phase(phase);
       if(is_active == UVM_ACTIVE) begin
         m2s_req_sequencer_h = m2s_req_sequencer::type_id::create("m2s_req_sequencer_h", this);
-         m2s_req_driver_h = m2s_req_driver::type_id::create("m2s_req_driver_h", this);
+         host_m2s_req_driver_h = host_m2s_req_driver::type_id::create("host_m2s_req_driver_h", this);
       end
-      m2s_req_m_monitor_h = m2s_req_m_monitor::type_id::create("m2s_req_m_monitor_h", this);
+      host_m2s_req_monitor_h = host_m2s_req_monitor::type_id::create("host_m2s_req_monitor_h", this);
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       if(is_active == UVM_ACTIVE) begin
-        m2s_req_driver_h.seq_item_port.connect(m2s_req_sequencer_h.seq_item_export);
+        host_m2s_req_driver_h.seq_item_port.connect(m2s_req_sequencer_h.seq_item_export);
       end
     endfunction
 
   endclass
   
-  class m2s_req_p_agent extends uvm_agent;
-    `uvm_component_utils(m2s_req_p_agent)
-    m2s_req_p_monitor m2s_req_p_monitor_h;
-
-    function new(string name = "m2s_req_p_agent", uvm_component parent = null);
-      super.new(name, parent);
-    endfunction
-
-    virtual function void build_phase(uvm_phase phase);
-      super.build_phase(phase);
-      m2s_req_p_monitor_h = m2s_req_p_monitor::type_id::create("m2s_req_p_monitor_h", this);
-    endfunction
-
-  endclass
-  
-  class m2s_rwd_agent extends uvm_agent;
-    `uvm_component_utils(m2s_rwd_agent)
-    m2s_rwd_driver m2s_rwd_driver_h;
-    m2s_rwd_m_monitor m2s_rwd_m_monitor_h;
+  class host_m2s_rwd_agent extends uvm_agent;
+    `uvm_component_utils(host_m2s_rwd_agent)
+    host_m2s_rwd_driver host_m2s_rwd_driver_h;
+    host_m2s_rwd_monitor host_m2s_rwd_monitor_h;
     m2s_rwd_sequencer m2s_rwd_sequencer_h;
 
-    function new(string name = "m2s_rwd_agent", uvm_component parent = null);
+    function new(string name = "host_m2s_rwd_agent", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
@@ -2360,42 +3304,27 @@ module tb_top;
       super.build_phase(phase);
       if(is_active == UVM_ACTIVE) begin
         m2s_rwd_sequencer_h = m2s_rwd_sequencer::type_id::create("m2s_rwd_sequencer_h", this);
-        m2s_rwd_driver_h = m2s_rwd_driver::type_id::create("m2s_rwd_driver_h", this);
+        host_m2s_rwd_driver_h = host_m2s_rwd_driver::type_id::create("host_m2s_rwd_driver_h", this);
       end
-      m2s_rwd_m_monitor_h = m2s_rwd_m_monitor::type_id::create("m2s_rwd_m_monitor_h", this);
+      host_m2s_rwd_monitor_h = host_m2s_rwd_monitor::type_id::create("host_m2s_rwd_monitor_h", this);
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       if(is_active == UVM_ACTIVE) begin
-        m2s_rwd_driver_h.seq_item_port.connect(m2s_rwd_sequencer_h.seq_item_export);
+        host_m2s_rwd_driver_h.seq_item_port.connect(m2s_rwd_sequencer_h.seq_item_export);
       end
     endfunction
 
   endclass
 
-  class m2s_rwd_p_agent extends uvm_agent;
-    `uvm_component_utils(m2s_rwd_p_agent)
-    m2s_rwd_p_monitor m2s_rwd_p_monitor_h;
-
-    function new(string name = "m2s_rwd_p_agent", uvm_component parent = null);
-      super.new(name, parent);
-    endfunction
-
-    virtual function void build_phase(uvm_phase phase);
-      super.build_phase(phase);
-      m2s_rwd_p_monitor_h = m2s_rwd_p_monitor::type_id::create("m2s_rwd_p_monitor_h", this);
-    endfunction
-
-  endclass
-  
-  class s2m_ndr_agent extends uvm_agent;
-    `uvm_component_utils(s2m_ndr_agent)
-    s2m_ndr_driver s2m_ndr_driver_h;
-    s2m_ndr_m_monitor s2m_ndr_m_monitor_h;
+  class dev_s2m_ndr_agent extends uvm_agent;
+    `uvm_component_utils(dev_s2m_ndr_agent)
+    dev_s2m_ndr_driver dev_s2m_ndr_driver_h;
+    dev_s2m_ndr_monitor dev_s2m_ndr_monitor_h;
     s2m_ndr_sequencer s2m_ndr_sequencer_h;
 
-    function new(string name = "s2m_ndr_agent", uvm_component parent = null);
+    function new(string name = "dev_s2m_ndr_agent", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
@@ -2403,42 +3332,27 @@ module tb_top;
       super.build_phase(phase);
       if(is_active == UVM_ACTIVE) begin
         s2m_ndr_sequencer_h = s2m_ndr_sequencer::type_id::create("s2m_ndr_sequencer_h", this);
-        s2m_ndr_driver_h = s2m_ndr_driver::type_id::create("s2m_ndr_driver_h", this);
+        dev_s2m_ndr_driver_h = dev_s2m_ndr_driver::type_id::create("dev_s2m_ndr_driver_h", this);
       end
-      s2m_ndr_m_monitor_h = s2m_ndr_m_monitor::type_id::create("s2m_ndr_m_monitor_h", this);
+      dev_s2m_ndr_monitor_h = dev_s2m_ndr_monitor::type_id::create("dev_s2m_ndr_monitor_h", this);
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       if(is_active == UVM_ACTIVE) begin
-        s2m_ndr_driver_h.seq_item_port.connect(s2m_ndr_sequencer_h.seq_item_export);
+        dev_s2m_ndr_driver_h.seq_item_port.connect(s2m_ndr_sequencer_h.seq_item_export);
       end
     endfunction
 
   endclass
   
-  class s2m_ndr_p_agent extends uvm_agent;
-    `uvm_component_utils(s2m_ndr_p_agent)
-    s2m_ndr_p_monitor s2m_ndr_p_monitor_h;
-
-    function new(string name = "s2m_ndr_p_agent", uvm_component parent = null);
-      super.new(name, parent);
-    endfunction
-
-    virtual function void build_phase(uvm_phase phase);
-      super.build_phase(phase);
-      s2m_ndr_p_monitor_h = s2m_ndr_p_monitor::type_id::create("s2m_ndr_p_monitor_h", this);
-    endfunction
-
-  endclass
-  
-  class s2m_drs_agent extends uvm_agent;
-    `uvm_component_utils(s2m_drs_agent)
-    s2m_drs_driver s2m_drs_driver_h;
-    s2m_drs_m_monitor s2m_drs_m_monitor_h;
+  class dev_s2m_drs_agent extends uvm_agent;
+    `uvm_component_utils(dev_s2m_drs_agent)
+    dev_s2m_drs_driver dev_s2m_drs_driver_h;
+    dev_s2m_drs_monitor dev_s2m_drs_monitor_h;
     s2m_drs_sequencer s2m_drs_sequencer_h;
 
-    function new(string name = "s2m_drs_agent", uvm_component parent = null);
+    function new(string name = "dev_s2m_drs_agent", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
@@ -2446,35 +3360,303 @@ module tb_top;
       super.build_phase(phase);
       if(is_active == UVM_ACTIVE) begin
         s2m_drs_sequencer_h = s2m_drs_sequencer::type_id::create("s2m_drs_sequencer_h", this);
-        s2m_drs_driver_h = s2m_drs_driver::type_id::create("s2m_drs_driver_h", this);
+        dev_s2m_drs_driver_h = dev_s2m_drs_driver::type_id::create("dev_s2m_drs_driver_h", this);
       end
-      s2m_drs_m_monitor_h = s2m_drs_m_monitor::type_id::create("s2m_drs_m_monitor_h", this);
+      dev_s2m_drs_monitor_h = dev_s2m_drs_monitor::type_id::create("dev_s2m_drs_monitor_h", this);
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       if(is_active == UVM_ACTIVE) begin
-        s2m_drs_driver_h.seq_item_port.connect(s2m_drs_sequencer_h.seq_item_export);
+        dev_s2m_drs_driver_h.seq_item_port.connect(s2m_drs_sequencer_h.seq_item_export);
       end
     endfunction
 
   endclass
 
-  class s2m_drs_p_agent extends uvm_agent;
-    `uvm_component_utils(s2m_drs_p_agent)
-    s2m_drs_p_monitor s2m_drs_p_monitor_h;
+  class host_d2h_req_agent extends uvm_agent;
+    `uvm_component_utils(host_d2h_req_agent)
+    dev_d2h_req_driver host_d2h_req_driver_h;
+    dev_d2h_req_monitor host_d2h_req_monitor_h;
+    d2h_req_sequencer d2h_req_sequencer_h;
 
-    function new(string name = "s2m_drs_p_agent", uvm_component parent = null);
+    function new(string name = "host_d2h_req_agent", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      s2m_drs_p_monitor_h = s2m_drs_p_monitor::type_id::create("s2m_drs_p_monitor_h", this);
+      if(is_active == UVM_ACTIVE) begin
+        d2h_req_sequencer_h = d2h_req_sequencer::type_id::create("d2h_req_sequencer_h", this);
+        host_d2h_req_driver_h = host_d2h_req_driver::type_id::create("host_d2h_req_driver_h", this);
+      end
+      host_d2h_req_monitor_h = host_d2h_req_monitor::type_id::create("host_d2h_req_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        host_d2h_req_driver_h.seq_item_port.connect(host_req_sequencer_h.seq_item_export);
+      end
     endfunction
 
   endclass
   
+  
+  class host_d2h_rsp_agent extends uvm_agent;
+    `uvm_component_utils(host_d2h_rsp_agent)
+    dev_d2h_rsp_driver host_d2h_rsp_driver_h;
+    dev_d2h_rsp_monitor host_d2h_rsp_monitor_h;
+    d2h_rsp_sequencer d2h_rsp_sequencer_h;
+
+    function new(string name = "host_d2h_rsp_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        d2h_rsp_sequencer_h = d2h_rsp_sequencer::type_id::create("d2h_rsp_sequencer_h", this);
+        host_d2h_rsp_driver_h = host_d2h_rsp_driver::type_id::create("host_d2h_rsp_driver_h", this);
+      end
+      host_d2h_rsp_monitor_h = host_d2h_rsp_monitor::type_id::create("host_d2h_rsp_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        host_d2h_rsp_driver_h.seq_item_port.connect(d2h_rsp_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+
+  class host_d2h_data_agent extends uvm_agent;
+    `uvm_component_utils(host_d2h_data_agent)
+    dev_d2h_data_driver host_d2h_data_driver_h;
+    dev_d2h_data_monitor host_d2h_data_monitor_h;
+    d2h_data_sequencer d2h_data_sequencer_h;
+
+    function new(string name = "host_d2h_data_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        d2h_data_sequencer_h = d2h_data_sequencer::type_id::create("d2h_data_sequencer_h", this);
+        host_d2h_data_driver_h = host_d2h_data_driver::type_id::create("host_d2h_data_driver_h", this);
+      end
+      host_d2h_data_monitor_h = host_d2h_data_monitor::type_id::create("host_d2h_data_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        host_d2h_data_driver_h.seq_item_port.connect(d2h_data_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+  
+
+  class dev_h2d_req_agent extends uvm_agent;
+    `uvm_component_utils(dev_h2d_req_agent)
+    host_h2d_req_driver dev_h2d_req_driver_h;
+    host_h2d_req_monitor dev_h2d_req_monitor_h;
+    h2d_req_sequencer h2d_req_sequencer_h;
+
+    function new(string name = "dev_h2d_req_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        h2d_req_sequencer_h = h2d_req_sequencer::type_id::create("h2d_req_sequencer_h", this);
+        dev_h2d_req_driver_h = dev_h2d_req_driver::type_id::create("dev_h2d_req_driver_h", this);
+      end
+      dev_h2d_req_monitor_h = dev_h2d_req_monitor::type_id::create("dev_h2d_req_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        dev_h2d_req_driver_h.seq_item_port.connect(h2d_req_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+  
+  
+  class dev_h2d_rsp_agent extends uvm_agent;
+    `uvm_component_utils(dev_h2d_rsp_agent)
+    host_h2d_rsp_driver dev_h2d_rsp_driver_h;
+    host_h2d_rsp_monitor dev_h2d_rsp_monitor_h;
+    h2d_rsp_sequencer h2d_rsp_sequencer_h;
+
+    function new(string name = "dev_h2d_rsp_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        h2d_rsp_sequencer_h = h2d_rsp_sequencer::type_id::create("h2d_rsp_sequencer_h", this);
+        dev_h2d_rsp_driver_h = dev_h2d_rsp_driver::type_id::create("dev_h2d_rsp_driver_h", this);
+      end
+      dev_h2d_rsp_monitor_h = dev_h2d_rsp_monitor::type_id::create("dev_h2d_rsp_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        dev_h2d_rsp_driver_h.seq_item_port.connect(h2d_rsp_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+  
+  class dev_h2d_data_agent extends uvm_agent;
+    `uvm_component_utils(host_h2d_data_agent)
+    dev_h2d_data_driver dev_h2d_data_driver_h;
+    dev_h2d_data_monitor dev_h2d_data_monitor_h;
+    h2d_data_sequencer h2d_data_sequencer_h;
+
+    function new(string name = "dev_h2d_data_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        h2d_data_sequencer_h = h2d_data_sequencer::type_id::create("h2d_data_sequencer_h", this);
+        dev_h2d_data_driver_h = dev_h2d_data_driver::type_id::create("dev_h2d_data_driver_h", this);
+      end
+      dev_h2d_data_monitor_h = dev_h2d_data_monitor::type_id::create("dev_h2d_data_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        dev_h2d_data_driver_h.seq_item_port.connect(h2d_data_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+ 
+  class dev_m2s_req_agent extends uvm_agent;
+    `uvm_component_utils(dev_m2s_req_agent)
+    dev_m2s_req_driver dev_m2s_req_driver_h;
+    dev_m2s_req_monitor dev_m2s_req_monitor_h;
+    m2s_req_sequencer m2s_req_sequencer_h;
+
+    function new(string name = "dev_m2s_req_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        m2s_req_sequencer_h = m2s_req_sequencer::type_id::create("m2s_req_sequencer_h", this);
+         dev_m2s_req_driver_h = dev_m2s_req_driver::type_id::create("dev_m2s_req_driver_h", this);
+      end
+      dev_m2s_req_monitor_h = dev_m2s_req_monitor::type_id::create("dev_m2s_req_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        dev_m2s_req_driver_h.seq_item_port.connect(m2s_req_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+  
+  class dev_m2s_rwd_agent extends uvm_agent;
+    `uvm_component_utils(dev_m2s_rwd_agent)
+    dev_m2s_rwd_driver dev_m2s_rwd_driver_h;
+    dev_m2s_rwd_monitor dev_m2s_rwd_monitor_h;
+    m2s_rwd_sequencer m2s_rwd_sequencer_h;
+
+    function new(string name = "dev_m2s_rwd_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        m2s_rwd_sequencer_h = m2s_rwd_sequencer::type_id::create("m2s_rwd_sequencer_h", this);
+        dev_m2s_rwd_driver_h = dev_m2s_rwd_driver::type_id::create("dev_m2s_rwd_driver_h", this);
+      end
+      dev_m2s_rwd_monitor_h = dev_m2s_rwd_monitor::type_id::create("dev_m2s_rwd_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        dev_m2s_rwd_driver_h.seq_item_port.connect(m2s_rwd_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+
+  class host_s2m_ndr_agent extends uvm_agent;
+    `uvm_component_utils(host_s2m_ndr_agent)
+    host_s2m_ndr_driver host_s2m_ndr_driver_h;
+    host_s2m_ndr_monitor host_s2m_ndr_monitor_h;
+    s2m_ndr_sequencer s2m_ndr_sequencer_h;
+
+    function new(string name = "host_s2m_ndr_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        s2m_ndr_sequencer_h = s2m_ndr_sequencer::type_id::create("s2m_ndr_sequencer_h", this);
+        host_s2m_ndr_driver_h = host_s2m_ndr_driver::type_id::create("host_s2m_ndr_driver_h", this);
+      end
+      host_s2m_ndr_monitor_h = host_s2m_ndr_monitor::type_id::create("host_s2m_ndr_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        host_s2m_ndr_driver_h.seq_item_port.connect(s2m_ndr_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+  
+  class host_s2m_drs_agent extends uvm_agent;
+    `uvm_component_utils(host_s2m_drs_agent)
+    host_s2m_drs_driver host_s2m_drs_driver_h;
+    host_s2m_drs_monitor host_s2m_drs_monitor_h;
+    s2m_drs_sequencer s2m_drs_sequencer_h;
+
+    function new(string name = "host_s2m_drs_agent", uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        s2m_drs_sequencer_h = s2m_drs_sequencer::type_id::create("s2m_drs_sequencer_h", this);
+        host_s2m_drs_driver_h = host_s2m_drs_driver::type_id::create("host_s2m_drs_driver_h", this);
+      end
+      host_s2m_drs_monitor_h = host_s2m_drs_monitor::type_id::create("host_s2m_drs_monitor_h", this);
+    endfunction
+
+    virtual function void connect_phase(uvm_phase phase);
+      super.connect_phase(phase);
+      if(is_active == UVM_ACTIVE) begin
+        host_s2m_drs_driver_h.seq_item_port.connect(s2m_drs_sequencer_h.seq_item_export);
+      end
+    endfunction
+
+  endclass
+
   class cxl_cm_vsequencer extends uvm_sequencer;
     `uvm_component_utils(cxl_cm_vsequencer)
     d2h_req_sequencer   d2h_req_seqr;
@@ -2530,26 +3712,26 @@ module tb_top;
 
   class cxl_cm_env extends uvm_env;
     `uvm_component_utils(cxl_cm_env)
-    d2h_req_agent     d2h_req_agent_h;
-    d2h_rsp_agent     d2h_rsp_agent_h;
-    d2h_data_agent    d2h_data_agent_h;
-    h2d_req_agent     h2d_req_agent_h;
-    h2d_rsp_agent     h2d_rsp_agent_h;
-    h2d_data_agent    h2d_data_agent_h;
-    m2s_req_agent     m2s_req_agent_h;
-    m2s_rwd_agent     m2s_rwd_agent_h;
-    s2m_ndr_agent     s2m_ndr_agent_h;
-    s2m_drs_agent     s2m_drs_agent_h;
-    d2h_req_p_agent   d2h_req_p_agent_h;
-    d2h_rsp_p_agent   d2h_rsp_p_agent_h;
-    d2h_data_p_agent  d2h_data_p_agent_h;
-    h2d_req_p_agent   h2d_req_p_agent_h;
-    h2d_rsp_p_agent   h2d_rsp_p_agent_h;
-    h2d_data_p_agent  h2d_data_p_agent_h;
-    m2s_req_p_agent   m2s_req_p_agent_h;
-    m2s_rwd_p_agent   m2s_rwd_p_agent_h;
-    s2m_ndr_p_agent   s2m_ndr_p_agent_h;
-    s2m_drs_p_agent   s2m_drs_p_agent_h;
+    dev_d2h_req_agent     dev_d2h_req_agent_h;
+    dev_d2h_rsp_agent     dev_d2h_rsp_agent_h;
+    dev_d2h_data_agent    dev_d2h_data_agent_h;
+    host_h2d_req_agent     host_h2d_req_agent_h;
+    host_h2d_rsp_agent     host_h2d_rsp_agent_h;
+    host_h2d_data_agent    host_h2d_data_agent_h;
+    host_m2s_req_agent     host_m2s_req_agent_h;
+    host_m2s_rwd_agent     host_m2s_rwd_agent_h;
+    dev_s2m_ndr_agent     dev_s2m_ndr_agent_h;
+    dev_s2m_drs_agent     dev_s2m_drs_agent_h;
+    host_d2h_req_agent   host_d2h_req_agent_h;
+    host_d2h_rsp_agent   host_d2h_rsp_agent_h;
+    host_d2h_data_agent  host_d2h_data_agent_h;
+    dev_h2d_req_agent   dev_h2d_req_agent_h;
+    dev_h2d_rsp_agent   dev_h2d_rsp_agent_h;
+    dev_h2d_data_agent  dev_h2d_data_agent_h;
+    dev_m2s_req_agent   dev_m2s_req_agent_h;
+    dev_m2s_rwd_agent   dev_m2s_rwd_agent_h;
+    host_s2m_ndr_agent   host_s2m_ndr_agent_h;
+    host_s2m_drs_agent   host_s2m_drs_agent_h;
     cxl_cm_vsequencer cxl_cm_vseqr;
 
     function new(string name = "cxl_cm_env", uvm_component parent = null);
@@ -2558,70 +3740,70 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      d2h_req_p_agent_h   = d2h_req_p_agent::type_id::create("d2h_req_p_agent_h", this);
-      d2h_rsp_p_agent_h   = d2h_rsp_p_agent::type_id::create("d2h_rsp_p_agent_h", this);
-      d2h_data_p_agent_h  = d2h_data_p_agent::type_id::create("d2h_data_p_agent_h", this);
-      h2d_req_p_agent_h   = h2d_req_p_agent::type_id::create("h2d_req_p_agent_h", this);
-      h2d_rsp_p_agent_h   = h2d_rsp_p_agent::type_id::create("h2d_rsp_p_agent_h", this);
-      h2d_data_p_agent_h  = h2d_data_p_agent::type_id::create("h2d_data_p_agent_h", this);
-      m2s_req_p_agent_h   = m2s_req_p_agent::type_id::create("m2s_req_p_agent_h", this);
-      m2s_rwd_p_agent_h   = m2s_rwd_p_agent::type_id::create("m2s_rwd_p_agent_h", this);
-      s2m_ndr_p_agent_h   = s2m_ndr_p_agent::type_id::create("s2m_ndr_p_agent_h", this);
-      s2m_drs_p_agent_h   = s2m_drs_p_agent::type_id::create("s2m_drs_p_agent_h", this);
-      d2h_req_agent_h     = d2h_req_agent::type_id::create("d2h_req_agent_h", this);
-      d2h_rsp_agent_h     = d2h_rsp_agent::type_id::create("d2h_rsp_agent_h", this);
-      d2h_data_agent_h    = d2h_data_agent::type_id::create("d2h_data_agent_h", this);
-      h2d_req_agent_h     = h2d_req_agent::type_id::create("h2d_req_agent_h", this);
-      h2d_rsp_agent_h     = h2d_rsp_agent::type_id::create("h2d_rsp_agent_h", this);
-      h2d_data_agent_h    = h2d_data_agent::type_id::create("h2d_data_agent_h", this);
-      m2s_req_agent_h     = m2s_req_agent::type_id::create("m2s_req_agent_h", this);
-      m2s_rwd_agent_h     = m2s_rwd_agent::type_id::create("m2s_rwd_agent_h", this);
-      s2m_ndr_agent_h     = s2m_ndr_agent::type_id::create("s2m_ndr_agent_h", this);
-      s2m_drs_agent_h     = s2m_drs_agent::type_id::create("s2m_drs_agent_h", this);
+      host_d2h_req_agent_h   = host_d2h_req_agent::type_id::create("host_d2h_req_agent_h", this);
+      host_d2h_rsp_agent_h   = host_d2h_rsp_agent::type_id::create("host_d2h_rsp_agent_h", this);
+      host_d2h_data_agent_h  = host_d2h_data_agent::type_id::create("host_d2h_data_agent_h", this);
+      dev_h2d_req_agent_h   = dev_h2d_req_agent::type_id::create("dev_h2d_req_agent_h", this);
+      dev_h2d_rsp_agent_h   = dev_h2d_rsp_agent::type_id::create("dev_h2d_rsp_agent_h", this);
+      dev_h2d_data_agent_h  = dev_h2d_data_agent::type_id::create("dev_h2d_data_agent_h", this);
+      dev_m2s_req_agent_h   = dev_m2s_req_agent::type_id::create("dev_m2s_req_agent_h", this);
+      dev_m2s_rwd_agent_h   = dev_m2s_rwd_agent::type_id::create("dev_m2s_rwd_agent_h", this);
+      host_s2m_ndr_agent_h   = host_s2m_ndr_agent::type_id::create("host_s2m_ndr_agent_h", this);
+      host_s2m_drs_agent_h   = host_s2m_drs_agent::type_id::create("host_s2m_drs_agent_h", this);
+      dev_d2h_req_agent_h     = dev_d2h_req_agent::type_id::create("dev_d2h_req_agent_h", this);
+      dev_d2h_rsp_agent_h     = dev_d2h_rsp_agent::type_id::create("dev_d2h_rsp_agent_h", this);
+      dev_d2h_data_agent_h    = dev_d2h_data_agent::type_id::create("dev_d2h_data_agent_h", this);
+      host_h2d_req_agent_h     = host_h2d_req_agent::type_id::create("host_h2d_req_agent_h", this);
+      host_h2d_rsp_agent_h     = host_h2d_rsp_agent::type_id::create("host_h2d_rsp_agent_h", this);
+      host_h2d_data_agent_h    = host_h2d_data_agent::type_id::create("host_h2d_data_agent_h", this);
+      host_m2s_req_agent_h     = host_m2s_req_agent::type_id::create("host_m2s_req_agent_h", this);
+      host_m2s_rwd_agent_h     = host_m2s_rwd_agent::type_id::create("host_m2s_rwd_agent_h", this);
+      dev_s2m_ndr_agent_h     = dev_s2m_ndr_agent::type_id::create("dev_s2m_ndr_agent_h", this);
+      dev_s2m_drs_agent_h     = dev_s2m_drs_agent::type_id::create("dev_s2m_drs_agent_h", this);
       cxl_cm_vseqr        = cxl_cm_vsequencer::type_id::create("cxl_cm_vseqr", this);
     endfunction 
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
-      d2h_req_p_agent_h.d2h_req_p_monitor_h.d2h_req_port.connect(cxl_cm_vseqr.d2h_req_fifo.analysis_export);
-      d2h_rsp_p_agent_h.d2h_rsp_p_monitor_h.d2h_rsp_port.connect(cxl_cm_vseqr.d2h_rsp_fifo.analysis_export);
-      d2h_data_p_agent_h.d2h_data_p_monitor_h.d2h_data_port.connect(cxl_cm_vseqr.d2h_data_fifo.analysis_export);
-      h2d_req_p_agent_h.h2d_req_p_monitor_h.h2d_req_port.connect(cxl_cm_vseqr.h2d_req_fifo.analysis_export);
-      h2d_rsp_p_agent_h.h2d_rsp_p_monitor_h.h2d_rsp_port.connect(cxl_cm_vseqr.h2d_rsp_fifo.analysis_export);
-      h2d_data_p_agent_h.h2d_data_p_monitor_h.h2d_data_port.connect(cxl_cm_vseqr.h2d_data_fifo.analysis_export);
-      m2s_req_p_agent_h.m2s_req_p_monitor_h.m2s_req_port.connect(cxl_cm_vseqr.m2s_req_fifo.analysis_export);
-      m2s_rwd_p_agent_h.m2s_rwd_p_monitor_h.m2s_rwd_port.connect(cxl_cm_vseqr.m2s_rwd_fifo.analysis_export);
-      s2m_ndr_p_agent_h.s2m_ndr_p_monitor_h.s2m_ndr_port.connect(cxl_cm_vseqr.s2m_ndr_fifo.analysis_export);
-      s2m_drs_p_agent_h.s2m_drs_p_monitor_h.s2m_drs_port.connect(cxl_cm_vseqr.s2m_drs_fifo.analysis_export);
-      if(d2h_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.d2h_req_seqr   = d2h_req_agent_h.d2h_req_sequencer_h;
+      host_d2h_req_agent_h.host_d2h_req_monitor_h.d2h_req_port.connect(cxl_cm_vseqr.d2h_req_fifo.analysis_export);
+      host_d2h_rsp_agent_h.host_d2h_rsp_monitor_h.d2h_rsp_port.connect(cxl_cm_vseqr.d2h_rsp_fifo.analysis_export);
+      host_d2h_data_agent_h.host_d2h_data_monitor_h.d2h_data_port.connect(cxl_cm_vseqr.d2h_data_fifo.analysis_export);
+      dev_h2d_req_agent_h.dev_h2d_req_monitor_h.h2d_req_port.connect(cxl_cm_vseqr.h2d_req_fifo.analysis_export);
+      dev_h2d_rsp_agent_h.dev_h2d_rsp_monitor_h.h2d_rsp_port.connect(cxl_cm_vseqr.h2d_rsp_fifo.analysis_export);
+      dev_h2d_data_agent_h.dev_h2d_data_monitor_h.h2d_data_port.connect(cxl_cm_vseqr.h2d_data_fifo.analysis_export);
+      dev_m2s_req_agent_h.dev_m2s_req_monitor_h.m2s_req_port.connect(cxl_cm_vseqr.m2s_req_fifo.analysis_export);
+      dev_m2s_rwd_agent_h.dev_m2s_rwd_monitor_h.m2s_rwd_port.connect(cxl_cm_vseqr.m2s_rwd_fifo.analysis_export);
+      host_s2m_ndr_agent_h.host_s2m_ndr_monitor_h.s2m_ndr_port.connect(cxl_cm_vseqr.s2m_ndr_fifo.analysis_export);
+      host_s2m_drs_agent_h.host_s2m_drs_monitor_h.s2m_drs_port.connect(cxl_cm_vseqr.s2m_drs_fifo.analysis_export);
+      if(dev_d2h_req_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.d2h_req_seqr   = dev_d2h_req_agent_h.d2h_req_sequencer_h;
       end
-      if(d2h_rsp_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.d2h_rsp_seqr   = d2h_rsp_agent_h.d2h_rsp_sequencer_h;
+      if(dev_d2h_rsp_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.d2h_rsp_seqr   = dev_d2h_rsp_agent_h.d2h_rsp_sequencer_h;
       end
-      if(d2h_data_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.d2h_data_seqr  = d2h_data_agent_h.d2h_data_sequencer_h;
+      if(dev_d2h_data_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.d2h_data_seqr  = dev_d2h_data_agent_h.d2h_data_sequencer_h;
       end
-      if(h2d_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.h2d_req_seqr   = h2d_req_agent_h.h2d_req_sequencer_h;
+      if(host_h2d_req_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.h2d_req_seqr   = host_h2d_req_agent_h.h2d_req_sequencer_h;
       end
-      if(h2d_rsp_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.h2d_rsp_seqr   = h2d_rsp_agent_h.h2d_rsp_sequencer_h;
+      if(host_h2d_rsp_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.h2d_rsp_seqr   = host_h2d_rsp_agent_h.h2d_rsp_sequencer_h;
       end
-      if(h2d_data_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.h2d_data_seqr  = h2d_data_agent_h.h2d_data_sequencer_h;
+      if(host_h2d_data_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.h2d_data_seqr  = host_h2d_data_agent_h.h2d_data_sequencer_h;
       end
-      if(m2s_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.m2s_req_seqr   = m2s_req_agent_h.m2s_req_sequencer_h;
+      if(host_m2s_req_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.m2s_req_seqr   = host_m2s_req_agent_h.m2s_req_sequencer_h;
       end
-      if(m2s_rwd_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.m2s_rwd_seqr   = m2s_rwd_agent_h.m2s_rwd_sequencer_h;
+      if(host_m2s_rwd_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.m2s_rwd_seqr   = host_m2s_rwd_agent_h.m2s_rwd_sequencer_h;
       end
-      if(s2m_ndr_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.s2m_ndr_seqr   = s2m_ndr_agent_h.s2m_ndr_sequencer_h;
+      if(dev_s2m_ndr_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.s2m_ndr_seqr   = dev_s2m_ndr_agent_h.s2m_ndr_sequencer_h;
       end
-      if(s2m_drs_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.s2m_drs_seqr   = s2m_drs_agent_h.s2m_drs_sequencer_h;
+      if(dev_s2m_drs_agent_h.is_active == UVM_ACTIVE) begin
+        cxl_cm_vseqr.s2m_drs_seqr   = dev_s2m_drs_agent_h.s2m_drs_sequencer_h;
       end
     endfunction
 
@@ -2630,10 +3812,12 @@ module tb_top;
   class d2h_req_seq extends uvm_sequence;
     `uvm_object_utils(d2h_req_seq)
     rand int num_trans;
-    rand d2h_req_seq_item d2h_req_seq_item_h;
+    rand d2h_req_seq_item d2h_req_seq_item_h[];
 
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
+      d2h_req_seq_item_h.size == num_trans;
+      solve num_trans before d2h_req_seq_item_h;
     }
 
     function new(string name = "d2h_req_seq");
@@ -2651,10 +3835,12 @@ module tb_top;
   class d2h_rsp_seq extends uvm_sequence;
     `uvm_object_utils(d2h_rsp_seq)
     rand int num_trans;
-    rand d2h_rsp_seq_item d2h_rsp_seq_item_h;
+    rand d2h_rsp_seq_item d2h_rsp_seq_item_h[];
 
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
+      d2h_rsp_seq_item_h.size == num_trans;
+      solve num_trans before d2h_rsp_seq_item_h;
     }
 
     function new(string name = "d2h_rsp_seq");
@@ -2672,10 +3858,12 @@ module tb_top;
   class d2h_data_seq extends uvm_sequence;
     `uvm_object_utils(d2h_data_seq)
     rand int num_trans;
-    rand d2h_data_seq_item d2h_data_seq_item_h;
+    rand d2h_data_seq_item d2h_data_seq_item_h[];
 
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
+      d2h_data_seq_item_h.size == num_trans;
+      solve num_trans before d2h_data_seq_item_h;
     }
 
     function new(string name = "d2h_data_seq");
@@ -2693,10 +3881,12 @@ module tb_top;
   class h2d_req_seq extends uvm_sequence;
     `uvm_object_utils(h2d_req_seq)
     rand int num_trans;
-    rand h2d_req_seq_item h2d_req_seq_item_h;
+    rand h2d_req_seq_item h2d_req_seq_item_h[];
 
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
+      h2d_req_seq_item_h.size == num_trans;
+      solve num_trans before h2d_req_seq_item_h;
     }
 
     function new(string name = "h2d_req_seq");
@@ -2714,10 +3904,12 @@ module tb_top;
   class h2d_rsp_seq extends uvm_sequence;
     `uvm_object_utils(h2d_rsp_seq)
     rand int num_trans;
-    rand h2d_rsp_seq_item h2d_rsp_seq_item_h;
+    rand h2d_rsp_seq_item h2d_rsp_seq_item_h[];
 
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
+      h2d_rsp_seq_item_h.size == num_trans;
+      solve num_trans before h2d_rsp_seq_item_h;
     }
 
     function new(string name = "h2d_rsp_seq");
@@ -2735,10 +3927,12 @@ module tb_top;
   class h2d_data_seq extends uvm_sequence;
     `uvm_object_utils(h2d_data_seq)
     rand int num_trans;
-    rand h2d_data_seq_item h2d_data_seq_item_h;
+    rand h2d_data_seq_item h2d_data_seq_item_h[];
 
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
+      h2d_data_seq_item_h.size == num_trans;
+      solve num_trans before h2d_data_seq_item_h;
     }
 
     function new(string name = "h2d_data_seq");
@@ -2756,10 +3950,12 @@ module tb_top;
   class m2s_req_seq extends uvm_sequence;
     `uvm_object_utils(m2s_req_seq)
     rand int num_trans;
-    rand m2s_req_seq_item m2s_req_seq_item_h;
+    rand m2s_req_seq_item m2s_req_seq_item_h[];
 
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
+      m2s_req_seq_item_h.size == num_trans;
+      solve num_trans before m2s_req_seq_item_h;
     }
 
     function new(string name = "m2s_req_seq");
@@ -2777,10 +3973,12 @@ module tb_top;
   class m2s_rwd_seq extends uvm_sequence;
     `uvm_object_utils(m2s_rwd_seq)
     rand int num_trans;
-    rand m2s_rwd_seq_item m2s_rwd_seq_item_h;
+    rand m2s_rwd_seq_item m2s_rwd_seq_item_h[];
 
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
+      m2s_rwd_seq_item_h.size == num_trans;
+      solve num_trans before m2s_rwd_seq_item_h;
     }
 
     function new(string name = "m2s_rwd_seq");
@@ -2798,10 +3996,12 @@ module tb_top;
   class s2m_ndr_seq extends uvm_sequence;
     `uvm_object_utils(s2m_ndr_seq)
     rand int num_trans;
-    rand s2m_ndr_seq_item s2m_ndr_seq_item_h;
+    rand s2m_ndr_seq_item s2m_ndr_seq_item_h[];
 
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
+      s2m_ndr_seq_item_h.size == num_trans;
+      solve num_trans before s2m_ndr_seq_item_h;
     }
 
     function new(string name = "s2m_ndr_seq");
@@ -2819,10 +4019,12 @@ module tb_top;
   class s2m_drs_seq extends uvm_sequence;
     `uvm_object_utils(s2m_drs_seq)
     rand int num_trans;
-    rand s2m_drs_seq_item s2m_drs_seq_item_h;
+    rand s2m_drs_seq_item s2m_drs_seq_item_h[];
 
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
+      s2m_drs_seq_item_h.size == num_trans;
+      solve num_trans before s2m_drs_seq_item_h;
     }
 
     function new(string name = "s2m_drs_seq");
