@@ -108,7 +108,7 @@ typedef enum {
   SHORT_DLY;
   MED_DLY;
   LONG_DLY;
-} delay_type;
+} delay_type_t;
 
 typedef struct {
   logic valid;
@@ -573,7 +573,411 @@ interface cxl_mem_s2m_drs_if(input logic clk);
 
 endinterface
 
- module buffer#(
+module rra#(
+  parameter = NO_OF_REQ
+)(
+  input clk,
+  input rstn,
+  input [NO_OF_REQ-1:0] req,
+  output [NO_OF_REQ-1:0] gnt
+);
+
+//implementation tbd
+
+endmodule
+
+module host_tx_path#(
+
+)(
+  input int h2d_req_occ,
+  input int h2d_rsp_occ,
+  input int h2d_data_occ,
+  input int m2s_req_occ,
+  input int m2s_rwd_occ,
+);
+
+  logic [5:0] h_req;
+  logic [5:0] g_req;
+  logic [5:0] h_gnt;
+  logic [5:0] h_gnt_d;
+  logic [6:0] g_gnt;
+  logic [6:0] g_gnt_d;
+  logic [3:0] halt_cnt;
+  logic dh_detect;
+  logic mdh_pkt;
+  typedef enum {
+    H_SLOT0 = 'h1,
+    G_SLOT1 = 'h2,
+    G_SLOT2 = 'h4,
+    G_SLOT3 = 'h8
+  } slot_sel_t;
+  slot_sel_t slot_sel;
+  logic [511:0] holding_q[5];
+
+  ASSERT_ONEHOT_SLOT_SEL:assert property @(posedge clk) disable iff (!rstn) $onehot(slot_sel);
+
+  assign h_req[0] = (h2d_req_occ > 0) && (h2d_rsp_occ > 0);
+  assign h_req[1] = (h2d_data_occ > 0) && (h2d_rsp_occ > 1);
+  assign h_req[2] = (h2d_req_occ > 0) && (h2d_data_occ > 0);
+  assign h_req[3] = (h2d_data_occ > 3);
+  assign h_req[4] = (m2s_rwd_occ > 0);
+  assign h_req[5] = (m2s_req_occ > 0);
+  assign g_req[1] = (h2d_rsp_occ > 3);
+  assign g_req[2] = (h2d_req_occ > 0) && (h2d_data_occ > 0) && (h2d_rsp_occ > 0);
+  assign g_req[3] = (h2d_data_occ > 3) && (h2d_rsp_occ > 0);
+  assign g_req[4] = (m2s_req_occ > 0) && (h2d_data_occ > 0);
+  assign g_req[5] = (m2s_rwd_occ > 0) && (h2d_rsp_occ > 0);
+
+  //ll pkt buffer
+  always@(posedge clk) begin
+    if(!rstn) begin
+      slot_sel <= H_SLOT0;
+      dh_detect <= 'h0;
+      halt_cnt <= 'h0;
+      mdh_pkt <= 'h0;
+    end else begin
+      h_gnt_d <= h_gnt;
+      g_gnt_d <= g_gnt;
+      case(slot_sel)
+        H_SLOT0: begin
+          if((h_gnt == 0) && (halt_cnt == 'h0)) begin
+            slot_sel <= H_SLOT0;
+            dh_detect <= 'h0;
+          end else if(h_gnt[1] || h_gnt[2] || h_gnt[4]) begin
+            slot_sel <= H_SLOT0;
+            dh_detect <= 'h1;
+          end else if (h_gnt[3]) begin
+            slot_sel <= H_SLOT0;
+            dh_detect <= 'h1;
+            mdh_pkt <= 'h1;
+          end else if(h_gnt[0] || h_gnt[5]) begin
+            slot_sel <= G_SLOT1;
+            dh_detect <= 'h0;
+            mdh_pkt <= 'h0;
+          end else if(halt_cnt == 'h1) begin
+            slot_sel <= G_SLOT1;
+            mdh_pkt <= 'h0;
+          end else begin
+            dh_detect <= 'h0;
+          end
+        end
+        G_SLOT1: begin
+          if((g_gnt == 0) && (halt_cnt == 'h0)) begin
+            slot_sel <= G_SLOT1;
+            dh_detect <= 'h0;
+          end else if(g_gnt[2] || g_gnt[4] || g_gnt[5]) begin
+            slot_sel <= G_SLOT1;
+            dh_detect <= 'h1;
+          end else if(g_gnt[3]) begin
+            slot_sel <= G_SLOT1;
+            dh_detect <= 'h1;
+            mdh_pkt <= 'h1;
+          end else if(g_gnt[1]) begin
+            slot_sel <= G_SLOT2;
+            dh_detect <= 'h0;
+            mdh_pkt <= 'h0;
+          end else if(halt_cnt == 'h1) begin
+            slot_sel <= G_SLOT2;
+            mdh_pkt <= 'h0;
+          end else begin
+            dh_detect <= 'h0;
+          end
+        end
+        G_SLOT2: begin
+          if((g_gnt == 0) && (halt_cnt == 'h0)) begin
+            slot_sel <= G_SLOT2;
+            dh_detect <= 'h0;
+          end else if(g_gnt[2] || g_gnt[4] || g_gnt[5]) begin
+            slot_sel <= G_SLOT2;
+            dh_detect <= 'h1;
+          end else if(g_gnt[3]) begin
+            slot_sel <= G_SLOT2;
+            dh_detect <= 'h1;
+            mdh_pkt <= 'h1;
+          end else if(g_gnt[1]) begin
+            slot_sel <= G_SLOT3;
+            dh_detect <= 'h0;
+            mdh_pkt <= 'h0;
+          end else if(halt_cnt == 'h1) begin
+            slot_sel <= G_SLOT3;
+            mdh_pkt <= 'h0;
+          end else begin
+            dh_detect <= 'h0;
+          end
+        end
+        G_SLOT3: begin
+          if((g_gnt == 0) && (halt_cnt == 'h0)) begin
+            slot_sel <= G_SLOT3;
+            dh_detect <= 'h0;
+          end else if(g_gnt[2] || g_gnt[4] || g_gnt[5]) begin
+            slot_sel <= G_SLOT3;
+            dh_detect <= 'h1;
+          end else if(g_gnt[3]) begin
+            slot_sel <= G_SLOT3;
+            dh_detect <= 'h1;
+            mdh_pkt <= 'h1;
+          end else if(g_gnt[1]) begin
+            slot_sel <= H_SLOT0;
+            dh_detect <= 'h0;
+            mdh_pkt <= 'h0;
+          end else if(halt_cnt == 'h1) begin
+            slot_sel <= H_SLOT0;
+            mdh_pkt <= 'h0;
+          end else begin
+            dh_detect <= 'h0;
+          end
+        end
+        default: begin
+            slot_sel = 'hX;
+        end 
+      endcase
+      if(dh_detect) begin
+        halt_cnt <= mdh_pkt? 'hc: 'h4;//double check
+      end else begin
+        if(halt_cnt != 'h0) begin
+          halt_cnt <= halt_cnt - 1;
+        end
+      end
+      if(!($stable(slot_sel))) begin
+        case(slot_sel)
+          H_SLOT0: begin
+            case(h_gnt_d)
+
+            endcase
+          end
+          G_SLOT1: begin
+
+          end
+          G_SLOT2: begin
+
+          end
+          G_SLOT3: begin
+
+          end
+        endcase
+      end
+    end
+  end
+  
+  assign h_req = ((slot_sel>1) || (|halt_cnt))? 'h0: h_req;
+  assign g_req = ((slot_sel[0]) || (|halt_cnt))? 'h0: gval;
+
+  rra h_slot_rra_inst#(
+
+  )(
+    .clk(clk),
+    .rstn(rstn),
+    .req(h_req),
+    .gnt(h_gnt)
+  );
+
+  rra g_slot_rra_inst#(
+
+  )(
+    .clk(clk),
+    .rstn(rstn),
+    .req(g_req),
+    .gnt(g_gnt)
+  );
+
+endmodule
+
+module device_tx_path#(
+
+)(
+  input int d2h_req_occ,
+  input int d2h_rsp_occ,
+  input int d2h_data_occ,
+  input int s2m_ndr_occ,
+  input int s2m_drs_occ,
+);
+
+  logic [5:0] h_req;
+  logic [6:0] g_req;
+  logic [5:0] h_gnt;
+  logic [5:0] h_gnt_d;
+  logic [6:0] g_gnt;
+  logic [6:0] g_gnt_d;
+  logic [3:0] halt_cnt;
+  logic dh_detect;
+  logic ddh_pkt;
+  logic tdh_pkt;
+  logic mdh_pkt;
+
+  assign h_req[0] = (d2h_data_occ > 0) && (d2h_rsp_occ > 1);
+  assign h_req[1] = (d2h_req_occ >0) && (d2h_data_occ > 0);
+  assign h_req[2] = (d2h_data_occ > 3) && (d2h_rsp_occ > 0);
+  assign h_req[3] = (s2m_drs_occ > 0) && (s2m_ndr_occ > 0);
+  assign h_req[4] = (s2m_ndr_occ > 1);
+  assign h_req[5] = (s2m_drs_occ > 1);
+  assign g_req[1] = (d2h_req_occ > 0) && (d2h_rsp_occ > 1);
+  assign g_req[2] = (d2h_req_occ > 0) && (d2h_data_occ > 0) && (d2h_rsp_occ > 0);
+  assign g_req[3] = (d2h_data_occ > 4);
+  assign g_req[4] = (s2m_drs_occ > 0) && (s2m_ndr_occ > 1);
+  assign g_req[5] = (s2m_ndr_occ > 2);
+  assign g_req[6] = (s2m_drs_occ > 2);
+
+  ASSERT_ONEHOT_SLOT_SEL:assert property @(posedge clk) disable iff (!rstn) $onehot(slot_sel);
+
+  //ll pkt buffer
+  always@(posedge clk) begin
+    if(!rstn) begin
+      slot_sel <= H_SLOT0;
+      dh_detect <= 'h0;
+      ddh_pkt <= 'h0;
+      tdh_pkt <= 'h0;
+      mdh_pkt <= 'h0;
+      halt_cnt <= 'h0;
+    end else begin
+      h_gnt_d <= h_gnt;
+      g_gnt_d <= g_gnt;
+      case(slot_sel)
+        H_SLOT0: begin
+          if((h_gnt == 0) && (halt_cnt == 'h0)) begin
+            slot_sel <= H_SLOT0;
+            dh_detect <= 'h0;
+          end else if((h_gnt[0]) || (h_gnt[1]) || (h_gnt[3])) begin
+            slot_sel <= H_SLOT0;
+            dh_detect <= 'h1;
+          end else if (h_gnt[2]) begin
+            slot_sel <= H_SLOT0;
+            dh_detect <= 'h1;
+            mdh_pkt <= 'h1;
+          end else if (h_gnt[5]) begin
+            slot_sel <= G_SLOT1;
+            dh_detect <= 'h1;
+            ddh_pkt <= 'h1;
+          end else if(h_gnt[4]) begin
+            slot_sel <= G_SLOT1;
+            dh_detect <= 'h0;
+            ddh_pkt <= 'h0;
+            mdh_pkt <= 'h0;
+          end else if(halt_cnt == 'h1) begin
+            slot_sel <= G_SLOT1;
+            ddh_pkt <= 'h0;
+            mdh_pkt <= 'h0;
+          end else begin
+            dh_detect <= 'h0;
+          end
+        end
+        G_SLOT1: begin
+          if((g_gnt == 0) && (halt_cnt == 'h0)) begin
+            slot_sel <= G_SLOT1;
+            dh_detect <= 'h0;
+          end else if(g_gnt[2] || g_gnt[4] || g_gnt[5]) begin
+            slot_sel <= G_SLOT1;
+            dh_detect <= 'h1;
+          end else if(g_gnt[3]) begin
+            slot_sel <= G_SLOT1;
+            dh_detect <= 'h1;
+            mdh_pkt <= 'h1;
+          end else if(g_gnt[6]) begin
+            slot_sel <= G_SLOT1;
+            dh_detect <= 'h1;
+            tdh_pkt <= 'h1;
+          end else if(g_gnt[1]) begin
+            slot_sel <= G_SLOT2;
+            dh_detect <= 'h0;
+            mdh_pkt <= 'h0;
+          end else if(halt_cnt == 'h1) begin
+            slot_sel <= G_SLOT2;
+            tdh_pkt <= 'h0;
+            mdh_pkt <= 'h0;
+          end else begin
+            dh_detect <= 'h0;
+          end
+        end
+        G_SLOT2: begin
+          if((g_gnt == 0) && (halt_cnt == 'h0)) begin
+            slot_sel <= G_SLOT2;
+            dh_detect <= 'h0;
+          end else if(g_gnt[2] || g_gnt[4] || g_gnt[5]) begin
+            slot_sel <= G_SLOT2;
+            dh_detect <= 'h1;
+          end else if(g_gnt[3]) begin
+            slot_sel <= G_SLOT2;
+            dh_detect <= 'h1;
+            mdh_pkt <= 'h1;
+          end else if(g_gnt[6]) begin
+            slot_sel <= G_SLOT2;
+            dh_detect <= 'h1;
+            tdh_pkt <= 'h1;
+          end else if(g_gnt[1]) begin
+            slot_sel <= G_SLOT3;
+            dh_detect <= 'h0;
+          end else if(halt_cnt == 'h1) begin
+            slot_sel <= G_SLOT3;
+            tdh_pkt <= 'h0;
+            mdh_pkt <= 'h0;
+          end else begin
+            dh_detect <= 'h0;
+          end
+        end
+        G_SLOT3: begin
+          if((g_gnt == 0) && (halt_cnt == 'h0)) begin
+            slot_sel <= G_SLOT3;
+            dh_detect <= 'h0;
+          end else if(g_gnt[2] || g_gnt[4] || g_gnt[5]) begin
+            slot_sel <= G_SLOT3;
+            dh_detect <= 'h1;
+          end else if(g_gnt[3]) begin
+            slot_sel <= G_SLOT3;
+            dh_detect <= 'h1;
+            mdh_pkt <= 'h1;
+          end else if(g_gnt[6]) begin
+            slot_sel <= G_SLOT3;
+            dh_detect <= 'h1;
+            tdh_pkt <= 'h1;
+          end else if(g_gnt[1]) begin
+            slot_sel <= H_SLOT0;
+            dh_detect <= 'h0;
+          end else if(halt_cnt == 'h1) begin
+            slot_sel <= H_SLOT0;
+            tdh_pkt <= 'h0;
+            mdh_pkt <= 'h0;
+          end else begin
+            dh_detect <= 'h0;
+          end
+        end
+        default: begin
+            slot_sel = 'hX;
+        end 
+      endcase
+      if(dh_detect) begin
+        halt_cnt <= mdh_pkt? 'hc: ddh_pkt? 'h8: 'h4;// double check
+      end else begin
+        if(halt_cnt != 'h0) begin
+          halt_cnt <= halt_cnt - 1;
+        end
+      end
+
+    end
+  end
+  
+  assign h_req = ((slot_sel>1) || (|halt_cnt))? 'h0: h_req;
+  assign g_req = ((slot_sel[0]) || (|halt_cnt))? 'h0: gval;
+
+  rra h_slot_rra_inst#(
+
+  )(
+    .clk(clk),
+    .rstn(rstn),
+    .req(h_req),
+    .gnt(h_gnt)
+  );
+
+  rra g_slot_rra_inst#(
+
+  )(
+    .clk(clk),
+    .rstn(rstn),
+    .req(g_req),
+    .gnt(g_gnt)
+  );
+
+endmodule
+
+module buffer#(
   parameter DEPTH = 256,
   parameter ADDR_WIDTH = $clog2(DEPTH),
   type FIFO_DATA_TYPE = int
@@ -594,58 +998,58 @@ endinterface
   	output logic [ADDR_WIDTH-1:0] occupancy
   );
   
-    logic FIFO_DATA_TYPE fifo_h[DEPTH];
-    logic [ADDR_WIDTH:0] rdptr;
-  	logic [ADDR_WIDTH:0] wrptr;
+  logic FIFO_DATA_TYPE fifo_h[DEPTH];
+  logic [ADDR_WIDTH:0] rdptr;
+  logic [ADDR_WIDTH:0] wrptr;
  
-  	assign wptr = wrptr;
+  assign wptr = wrptr;
   
-  	always@(posedge clk) begin
-      if(!rstn) begin
-      	rdptr <= 0;
-      	wrptr <= 0;
-      	dataout <= 0;
-      	empty <= 0;
-      	full <= 0;
-      	ovrflw <= 'h0;
-      	undrflw <= 'h0;
-      	eseq <= 'h0;
-      end else begin
-      	if(rval || wval) begin
-          if(wval && !full) begin
-          	fifo_h[wrptr] <= datain;
-          	wrptr <= wrptr + 1;
-          	eseq <= eseq + 1;
-          end else if(rval && !empty) begin
-          	dataout <= fifo_h[rdptr];
-          	rdptr <= rdptr + 1;
-          end
-        	occupancy <= ('d256 - (wrptr - rdptr));
-          if(rdptr == wrptr) begin
-          	empty <= 'h1;
-          end else begin 
-          	empty <= 'h0;
-          end
-          if((rdptr[8] != wrptr[8]) && (rdptr[7:0] == wrptr[7:0])) begin
-          	full <= 'h1;
-          end else begin
-          	full <= 'h0;
-          end
-          if((empty == 'h1) && (rval)) begin
-          	undrflw <= 'h1;
-          end else begin
-          	undrflw <= 'h0;
-          end
-          if((full == 'h1) && wval) begin
-          	ovrflw <= 'h1;
-          end else begin
-          	ovrflw <= 'h0;
-          end
-      	end
-      end
-  	end
+ 	always@(posedge clk) begin
+    if(!rstn) begin
+     	rdptr <= 0;
+     	wrptr <= 0;
+     	dataout <= 0;
+     	empty <= 0;
+     	full <= 0;
+     	ovrflw <= 'h0;
+     	undrflw <= 'h0;
+     	eseq <= 'h0;
+    end else begin
+     	if(rval || wval) begin
+        if(wval && !full) begin
+         	fifo_h[wrptr] <= datain;
+         	wrptr <= wrptr + 1;
+         	eseq <= eseq + 1;
+        end else if(rval && !empty) begin
+         	dataout <= fifo_h[rdptr];
+         	rdptr <= rdptr + 1;
+        end
+       	occupancy <= ('d256 - (wrptr - rdptr));
+        if(rdptr == wrptr) begin
+         	empty <= 'h1;
+        end else begin 
+         	empty <= 'h0;
+        end
+        if((rdptr[8] != wrptr[8]) && (rdptr[7:0] == wrptr[7:0])) begin
+         	full <= 'h1;
+        end else begin
+         	full <= 'h0;
+        end
+        if((empty == 'h1) && (rval)) begin
+         	undrflw <= 'h1;
+        end else begin
+         	undrflw <= 'h0;
+        end
+        if((full == 'h1) && wval) begin
+         	ovrflw <= 'h1;
+        end else begin
+         	ovrflw <= 'h0;
+        end
+     	end
+    end
+ 	end
   
-  endmodule
+endmodule
 
 module cxl_master
    #(
@@ -1188,10 +1592,14 @@ module tb_top;
   endclass
 
   class cxl_base_txn_seq_item extends uvm_sequence_item;
-    `uvm_object_utils(cxl_base_txn_seq_item)
+    `uvm_object_utils_begin(cxl_base_txn_seq_item)
+      `uvm_field_int(delay_value, UVM_NOCOMPARE)
+      `uvm_field_int(delay_set, UVM_NOCOMPARE)
+      `uvm_field_enum(delay_type_t,delay_type, UVM_NOCOMPARE)
+    `uvm_object_utils_end
     rand int delay_value;
     rand logic delay_set;
-    rand delay_type delay_type_t;
+    rand delay_type_t delay_type;
     
     constraint delay_c{
       soft delay_set inside {'h0};
@@ -1211,9 +1619,18 @@ module tb_top;
     endfunction
 
   endclass 
-//add no compare to transaction item fields that dont need comparison
+  
+  //can justify not using struct for fields as a txn because in future if you want 
+  //different uvm_field types you cannot assign it using struct alone 
   class d2h_req_seq_item extends cxl_base_txn_seq_item;
-    `uvm_object_utils(d2h_req_seq_item)
+    `uvm_object_utils_begin(d2h_req_seq_item)
+      `uvm_field_int(valid, UVM_DEFAULT)
+      `uvm_field_enum(d2h_req_opcode_t, opcode, UVM_DEFAULT)
+      `uvm_field_int(address, UVM_DEFAULT)
+      `uvm_field_int(cqid, UVM_DEFAULT)
+      `uvm_field_int(nt, UVM_DEFAULT)
+      `uvm_field_int(d2h_req_crdt, UVM_NOCOMPARE)
+    `uvm_object_utils_end
 
     rand logic valid;
     rand d2h_req_opcode_t opcode;
@@ -1221,7 +1638,6 @@ module tb_top;
     rand logic [11:0] cqid;
     rand logic nt;
     int d2h_req_crdt;
-    d2h_req_txn_t d2h_req_txn;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -1238,13 +1654,17 @@ module tb_top;
   endclass
 
   class d2h_rsp_seq_item extends cxl_base_txn_seq_item;
-    `uvm_object_utils(d2h_rsp_seq_item)
+    `uvm_object_utils_begin(d2h_rsp_seq_item)
+      `uvm_field_int(valid, UVM_DEFAULT)
+      `uvm_field_enum(d2h_rsp_opcode_t, opcode, UVM_DEFAULT)
+      `uvm_field_int(uqid, UVM_DEFAULT)
+      `uvm_field_int(d2h_rsp_crdt, UVM_NOCOMPARE)
+    `uvm_object_utils_end
 
     rand logic valid;
     rand d2h_rsp_opcode_t opcode;
     rand logic [11:0] uqid;
     int d2h_rsp_crdt;
-    d2h_rsp_txn_t d2h_rsp_txn;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -1257,7 +1677,14 @@ module tb_top;
   endclass
 
   class d2h_data_seq_item extends cxl_base_txn_seq_item;
-    `uvm_object_utils(d2h_data_seq_item)
+    `uvm_object_utils_begin(d2h_data_seq_item)
+      `uvm_field_int(valid, UVM_DEFAULT)
+      `uvm_field_int(uqid, UVM_DEFAULT)
+      `uvm_field_int(chunkvalid, UVM_DEFAULT)
+      `uvm_field_int(bogus, UVM_DEFAULT)
+      `uvm_field_int(poison, UVM_DEFAULT)
+      `uvm_field_int(data, UVM_DEFAULT)
+    `uvm_object_utils_end
 
     rand logic valid;
     rand logic [11:0] uqid;
@@ -1265,8 +1692,6 @@ module tb_top;
     rand logic bogus;
     rand logic poison;
     rand logic [511:0] data;
-    int d2h_data_crdt;
-    d2h_data_txn_t d2h_data_txn;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -1288,14 +1713,19 @@ module tb_top;
   endclass
 
   class h2d_req_seq_item extends cxl_base_txn_seq_item;
-    `uvm_object_utils(h2d_req_seq_item)
-    
+    `uvm_object_utils_begin(h2d_req_seq_item)
+      `uvm_field_int(valid, UVM_DEFAULT)
+      `uvm_field_enum(h2d_req_opcode_t, opcode, UVM_DEFAULT)
+      `uvm_field_int(address, UVM_DEFAULT)
+      `uvm_field_int(uqid, UVM_DEFAULT)
+      `uvm_field_int(h2d_req_crdt, UVM_NOCOMPARE)
+    `uvm_object_utils_end
+
     rand logic valid;
     rand h2d_req_opcode_t opcode;
     rand logic [51:0] address;
     rand logic [11:0] uqid;
     int h2d_req_crdt;
-    h2d_req_txn_t h2d_req_txn;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -1312,7 +1742,14 @@ module tb_top;
   endclass
 
   class h2d_rsp_seq_item extends cxl_base_txn_seq_item;
-    `uvm_object_utils(h2d_rsp_seq_item)
+    `uvm_object_utils_begin(h2d_rsp_seq_item)
+      `uvm_field_int(valid, UVM_DEFAULT)
+      `uvm_field_enum(h2d_rsp_opcode_t, opcode, UVM_DEFAULT)
+      `uvm_field_int(rspdata, UVM_DEFAULT)
+      `uvm_field_int(rsppre, UVM_DEFAULT)
+      `uvm_field_int(cqid, UVM_DEFAULT)
+      `uvm_field_int(h2d_rsp_crdt, UVM_NOCOMPARE)
+    `uvm_object_utils_end
     
     rand logic valid;
     rand h2d_rsp_opcode_t opcode;
@@ -1320,7 +1757,6 @@ module tb_top;
     rand logic [1:0] rsppre;
     rand logic [11:0] cqid;
     int h2d_rsp_crdt;
-    h2d_rsp_txn_t h2d_rsp_txn;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -1338,8 +1774,16 @@ module tb_top;
   endclass
 
   class h2d_data_seq_item extends cxl_base_txn_seq_item;
-    `uvm_object_utils(h2d_data_seq_item)
-    
+    `uvm_object_utils_begin(h2d_data_seq_item)
+      `uvm_field_int(valid, UVM_DEFAULT)
+      `uvm_field_int(cqid, UVM_DEFAULT)
+      `uvm_field_int(chunkvalid, UVM_DEFAULT)
+      `uvm_field_int(poison, UVM_DEFAULT)
+      `uvm_field_int(goerr, UVM_DEFAULT)
+      `uvm_field_int(data, UVM_DEFAULT)
+      `uvm_field_int(h2d_data_crdt, UVM_NOCOMPARE)
+    `uvm_object_utils_end
+
     rand logic valid;
     rand logic [11:0] cqid;
     rand logic chunkvalid;
@@ -1347,7 +1791,6 @@ module tb_top;
     rand logic goerr;
     rand logic [511:0] data;
     int h2d_data_crdt;
-    h2d_data_txn_t h2d_data_txn;
 
     constraint always_valid_c{
       soft valid == 'h1;
@@ -1369,8 +1812,18 @@ module tb_top;
   endclass
 
   class m2s_req_seq_item extends cxl_base_txn_seq_item;
-    `uvm_object_utils(m2s_req_seq_item)
-    
+    `uvm_object_utils_begin(m2s_req_seq_item)
+      `uvm_field_int(valid, UVM_DEFAULT)
+      `uvm_field_int(address, UVM_DEFAULT)
+      `uvm_field_enum(m2s_req_opcode_t, opcode, UVM_DEFAULT)
+      `uvm_field_enum(metafield_t, metafield, UVM_DEFAULT)
+      `uvm_field_enum(metavalue_t, metavalue, UVM_DEFAULT)
+      `uvm_field_enum(snptype_t, snptype, UVM_DEFAULT)
+      `uvm_field_int(tag, UVM_DEFAULT)
+      `uvm_field_int(tc, UVM_DEFAULT)
+      `uvm_field_int(m2s_req_crdt, UVM_NOCOMPARE)
+    `uvm_object_utils_end
+
     rand logic valid;
     rand logic [51:0] address;
     rand m2s_req_opcode_t opcode;
@@ -1380,7 +1833,6 @@ module tb_top;
     rand logic [15:0] tag;
     rand logic [1:0] tc;
     int m2s_req_crdt;
-    m2s_req_txn_t m2s_req_txn;
 
     constraint always_valid_c{
       soft valid ='h1;
@@ -1409,8 +1861,20 @@ module tb_top;
   endclass
 
   class m2s_rwd_seq_item extends cxl_base_txn_seq_item;
-    `uvm_object_utils(m2s_rwd_seq_item)
-    
+    `uvm_object_utils_begin(m2s_rwd_seq_item)
+      `uvm_field_int(valid, UVM_DEFAULT)
+      `uvm_field_int(address, UVM_DEFAULT)
+      `uvm_field_enum(m2s_rwd_opcode_t, opcode, UVM_DEFAULT)
+      `uvm_field_enum(metafield_t, metafield, UVM_DEFAULT)
+      `uvm_field_enum(metavalue_t, metavalue, UVM_DEFAULT)
+      `uvm_field_enum(snptype_t, snptype, UVM_DEFAULT)
+      `uvm_field_int(tag, UVM_DEFAULT)
+      `uvm_field_int(tc, UVM_DEFAULT)
+      `uvm_field_int(poison, UVM_DEFAULT)
+      `uvm_field_int(data, UVM_DEFAULT)
+      `uvm_field_int(m2s_rwd_crdt, UVM_NOCOMPARE)
+    `uvm_object_utils_end
+
     rand logic valid;
     rand logic [51:0] address;
     rand m2s_rwd_opcode_t opcode;
@@ -1422,7 +1886,6 @@ module tb_top;
     rand logic poison;
     rand logic [511:0] data;
     int m2s_rwd_crdt;
-    m2s_rwd_txn_t m2s_rwd_txn;
 
     constraint always_valid_c{
       soft valid ='h1;
@@ -1455,15 +1918,21 @@ module tb_top;
   endclass
 
   class s2m_ndr_seq_item extends cxl_base_txn_seq_item;
-    `uvm_object_utils(s2m_ndr_seq_item)
-    
+    `uvm_object_utils_begin(s2m_ndr_seq_item)
+      `uvm_field_int(valid, UVM_DEFAULT)
+      `uvm_field_enum(s2m_ndr_opcode_t, opcode, UVM_DEFAULT)
+      `uvm_field_enum(metafield_t, metafield, UVM_DEFAULT)
+      `uvm_field_enum(metavalue_t, metavalue, UVM_DEFAULT)
+      `uvm_field_int(tag, UVM_DEFAULT)
+      `uvm_field_int(s2m_ndr_crdt, UVM_NOCOMPARE)
+    `uvm_object_utils_end
+
     rand logic valid;
     rand s2m_ndr_opcode_t opcode;
     rand metafield_t metafield;
     rand metavalue_t metavalue;
     rand logic [15:0] tag;
     int s2m_ndr_crdt;
-    s2m_ndr_txn_t s2m_ndr_txn;
 
     constraint always_valid_c{
       soft valid == 'h1;
@@ -1488,8 +1957,17 @@ module tb_top;
   endclass
 
   class s2m_drs_seq_item extends cxl_base_txn_seq_item;
-    `uvm_object_utils(s2m_drs_seq_item)
-    
+    `uvm_object_utils_begin(s2m_drs_seq_item)
+      `uvm_field_int(valid, UVM_DEFAULT)
+      `uvm_field_enum(s2m_drs_opcode_t, opcode, UVM_DEFAULT)
+      `uvm_field_enum(metafield_t, metafield, UVM_DEFAULT)
+      `uvm_field_enum(metavalue_t, metavalue, UVM_DEFAULT)
+      `uvm_field_int(tag, UVM_DEFAULT)
+      `uvm_field_int(poison, UVM_DEFAULT)
+      `uvm_field_int(data, UVM_DEFAULT)
+      `uvm_field_int(s2m_drs_crdt, UVM_NOCOMPARE)
+    `uvm_object_utils_end
+
     rand logic valid;
     rand s2m_drs_opcode_t opcode;
     rand metafield_t metafield;
@@ -1498,7 +1976,6 @@ module tb_top;
     rand logic poison;
     rand logic [511:0] data;
     int s2m_drs_crdt;
-    s2m_drs_txn_t s2m_drs_txn;
 
     constraint always_valid_c{
       soft valid == 'h1;
@@ -1648,6 +2125,7 @@ module tb_top;
 
   class dev_d2h_req_sequencer extends cxl_base_sequencer#(d2h_req_seq_item);
     `uvm_component_utils(dev_d2h_req_sequencer)
+    
     int d2h_req_crdt;
     d2h_req_seq_item d2h_req_seq_item_h;
     d2h_req_seq_item d2h_req_seq_item_exp_h;
@@ -1689,6 +2167,7 @@ module tb_top;
 
   class dev_d2h_rsp_sequencer extends cxl_base_sequencer#(d2h_rsp_seq_item);
     `uvm_component_utils(dev_d2h_rsp_sequencer)
+    
     int d2h_rsp_crdt;
     d2h_rsp_seq_item d2h_rsp_seq_item_h;
     d2h_rsp_seq_item d2h_rsp_seq_item_exp_h;
@@ -1729,6 +2208,7 @@ module tb_top;
 
   class dev_d2h_data_sequencer extends cxl_base_sequencer#(d2h_data_seq_item);
     `uvm_component_utils(dev_d2h_data_sequencer)
+    
     int d2h_data_crdt;
     d2h_data_seq_item d2h_data_seq_item_h;
     d2h_data_seq_item d2h_data_seq_item_exp_h;
@@ -1769,6 +2249,7 @@ module tb_top;
 
   class host_h2d_req_sequencer extends cxl_base_sequencer#(h2d_req_seq_item);
     `uvm_component_utils(host_h2d_req_sequencer)
+    
     int h2d_req_crdt;
     h2d_req_seq_item h2d_req_seq_item_h;
     h2d_req_seq_item h2d_req_seq_item_exp_h;
@@ -1809,6 +2290,7 @@ module tb_top;
 
   class host_h2d_rsp_sequencer extends cxl_base_sequencer#(h2d_rsp_seq_item);
     `uvm_component_utils(host_h2d_rsp_sequencer)
+    
     int h2d_rsp_crdt;
     h2d_rsp_seq_item h2d_rsp_seq_item_h;
     h2d_rsp_seq_item h2d_rsp_seq_item_exp_h;
@@ -1849,6 +2331,7 @@ module tb_top;
 
   class host_h2d_data_sequencer extends cxl_base_sequencer#(h2d_data_seq_item);
     `uvm_component_utils(host_h2d_data_sequencer)
+    
     int h2d_data_crdt;
     h2d_data_seq_item h2d_data_seq_item_h;
     h2d_data_seq_item h2d_data_seq_item_exp_h;
@@ -1889,6 +2372,7 @@ module tb_top;
 
   class host_m2s_req_sequencer extends cxl_base_sequencer#(m2s_req_seq_item);
     `uvm_component_utils(host_m2s_req_sequencer)
+    
     int m2s_req_crdt;
     m2s_req_seq_item m2s_req_seq_item_h;
     m2s_req_seq_item m2s_req_seq_item_exp_h;
@@ -1930,6 +2414,7 @@ module tb_top;
 
   class host_m2s_rwd_sequencer extends cxl_base_sequencer#(m2s_rwd_seq_item);
     `uvm_component_utils(host_m2s_rwd_sequencer)
+    
     int m2s_rwd_crdt;
     m2s_rwd_seq_item m2s_rwd_seq_item_h;
     m2s_rwd_seq_item m2s_rwd_seq_item_exp_h;
@@ -1970,6 +2455,7 @@ module tb_top;
 
   class dev_s2m_ndr_sequencer extends cxl_base_sequencer#(s2m_ndr_seq_item);
     `uvm_component_utils(dev_s2m_ndr_sequencer)
+    
     int s2m_ndr_crdt;
     s2m_ndr_seq_item s2m_ndr_seq_item_h;
     s2m_ndr_seq_item s2m_ndr_seq_item_exp_h;
@@ -2010,6 +2496,7 @@ module tb_top;
 
   class dev_s2m_drs_sequencer extends cxl_base_sequencer#(s2m_drs_seq_item);
     `uvm_component_utils(dev_s2m_drs_sequencer)
+    
     int s2m_drs_crdt;
     s2m_drs_seq_item s2m_drs_seq_item_h;
     s2m_drs_seq_item s2m_drs_seq_item_exp_h;
@@ -2050,6 +2537,7 @@ module tb_top;
 
   class dev_d2h_req_monitor extends uvm_monitor;
     `uvm_component_utils(dev_d2h_req_monitor)
+    
     uvm_analysis_port#(d2h_req_seq_item) d2h_req_port;
     virtual cxl_cache_d2h_req_if.mon dev_d2h_req_if;
     d2h_req_seq_item d2h_req_seq_item_h;
@@ -2085,6 +2573,7 @@ module tb_top;
 
   class dev_d2h_rsp_monitor extends uvm_monitor;
     `uvm_component_utils(dev_d2h_rsp_monitor)
+    
     uvm_analysis_port#(d2h_rsp_seq_item) d2h_rsp_port;
     virtual cxl_cache_d2h_rsp_if.mon dev_d2h_rsp_if;
     d2h_rsp_seq_item d2h_rsp_seq_item_h;
@@ -2119,6 +2608,7 @@ module tb_top;
 
   class dev_d2h_data_monitor extends uvm_monitor;
     `uvm_component_utils(dev_d2h_data_monitor)
+    
     uvm_analysis_port#(d2h_data_seq_item) d2h_data_port;
     virtual cxl_cache_d2h_data_if.mon dev_d2h_data_if;
     d2h_data_seq_item d2h_data_seq_item_h;
@@ -2156,6 +2646,7 @@ module tb_top;
 
   class host_h2d_req_monitor extends uvm_monitor;
     `uvm_component_utils(host_h2d_req_monitor)
+    
     uvm_analysis_port#(h2d_req_seq_item) h2d_req_port;
     virtual cxl_cache_h2d_req_if.mon host_h2d_req_if;
 
@@ -2190,6 +2681,7 @@ module tb_top;
   
   class host_h2d_rsp_monitor extends uvm_monitor;
     `uvm_component_utils(host_h2d_rsp_monitor)
+    
     uvm_analysis_port#(h2d_rsp_seq_item) h2d_rsp_port;
     virtual cxl_cache_h2d_rsp_if.mon host_h2d_rsp_if;
     h2d_rsp_seq_item h2d_rsp_seq_item_h;
@@ -2226,6 +2718,7 @@ module tb_top;
 
   class host_h2d_data_monitor extends uvm_monitor;
     `uvm_component_utils(host_h2d_data_monitor)
+    
     uvm_analysis_port#(h2d_data_seq_item) h2d_data_port;
     virtual cxl_cache_h2d_data_if.mon host_h2d_data_if;
     h2d_data_seq_item h2d_data_seq_item_h;
@@ -2263,6 +2756,7 @@ module tb_top;
 
   class host_m2s_req_monitor extends uvm_monitor;
     `uvm_component_utils(host_m2s_req_monitor)
+    
     uvm_analysis_port#(m2s_req_seq_item) m2s_req_port;
     virtual cxl_mem_m2s_req_if.mon host_m2s_req_if;
     m2s_req_seq_item m2s_req_seq_item_h;
@@ -2302,6 +2796,7 @@ module tb_top;
 
   class host_m2s_rwd_monitor extends uvm_monitor;
     `uvm_component_utils(host_m2s_rwd_monitor)
+    
     uvm_analysis_port#(m2s_rwd_seq_item) m2s_rwd_port;
     virtual cxl_mem_m2s_rwd_if.mon host_m2s_rwd_if;
     m2s_rwd_seq_item m2s_rwd_seq_item_h;
@@ -2343,6 +2838,7 @@ module tb_top;
 
   class dev_s2m_ndr_monitor extends uvm_monitor;
     `uvm_component_utils(dev_s2m_ndr_monitor)
+    
     uvm_analysis_port#(s2m_ndr_seq_item) s2m_ndr_port;
     virtual cxl_mem_s2m_ndr_if.mon dev_s2m_ndr_if;
     s2m_ndr_seq_item s2m_ndr_seq_item_h;
@@ -2379,6 +2875,7 @@ module tb_top;
 
   class dev_s2m_drs_monitor extends uvm_monitor;
     `uvm_component_utils(dev_s2m_drs_monitor)
+    
     uvm_analysis_port#(s2m_drs_seq_item) s2m_drs_port;
     virtual cxl_mem_s2m_drs_if.mon dev_s2m_drs_if;
     s2m_drs_seq_item s2m_drs_seq_item_h;
@@ -2417,6 +2914,7 @@ module tb_top;
 
   class host_d2h_req_monitor extends uvm_monitor;
     `uvm_component_utils(host_d2h_req_monitor)
+    
     uvm_analysis_port#(d2h_req_seq_item) d2h_req_port;
     virtual cxl_cache_d2h_req_if.mon host_d2h_req_if;
     d2h_req_seq_item d2h_req_seq_item_h;
@@ -2452,6 +2950,7 @@ module tb_top;
 
   class host_d2h_rsp_monitor extends uvm_monitor;
     `uvm_component_utils(host_d2h_rsp_monitor)
+    
     uvm_analysis_port#(d2h_rsp_seq_item) d2h_rsp_port;
     virtual cxl_cache_d2h_rsp_if.mon host_d2h_rsp_if;
     d2h_rsp_seq_item d2h_rsp_seq_item_h;
@@ -2486,6 +2985,7 @@ module tb_top;
 
   class host_d2h_data_monitor extends uvm_monitor;
     `uvm_component_utils(host_d2h_data_monitor)
+    
     uvm_analysis_port#(d2h_data_seq_item) d2h_data_port;
     virtual cxl_cache_d2h_data_if.mon host_d2h_data_if;
     d2h_data_seq_item d2h_data_seq_item_h;
@@ -2523,6 +3023,7 @@ module tb_top;
 
   class dev_h2d_req_monitor extends uvm_monitor;
     `uvm_component_utils(dev_h2d_req_monitor)
+    
     uvm_analysis_port#(h2d_req_seq_item) h2d_req_port;
     virtual cxl_cache_h2d_req_if.mon dev_h2d_req_if;
 
@@ -2557,6 +3058,7 @@ module tb_top;
   
   class dev_h2d_rsp_monitor extends uvm_monitor;
     `uvm_component_utils(dev_h2d_rsp_monitor)
+    
     uvm_analysis_port#(h2d_rsp_seq_item) h2d_rsp_port;
     virtual cxl_cache_h2d_rsp_if.mon dev_h2d_rsp_if;
     h2d_rsp_seq_item h2d_rsp_seq_item_h;
@@ -2593,6 +3095,7 @@ module tb_top;
 
   class dev_h2d_data_monitor extends uvm_monitor;
     `uvm_component_utils(dev_h2d_data_monitor)
+    
     uvm_analysis_port#(h2d_data_seq_item) h2d_data_port;
     virtual cxl_cache_h2d_data_if.mon dev_h2d_data_if;
     h2d_data_seq_item h2d_data_seq_item_h;
@@ -2630,6 +3133,7 @@ module tb_top;
 
   class dev_m2s_req_monitor extends uvm_monitor;
     `uvm_component_utils(dev_m2s_req_monitor)
+    
     uvm_analysis_port#(m2s_req_seq_item) m2s_req_port;
     virtual cxl_mem_m2s_req_if.mon dev_m2s_req_if;
     m2s_req_seq_item m2s_req_seq_item_h;
@@ -2669,6 +3173,7 @@ module tb_top;
 
   class dev_m2s_rwd_monitor extends uvm_monitor;
     `uvm_component_utils(dev_m2s_rwd_monitor)
+    
     uvm_analysis_port#(m2s_rwd_seq_item) m2s_rwd_port;
     virtual cxl_mem_m2s_rwd_if.mon dev_m2s_rwd_if;
     m2s_rwd_seq_item m2s_rwd_seq_item_h;
@@ -2710,6 +3215,7 @@ module tb_top;
 
   class host_s2m_ndr_monitor extends uvm_monitor;
     `uvm_component_utils(host_s2m_ndr_monitor)
+    
     uvm_analysis_port#(s2m_ndr_seq_item) s2m_ndr_port;
     virtual cxl_mem_s2m_ndr_if.mon host_s2m_ndr_if;
     s2m_ndr_seq_item s2m_ndr_seq_item_h;
@@ -2746,6 +3252,7 @@ module tb_top;
 
   class host_s2m_drs_monitor extends uvm_monitor;
     `uvm_component_utils(host_s2m_drs_monitor)
+    
     uvm_analysis_port#(s2m_drs_seq_item) s2m_drs_port;
     virtual cxl_mem_s2m_drs_if.mon host_s2m_drs_if;
     s2m_drs_seq_item s2m_drs_seq_item_h;
@@ -2784,6 +3291,7 @@ module tb_top;
 
   class host_d2h_req_driver extends uvm_driver;
     `uvm_component_utils(host_d2h_req_driver)
+    
     virtual cxl_cache_d2h_req_if.host_pasv_drvr_mp host_d2h_req_if;
     d2h_req_seq_item d2h_req_seq_item_h;
 
@@ -2819,6 +3327,7 @@ module tb_top;
 
   class host_d2h_rsp_driver extends uvm_driver;
     `uvm_component_utils(host_d2h_rsp_driver)
+    
     virtual cxl_cache_d2h_rsp_if.host_pasv_drvr_mp host_d2h_rsp_if;
     d2h_rsp_seq_item d2h_rsp_seq_item_h;
 
@@ -2854,6 +3363,7 @@ module tb_top;
 
   class host_d2h_data_driver extends uvm_driver;
     `uvm_component_utils(host_d2h_data_driver)
+    
     virtual cxl_cache_d2h_data_if.host_pasv_drvr_mp host_d2h_data_if;
     d2h_data_seq_item d2h_data_seq_item_h;
 
@@ -2889,6 +3399,7 @@ module tb_top;
 
   class host_s2m_ndr_driver extends uvm_driver;
     `uvm_component_utils(host_s2m_ndr_driver)
+    
     virtual cxl_mem_s2m_ndr_if.host_pasv_drvr_mp host_s2m_ndr_if;
     s2m_ndr_seq_item s2m_ndr_seq_item_h;
 
@@ -2924,6 +3435,7 @@ module tb_top;
 
   class host_s2m_drs_driver extends uvm_driver;
     `uvm_component_utils(host_s2m_drs_driver)
+    
     virtual cxl_mem_s2m_drs_if.host_pasv_drvr_mp host_s2m_drs_if;
     s2m_drs_seq_item s2m_drs_seq_item_h;
 
@@ -2959,6 +3471,7 @@ module tb_top;
 
   class dev_h2d_req_driver extends uvm_driver;
     `uvm_component_utils(dev_h2d_req_driver)
+    
     virtual cxl_cache_h2d_req_if.dev_pasv_drvr_mp dev_h2d_req_if;
     h2d_req_seq_item h2d_req_seq_item_h;
 
@@ -2994,6 +3507,7 @@ module tb_top;
 
   class dev_h2d_rsp_driver extends uvm_driver;
     `uvm_component_utils(dev_h2d_rsp_driver)
+    
     virtual cxl_cache_h2d_rsp_if.dev_pasv_drvr_mp dev_h2d_rsp_if;
     h2d_rsp_seq_item h2d_rsp_seq_item_h;
 
@@ -3029,6 +3543,7 @@ module tb_top;
 
   class dev_h2d_data_driver extends uvm_driver;
     `uvm_component_utils(dev_h2d_data_driver)
+    
     virtual cxl_cache_h2d_data_if.dev_pasv_drvr_mp dev_h2d_data_if;
     h2d_data_seq_item h2d_data_seq_item_h;
 
@@ -3064,6 +3579,7 @@ module tb_top;
 
   class dev_m2s_req_driver extends uvm_driver;
     `uvm_component_utils(dev_m2s_req_driver)
+    
     virtual cxl_mem_m2s_req_if.dev_pasv_drvr_mp dev_m2s_req_if;
     m2s_req_seq_item m2s_req_seq_item_h;
 
@@ -3099,6 +3615,7 @@ module tb_top;
 
   class dev_m2s_rwd_driver extends uvm_driver;
     `uvm_component_utils(dev_m2s_rwd_driver)
+    
     virtual cxl_mem_m2s_rwd_if.dev_pasv_drvr_mp dev_m2s_rwd_if;
     m2s_rwd_seq_item m2s_rwd_seq_item_h;
 
@@ -3134,6 +3651,7 @@ module tb_top;
 
   class dev_d2h_req_driver extends uvm_driver;
     `uvm_component_utils(dev_d2h_req_driver)
+    
     virtual cxl_cache_d2h_req_if.dev_actv_drvr_mp dev_d2h_req_if;
     d2h_req_seq_item d2h_req_seq_item_h;
 
@@ -3170,6 +3688,7 @@ module tb_top;
 
   class dev_d2h_rsp_driver extends uvm_driver;
     `uvm_component_utils(dev_d2h_rsp_driver)
+    
     virtual cxl_cache_d2h_rsp_if.dev_actv_drvr_mp dev_d2h_rsp_if;
     d2h_rsp_seq_item d2h_rsp_seq_item_h;
 
