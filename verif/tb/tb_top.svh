@@ -594,17 +594,47 @@ module host_tx_path#(
   input int h2d_data_occ,
   input int m2s_req_occ,
   input int m2s_rwd_occ,
+  output logic h2d_req_rval,
+  output logic h2d_req_drval,
+  output logic h2d_req_qrval,
+  output logic h2d_rsp_rval,
+  output logic h2d_rsp_drval,
+  output logic h2d_rsp_qrval,
+  output logic h2d_data_rval,
+  output logic h2d_data_drval,
+  output logic h2d_data_qrval,
+  output logic m2s_req_rval,
+  output logic m2s_req_drval,
+  output logic m2s_req_qrval,
+  output logic m2s_rwd_rval,
+  output logic m2s_rwd_drval,
+  output logic m2s_rwd_qrval,
+  input h2d_req_txn_t h2d_req_dataout,
+  input h2d_req_txn_t h2d_req_ddataout,
+  input h2d_req_txn_t h2d_req_qdataout,
+  input h2d_rsp_txn_t h2d_rsp_dataout,
+  input h2d_rsp_txn_t h2d_rsp_ddataout,
+  input h2d_rsp_txn_t h2d_rsp_qdataout,
+  input h2d_data_txn_t h2d_data_dataout,
+  input h2d_data_txn_t h2d_data_ddataout,
+  input h2d_data_txn_t h2d_data_qdataout,
+  input m2s_req_txn_t m2s_req_dataout,
+  input m2s_req_txn_t m2s_req_ddataout,
+  input m2s_req_txn_t m2s_req_qdataout,
+  input m2s_rwd_txn_t m2s_rwd_dataout,
+  input m2s_rwd_txn_t m2s_rwd_ddataout,
+  input m2s_rwd_txn_t m2s_rwd_qdataout,
 );
 
+  logic [5:0] h_val;
   logic [5:0] h_req;
-  logic [5:0] g_req;
+  logic [5:0] h_req;
   logic [5:0] h_gnt;
   logic [5:0] h_gnt_d;
+  logic [5:0] g_val;
+  logic [5:0] g_req;
   logic [6:0] g_gnt;
   logic [6:0] g_gnt_d;
-  logic [3:0] halt_cnt;
-  logic dh_detect;
-  logic mdh_pkt;
   typedef enum {
     H_SLOT0 = 'h1,
     G_SLOT1 = 'h2,
@@ -612,137 +642,201 @@ module host_tx_path#(
     G_SLOT3 = 'h8
   } slot_sel_t;
   slot_sel_t slot_sel;
+  slot_sel_t slot_sel_d;
   logic [511:0] holding_q[5];
 
   ASSERT_ONEHOT_SLOT_SEL:assert property @(posedge clk) disable iff (!rstn) $onehot(slot_sel);
 
-  assign h_req[0] = (h2d_req_occ > 0) && (h2d_rsp_occ > 0);
-  assign h_req[1] = (h2d_data_occ > 0) && (h2d_rsp_occ > 1);
-  assign h_req[2] = (h2d_req_occ > 0) && (h2d_data_occ > 0);
-  assign h_req[3] = (h2d_data_occ > 3);
-  assign h_req[4] = (m2s_rwd_occ > 0);
-  assign h_req[5] = (m2s_req_occ > 0);
-  assign g_req[1] = (h2d_rsp_occ > 3);
-  assign g_req[2] = (h2d_req_occ > 0) && (h2d_data_occ > 0) && (h2d_rsp_occ > 0);
-  assign g_req[3] = (h2d_data_occ > 3) && (h2d_rsp_occ > 0);
-  assign g_req[4] = (m2s_req_occ > 0) && (h2d_data_occ > 0);
-  assign g_req[5] = (m2s_rwd_occ > 0) && (h2d_rsp_occ > 0);
+  assign h_val[0] = (h2d_req_occ > 0) && (h2d_rsp_occ > 0);
+  assign h_val[1] = (h2d_data_occ > 0) && (h2d_rsp_occ > 1);
+  assign h_val[2] = (h2d_req_occ > 0) && (h2d_data_occ > 0);
+  assign h_val[3] = (h2d_data_occ > 3);
+  assign h_val[4] = (m2s_rwd_occ > 0);
+  assign h_val[5] = (m2s_req_occ > 0);
+  assign g_val[1] = (h2d_rsp_occ > 3);
+  assign g_val[2] = (h2d_req_occ > 0) && (h2d_data_occ > 0) && (h2d_rsp_occ > 0);
+  assign g_val[3] = (h2d_data_occ > 3) && (h2d_rsp_occ > 0);
+  assign g_val[4] = (m2s_req_occ > 0) && (h2d_data_occ > 0);
+  assign g_val[5] = (m2s_rwd_occ > 0) && (h2d_rsp_occ > 0);
 
+  assign h2d_req_rval   = (h_gnt[0] || h_gnt[2])? 'h1: 'h0;
+  assign h2d_rsp_rval   = (h_gnt[0])? 'h1: 'h0;
+  assign h2d_rsp_drval  = (h_gnt[1])? 'h1: 'h0;
+  assign h2d_data_rval  = (h_gnt[1] || h_gnt[2])? 'h1: 'h0;
+  assign h2d_data_drval = (h_gnt[3])? 'h1: 'h0;
+  assign m2s_req_rval   = (h_gnt[5])? 'h1: 'h0;
+  assign m2s_rwd_rval   = (h_gnt[4])? 'h1: 'h0;
+
+  assign h2d_req_qrval  = (g_gnt[1])? 'h1: 'h0;
+  assign h2d_req_rval   = (g_gnt[2])? 'h1: 'h0;
+  assign h2d_data_rval  = (g_gnt[2] || g_gnt[4])? 'h1: 'h0;
+  assign h2d_data_qrval = (g_gnt[3])? 'h1: 'h0;
+  assign h2d_rsp_rval   = (g_gnt[2] || g_gnt[3] || g_gnt[5])? 'h1: 'h0;
+  assign m2s_req_rval   = (g_gnt[4])? 'h1: 'h0;
+  assign m2s_rwd_rval   = (g_gnt[5])? 'h1: 'h0;
+
+  assign h_req = (slot_sel>1) ? 'h0: h_val;
+  assign g_req = (slot_sel[0])? 'h0: g_val;
+  
   //ll pkt buffer
   always@(posedge clk) begin
     if(!rstn) begin
       slot_sel <= H_SLOT0;
-      dh_detect <= 'h0;
-      halt_cnt <= 'h0;
-      mdh_pkt <= 'h0;
+      slot_sel_d <= H_SLOT0;
     end else begin
       h_gnt_d <= h_gnt;
       g_gnt_d <= g_gnt;
+      slot_sel_d <= slot_sel;
       case(slot_sel)
         H_SLOT0: begin
-          if((h_gnt == 0) && (halt_cnt == 'h0)) begin
+          if(h_gnt == 0) begin
             slot_sel <= H_SLOT0;
-            dh_detect <= 'h0;
-          end else if(h_gnt[1] || h_gnt[2] || h_gnt[4]) begin
-            slot_sel <= H_SLOT0;
-            dh_detect <= 'h1;
-          end else if (h_gnt[3]) begin
-            slot_sel <= H_SLOT0;
-            dh_detect <= 'h1;
-            mdh_pkt <= 'h1;
-          end else if(h_gnt[0] || h_gnt[5]) begin
-            slot_sel <= G_SLOT1;
-            dh_detect <= 'h0;
-            mdh_pkt <= 'h0;
-          end else if(halt_cnt == 'h1) begin
-            slot_sel <= G_SLOT1;
-            mdh_pkt <= 'h0;
           end else begin
-            dh_detect <= 'h0;
+            slot_sel <= G_SLOT1;
           end
         end
         G_SLOT1: begin
-          if((g_gnt == 0) && (halt_cnt == 'h0)) begin
+          if(g_gnt == 0) begin
             slot_sel <= G_SLOT1;
-            dh_detect <= 'h0;
-          end else if(g_gnt[2] || g_gnt[4] || g_gnt[5]) begin
-            slot_sel <= G_SLOT1;
-            dh_detect <= 'h1;
-          end else if(g_gnt[3]) begin
-            slot_sel <= G_SLOT1;
-            dh_detect <= 'h1;
-            mdh_pkt <= 'h1;
-          end else if(g_gnt[1]) begin
-            slot_sel <= G_SLOT2;
-            dh_detect <= 'h0;
-            mdh_pkt <= 'h0;
-          end else if(halt_cnt == 'h1) begin
-            slot_sel <= G_SLOT2;
-            mdh_pkt <= 'h0;
+          end else if(g_gnt[0]) begin
+            slot_sel <= 'hX;
           end else begin
-            dh_detect <= 'h0;
+            slot_sel <= G_SLOT2;
           end
         end
         G_SLOT2: begin
-          if((g_gnt == 0) && (halt_cnt == 'h0)) begin
+          if(g_gnt == 0) begin
             slot_sel <= G_SLOT2;
-            dh_detect <= 'h0;
-          end else if(g_gnt[2] || g_gnt[4] || g_gnt[5]) begin
-            slot_sel <= G_SLOT2;
-            dh_detect <= 'h1;
-          end else if(g_gnt[3]) begin
-            slot_sel <= G_SLOT2;
-            dh_detect <= 'h1;
-            mdh_pkt <= 'h1;
-          end else if(g_gnt[1]) begin
-            slot_sel <= G_SLOT3;
-            dh_detect <= 'h0;
-            mdh_pkt <= 'h0;
-          end else if(halt_cnt == 'h1) begin
-            slot_sel <= G_SLOT3;
-            mdh_pkt <= 'h0;
+          end else if(g_gnt[0]) begin
+            slot_sel <= 'hX;
           end else begin
-            dh_detect <= 'h0;
+            slot_sel <= G_SLOT3;
           end
         end
         G_SLOT3: begin
-          if((g_gnt == 0) && (halt_cnt == 'h0)) begin
+          if(g_gnt == 0) begin
             slot_sel <= G_SLOT3;
-            dh_detect <= 'h0;
-          end else if(g_gnt[2] || g_gnt[4] || g_gnt[5]) begin
-            slot_sel <= G_SLOT3;
-            dh_detect <= 'h1;
-          end else if(g_gnt[3]) begin
-            slot_sel <= G_SLOT3;
-            dh_detect <= 'h1;
-            mdh_pkt <= 'h1;
-          end else if(g_gnt[1]) begin
-            slot_sel <= H_SLOT0;
-            dh_detect <= 'h0;
-            mdh_pkt <= 'h0;
-          end else if(halt_cnt == 'h1) begin
-            slot_sel <= H_SLOT0;
-            mdh_pkt <= 'h0;
+          end else if(g_gnt[0]) begin
+            slot_sel <= 'hX;
           end else begin
-            dh_detect <= 'h0;
+            slot_sel <= H_SLOT0;
           end
         end
         default: begin
             slot_sel = 'hX;
         end 
       endcase
-      if(dh_detect) begin
-        halt_cnt <= mdh_pkt? 'hc: 'h4;//double check
-      end else begin
-        if(halt_cnt != 'h0) begin
-          halt_cnt <= halt_cnt - 1;
-        end
-      end
       if(!($stable(slot_sel))) begin
-        case(slot_sel)
+        case(slot_sel_d)
           H_SLOT0: begin
             case(h_gnt_d)
-
+              'h1: begin
+                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[3]        = 'h0;//non data header so 0
+                holding_q[4]        = 'h0;//non data header so 0
+                holding_q[7:5]      = 'h0;//slot0 fmt is H0 so 0
+                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[19:17]    = 'h0;//reserved must be 0
+                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[32]       = h2d_req_dataout.valid;
+                holding_q[35:33]    = h2d_req_dataout.opcode;
+                holding_q[81:36]    = h2d_req_dataout.address[51:6];
+                holding_q[93:82]    = h2d_req_dataout.uqid;
+                holding_q[95:94]    = 'h0;//spare bits are rsvd must be set to 0
+                holding_q[96]       = h2d_rsp_dataout.valid;
+                holding_q[100:97]   = h2d_rsp_dataout.opcode;
+                holding_q[112:101]  = h2d_rsp_dataout.rspdata;
+                holding_q[114:113]  = h2d_rsp_dataout.rsppre;
+                holding_q[126:115]  = h2d_rsp_dataout.cqid;
+                holding_q[127]      = 'h0;//TBD: says sp not sure what it is must be spare 
+              end
+              'h2: begin
+                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[3]        = 'h0;//non data header so 0
+                holding_q[4]        = 'h0;//non data header so 0
+                holding_q[7:5]      = 'h1;//slot0 fmt is H0 so 0
+                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[19:17]    = 'h0;//reserved must be 0
+                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[32]       = h2d_data_dataout.valid;
+                holding_q[44:33]    = h2d_data_dataout.cqid;
+                holding_q[]
+              end
+              'h4: begin
+                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[3]        = 'h0;//non data header so 0
+                holding_q[4]        = 'h0;//non data header so 0
+                holding_q[7:5]      = 'h2;//slot0 fmt is H0 so 0
+                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[19:17]    = 'h0;//reserved must be 0
+                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
+              end
+              'h8: begin
+                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[3]        = 'h0;//non data header so 0
+                holding_q[4]        = 'h0;//non data header so 0
+                holding_q[7:5]      = 'h3;//slot0 fmt is H0 so 0
+                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[19:17]    = 'h0;//reserved must be 0
+                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
+              end
+              'h16: begin
+                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[3]        = 'h0;//non data header so 0
+                holding_q[4]        = 'h0;//non data header so 0
+                holding_q[7:5]      = 'h4;//slot0 fmt is H0 so 0
+                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[19:17]    = 'h0;//reserved must be 0
+                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
+              end
+              'h32: begin
+                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[3]        = 'h0;//non data header so 0
+                holding_q[4]        = 'h0;//non data header so 0
+                holding_q[7:5]      = 'h5;//slot0 fmt is H0 so 0
+                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
+                holding_q[19:17]    = 'h0;//reserved must be 0
+                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
+              end
+              default: begin
+                holding_q[0]        = 'hX;//protocol flit encoding is 0 & for control type is 1
+              end
             endcase
           end
           G_SLOT1: begin
@@ -758,9 +852,6 @@ module host_tx_path#(
       end
     end
   end
-  
-  assign h_req = ((slot_sel>1) || (|halt_cnt))? 'h0: h_req;
-  assign g_req = ((slot_sel[0]) || (|halt_cnt))? 'h0: gval;
 
   rra h_slot_rra_inst#(
 
@@ -790,172 +881,134 @@ module device_tx_path#(
   input int d2h_data_occ,
   input int s2m_ndr_occ,
   input int s2m_drs_occ,
+  output logic d2h_req_rval,
+  output logic d2h_req_drval,
+  output logic d2h_req_trval,
+  output logic d2h_req_qrval,
+  output logic d2h_rsp_rval,
+  output logic d2h_rsp_drval,
+  output logic d2h_rsp_trval,
+  output logic d2h_rsp_qrval,
+  output logic d2h_data_rval,
+  output logic d2h_data_drval,
+  output logic d2h_data_trval,
+  output logic d2h_data_qrval,
+  output logic s2m_ndr_rval,
+  output logic s2m_ndr_drval,
+  output logic s2m_ndr_trval,
+  output logic s2m_ndr_qrval,
+  output logic s2m_drs_rval,
+  output logic s2m_drs_drval,  
+  output logic s2m_drs_trval,  
+  output logic s2m_drs_qrval,
+  input d2h_req_txn_t d2h_req_dataout,
+  input d2h_req_txn_t d2h_req_ddataout,
+  input d2h_req_txn_t d2h_req_tdataout,
+  input d2h_req_txn_t d2h_req_qdataout,
+  input d2h_rsp_txn_t d2h_rsp_dataout,
+  input d2h_rsp_txn_t d2h_rsp_ddataout,
+  input d2h_rsp_txn_t d2h_rsp_tdataout,
+  input d2h_rsp_txn_t d2h_rsp_qdataout,
+  input d2h_data_txn_t d2h_data_dataout,
+  input d2h_data_txn_t d2h_data_ddataout,
+  input d2h_data_txn_t d2h_data_tdataout,
+  input d2h_data_txn_t d2h_data_qdataout,
+  input s2m_ndr_txn_t s2m_ndr_dataout,
+  input s2m_ndr_txn_t s2m_ndr_ddataout,
+  input s2m_ndr_txn_t s2m_ndr_tdataout,
+  input s2m_ndr_txn_t s2m_ndr_qdataout,
+  input s2m_drs_txn_t s2m_drs_dataout,
+  input s2m_drs_txn_t s2m_drs_ddataout,
+  input s2m_drs_txn_t s2m_drs_tdataout,
+  input s2m_drs_txn_t s2m_drs_qdataout,
 );
 
+  logic [5:0] h_val;
   logic [5:0] h_req;
-  logic [6:0] g_req;
   logic [5:0] h_gnt;
   logic [5:0] h_gnt_d;
+  logic [6:0] g_val;
+  logic [6:0] g_req;
   logic [6:0] g_gnt;
   logic [6:0] g_gnt_d;
-  logic [3:0] halt_cnt;
-  logic dh_detect;
-  logic ddh_pkt;
-  logic tdh_pkt;
-  logic mdh_pkt;
+  typedef enum {
+    H_SLOT0 = 'h1,
+    G_SLOT1 = 'h2,
+    G_SLOT2 = 'h4,
+    G_SLOT3 = 'h8
+  } slot_sel_t;
+  slot_sel_t slot_sel;
+  slot_sel_t slot_sel_d;
+  logic [511:0] holding_q[5];
 
-  assign h_req[0] = (d2h_data_occ > 0) && (d2h_rsp_occ > 1);
-  assign h_req[1] = (d2h_req_occ >0) && (d2h_data_occ > 0);
-  assign h_req[2] = (d2h_data_occ > 3) && (d2h_rsp_occ > 0);
-  assign h_req[3] = (s2m_drs_occ > 0) && (s2m_ndr_occ > 0);
-  assign h_req[4] = (s2m_ndr_occ > 1);
-  assign h_req[5] = (s2m_drs_occ > 1);
-  assign g_req[1] = (d2h_req_occ > 0) && (d2h_rsp_occ > 1);
-  assign g_req[2] = (d2h_req_occ > 0) && (d2h_data_occ > 0) && (d2h_rsp_occ > 0);
-  assign g_req[3] = (d2h_data_occ > 4);
-  assign g_req[4] = (s2m_drs_occ > 0) && (s2m_ndr_occ > 1);
-  assign g_req[5] = (s2m_ndr_occ > 2);
-  assign g_req[6] = (s2m_drs_occ > 2);
+  assign h_val[0] = (d2h_data_occ > 0) && (d2h_rsp_occ > 1);
+  assign h_val[1] = (d2h_req_occ >0) && (d2h_data_occ > 0);
+  assign h_val[2] = (d2h_data_occ > 3) && (d2h_rsp_occ > 0);
+  assign h_val[3] = (s2m_drs_occ > 0) && (s2m_ndr_occ > 0);
+  assign h_val[4] = (s2m_ndr_occ > 1);
+  assign h_val[5] = (s2m_drs_occ > 1);
+  assign g_val[1] = (d2h_req_occ > 0) && (d2h_rsp_occ > 1);
+  assign g_val[2] = (d2h_req_occ > 0) && (d2h_data_occ > 0) && (d2h_rsp_occ > 0);
+  assign g_val[3] = (d2h_data_occ > 4);
+  assign g_val[4] = (s2m_drs_occ > 0) && (s2m_ndr_occ > 1);
+  assign g_val[5] = (s2m_ndr_occ > 2);
+  assign g_val[6] = (s2m_drs_occ > 2);
 
   ASSERT_ONEHOT_SLOT_SEL:assert property @(posedge clk) disable iff (!rstn) $onehot(slot_sel);
+  
+  assign h_req = (slot_sel>1)? 'h0: h_val;
+  assign g_req = (slot_sel[0])? 'h0: g_val;
 
   //ll pkt buffer
   always@(posedge clk) begin
     if(!rstn) begin
       slot_sel <= H_SLOT0;
-      dh_detect <= 'h0;
-      ddh_pkt <= 'h0;
-      tdh_pkt <= 'h0;
-      mdh_pkt <= 'h0;
-      halt_cnt <= 'h0;
+      slot_sel_d <= H_SLOT0;
     end else begin
       h_gnt_d <= h_gnt;
       g_gnt_d <= g_gnt;
+      slot_sel_d <= slot_sel;
       case(slot_sel)
         H_SLOT0: begin
-          if((h_gnt == 0) && (halt_cnt == 'h0)) begin
+          if(h_gnt == 0) begin
             slot_sel <= H_SLOT0;
-            dh_detect <= 'h0;
-          end else if((h_gnt[0]) || (h_gnt[1]) || (h_gnt[3])) begin
-            slot_sel <= H_SLOT0;
-            dh_detect <= 'h1;
-          end else if (h_gnt[2]) begin
-            slot_sel <= H_SLOT0;
-            dh_detect <= 'h1;
-            mdh_pkt <= 'h1;
-          end else if (h_gnt[5]) begin
-            slot_sel <= G_SLOT1;
-            dh_detect <= 'h1;
-            ddh_pkt <= 'h1;
-          end else if(h_gnt[4]) begin
-            slot_sel <= G_SLOT1;
-            dh_detect <= 'h0;
-            ddh_pkt <= 'h0;
-            mdh_pkt <= 'h0;
-          end else if(halt_cnt == 'h1) begin
-            slot_sel <= G_SLOT1;
-            ddh_pkt <= 'h0;
-            mdh_pkt <= 'h0;
           end else begin
-            dh_detect <= 'h0;
+            slot_sel <= G_SLOT1;
           end
         end
         G_SLOT1: begin
-          if((g_gnt == 0) && (halt_cnt == 'h0)) begin
+          if(g_gnt == 0) begin
             slot_sel <= G_SLOT1;
-            dh_detect <= 'h0;
-          end else if(g_gnt[2] || g_gnt[4] || g_gnt[5]) begin
-            slot_sel <= G_SLOT1;
-            dh_detect <= 'h1;
-          end else if(g_gnt[3]) begin
-            slot_sel <= G_SLOT1;
-            dh_detect <= 'h1;
-            mdh_pkt <= 'h1;
-          end else if(g_gnt[6]) begin
-            slot_sel <= G_SLOT1;
-            dh_detect <= 'h1;
-            tdh_pkt <= 'h1;
-          end else if(g_gnt[1]) begin
-            slot_sel <= G_SLOT2;
-            dh_detect <= 'h0;
-            mdh_pkt <= 'h0;
-          end else if(halt_cnt == 'h1) begin
-            slot_sel <= G_SLOT2;
-            tdh_pkt <= 'h0;
-            mdh_pkt <= 'h0;
+          end else if(g_gnt[0]) begin
+            slot_sel <= 'hX;
           end else begin
-            dh_detect <= 'h0;
+            slot_sel <= G_SLOT2;
           end
         end
         G_SLOT2: begin
-          if((g_gnt == 0) && (halt_cnt == 'h0)) begin
+          if(g_gnt == 0) begin
             slot_sel <= G_SLOT2;
-            dh_detect <= 'h0;
-          end else if(g_gnt[2] || g_gnt[4] || g_gnt[5]) begin
-            slot_sel <= G_SLOT2;
-            dh_detect <= 'h1;
-          end else if(g_gnt[3]) begin
-            slot_sel <= G_SLOT2;
-            dh_detect <= 'h1;
-            mdh_pkt <= 'h1;
-          end else if(g_gnt[6]) begin
-            slot_sel <= G_SLOT2;
-            dh_detect <= 'h1;
-            tdh_pkt <= 'h1;
-          end else if(g_gnt[1]) begin
-            slot_sel <= G_SLOT3;
-            dh_detect <= 'h0;
-          end else if(halt_cnt == 'h1) begin
-            slot_sel <= G_SLOT3;
-            tdh_pkt <= 'h0;
-            mdh_pkt <= 'h0;
+          end else if(g_gnt[0]) begin
+            slot_sel <= 'hX;
           end else begin
-            dh_detect <= 'h0;
+            slot_sel <= G_SLOT3;
           end
         end
         G_SLOT3: begin
-          if((g_gnt == 0) && (halt_cnt == 'h0)) begin
+          if(g_gnt == 0) begin
             slot_sel <= G_SLOT3;
-            dh_detect <= 'h0;
-          end else if(g_gnt[2] || g_gnt[4] || g_gnt[5]) begin
-            slot_sel <= G_SLOT3;
-            dh_detect <= 'h1;
-          end else if(g_gnt[3]) begin
-            slot_sel <= G_SLOT3;
-            dh_detect <= 'h1;
-            mdh_pkt <= 'h1;
-          end else if(g_gnt[6]) begin
-            slot_sel <= G_SLOT3;
-            dh_detect <= 'h1;
-            tdh_pkt <= 'h1;
-          end else if(g_gnt[1]) begin
-            slot_sel <= H_SLOT0;
-            dh_detect <= 'h0;
-          end else if(halt_cnt == 'h1) begin
-            slot_sel <= H_SLOT0;
-            tdh_pkt <= 'h0;
-            mdh_pkt <= 'h0;
+          end else if(g_gnt[0]) begin
+            slot_sel <= 'hX;
           end else begin
-            dh_detect <= 'h0;
+            slot_sel <= H_SLOT0;
           end
         end
         default: begin
             slot_sel = 'hX;
         end 
       endcase
-      if(dh_detect) begin
-        halt_cnt <= mdh_pkt? 'hc: ddh_pkt? 'h8: 'h4;// double check
-      end else begin
-        if(halt_cnt != 'h0) begin
-          halt_cnt <= halt_cnt - 1;
-        end
-      end
-
     end
   end
-  
-  assign h_req = ((slot_sel>1) || (|halt_cnt))? 'h0: h_req;
-  assign g_req = ((slot_sel[0]) || (|halt_cnt))? 'h0: gval;
 
   rra h_slot_rra_inst#(
 
@@ -985,9 +1038,15 @@ module buffer#(
 	  input logic clk,
   	input logic rstn,
   	input logic rval,
+  	input logic drval,
+  	input logic trval,
+  	input logic qrval,
   	input logic wval,
     input FIFO_DATA_TYPE datain,
     output FIFO_DATA_TYPE dataout,
+    output FIFO_DATA_TYPE ddataout,
+    output FIFO_DATA_TYPE tdataout,
+    output FIFO_DATA_TYPE qdataout,
   	output logic [ADDR_WIDTH-1:0] eseq,
   	output logic [ADDR_WIDTH:0] wptr,
   	output logic empty,
@@ -1020,9 +1079,34 @@ module buffer#(
          	fifo_h[wrptr] <= datain;
          	wrptr <= wrptr + 1;
          	eseq <= eseq + 1;
-        end else if(rval && !empty) begin
-         	dataout <= fifo_h[rdptr];
-         	rdptr <= rdptr + 1;
+        end else if(((rval && (!empty)) || (drval && (occupancy>1)) || (trval && (occupancy>2)) || (qrval && (occupancy>3)))) begin
+          case({qrval,trval,drval,rval})
+            4'b0001: begin
+              rdptr <= rdptr + 1;
+         	    dataout <= fifo_h[rdptr];
+            end
+            4'b0010: begin
+              rdptr <= rdptr + 2;
+         	    dataout <= fifo_h[rdptr];
+         	    ddataout <= fifo_h[rdptr+1];
+            end
+            4'b0100: begin
+              rdptr <= rdptr + 3;
+         	    dataout <= fifo_h[rdptr];
+         	    ddataout <= fifo_h[rdptr+1];
+         	    tdataout <= fifo_h[rdptr+2];
+            end
+            4'b1000: begin
+              rdptr <= rdptr + 4;
+         	    dataout <= fifo_h[rdptr];
+         	    ddataout <= fifo_h[rdptr+1];
+         	    tdataout <= fifo_h[rdptr+2];
+         	    qdataout <= fifo_h[rdptr+3];
+            end
+            default: begin
+              rdptr <= 'hX;
+            end
+          endcase
         end
        	occupancy <= ('d256 - (wrptr - rdptr));
         if(rdptr == wrptr) begin
@@ -1035,7 +1119,7 @@ module buffer#(
         end else begin
          	full <= 'h0;
         end
-        if((empty == 'h1) && (rval)) begin
+        if((empty && rval) || ((occupancy<2) && drval) || ((occupancy<3) && trval) || ((occupancy<4) && qrval)) begin
          	undrflw <= 'h1;
         end else begin
          	undrflw <= 'h0;
@@ -1066,6 +1150,42 @@ module cxl_master
     cxl_mem_s2m_ndr_if.host_if_mp host_s2m_ndr_if,
     cxl_mem_s2m_drs_if.host_if_mp host_s2m_drs_if
 );
+
+  logic h2d_req_occ;
+  logic h2d_rsp_occ;
+  logic h2d_data_occ;
+  logic m2s_req_occ;
+  logic m2s_rwd_occ;
+  logic h2d_req_rval;
+  logic h2d_req_drval;
+  logic h2d_req_qrval;
+  logic h2d_rsp_rval;
+  logic h2d_rsp_drval;
+  logic h2d_rsp_qrval;
+  logic h2d_data_rval;
+  logic h2d_data_drval;
+  logic h2d_data_qrval;
+  logic m2s_req_rval;
+  logic m2s_req_drval;
+  logic m2s_req_qrval;
+  logic m2s_rwd_rval;
+  logic m2s_rwd_drval;
+  logic m2s_rwd_qrval;
+  h2d_req_txn_t h2d_req_dataout;
+  h2d_req_txn_t h2d_req_ddataout;
+  h2d_req_txn_t h2d_req_qdataout;
+  h2d_rsp_txn_t h2d_rsp_dataout;
+  h2d_rsp_txn_t h2d_rsp_ddataout;
+  h2d_rsp_txn_t h2d_rsp_qdataout;
+  h2d_data_txn_t h2d_data_dataout;
+  h2d_data_txn_t h2d_data_ddataout;
+  h2d_data_txn_t h2d_data_qdataout;
+  m2s_req_txn_t m2s_req_dataout;
+  m2s_req_txn_t m2s_req_ddataout;
+  m2s_req_txn_t m2s_req_qdataout;
+  m2s_rwd_txn_t m2s_rwd_dataout;
+  m2s_rwd_txn_t m2s_rwd_ddataout;
+  m2s_rwd_txn_t m2s_rwd_qdataout;
 
   buffer d2h_req_fifo_inst#(
     DEPTH = 32,
@@ -1179,10 +1299,14 @@ module cxl_master
   )(
 	  .clk(host_m2s_req_if.clk),
   	.rstn(host_m2s_req_if.rstn),
-  	.rval,
+  	.rval(m2s_req_rval),
+  	.drval(m2s_req_drval),
+  	.qrval(m2s_req_qrval),
   	.wval(host_m2s_req_if.m2s_req_txn.valid),
     .datain(host_m2s_req_if.m2s_req_txn),
-    .dataout,
+    .dataout(m2s_req_dataout),
+    .ddataout(m2s_req_ddataout),
+    .qdataout(m2s_req_qdataout),
   	.eseq,
   	.wptr,
   	.empty,
@@ -1190,7 +1314,7 @@ module cxl_master
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(m2s_req_occ)
   );
 
   buffer m2s_rwd_fifo_inst#(
@@ -1200,10 +1324,14 @@ module cxl_master
   )(
 	  .clk(host_m2s_rwd_if.clk),
   	.rstn(host_m2s_rwd_if.rstn),
-  	.rval,
+  	.rval(m2s_rwd_rval),
+  	.drval(m2s_rwd_drval),
+  	.qrval(m2s_rwd_qrval),
   	.wval(host_m2s_rwd_if.m2s_rwd_txn.valid),
     .datain(host_m2s_rwd_if.m2s_rwd_txn),
-    .dataout,
+    .dataout(m2s_rwd_dataout),
+    .dataout(m2s_rwd_ddataout),
+    .dataout(m2s_rwd_qdataout),
   	.eseq,
   	.wptr,
   	.empty,
@@ -1211,7 +1339,7 @@ module cxl_master
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(m2s_rwd_occ)
   );
 
   buffer h2d_req_fifo_inst#(
@@ -1221,10 +1349,14 @@ module cxl_master
   )(
 	  .clk(host_h2d_req_if.clk),
   	.rstn(host_h2d_req_if.rstn),
-  	.rval,
+  	.rval(h2d_req_rval),
+  	.drval(h2d_req_drval),
+  	.qrval(h2d_req_qrval),
   	.wval(host_h2d_req_if.h2d_req_txn.valid),
     .datain(host_h2d_req_if.h2d_req_txn),
-    .dataout,
+    .dataout(h2d_req_dataout),
+    .dataout(h2d_req_ddataout),
+    .dataout(h2d_req_qdataout),
   	.eseq,
   	.wptr,
   	.empty,
@@ -1232,7 +1364,7 @@ module cxl_master
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(h2d_req_occ)
   );
 
   buffer h2d_rsp_fifo_inst#(
@@ -1242,10 +1374,14 @@ module cxl_master
   )(
 	  .clk(host_h2d_rsp_if.clk),
   	.rstn(host_h2d_rsp_if.rstn),
-  	.rval,
+  	.rval(h2d_rsp_rval),
+  	.drval(h2d_rsp_drval),
+  	.qrval(h2d_rsp_qrval),
   	.wval(host_h2d_rsp_if.h2d_rsp_txn.valid),
     .datain(host_h2d_rsp_if.h2d_rsp_txn),
-    .dataout,
+    .dataout(h2d_rsp_dataout),
+    .ddataout(h2d_rsp_ddataout),
+    .qdataout(h2d_rsp_qdataout),
   	.eseq,
   	.wptr,
   	.empty,
@@ -1253,7 +1389,7 @@ module cxl_master
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(h2d_rsp_occ)
   );
 
   buffer h2d_data_fifo_inst#(
@@ -1263,10 +1399,14 @@ module cxl_master
   )(
 	  .clk(host_h2d_data_if.clk),
   	.rstn(host_h2d_data_if.rstn),
-  	.rval,
+  	.rval(h2d_data_rval),
+  	.drval(h2d_data_drval),
+  	.qrval(h2d_data_qrval),
   	.wval(host_h2d_data_if.h2d_data_txn.valid),
     .datain(host_h2d_data_if.h2d_data_txn),
-    .dataout,
+    .dataout(h2d_data_dataout),
+    .ddataout(h2d_data_ddataout),
+    .ddataout(h2d_data_qdataout),
   	.eseq,
   	.wptr,
   	.empty,
@@ -1274,7 +1414,13 @@ module cxl_master
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(h2d_data_occ)
+  );
+
+  host_tx_path host_tx_path_inst#(
+
+  )(
+    .*
   );
 
 endmodule
@@ -1295,6 +1441,52 @@ module cxl_slave
     dev_s2m_drs_if.dev_if_mp dev_s2m_drs_if
 );
 
+  logic d2h_req_occ;
+  logic d2h_rsp_occ;
+  logic d2h_data_occ;
+  logic s2m_req_occ;
+  logic s2m_rwd_occ;
+  logic d2h_req_rval;
+  logic d2h_req_drval;
+  logic d2h_req_trval;
+  logic d2h_req_qrval;
+  logic d2h_rsp_rval;
+  logic d2h_rsp_drval;
+  logic d2h_rsp_trval;
+  logic d2h_rsp_qrval;
+  logic d2h_data_rval;
+  logic d2h_data_drval;
+  logic d2h_data_trval;
+  logic d2h_data_qrval;
+  logic s2m_ndr_rval;
+  logic s2m_ndr_drval;
+  logic s2m_ndr_trval;
+  logic s2m_ndr_qrval;
+  logic s2m_drs_rval;
+  logic s2m_drs_drval;
+  logic s2m_drs_trval;
+  logic s2m_drs_qrval;
+  d2h_req_txn_t d2h_req_dataout;
+  d2h_req_txn_t d2h_req_ddataout;
+  d2h_req_txn_t d2h_req_tdataout;
+  d2h_req_txn_t d2h_req_qdataout;
+  d2h_rsp_txn_t d2h_rsp_dataout;
+  d2h_rsp_txn_t d2h_rsp_ddataout;
+  d2h_rsp_txn_t d2h_rsp_tdataout;
+  d2h_rsp_txn_t d2h_rsp_qdataout;
+  d2h_data_txn_t d2h_data_dataout;
+  d2h_data_txn_t d2h_data_ddataout;
+  d2h_data_txn_t d2h_data_tdataout;
+  d2h_data_txn_t d2h_data_qdataout;
+  s2m_ndr_txn_t s2m_ndr_dataout;
+  s2m_ndr_txn_t s2m_ndr_ddataout;
+  s2m_ndr_txn_t s2m_ndr_tdataout;
+  s2m_ndr_txn_t s2m_ndr_qdataout;
+  s2m_drs_txn_t s2m_drs_dataout;
+  s2m_drs_txn_t s2m_drs_ddataout;
+  s2m_drs_txn_t s2m_drs_tdataout;
+  s2m_drs_txn_t s2m_drs_qdataout;
+
   buffer d2h_req_fifo_inst#(
     DEPTH = 32,
     ADDR_WIDTH = 5,
@@ -1302,10 +1494,16 @@ module cxl_slave
   )(
 	  .clk(dev_d2h_req_if.clk),
   	.rstn(dev_d2h_req_if.rstn),
-  	.rval,
+  	.rval(d2h_req_rval),
+  	.drval(d2h_req_drval),
+  	.trval(d2h_req_trval),
+  	.qrval(d2h_req_qrval),
   	.wval(dev_d2h_req_if.d2h_req_txn.valid),
     .datain(dev_d2h_req_if.d2h_req_txn),
-    .dataout,
+    .dataout(d2h_req_dataout),
+    .ddataout(d2h_req_ddataout),
+    .tdataout(d2h_req_tdataout),
+    .qdataout(d2h_req_qdataout),
   	.eseq,
   	.wptr,
   	.empty,
@@ -1313,7 +1511,7 @@ module cxl_slave
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(d2h_req_occ)
   );
 
   buffer d2h_rsp_fifo_inst#(
@@ -1323,10 +1521,16 @@ module cxl_slave
   )(
 	  .clk(dev_d2h_rsp_if.clk),
   	.rstn(dev_d2h_rsp_if.rstn),
-  	.rval,
+  	.rval(d2h_rsp_rval),
+  	.drval(d2h_rsp_drval),
+  	.trval(d2h_rsp_trval),
+  	.qrval(d2h_rsp_qrval),
   	.wval(dev_d2h_rsp_if.d2h_rsp_txn.valid),
     .datain(dev_d2h_rsp_if.d2h_rsp_txn),
-    .dataout,
+    .dataout(d2h_rsp_dataout),
+    .ddataout(d2h_rsp_ddataout),
+    .tdataout(d2h_rsp_tdataout),
+    .qdataout(d2h_rsp_qdataout),
   	.eseq,
   	.wptr,
   	.empty,
@@ -1344,10 +1548,16 @@ module cxl_slave
   )(
 	  .clk(dev_d2h_data_if.clk),
   	.rstn(dev_d2h_data_if.rstn),
-  	.rval,
+  	.rval(d2h_data_rval),
+  	.drval(d2h_data_drval),
+  	.trval(d2h_data_trval),
+  	.qrval(d2h_data_qrval),
   	.wval(dev_d2h_data_if.d2h_data_txn.valid),
     .datain(dev_d2h_data_if.d2h_data_txn),
-    .dataout,
+    .dataout(d2h_data_dataout),
+    .ddataout(d2h_data_ddataout),
+    .tdataout(d2h_data_tdataout),
+    .qdataout(d2h_data_qdataout),
   	.eseq,
   	.wptr,
   	.empty,
@@ -1355,7 +1565,7 @@ module cxl_slave
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(d2h_data_occ)
   );
 
   buffer s2m_ndr_fifo_inst#(
@@ -1365,10 +1575,16 @@ module cxl_slave
   )(
 	  .clk(dev_s2m_ndr_if.clk),
   	.rstn(dev_s2m_ndr_if.rstn),
-  	.rval,
+  	.rval(s2m_ndr_rval),
+  	.drval(s2m_ndr_drval),
+  	.trval(s2m_ndr_trval),
+  	.qrval(s2m_ndr_qrval),
   	.wval(dev_s2m_ndr_if.s2m_ndr_txn.valid),
     .datain(dev_s2m_ndr_if.s2m_ndr_txn),
-    .dataout,
+    .dataout(s2m_ndr_dataout),
+    .ddataout(s2m_ndr_ddataout),
+    .tdataout(s2m_ndr_tdataout),
+    .qdataout(s2m_ndr_qdataout),
   	.eseq,
   	.wptr,
   	.empty,
@@ -1376,7 +1592,7 @@ module cxl_slave
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(s2m_ndr_occ)
   );
 
   buffer s2m_drs_fifo_inst#(
@@ -1386,10 +1602,16 @@ module cxl_slave
   )(
 	  .clk(dev_s2m_drs_if.clk),
   	.rstn(dev_s2m_drs_if.rstn),
-  	.rval,
+  	.rval(s2m_drs_rval),
+  	.drval(s2m_drs_drval),
+  	.trval(s2m_drs_trval),
+  	.qrval(s2m_drs_qrval),
   	.wval(dev_s2m_drs_if.s2m_drs_txn.valid),
     .datain(dev_s2m_drs_if.s2m_drs_txn),
-    .dataout,
+    .dataout(s2m_drs_dataout),
+    .ddataout(s2m_drs_ddataout),
+    .tdataout(s2m_drs_tdataout),
+    .qdataout(s2m_drs_qdataout),
   	.eseq,
   	.wptr,
   	.empty,
@@ -1397,7 +1619,7 @@ module cxl_slave
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(s2m_drs_occ)
   );
 
   buffer m2s_req_fifo_inst#(
@@ -1503,6 +1725,12 @@ module cxl_slave
   	.ovrflw,
   	.near_full,
   	.occupancy
+  );
+
+  device_tx_path device_tx_path#(
+
+  )(
+    .*
   );
 
 endmodule
