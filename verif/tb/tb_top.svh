@@ -573,6 +573,82 @@ interface cxl_mem_s2m_drs_if(input logic clk);
 
 endinterface
 
+interface cxl_host_tx_dl_if(input logic dl_clk);
+  logic dl_rstn;
+  logic valid;
+  logic [527:0] dl_data;
+
+  modport tx_mp(
+    input dl_rstn,
+    output valid,
+    output dl_data
+  );
+
+  modport mon(
+    input dl_rstn,
+    input valid,
+    input dl_data
+  );
+
+endinterface
+
+interface cxl_host_rx_dl_if(input logic dl_clk);
+  logic dl_rstn;
+  logic valid;
+  logic [527:0] dl_data;
+
+  modport rx_mp(
+    input dl_rstn,
+    input valid,
+    input [527:0] dl_data
+  );
+
+  modport mon(
+    input dl_rstn,
+    input valid,
+    input dl_data
+  );
+
+endinterface
+
+interface cxl_dev_tx_dl_if(input logic dl_clk);
+  logic dl_rstn;
+  logic valid;
+  logic [527:0] dl_data;
+
+  modport tx_mp(
+    input dl_rstn,
+    output valid,
+    output dl_data
+  );
+
+  modport mon(
+    input dl_rstn,
+    input valid,
+    input dl_data
+  );
+
+endinterface
+
+interface cxl_dev_rx_dl_if(input logic dl_clk);
+  logic dl_rstn;
+  logic valid;
+  logic [527:0] dl_data;
+
+  modport rx_mp(
+    input dl_rstn,
+    input valid,
+    input dl_data
+  );
+
+  modport mon(
+    input dl_rstn,
+    input valid,
+    input dl_data
+  );
+
+endinterface 
+
 module rra#(
   parameter = NO_OF_REQ
 )(
@@ -624,6 +700,8 @@ module host_tx_path#(
   input m2s_rwd_txn_t m2s_rwd_dataout,
   input m2s_rwd_txn_t m2s_rwd_ddataout,
   input m2s_rwd_txn_t m2s_rwd_qdataout,
+  cxl_host_tx_dl_if.tx_mp host_tx_dl_if,
+  cxl_host_rx_dl_if.rx_mp host_rx_dl_if
 );
   localparam SLOT1_OFFSET = 128;
   localparam SLOT2_OFFSET = 256;
@@ -645,7 +723,13 @@ module host_tx_path#(
   } slot_sel_t;
   slot_sel_t slot_sel;
   slot_sel_t slot_sel_d;
-  logic [511:0] holding_q[5];
+  logic [2:0] holding_rdptr;
+  logic [2:0] holding_wrptr;
+  typedef struct {
+    logic valid;
+    logic [511:0] data;
+  } holding_q_t;
+  holding_q_t holding_q[6];
 
   ASSERT_ONEHOT_SLOT_SEL:assert property @(posedge clk) disable iff (!rstn) $onehot(slot_sel);
 
@@ -685,6 +769,7 @@ module host_tx_path#(
     if(!rstn) begin
       slot_sel <= H_SLOT0;
       slot_sel_d <= H_SLOT0;
+      holding_wrptr <= 'h0;
     end else begin
       h_gnt_d <= h_gnt;
       g_gnt_d <= g_gnt;
@@ -725,594 +810,733 @@ module host_tx_path#(
           end
         end
         default: begin
-            slot_sel = 'hX;
+            slot_sel <= 'hX;
         end 
       endcase
+      
       if(!($stable(slot_sel))) begin
         case(slot_sel_d)
           H_SLOT0: begin
             case(h_gnt_d)
               'h1: begin
-                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
-                holding_q[3]        = 'h0;//non data header so 0
-                holding_q[4]        = 'h0;//non data header so 0
-                holding_q[7:5]      = 'h0;//slot0 fmt is H0 so 0
-                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[19:17]    = 'h0;//reserved must be 0
-                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[32]       = h2d_req_dataout.valid;
-                holding_q[35:33]    = h2d_req_dataout.opcode;
-                holding_q[81:36]    = h2d_req_dataout.address[51:6];
-                holding_q[93:82]    = h2d_req_dataout.uqid;
-                holding_q[95:94]    = 'h0;//spare bits are rsvd must be set to 0
-                holding_q[96]       = h2d_rsp_dataout.valid;
-                holding_q[100:97]   = h2d_rsp_dataout.opcode;
-                holding_q[112:101]  = h2d_rsp_dataout.rspdata;
-                holding_q[114:113]  = h2d_rsp_dataout.rsppre;
-                holding_q[126:115]  = h2d_rsp_dataout.cqid;
-                holding_q[127]      = 'h0;//TBD: says sp not sure what it is must be spare 
+                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]       <= h2d_req_dataout.valid;
+                holding_q[holding_wrptr].data[35:33]    <= h2d_req_dataout.opcode;
+                holding_q[holding_wrptr].data[81:36]    <= h2d_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[93:82]    <= h2d_req_dataout.uqid;
+                holding_q[holding_wrptr].data[95:94]    <= 'h0;//spare bits are rsvd must be set to 0
+                holding_q[holding_wrptr].data[96]       <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[100:97]   <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[112:101]  <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[114:113]  <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[126:115]  <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[127]      <= 'h0;//TBD: says sp not sure what it is must be spare 
+                holding_q[holding_wrptr].valid          <= 'h0;
               end
               'h2: begin
-                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
-                holding_q[3]        = 'h0;//non data header so 0
-                holding_q[4]        = 'h0;//non data header so 0
-                holding_q[7:5]      = 'h1;//slot0 fmt is H0 so 0
-                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[19:17]    = 'h0;//reserved must be 0
-                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[32]       = h2d_data_dataout.valid;
-                holding_q[44:33]    = h2d_data_dataout.cqid;
-                holding_q[45]       = h2d_data_dataout.chunkvalid;
-                holding_q[46]       = h2d_data_dataout.poison;
-                holding_q[47]       = h2d_data_dataout.goerr;
-                holding_q[54:48]    = h2d_data_dataout.
-                holding_q[55]       = 'h0;//spare bit always 0
-                holding_q[56]       = h2d_rsp_dataout.valid;
-                holding_q[60:57]    = h2d_rsp_dataout.opcode;
-                holding_q[72:61]    = h2d_rsp_dataout.rspdata;
-                holding_q[74:73]    = h2d_rsp_dataout.rsppre;
-                holding_q[86:75]    = h2d_rsp_dataout.cqid;
-                holding_q[87]       = 'h0;//spare always 0
-                holding_q[88]       = h2d_rsp_ddataout.valid;
-                holding_q[92:89]    = h2d_rsp_ddataout.opcode;
-                holding_q[104:93]   = h2d_rsp_ddataout.rspdata;
-                holding_q[106:105]  = h2d_rsp_ddataout.rsppre;
-                holding_q[118:107]  = h2d_rsp_ddataout.cqid;
-                holding_q[119]      = 'h0;
-                holding_q[127:120]  = 'h0;//rsvd always to 0
+                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]      <= 'h1;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]       <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[44:33]    <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[45]       <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[46]       <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[47]       <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[54:48]    <= h2d_data_dataout.
+                holding_q[holding_wrptr].data[55]       <= 'h0;//spare bit always 0
+                holding_q[holding_wrptr].data[56]       <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[60:57]    <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[72:61]    <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[74:73]    <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[86:75]    <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[87]       <= 'h0;//spare always 0
+                holding_q[holding_wrptr].data[88]       <= h2d_rsp_ddataout.valid;
+                holding_q[holding_wrptr].data[92:89]    <= h2d_rsp_ddataout.opcode;
+                holding_q[holding_wrptr].data[104:93]   <= h2d_rsp_ddataout.rspdata;
+                holding_q[holding_wrptr].data[106:105]  <= h2d_rsp_ddataout.rsppre;
+                holding_q[holding_wrptr].data[118:107]  <= h2d_rsp_ddataout.cqid;
+                holding_q[holding_wrptr].data[119]      <= 'h0;
+                holding_q[holding_wrptr].data[127:120]  <= 'h0;//rsvd always to 0
+                holding_q[holding_wrptr].data[511:128]  <= h2d_data_dataout.data[383:0];
+                holding_q[holding_wrptr].valid          <= 'h1;
+                holding_q[holding_wrptr+1].data[127:0]  <= h2d_data_dataout.data[511:384];
+                holding_q[holding_wrptr+1].valid        <= 'h0;
+                holding_wrptr                           <= holding_wrptr + 1;
               end
               'h4: begin
-                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
-                holding_q[3]        = 'h0;//non data header so 0
-                holding_q[4]        = 'h0;//non data header so 0
-                holding_q[7:5]      = 'h2;//slot0 fmt is H0 so 0
-                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[19:17]    = 'h0;//reserved must be 0
-                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[32]       = h2d_req_dataout.valid;
-                holding_q[35:33]    = h2d_req_dataout.opcode;
-                holding_q[81:36]    = h2d_req_dataout.address[51:6];
-                holding_q[93:82]    = h2d_req_dataout.uqid;
-                holding_q[95:94]    = 'h0;//spare bits always 0
-                holding_q[96]       = h2d_data_dataout.valid;
-                holding_q[108:97]   = h2d_data_dataout.cqid;
-                holding_q[109]      = h2d_data_dataout.chunkvalid;
-                holding_q[110]      = h2d_data_dataout.poison;
-                holding_q[111]      = h2d_data_dataout.goerr;
-                holding_q[118:112]  = 'h0;//TBD: think it is typo there is no pre in d2h_data
-                holding_q[119]      = 'h0;// spare always 0
-                holding_q[127:120]  = 'h0;//rsvd always 0
+                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]      <= 'h2;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]       <= h2d_req_dataout.valid;
+                holding_q[holding_wrptr].data[35:33]    <= h2d_req_dataout.opcode;
+                holding_q[holding_wrptr].data[81:36]    <= h2d_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[93:82]    <= h2d_req_dataout.uqid;
+                holding_q[holding_wrptr].data[95:94]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[96]       <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[108:97]   <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[109]      <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[110]      <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[111]      <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[118:112]  <= 'h0;//TBD: think it is typo there is no pre in d2h_data
+                holding_q[holding_wrptr].data[119]      <= 'h0;// spare always 0
+                holding_q[holding_wrptr].data[127:120]  <= 'h0;//rsvd always 0
+                holding_q[holding_wrptr].data[511:128]  <= h2d_data_dataout.data[383:0];
+                holding_q[holding_wrptr].valid          <= 'h1;
+                holding_q[holding_wrptr+1].data[127:0]  <= h2d_data_dataout.data[511:384];
+                holding_q[holding_wrptr+1].valid        <= 'h0;
+                holding_wrptr                           <= holding_wrptr + 1;
               end
               'h8: begin
-                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
-                holding_q[3]        = 'h0;//non data header so 0
-                holding_q[4]        = 'h0;//non data header so 0
-                holding_q[7:5]      = 'h3;//slot0 fmt is H0 so 0
-                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[19:17]    = 'h0;//reserved must be 0
-                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[32]       = h2d_data_dataout.valid;
-                holding_q[44:33]    = h2d_data_dataout.cqid;
-                holding_q[45]       = h2d_data_dataout.chunkvalid;
-                holding_q[46]       = h2d_data_dataout.poison;
-                holding_q[47]       = h2d_data_dataout.goerr;
-                holding_q[54:48]    = 'h0;//TBD:says pre but I do not see any pre in h2d_data
-                holding_q[55]       = 'h0;//spare always 0
-                holding_q[56]       = h2d_data_ddataout.valid;
-                holding_q[68:57]    = h2d_data_ddataout.cqid;
-                holding_q[69]       = h2d_data_ddataout.chunkvalid;
-                holding_q[70]       = h2d_data_ddataout.poison;
-                holding_q[71]       = h2d_data_ddataout.goerr;
-                holding_q[78:72]    = 'h0;//TBD: says pre but there is no pre in h2d_data
-                holding_q[79]       = 'h0;// spare always 0
-                holding_q[80]       = h2d_data_tdataout.valid;
-                holding_q[92:81]    = h2d_data_tdataout.cqid;
-                holding_q[93]       = h2d_data_tdataout.chunkvalid;
-                holding_q[94]       = h2d_data_tdataout.poison;
-                holding_q[95]       = h2d_data_tdataout.goerr;
-                holding_q[102:96]    = 'h0;//TBD:says pre but there is no pre in h2d_data
-                holding_q[103]       = 'h0;//spare bit always 0
-                holding_q[104]       = h2d_data_qdataout.valid;
-                holding_q[116:105]  = h2d_data_qdataout.cqid;
-                holding_q[117]      = h2d_data_qdataout.chunkvalid;
-                holding_q[118]      = h2d_data_qdataout.poison;
-                holding_q[119]      = h2d_data_qdataout.goerr;
-                holding_q[126:120]  = 'h0;//TBD: says pre but there is no pre in h2d_data
-                holding_q[127]      = 'h0;
+                holding_q[holding_wrptr].data[0]         <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]         <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]         <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[3]         <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]         <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]       <= 'h3;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]     <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]     <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]     <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]     <= 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]     <= 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]     <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]        <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[44:33]     <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[45]        <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[46]        <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[47]        <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[54:48]     <= 'h0;//TBD:says pre but I do not see any pre in h2d_data
+                holding_q[holding_wrptr].data[55]        <= 'h0;//spare always 0
+                holding_q[holding_wrptr].data[56]        <= h2d_data_ddataout.valid;
+                holding_q[holding_wrptr].data[68:57]     <= h2d_data_ddataout.cqid;
+                holding_q[holding_wrptr].data[69]        <= h2d_data_ddataout.chunkvalid;
+                holding_q[holding_wrptr].data[70]        <= h2d_data_ddataout.poison;
+                holding_q[holding_wrptr].data[71]        <= h2d_data_ddataout.goerr;
+                holding_q[holding_wrptr].data[78:72]     <= 'h0;//TBD: says pre but there is no pre in h2d_data
+                holding_q[holding_wrptr].data[79]        <= 'h0;// spare always 0
+                holding_q[holding_wrptr].data[80]        <= h2d_data_tdataout.valid;
+                holding_q[holding_wrptr].data[92:81]     <= h2d_data_tdataout.cqid;
+                holding_q[holding_wrptr].data[93]        <= h2d_data_tdataout.chunkvalid;
+                holding_q[holding_wrptr].data[94]        <= h2d_data_tdataout.poison;
+                holding_q[holding_wrptr].data[95]        <= h2d_data_tdataout.goerr;
+                holding_q[holding_wrptr].data[102:96]    <= 'h0;//TBD:says pre but there is no pre in h2d_data
+                holding_q[holding_wrptr].data[103]       <= 'h0;//spare bit always 0
+                holding_q[holding_wrptr].data[104]       <= h2d_data_qdataout.valid;
+                holding_q[holding_wrptr].data[116:105]   <= h2d_data_qdataout.cqid;
+                holding_q[holding_wrptr].data[117]       <= h2d_data_qdataout.chunkvalid;
+                holding_q[holding_wrptr].data[118]       <= h2d_data_qdataout.poison;
+                holding_q[holding_wrptr].data[119]       <= h2d_data_qdataout.goerr;
+                holding_q[holding_wrptr].data[126:120]   <= 'h0;//TBD: says pre but there is no pre in h2d_data
+                holding_q[holding_wrptr].data[127]       <= 'h0;
+                holding_q[holding_wrptr].data[511:128]   <= h2d_data_dataout.data[383:0];
+                holding_q[holding_wrptr].valid           <= 'h1;
+                holding_q[holding_wrptr+1].data[127:0]   <= h2d_data_dataout.data[511:384];
+                holding_q[holding_wrptr+1].data[511:384] <= h2d_data_ddataout.data[127:0];
+                holding_q[holding_wrptr+1].valid         <= 'h1;
+                holding_q[holding_wrptr+2].data[127:0]   <= h2d_data_ddataout.data[511:384];
+                holding_q[holding_wrptr+2].data[511:384] <= h2d_data_tdataout.data[127:0];
+                holding_q[holding_wrptr+2].valid         <= 'h1;
+                holding_q[holding_wrptr+3].data[127:0]   <= h2d_data_tdataout.data[511:384];
+                holding_q[holding_wrptr+3].data[511:384] <= h2d_data_qdataout.data[127:0];
+                holding_q[holding_wrptr+3].valid         <= 'h1;
+                holding_q[holding_wrptr+4].data[127:0]   <= h2d_data_qdataout.data[511:384];
+                holding_q[holding_wrptr+4].valid         <= 'h0;
+                holding_wrptr                            <= holding_wrptr + 4;
               end
               'h16: begin
-                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
-                holding_q[3]        = 'h0;//non data header so 0
-                holding_q[4]        = 'h0;//non data header so 0
-                holding_q[7:5]      = 'h4;//slot0 fmt is H0 so 0
-                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[19:17]    = 'h0;//reserved must be 0
-                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[32]       = m2s_rwd_dataout.valid;
-                holding_q[36:33]    = m2s_rwd_dataout.memopcode;
-                holding_q[39:37]    = m2s_rwd_dataout.snptype;
-                holding_q[41:40]    = m2s_rwd_dataout.metafield;
-                holding_q[43:42]    = m2s_rwd_dataout.metavalue;
-                holding_q[58:44]    = m2s_rwd_dataout.tag;
-                holding_q[105:59]   = m2s_rwd_dataout.address[51:6];
-                holding_q[106]      = m2s_rwd_dataout.poison;
-                holding_q[108:107]  = m2s_rwd_dataout.tc;
-                holding_q[118:109]  = 'h0; //spare bit set to 0
-                holding_q[127:119]  = 'h0; // rsvd bits set tp 0
+                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]      <= 'h4;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]       <= m2s_rwd_dataout.valid;
+                holding_q[holding_wrptr].data[36:33]    <= m2s_rwd_dataout.memopcode;
+                holding_q[holding_wrptr].data[39:37]    <= m2s_rwd_dataout.snptype;
+                holding_q[holding_wrptr].data[41:40]    <= m2s_rwd_dataout.metafield;
+                holding_q[holding_wrptr].data[43:42]    <= m2s_rwd_dataout.metavalue;
+                holding_q[holding_wrptr].data[58:44]    <= m2s_rwd_dataout.tag;
+                holding_q[holding_wrptr].data[105:59]   <= m2s_rwd_dataout.address[51:6];
+                holding_q[holding_wrptr].data[106]      <= m2s_rwd_dataout.poison;
+                holding_q[holding_wrptr].data[108:107]  <= m2s_rwd_dataout.tc;
+                holding_q[holding_wrptr].data[118:109]  <= 'h0; //spare bit set to 0
+                holding_q[holding_wrptr].data[127:119]  <= 'h0; // rsvd bits set tp 0
+                holding_q[holding_wrptr].data[511:128]  <= m2s_rwd_dataout.data[383:0];
+                holding_q[holding_wrptr].valid          <= 'h1;
+                holding_q[holding_wrptr+1].data[127:0]  <= m2s_rwd_dataout.data[511:384];
+                holding_q[holding_wrptr+1].valid        <= 'h0;
+                holding_wrptr                           <= holding_wrptr + 1;
               end
               'h32: begin
-                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
-                holding_q[3]        = 'h0;//non data header so 0
-                holding_q[4]        = 'h0;//non data header so 0
-                holding_q[7:5]      = 'h5;//slot0 fmt is H0 so 0
-                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[19:17]    = 'h0;//reserved must be 0
-                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[32]       = m2s_req_dataout.valid;
-                holding_q[36:33]    = m2s_req_dataout.memopcode;
-                holding_q[39:37]    = m2s_req_dataout.snptype;
-                holding_q[41:40]    = m2s_req_dataout.metafield;
-                holding_q[43:42]    = m2s_req_dataout.metavalue;
-                holding_q[58:44]    = m2s_req_dataout.tag;
-                holding_q[106:59]   = m2s_req_dataout.address[51:5];
-                holding_q[108:107]  = m2s_req_dataout.tc;
-                holding_q[118:109]  = 'h0; //spare bit set to 0
-                holding_q[127:119]  = 'h0; // rsvd bits set tp 0
+                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]      <= 'h5;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]       <= m2s_req_dataout.valid;
+                holding_q[holding_wrptr].data[36:33]    <= m2s_req_dataout.memopcode;
+                holding_q[holding_wrptr].data[39:37]    <= m2s_req_dataout.snptype;
+                holding_q[holding_wrptr].data[41:40]    <= m2s_req_dataout.metafield;
+                holding_q[holding_wrptr].data[43:42]    <= m2s_req_dataout.metavalue;
+                holding_q[holding_wrptr].data[58:44]    <= m2s_req_dataout.tag;
+                holding_q[holding_wrptr].data[106:59]   <= m2s_req_dataout.address[51:5];
+                holding_q[holding_wrptr].data[108:107]  <= m2s_req_dataout.tc;
+                holding_q[holding_wrptr].data[118:109]  <= 'h0; //spare bit set to 0
+                holding_q[holding_wrptr].data[127:119]  <= 'h0; // rsvd bits set tp 0
+                holding_q[holding_wrptr].valid          <= 'h0;
               end
               default: begin //TBD: do you want to keeep default to assign data pkt or want some other value
-                holding_q[0]        = 'hX;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].valid          <= 'h0;
               end
             endcase
           end
           G_SLOT1: begin
             case(g_gnt_d)
               'h2: begin
-                holding_q[(SLOT1_OFFSET+0)]                       = h2d_rsp_dataout.valid;
-                holding_q[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]      = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT1_OFFSET+16):(SLOT1_OFFSET+5)]     = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT1_OFFSET+18):(SLOT1_OFFSET+17)]    = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT1_OFFSET+30):(SLOT1_OFFSET+19)]    = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT1_OFFSET+31)]                      = 'h0; // spare bits always 0
-                holding_q[(SLOT1_OFFSET+32)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT1_OFFSET+36):(SLOT1_OFFSET+33)]    = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT1_OFFSET+48):(SLOT1_OFFSET+37)]    = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT1_OFFSET+50):(SLOT1_OFFSET+49)]    = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT1_OFFSET+62):(SLOT1_OFFSET+51)]    = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT1_OFFSET+63)]                      = 'h0; // spare bits always 0
-                holding_q[(SLOT1_OFFSET+64)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT1_OFFSET+68):(SLOT1_OFFSET+65)]    = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT1_OFFSET+80):(SLOT1_OFFSET+69)]    = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT1_OFFSET+82):(SLOT1_OFFSET+81)]    = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT1_OFFSET+94):(SLOT1_OFFSET+83)]    = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT1_OFFSET+95)]                      = 'h0; // spare bits always 0
-                holding_q[(SLOT1_OFFSET+96)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)]   = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)]  = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)]  = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)]  = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT1_OFFSET+127)]                     = 'h0; // spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]      <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+16):(SLOT1_OFFSET+5)]     <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+18):(SLOT1_OFFSET+17)]    <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+30):(SLOT1_OFFSET+19)]    <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+31)]                      <= 'h0; // spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+32)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+36):(SLOT1_OFFSET+33)]    <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+48):(SLOT1_OFFSET+37)]    <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+50):(SLOT1_OFFSET+49)]    <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+62):(SLOT1_OFFSET+51)]    <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63)]                      <= 'h0; // spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+64)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+68):(SLOT1_OFFSET+65)]    <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+80):(SLOT1_OFFSET+69)]    <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+82):(SLOT1_OFFSET+81)]    <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+94):(SLOT1_OFFSET+83)]    <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+95)]                      <= 'h0; // spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+96)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)]   <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)]  <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)]  <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)]  <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127)]                     <= 'h0; // spare bits always 0
+                holding_q[holding_wrptr].valid                                        <= 'h0;
               end
               'h4: begin
-                holding_q[(SLOT1_OFFSET+0)]                       = h2d_req_dataout.valid;
-                holding_q[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      = h2d_req_dataout.opcode;
-                holding_q[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)]     = h2d_req_dataout.address[51:6];
-                holding_q[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)]    = h2d_req_dataout.uqid;
-                holding_q[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]    = 'h0; 
-                holding_q[(SLOT1_OFFSET+64)]                      = h2d_data_dataout.valid;
-                holding_q[(SLOT1_OFFSET+76):(SLOT1_OFFSET+65)]    = h2d_data_dataout.cqid;
-                holding_q[(SLOT1_OFFSET+77)]                      = h2d_data_dataout.chunkvalid;
-                holding_q[(SLOT1_OFFSET+78)]                      = h2d_data_dataout.poison;
-                holding_q[(SLOT1_OFFSET+79)]                      = h2d_data_dataout.goerr;
-                holding_q[(SLOT1_OFFSET+86):(SLOT1_OFFSET+80)]    = 'h0;//TBD:says pre but there is no pre in h2d_data
-                holding_q[(SLOT1_OFFSET+87)]                      = 'h0;//spare always gets 0
-                holding_q[(SLOT1_OFFSET+88)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]    = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]   = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)]  = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)]  = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT1_OFFSET+119)]                     = 'h0;//spare always 0
-                holding_q[(SLOT1_OFFSET+127):(SLOT1_OFFSET+120)]  = 'h0;//rsvd is 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= h2d_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= h2d_req_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)]     <= h2d_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)]    <= h2d_req_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]    <= 'h0; 
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+64)]                      <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+65)]    <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+77)]                      <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+78)]                      <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79)]                      <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+86):(SLOT1_OFFSET+80)]    <= 'h0;//TBD:says pre but there is no pre in h2d_data
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+87)]                      <= 'h0;//spare always gets 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+88)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]    <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]   <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)]  <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)]  <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+119)]                     <= 'h0;//spare always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+120)]  <= 'h0;//rsvd is 0
+                holding_q[holding_wrptr].data[511:256]                                <= h2d_data_dataout.data[255:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[255:0]                                <= h2d_data_dataout.data[511:256];
+                holding_q[holding_wrptr+1].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h8: begin
-                holding_q[(SLOT1_OFFSET+0)] = h2d_data_dataout.valid;
-                holding_q[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)] = h2d_data_dataout.cqid;
-                holding_q[(SLOT1_OFFSET+13)] = h2d_data_dataout.chunkvalid;
-                holding_q[(SLOT1_OFFSET+14)] = h2d_data_dataout.poison;
-                holding_q[(SLOT1_OFFSET+15)] = h2d_data_dataout.goerr;
-                holding_q[(SLOT1_OFFSET+22):(SLOT1_OFFSET+16)] = 'h0;//TBD: says pre but do not have it in h2d_data
-                holding_q[(SLOT1_OFFSET+23)] = 'h0; // spare always tied to 0
-                holding_q[(SLOT1_OFFSET+24)] = h2d_data_ddataout.valid;
-                holding_q[(SLOT1_OFFSET+36):(SLOT1_OFFSET+25)] = h2d_data_ddataout.cqid;
-                holding_q[(SLOT1_OFFSET+37)] = h2d_data_ddataout.chunkvalid;
-                holding_q[(SLOT1_OFFSET+38)] = h2d_data_ddataout.poison;
-                holding_q[(SLOT1_OFFSET+39)] = h2d_data_ddataout.goerr;
-                holding_q[(SLOT1_OFFSET+46):(SLOT1_OFFSET+40)] = 'h0;//TBD: says pre but there is no field in h2d_data
-                holding_q[(SLOT1_OFFSET+47)] = 'h0;//spare always tied to 0
-                holding_q[(SLOT1_OFFSET+48)] = h2d_data_tdataout.valid;
-                holding_q[(SLOT1_OFFSET+60):(SLOT1_OFFSET+49)] = h2d_data_tdataout.cqid;
-                holding_q[(SLOT1_OFFSET+61)] = h2d_data_tdataout.chunkvalid;
-                holding_q[(SLOT1_OFFSET+62)] = h2d_data_tdataout.poison;
-                holding_q[(SLOT1_OFFSET+63)] = h2d_data_tdataout.goerr;
-                holding_q[(SLOT1_OFFSET+70):(SLOT1_OFFSET+64)] = 'h0;//TBD: says pre but there is no field in h2d_data
-                holding_q[(SLOT1_OFFSET+71)] = 'h0;//spare always tied to 0
-                holding_q[(SLOT1_OFFSET+72)] = h2d_data_tdataout.valid;
-                holding_q[(SLOT1_OFFSET+84):(SLOT1_OFFSET+73)] = h2d_data_tdataout.cqid;
-                holding_q[(SLOT1_OFFSET+85)] = h2d_data_tdataout.chunkvalid;
-                holding_q[(SLOT1_OFFSET+86)] = h2d_data_tdataout.poison;
-                holding_q[(SLOT1_OFFSET+87)] = h2d_data_tdataout.goerr;
-                holding_q[(SLOT1_OFFSET+94):(SLOT1_OFFSET+88)] = 'h0;//TBD: says pre but there is no field in h2d_data
-                holding_q[(SLOT1_OFFSET+95)] = 'h0;//spare always tied to 0
-                holding_q[(SLOT1_OFFSET+96)] = h2d_rsp_dataout.valid;
-                holding_q[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)] = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)] = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)] = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)] = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT1_OFFSET+127)] = 'h0;//spare always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)]     <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+13)]                      <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+14)]                      <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+15)]                      <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+22):(SLOT1_OFFSET+16)]    <= 'h0;//TBD: says pre but do not have it in h2d_data
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+23)]                      <= 'h0; // spare always tied to 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+24)]                      <= h2d_data_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+36):(SLOT1_OFFSET+25)]    <= h2d_data_ddataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+37)]                      <= h2d_data_ddataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+38)]                      <= h2d_data_ddataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+39)]                      <= h2d_data_ddataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+46):(SLOT1_OFFSET+40)]    <= 'h0;//TBD: says pre but there is no field in h2d_data
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+47)]                      <= 'h0;//spare always tied to 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+48)]                      <= h2d_data_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+60):(SLOT1_OFFSET+49)]    <= h2d_data_tdataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+61)]                      <= h2d_data_tdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+62)]                      <= h2d_data_tdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63)]                      <= h2d_data_tdataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+70):(SLOT1_OFFSET+64)]    <= 'h0;//TBD: says pre but there is no field in h2d_data
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+71)]                      <= 'h0;//spare always tied to 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+72)]                      <= h2d_data_qdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+73)]    <= h2d_data_qdataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+85)]                      <= h2d_data_qdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+86)]                      <= h2d_data_qdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+87)]                      <= h2d_data_qdataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+94):(SLOT1_OFFSET+88)]    <= 'h0;//TBD: says pre but there is no field in h2d_data
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+95)]                      <= 'h0;//spare always tied to 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+96)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)]   <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)]  <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)]  <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)]  <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127)]                     <= 'h0;//spare always 0
+                holding_q[holding_wrptr].data[511:256]                                <= h2d_data_dataout.data[255:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[255:0]                                <= h2d_data_dataout.data[511:256];
+                holding_q[holding_wrptr+1].data[511:256]                              <= h2d_data_ddataout.data[255:0];
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_q[holding_wrptr+2].data[255:0]                                <= h2d_data_ddataout.data[511:256];
+                holding_q[holding_wrptr+2].data[511:256]                              <= h2d_data_tdataout.data[255:0];
+                holding_q[holding_wrptr+2].valid                                      <= 'h1;
+                holding_q[holding_wrptr+3].data[255:0]                                <= h2d_data_tdataout.data[511:256];
+                holding_q[holding_wrptr+3].data[511:256]                              <= h2d_data_qdataout.data[255:0];
+                holding_q[holding_wrptr+3].valid                                      <= 'h1;
+                holding_q[holding_wrptr+4].data[255:0]                                <= h2d_data_qataout.data[511:256];
+                holding_q[holding_wrptr+4].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 4;
               end
               'h16: begin
-                holding_q[(SLOT1_OFFSET+0)] = m2s_req_dataout.valid;
-                holding_q[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)] = m2s_req_dataout.memopcode;
-                holding_q[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)] = m2s_req_dataout.snptype;
-                holding_q[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)] = m2s_req_dataout.metafield;
-                holding_q[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)] = m2s_req_dataout.metavalue;
-                holding_q[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)] = m2s_req_dataout.tag;
-                holding_q[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)] = m2s_req_dataout.address[51:5];
-                holding_q[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)] = m2s_req_dataout.tc;
-                holding_q[(SLOT1_OFFSET+86):(SLOT1_OFFSET+77)] = 'h0;//spare bits always 0
-                holding_q[(SLOT1_OFFSET+87)] = 'h0; // rsvd always 0;
-                holding_q[(SLOT1_OFFSET+88)] = h2d_data_dataout.valid;
-                holding_q[(SLOT1_OFFSET+100):(SLOT1_OFFSET+89)] = h2d_data_dataout.cqid;
-                holding_q[(SLOT1_OFFSET+101)] = h2d_data_dataout.chunkvalid;
-                holding_q[(SLOT1_OFFSET+102)] = h2d_data_dataout.poison;
-                holding_q[(SLOT1_OFFSET+103)] = h2d_data_dataout.goerr;
-                holding_q[(SLOT1_OFFSET+110):(SLOT1_OFFSET+104)] = 'h0;//pre is not defined in h2d_data
-                holding_q[(SLOT1_OFFSET+111)] = 'h0;
-                holding_q[(SLOT1_OFFSET+127):(SLOT1_OFFSET+112)] = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= m2s_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]      <= m2s_req_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]      <= m2s_req_dataout.snptype;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]      <= m2s_req_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]    <= m2s_req_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)]    <= m2s_req_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)]    <= m2s_req_dataout.address[51:5];
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)]    <= m2s_req_dataout.tc;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+86):(SLOT1_OFFSET+77)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+87)]                      <= 'h0; // rsvd always 0;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+88)]                      <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+89)]   <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+101)]                     <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+102)]                     <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+103)]                     <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+110):(SLOT1_OFFSET+104)]  <= 'h0;//pre is not defined in h2d_data
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+111)]                     <= 'h0;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+112)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[511:256]                                <= h2d_data_dataout.data[255:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[255:0]                                <= h2d_data_dataout.data[511:256];
+                holding_q[holding_wrptr+1].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h32: begin
-                holding_q[(SLOT1_OFFSET+0)]                       = m2s_rwd_dataout.valid;
-                holding_q[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]      = m2s_rwd_dataout.memopcode;
-                holding_q[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]      = m2s_rwd_dataout.snptype;
-                holding_q[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]      = m2s_rwd_dataout.metafield;
-                holding_q[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]    = m2s_rwd_dataout.metavalue;
-                holding_q[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)]    = m2s_rwd_dataout.tag;
-                holding_q[(SLOT1_OFFSET+73):(SLOT1_OFFSET+28)]    = m2s_rwd_dataout.address[51:6];
-                holding_q[(SLOT1_OFFSET+74)]                      = m2s_rwd_dataout.poison;
-                holding_q[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)]    = m2s_req_dataout.tc;
-                holding_q[(SLOT1_OFFSET+86):(SLOT1_OFFSET+77)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT1_OFFSET+87)]                      = 'h0; // rsvd always 0;
-                holding_q[(SLOT1_OFFSET+88)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]    = h2d_data_dataout.opcode;
-                holding_q[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]   = h2d_data_dataout.rspdata;
-                holding_q[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)]  = h2d_data_dataout.rsppre;
-                holding_q[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)]  = h2d_data_dataout.cqid;
-                holding_q[(SLOT1_OFFSET+119)]                     = 'h0;//spare bit always 0
-                holding_q[(SLOT1_OFFSET+127):(SLOT1_OFFSET+120)]  = 'h0;//rsvd is always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= m2s_rwd_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]      <= m2s_rwd_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]      <= m2s_rwd_dataout.snptype;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]      <= m2s_rwd_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]    <= m2s_rwd_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)]    <= m2s_rwd_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+28)]    <= m2s_rwd_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+74)]                      <= m2s_rwd_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)]    <= m2s_rwd_dataout.tc;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+86):(SLOT1_OFFSET+77)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+87)]                      <= 'h0; // rsvd always 0;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+88)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]    <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]   <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)]  <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)]  <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+119)]                     <= 'h0;//spare bit always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+120)]  <= 'h0;//rsvd is always 0
+                holding_q[holding_wrptr].data[511:256]                                <= m2s_rwd_dataout.data[255:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[255:0]                                <= m2s_rwd_dataout.data[511:256];
+                holding_q[holding_wrptr+1].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 1;
               end
               default: begin
-                holding_q[0]        = 'hX;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].valid                                        <= 'h0;
               end
             endcase
           end
           G_SLOT2: begin
             case(g_gnt_d)
               'h2: begin
-                holding_q[(SLOT2_OFFSET+0)]                       = h2d_rsp_dataout.valid;
-                holding_q[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]      = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT2_OFFSET+16):(SLOT2_OFFSET+5)]     = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT2_OFFSET+18):(SLOT2_OFFSET+17)]    = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT2_OFFSET+30):(SLOT2_OFFSET+19)]    = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT2_OFFSET+31)]                      = 'h0; // spare bits always 0
-                holding_q[(SLOT2_OFFSET+32)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT2_OFFSET+36):(SLOT2_OFFSET+33)]    = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT2_OFFSET+48):(SLOT2_OFFSET+37)]    = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT2_OFFSET+50):(SLOT2_OFFSET+49)]    = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT2_OFFSET+62):(SLOT2_OFFSET+51)]    = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT2_OFFSET+63)]                      = 'h0; // spare bits always 0
-                holding_q[(SLOT2_OFFSET+64)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT2_OFFSET+68):(SLOT2_OFFSET+65)]    = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT2_OFFSET+80):(SLOT2_OFFSET+69)]    = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT2_OFFSET+82):(SLOT2_OFFSET+81)]    = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT2_OFFSET+94):(SLOT2_OFFSET+83)]    = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT2_OFFSET+95)]                      = 'h0; // spare bits always 0
-                holding_q[(SLOT2_OFFSET+96)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]   = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]  = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)]  = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)]  = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT2_OFFSET+127)]                     = 'h0; // spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]      <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+16):(SLOT2_OFFSET+5)]     <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+18):(SLOT2_OFFSET+17)]    <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+30):(SLOT2_OFFSET+19)]    <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+31)]                      <= 'h0; // spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+32)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+36):(SLOT2_OFFSET+33)]    <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+48):(SLOT2_OFFSET+37)]    <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+50):(SLOT2_OFFSET+49)]    <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+62):(SLOT2_OFFSET+51)]    <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+63)]                      <= 'h0; // spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+64)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+68):(SLOT2_OFFSET+65)]    <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+80):(SLOT2_OFFSET+69)]    <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+82):(SLOT2_OFFSET+81)]    <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+94):(SLOT2_OFFSET+83)]    <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+95)]                      <= 'h0; // spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+96)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]   <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]  <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)]  <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)]  <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127)]                     <= 'h0; // spare bits always 0
+                holding_q[holding_wrptr].valid                                        <= 'h0;
               end
               'h4: begin
-                holding_q[(SLOT2_OFFSET+0)]                       = h2d_req_dataout.valid;
-                holding_q[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      = h2d_req_dataout.opcode;
-                holding_q[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)]     = h2d_req_dataout.address[51:6];
-                holding_q[(SLOT2_OFFSET+61)+(SLOT2_OFFSET+50)]    = h2d_req_dataout.uqid;
-                holding_q[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)]    = 'h0; 
-                holding_q[(SLOT2_OFFSET+64)]                      = h2d_data_dataout.valid;
-                holding_q[(SLOT2_OFFSET+76):(SLOT2_OFFSET+65)]    = h2d_data_dataout.cqid;
-                holding_q[(SLOT2_OFFSET+77)]                      = h2d_data_dataout.chunkvalid;
-                holding_q[(SLOT2_OFFSET+78)]                      = h2d_data_dataout.poison;
-                holding_q[(SLOT2_OFFSET+79)]                      = h2d_data_dataout.goerr;
-                holding_q[(SLOT2_OFFSET+86):(SLOT2_OFFSET+80)]    = 'h0;//TBD:says pre but there is no pre in h2d_data
-                holding_q[(SLOT2_OFFSET+87)]                      = 'h0;//spare always gets 0
-                holding_q[(SLOT2_OFFSET+88)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]    = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]   = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)]  = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)]  = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT2_OFFSET+119)]                     = 'h0;//spare always 0
-                holding_q[(SLOT2_OFFSET+127):(SLOT2_OFFSET+120)]  = 'h0;//rsvd is 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= h2d_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      <= h2d_req_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)]     <= h2d_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+61)+(SLOT2_OFFSET+50)]    <= h2d_req_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)]    <= 'h0; 
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+64)]                      <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+65)]    <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+77)]                      <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+78)]                      <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+79)]                      <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+86):(SLOT2_OFFSET+80)]    <= 'h0;//TBD:says pre but there is no pre in h2d_data
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+87)]                      <= 'h0;//spare always gets 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+88)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]    <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]   <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)]  <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)]  <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+119)]                     <= 'h0;//spare always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+120)]  <= 'h0;//rsvd is 0
+                holding_q[holding_wrptr].data[511:384]                                <= h2d_data_dataout.data[127:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[383:0]                                <= h2d_data_dataout.data[511:128];
+                holding_q[holding_wrptr+1].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h8: begin
-                holding_q[(SLOT2_OFFSET+0)]                     = h2d_data_dataout.valid;
-                holding_q[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)]   = h2d_data_dataout.cqid;
-                holding_q[(SLOT2_OFFSET+13)]                    = h2d_data_dataout.chunkvalid;
-                holding_q[(SLOT2_OFFSET+14)]                    = h2d_data_dataout.poison;
-                holding_q[(SLOT2_OFFSET+15)]                    = h2d_data_dataout.goerr;
-                holding_q[(SLOT2_OFFSET+22):(SLOT2_OFFSET+16)]  = 'h0;//TBD: says pre but do not have it in h2d_data
-                holding_q[(SLOT2_OFFSET+23)]                    = 'h0; // spare always tied to 0
-                holding_q[(SLOT2_OFFSET+24)] = h2d_data_ddataout.valid;
-                holding_q[(SLOT2_OFFSET+36):(SLOT2_OFFSET+25)] = h2d_data_ddataout.cqid;
-                holding_q[(SLOT2_OFFSET+37)] = h2d_data_ddataout.chunkvalid;
-                holding_q[(SLOT2_OFFSET+38)] = h2d_data_ddataout.poison;
-                holding_q[(SLOT2_OFFSET+39)] = h2d_data_ddataout.goerr;
-                holding_q[(SLOT2_OFFSET+46):(SLOT2_OFFSET+40)] = 'h0;//TBD: says pre but there is no field in h2d_data
-                holding_q[(SLOT2_OFFSET+47)] = 'h0;//spare always tied to 0
-                holding_q[(SLOT2_OFFSET+48)] = h2d_data_tdataout.valid;
-                holding_q[(SLOT2_OFFSET+60):(SLOT2_OFFSET+49)] = h2d_data_tdataout.cqid;
-                holding_q[(SLOT2_OFFSET+61)] = h2d_data_tdataout.chunkvalid;
-                holding_q[(SLOT2_OFFSET+62)] = h2d_data_tdataout.poison;
-                holding_q[(SLOT2_OFFSET+63)] = h2d_data_tdataout.goerr;
-                holding_q[(SLOT2_OFFSET+70):(SLOT2_OFFSET+64)] = 'h0;//TBD: says pre but there is no field in h2d_data
-                holding_q[(SLOT2_OFFSET+71)] = 'h0;//spare always tied to 0
-                holding_q[(SLOT2_OFFSET+72)] = h2d_data_tdataout.valid;
-                holding_q[(SLOT2_OFFSET+84):(SLOT2_OFFSET+73)] = h2d_data_tdataout.cqid;
-                holding_q[(SLOT2_OFFSET+85)] = h2d_data_tdataout.chunkvalid;
-                holding_q[(SLOT2_OFFSET+86)] = h2d_data_tdataout.poison;
-                holding_q[(SLOT2_OFFSET+87)] = h2d_data_tdataout.goerr;
-                holding_q[(SLOT2_OFFSET+94):(SLOT2_OFFSET+88)] = 'h0;//TBD: says pre but there is no field in h2d_data
-                holding_q[(SLOT2_OFFSET+95)] = 'h0;//spare always tied to 0
-                holding_q[(SLOT2_OFFSET+96)] = h2d_rsp_dataout.valid;
-                holding_q[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)] = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)] = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)] = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)] = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT2_OFFSET+127)] = 'h0;//spare always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)]     <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+13)]                      <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+14)]                      <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+15)]                      <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+22):(SLOT2_OFFSET+16)]    <= 'h0;//TBD: says pre but do not have it in h2d_data
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+23)]                      <= 'h0; // spare always tied to 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+24)]                      <= h2d_data_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+36):(SLOT2_OFFSET+25)]    <= h2d_data_ddataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+37)]                      <= h2d_data_ddataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+38)]                      <= h2d_data_ddataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+39)]                      <= h2d_data_ddataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+46):(SLOT2_OFFSET+40)]    <= 'h0;//TBD: says pre but there is no field in h2d_data
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+47)]                      <= 'h0;//spare always tied to 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+48)]                      <= h2d_data_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+60):(SLOT2_OFFSET+49)]    <= h2d_data_tdataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+61)]                      <= h2d_data_tdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+62)]                      <= h2d_data_tdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+63)]                      <= h2d_data_tdataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+70):(SLOT2_OFFSET+64)]    <= 'h0;//TBD: says pre but there is no field in h2d_data
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+71)]                      <= 'h0;//spare always tied to 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+72)]                      <= h2d_data_qdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+73)]    <= h2d_data_qdataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+85)]                      <= h2d_data_qdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+86)]                      <= h2d_data_qdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+87)]                      <= h2d_data_qdataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+94):(SLOT2_OFFSET+88)]    <= 'h0;//TBD: says pre but there is no field in h2d_data
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+95)]                      <= 'h0;//spare always tied to 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+96)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]   <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]  <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)]  <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)]  <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127)]                     <= 'h0;//spare always 0
+                holding_q[holding_wrptr].data[511:384]                                <= h2d_data_dataout.data[127:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[383:0]                                <= h2d_data_dataout.data[511:128];
+                holding_q[holding_wrptr+1].data[511:384]                              <= h2d_data_ddataout.data[127:0];
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_q[holding_wrptr+2].data[383:0]                                <= h2d_data_ddataout.data[511:128];
+                holding_q[holding_wrptr+2].data[511:384]                              <= h2d_data_tdataout.data[127:0];
+                holding_q[holding_wrptr+2].valid                                      <= 'h1;
+                holding_q[holding_wrptr+3].data[383:0]                                <= h2d_data_tdataout.data[511:128];
+                holding_q[holding_wrptr+3].data[511:384]                              <= h2d_data_qdataout.data[127:0];
+                holding_q[holding_wrptr+3].valid                                      <= 'h1;
+                holding_q[holding_wrptr+4].data[383:0]                                <= h2d_data_qataout.data[511:128];
+                holding_q[holding_wrptr+4].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 4;
               end
               'h16: begin
-                holding_q[(SLOT2_OFFSET+0)] = m2s_req_dataout.valid;
-                holding_q[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)] = m2s_req_dataout.memopcode;
-                holding_q[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)] = m2s_req_dataout.snptype;
-                holding_q[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)] = m2s_req_dataout.metafield;
-                holding_q[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)] = m2s_req_dataout.metavalue;
-                holding_q[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)] = m2s_req_dataout.tag;
-                holding_q[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)] = m2s_req_dataout.address[51:5];
-                holding_q[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)] = m2s_req_dataout.tc;
-                holding_q[(SLOT2_OFFSET+86):(SLOT2_OFFSET+77)] = 'h0;//spare bits always 0
-                holding_q[(SLOT2_OFFSET+87)] = 'h0; // rsvd always 0;
-                holding_q[(SLOT2_OFFSET+88)] = h2d_data_dataout.valid;
-                holding_q[(SLOT2_OFFSET+100):(SLOT2_OFFSET+89)] = h2d_data_dataout.cqid;
-                holding_q[(SLOT2_OFFSET+101)] = h2d_data_dataout.chunkvalid;
-                holding_q[(SLOT2_OFFSET+102)] = h2d_data_dataout.poison;
-                holding_q[(SLOT2_OFFSET+103)] = h2d_data_dataout.goerr;
-                holding_q[(SLOT2_OFFSET+110):(SLOT2_OFFSET+104)] = 'h0;//pre is not defined in h2d_data
-                holding_q[(SLOT2_OFFSET+111)] = 'h0;
-                holding_q[(SLOT2_OFFSET+127):(SLOT2_OFFSET+112)] = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= m2s_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]      <= m2s_req_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]      <= m2s_req_dataout.snptype;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]      <= m2s_req_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]    <= m2s_req_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)]    <= m2s_req_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)]    <= m2s_req_dataout.address[51:5];
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)]    <= m2s_req_dataout.tc;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+86):(SLOT2_OFFSET+77)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+87)]                      <= 'h0; // rsvd always 0;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+88)]                      <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+89)]   <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+101)]                     <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+102)]                     <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+103)]                     <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+110):(SLOT2_OFFSET+104)]  <= 'h0;//pre is not defined in h2d_data
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+111)]                     <= 'h0;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+112)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[511:384]                                <= h2d_data_dataout.data[127:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[383:0]                                <= h2d_data_dataout.data[511:128];
+                holding_q[holding_wrptr+1].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h32: begin
-                holding_q[(SLOT2_OFFSET+0)]                       = m2s_rwd_dataout.valid;
-                holding_q[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]      = m2s_rwd_dataout.memopcode;
-                holding_q[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]      = m2s_rwd_dataout.snptype;
-                holding_q[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]      = m2s_rwd_dataout.metafield;
-                holding_q[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]    = m2s_rwd_dataout.metavalue;
-                holding_q[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)]    = m2s_rwd_dataout.tag;
-                holding_q[(SLOT2_OFFSET+73):(SLOT2_OFFSET+28)]    = m2s_rwd_dataout.address[51:6];
-                holding_q[(SLOT2_OFFSET+74)]                      = m2s_rwd_dataout.poison;
-                holding_q[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)]    = m2s_req_dataout.tc;
-                holding_q[(SLOT2_OFFSET+86):(SLOT2_OFFSET+77)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT2_OFFSET+87)]                      = 'h0; // rsvd always 0;
-                holding_q[(SLOT2_OFFSET+88)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]    = h2d_data_dataout.opcode;
-                holding_q[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]   = h2d_data_dataout.rspdata;
-                holding_q[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)]  = h2d_data_dataout.rsppre;
-                holding_q[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)]  = h2d_data_dataout.cqid;
-                holding_q[(SLOT2_OFFSET+119)]                     = 'h0;//spare bit always 0
-                holding_q[(SLOT2_OFFSET+127):(SLOT2_OFFSET+120)]  = 'h0;//rsvd is always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= m2s_rwd_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]      <= m2s_rwd_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]      <= m2s_rwd_dataout.snptype;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]      <= m2s_rwd_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]    <= m2s_rwd_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)]    <= m2s_rwd_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+28)]    <= m2s_rwd_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+74)]                      <= m2s_rwd_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)]    <= m2s_rwd_dataout.tc;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+86):(SLOT2_OFFSET+77)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+87)]                      <= 'h0; // rsvd always 0;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+88)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]    <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]   <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)]  <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)]  <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+119)]                     <= 'h0;//spare bit always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+120)]  <= 'h0;//rsvd is always 0
+                holding_q[holding_wrptr].data[511:384]                                <= m2s_rwd_dataout.data[127:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[383:0]                                <= m2s_rwd_dataout.data[511:128];
+                holding_q[holding_wrptr+1].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 1;
               end
               default: begin
-                holding_q[0]        = 'hX;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].valid                                        <= 'h0;
               end
             endcase
           end
           G_SLOT3: begin
             case(g_gnt_d)
               'h2: begin
-                holding_q[(SLOT3_OFFSET+0)]                       = h2d_rsp_dataout.valid;
-                holding_q[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]      = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT3_OFFSET+16):(SLOT3_OFFSET+5)]     = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT3_OFFSET+18):(SLOT3_OFFSET+17)]    = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT3_OFFSET+30):(SLOT3_OFFSET+19)]    = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT3_OFFSET+31)]                      = 'h0; // spare bits always 0
-                holding_q[(SLOT3_OFFSET+32)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT3_OFFSET+36):(SLOT3_OFFSET+33)]    = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT3_OFFSET+48):(SLOT3_OFFSET+37)]    = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT3_OFFSET+50):(SLOT3_OFFSET+49)]    = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT3_OFFSET+62):(SLOT3_OFFSET+51)]    = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT3_OFFSET+63)]                      = 'h0; // spare bits always 0
-                holding_q[(SLOT3_OFFSET+64)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT3_OFFSET+68):(SLOT3_OFFSET+65)]    = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT3_OFFSET+80):(SLOT3_OFFSET+69)]    = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT3_OFFSET+82):(SLOT3_OFFSET+81)]    = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT3_OFFSET+94):(SLOT3_OFFSET+83)]    = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT3_OFFSET+95)]                      = 'h0; // spare bits always 0
-                holding_q[(SLOT3_OFFSET+96)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT3_OFFSET+100):(SLOT3_OFFSET+97)]   = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT3_OFFSET+112):(SLOT3_OFFSET+101)]  = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT3_OFFSET+114):(SLOT3_OFFSET+113)]  = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT3_OFFSET+126):(SLOT3_OFFSET+115)]  = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT3_OFFSET+127)]                     = 'h0; // spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]      <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+16):(SLOT3_OFFSET+5)]     <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+18):(SLOT3_OFFSET+17)]    <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+30):(SLOT3_OFFSET+19)]    <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+31)]                      <= 'h0; // spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+32)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+36):(SLOT3_OFFSET+33)]    <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+48):(SLOT3_OFFSET+37)]    <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+50):(SLOT3_OFFSET+49)]    <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+62):(SLOT3_OFFSET+51)]    <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+63)]                      <= 'h0; // spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+64)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+68):(SLOT3_OFFSET+65)]    <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+80):(SLOT3_OFFSET+69)]    <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+82):(SLOT3_OFFSET+81)]    <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+94):(SLOT3_OFFSET+83)]    <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+95)]                      <= 'h0; // spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+96)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+100):(SLOT3_OFFSET+97)]   <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+112):(SLOT3_OFFSET+101)]  <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+114):(SLOT3_OFFSET+113)]  <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+126):(SLOT3_OFFSET+115)]  <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+127)]                     <= 'h0; // spare bits always 0
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h4: begin
-                holding_q[(SLOT3_OFFSET+0)]                       = h2d_req_dataout.valid;
-                holding_q[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      = h2d_req_dataout.opcode;
-                holding_q[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)]     = h2d_req_dataout.address[51:6];
-                holding_q[(SLOT3_OFFSET+61)+(SLOT3_OFFSET+50)]    = h2d_req_dataout.uqid;
-                holding_q[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)]    = 'h0; 
-                holding_q[(SLOT3_OFFSET+64)]                      = h2d_data_dataout.valid;
-                holding_q[(SLOT3_OFFSET+76):(SLOT3_OFFSET+65)]    = h2d_data_dataout.cqid;
-                holding_q[(SLOT3_OFFSET+77)]                      = h2d_data_dataout.chunkvalid;
-                holding_q[(SLOT3_OFFSET+78)]                      = h2d_data_dataout.poison;
-                holding_q[(SLOT3_OFFSET+79)]                      = h2d_data_dataout.goerr;
-                holding_q[(SLOT3_OFFSET+86):(SLOT3_OFFSET+80)]    = 'h0;//TBD:says pre but there is no pre in h2d_data
-                holding_q[(SLOT3_OFFSET+87)]                      = 'h0;//spare always gets 0
-                holding_q[(SLOT3_OFFSET+88)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]    = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]   = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)]  = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]  = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT3_OFFSET+119)]                     = 'h0;//spare always 0
-                holding_q[(SLOT3_OFFSET+127):(SLOT3_OFFSET+120)]  = 'h0;//rsvd is 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= h2d_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      <= h2d_req_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)]     <= h2d_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+61)+(SLOT3_OFFSET+50)]    <= h2d_req_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)]    <= 'h0; 
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+64)]                      <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+65)]    <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+77)]                      <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+78)]                      <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+79)]                      <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+86):(SLOT3_OFFSET+80)]    <= 'h0;//TBD:says pre but there is no pre in h2d_data
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+87)]                      <= 'h0;//spare always gets 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+88)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]    <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]   <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)]  <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]  <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+119)]                     <= 'h0;//spare always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+120)]  <= 'h0;//rsvd is 0
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[511:0]                                <= h2d_data_dataout.data[511:0];
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_q[holding_wrptr+2].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 2;
               end
               'h8: begin
-                holding_q[(SLOT3_OFFSET+0)] = h2d_data_dataout.valid;
-                holding_q[(SLOT3_OFFSET+12):(SLOT3_OFFSET+1)] = h2d_data_dataout.cqid;
-                holding_q[(SLOT3_OFFSET+13)] = h2d_data_dataout.chunkvalid;
-                holding_q[(SLOT3_OFFSET+14)] = h2d_data_dataout.poison;
-                holding_q[(SLOT3_OFFSET+15)] = h2d_data_dataout.goerr;
-                holding_q[(SLOT3_OFFSET+22):(SLOT3_OFFSET+16)] = 'h0;//TBD: says pre but do not have it in h2d_data
-                holding_q[(SLOT3_OFFSET+23)] = 'h0; // spare always tied to 0
-                holding_q[(SLOT3_OFFSET+24)] = h2d_data_ddataout.valid;
-                holding_q[(SLOT3_OFFSET+36):(SLOT3_OFFSET+25)] = h2d_data_ddataout.cqid;
-                holding_q[(SLOT3_OFFSET+37)] = h2d_data_ddataout.chunkvalid;
-                holding_q[(SLOT3_OFFSET+38)] = h2d_data_ddataout.poison;
-                holding_q[(SLOT3_OFFSET+39)] = h2d_data_ddataout.goerr;
-                holding_q[(SLOT3_OFFSET+46):(SLOT3_OFFSET+40)] = 'h0;//TBD: says pre but there is no field in h2d_data
-                holding_q[(SLOT3_OFFSET+47)] = 'h0;//spare always tied to 0
-                holding_q[(SLOT3_OFFSET+48)] = h2d_data_tdataout.valid;
-                holding_q[(SLOT3_OFFSET+60):(SLOT3_OFFSET+49)] = h2d_data_tdataout.cqid;
-                holding_q[(SLOT3_OFFSET+61)] = h2d_data_tdataout.chunkvalid;
-                holding_q[(SLOT3_OFFSET+62)] = h2d_data_tdataout.poison;
-                holding_q[(SLOT3_OFFSET+63)] = h2d_data_tdataout.goerr;
-                holding_q[(SLOT3_OFFSET+70):(SLOT3_OFFSET+64)] = 'h0;//TBD: says pre but there is no field in h2d_data
-                holding_q[(SLOT3_OFFSET+71)] = 'h0;//spare always tied to 0
-                holding_q[(SLOT3_OFFSET+72)] = h2d_data_tdataout.valid;
-                holding_q[(SLOT3_OFFSET+84):(SLOT3_OFFSET+73)] = h2d_data_tdataout.cqid;
-                holding_q[(SLOT3_OFFSET+85)] = h2d_data_tdataout.chunkvalid;
-                holding_q[(SLOT3_OFFSET+86)] = h2d_data_tdataout.poison;
-                holding_q[(SLOT3_OFFSET+87)] = h2d_data_tdataout.goerr;
-                holding_q[(SLOT3_OFFSET+94):(SLOT3_OFFSET+88)] = 'h0;//TBD: says pre but there is no field in h2d_data
-                holding_q[(SLOT3_OFFSET+95)] = 'h0;//spare always tied to 0
-                holding_q[(SLOT3_OFFSET+96)] = h2d_rsp_dataout.valid;
-                holding_q[(SLOT3_OFFSET+100):(SLOT3_OFFSET+97)] = h2d_rsp_dataout.opcode;
-                holding_q[(SLOT3_OFFSET+112):(SLOT3_OFFSET+101)] = h2d_rsp_dataout.rspdata;
-                holding_q[(SLOT3_OFFSET+114):(SLOT3_OFFSET+113)] = h2d_rsp_dataout.rsppre;
-                holding_q[(SLOT3_OFFSET+126):(SLOT3_OFFSET+115)] = h2d_rsp_dataout.cqid;
-                holding_q[(SLOT3_OFFSET+127)] = 'h0;//spare always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+12):(SLOT3_OFFSET+1)]     <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+13)]                      <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+14)]                      <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+15)]                      <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+22):(SLOT3_OFFSET+16)]    <= 'h0;//TBD: says pre but do not have it in h2d_data
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+23)]                      <= 'h0; // spare always tied to 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+24)]                      <= h2d_data_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+36):(SLOT3_OFFSET+25)]    <= h2d_data_ddataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+37)]                      <= h2d_data_ddataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+38)]                      <= h2d_data_ddataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+39)]                      <= h2d_data_ddataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+46):(SLOT3_OFFSET+40)]    <= 'h0;//TBD: says pre but there is no field in h2d_data
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+47)]                      <= 'h0;//spare always tied to 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+48)]                      <= h2d_data_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+60):(SLOT3_OFFSET+49)]    <= h2d_data_tdataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+61)]                      <= h2d_data_tdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+62)]                      <= h2d_data_tdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+63)]                      <= h2d_data_tdataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+70):(SLOT3_OFFSET+64)]    <= 'h0;//TBD: says pre but there is no field in h2d_data
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+71)]                      <= 'h0;//spare always tied to 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+72)]                      <= h2d_data_qdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+84):(SLOT3_OFFSET+73)]    <= h2d_data_qdataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+85)]                      <= h2d_data_qdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+86)]                      <= h2d_data_qdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+87)]                      <= h2d_data_qdataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+94):(SLOT3_OFFSET+88)]    <= 'h0;//TBD: says pre but there is no field in h2d_data
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+95)] <= 'h0;//spare always tied to 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+96)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+100):(SLOT3_OFFSET+97)]   <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+112):(SLOT3_OFFSET+101)]  <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+114):(SLOT3_OFFSET+113)]  <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+126):(SLOT3_OFFSET+115)]  <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+127)]                     <= 'h0;//spare always 0
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[511:0]                                <= h2d_data_dataout.data[511:0];
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_q[holding_wrptr+2].data[511:0]                                <= h2d_data_ddataout.data[511:0];
+                holding_q[holding_wrptr+2].valid                                      <= 'h1;
+                holding_q[holding_wrptr+3].data[511:0]                                <= h2d_data_tdataout.data[511:0];
+                holding_q[holding_wrptr+3].valid                                      <= 'h1;
+                holding_q[holding_wrptr+4].data[511:0]                                <= h2d_data_qdataout.data[511:0];
+                holding_q[holding_wrptr+4].valid                                      <= 'h1;
+                holding_q[holding_wrptr+5].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 5;
               end
               'h16: begin
-                holding_q[(SLOT3_OFFSET+0)] = m2s_req_dataout.valid;
-                holding_q[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)] = m2s_req_dataout.memopcode;
-                holding_q[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)] = m2s_req_dataout.snptype;
-                holding_q[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)] = m2s_req_dataout.metafield;
-                holding_q[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)] = m2s_req_dataout.metavalue;
-                holding_q[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)] = m2s_req_dataout.tag;
-                holding_q[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)] = m2s_req_dataout.address[51:5];
-                holding_q[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)] = m2s_req_dataout.tc;
-                holding_q[(SLOT3_OFFSET+86):(SLOT3_OFFSET+77)] = 'h0;//spare bits always 0
-                holding_q[(SLOT3_OFFSET+87)] = 'h0; // rsvd always 0;
-                holding_q[(SLOT3_OFFSET+88)] = h2d_data_dataout.valid;
-                holding_q[(SLOT3_OFFSET+100):(SLOT3_OFFSET+89)] = h2d_data_dataout.cqid;
-                holding_q[(SLOT3_OFFSET+101)] = h2d_data_dataout.chunkvalid;
-                holding_q[(SLOT3_OFFSET+102)] = h2d_data_dataout.poison;
-                holding_q[(SLOT3_OFFSET+103)] = h2d_data_dataout.goerr;
-                holding_q[(SLOT3_OFFSET+110):(SLOT3_OFFSET+104)] = 'h0;//pre is not defined in h2d_data
-                holding_q[(SLOT3_OFFSET+111)] = 'h0;
-                holding_q[(SLOT3_OFFSET+127):(SLOT3_OFFSET+112)] = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= m2s_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]      <= m2s_req_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]      <= m2s_req_dataout.snptype;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]      <= m2s_req_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]    <= m2s_req_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)]    <= m2s_req_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)]    <= m2s_req_dataout.address[51:5];
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)]    <= m2s_req_dataout.tc;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+86):(SLOT3_OFFSET+77)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+87)]                      <= 'h0; // rsvd always 0;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+88)]                      <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+100):(SLOT3_OFFSET+89)]   <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+101)]                     <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+102)]                     <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+103)]                     <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+110):(SLOT3_OFFSET+104)]  <= 'h0;//pre is not defined in h2d_data
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+111)]                     <= 'h0;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+112)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[511:0]                                <= h2d_data_dataout.data[511:0];
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_q[holding_wrptr+2].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 2;
               end
               'h32: begin
-                holding_q[(SLOT3_OFFSET+0)]                       = m2s_rwd_dataout.valid;
-                holding_q[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]      = m2s_rwd_dataout.memopcode;
-                holding_q[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]      = m2s_rwd_dataout.snptype;
-                holding_q[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]      = m2s_rwd_dataout.metafield;
-                holding_q[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]    = m2s_rwd_dataout.metavalue;
-                holding_q[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)]    = m2s_rwd_dataout.tag;
-                holding_q[(SLOT3_OFFSET+73):(SLOT3_OFFSET+28)]    = m2s_rwd_dataout.address[51:6];
-                holding_q[(SLOT3_OFFSET+74)]                      = m2s_rwd_dataout.poison;
-                holding_q[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)]    = m2s_req_dataout.tc;
-                holding_q[(SLOT3_OFFSET+86):(SLOT3_OFFSET+77)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT3_OFFSET+87)]                      = 'h0; // rsvd always 0;
-                holding_q[(SLOT3_OFFSET+88)]                      = h2d_rsp_dataout.valid;
-                holding_q[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]    = h2d_data_dataout.opcode;
-                holding_q[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]   = h2d_data_dataout.rspdata;
-                holding_q[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)]  = h2d_data_dataout.rsppre;
-                holding_q[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]  = h2d_data_dataout.cqid;
-                holding_q[(SLOT3_OFFSET+119)]                     = 'h0;//spare bit always 0
-                holding_q[(SLOT3_OFFSET+127):(SLOT3_OFFSET+120)]  = 'h0;//rsvd is always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= m2s_rwd_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]      <= m2s_rwd_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]      <= m2s_rwd_dataout.snptype;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]      <= m2s_rwd_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]    <= m2s_rwd_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)]    <= m2s_rwd_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+28)]    <= m2s_rwd_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+74)]                      <= m2s_rwd_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)]    <= m2s_rwd_dataout.tc;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+86):(SLOT3_OFFSET+77)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+87)]                      <= 'h0; // rsvd always 0;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+88)]                      <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]    <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]   <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)]  <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]  <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+119)]                     <= 'h0;//spare bit always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+120)]  <= 'h0;//rsvd is always 0
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[511:0]                                <= m2s_rwd_dataout.data[511:0];
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_q[holding_wrptr+2].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 2;
               end
               default: begin
-                holding_q[0]        = 'hX;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].valid                                        <= 'h0;
               end
             endcase
           end
         endcase
       end
     end
+  end
+
+  always@(host_tx_dl_if.clk) begin
+    if(!host_tx_dl_if.rstn) begin
+      host_tx_dl_if.valid <= 'h0;
+      host_tx_dl_if.data <= 'h0;
+      holding_rdptr <= 'h0;
+    end else begin
+      if(holding_q.valid[holding_rdptr]) begin
+        host_tx_dl_if.valid <= holding_q.valid[holding_rdptr];
+        host_tx_dl_if.data <= holding_q.data[holding_rdptr];
+        if(holding_rdptr == 4) begin
+          holding_rdptr <= 'h0;
+        end else begin
+          holding_rdptr <= holding_rdptr + 1;
+        end
+      end
+   end
   end
 
   rra h_slot_rra_inst#(
@@ -1383,6 +1607,8 @@ module device_tx_path#(
   input s2m_drs_txn_t s2m_drs_ddataout,
   input s2m_drs_txn_t s2m_drs_tdataout,
   input s2m_drs_txn_t s2m_drs_qdataout,
+  cxl_dev_tx_dl_if.tx_mp dev_tx_dl_if,
+  cxl_dev_rx_dl_if.rx_mp dev_rx_dl_if
 );
 
   logic [5:0] h_val;
@@ -1401,7 +1627,13 @@ module device_tx_path#(
   } slot_sel_t;
   slot_sel_t slot_sel;
   slot_sel_t slot_sel_d;
-  logic [511:0] holding_q[5];
+  logic [2:0] holding_rdptr;
+  logic [2:0] holding_wrptr;
+  typedef struct {
+    logic valid;
+    logic [511:0] data;
+  } holding_q_t;
+  holding_q_t holding_q[6];
 
   assign h_val[0] = (d2h_data_occ > 0) && (d2h_rsp_occ > 1);
   assign h_val[1] = (d2h_req_occ >0) && (d2h_data_occ > 0);
@@ -1426,6 +1658,7 @@ module device_tx_path#(
     if(!rstn) begin
       slot_sel <= H_SLOT0;
       slot_sel_d <= H_SLOT0;
+      holding_wrptr <= 'h0;
     end else begin
       h_gnt_d <= h_gnt;
       g_gnt_d <= g_gnt;
@@ -1469,628 +1702,795 @@ module device_tx_path#(
             slot_sel = 'hX;
         end 
       endcase
+      
       if(!($stable(slot_sel))) begin
         case(slot_sel_d)
           H_SLOT0: begin
             case(h_gnt_d)
               'h1: begin
-                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
-                holding_q[3]        = 'h0;//non data header so 0
-                holding_q[4]        = 'h0;//non data header so 0
-                holding_q[7:5]      = 'h0;//slot0 fmt is H0 so 0
-                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[19:17]    = 'h0;//reserved must be 0
-                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[32]       = d2h_data_dataout.valid;
-                holding_q[44:33]    = d2h_data_dataout.uqid;
-                holding_q[45]       = d2h_data_dataout.chunkvalid;
-                holding_q[46]       = d2h_data_dataout.bogus;
-                holding_q[47]       = d2h_data_dataout.poison;
-                holding_q[48]       = 'h0;//spare bit is always 0
-                holding_q[49]       = d2h_rsp_dataout.valid;
-                holding_q[54:50]    = d2h_rsp_dataout.opcode;
-                holding_q[66:55]    = d2h_rsp_dataout.uqid;
-                holding_q[68:67]    = 'h0; //spare bit is always 0
-                holding_q[69]       = d2h_rsp_ddataout.valid;
-                holding_q[74:70]    = d2h_rsp_ddataout.opcode;
-                holding_q[86:75]    = d2h_rsp_ddataout.uqid;
-                holding_q[88:87]    = 'h0;//spare bit always 0
-                holding_q[89]       = s2m_ndr_dataout.valid;
-                holding_q[92:90]    = s2m_ndr_dataout.memopcode;
-                holding_q[94:93]    = s2m_ndr_dataout.metafield;
-                holding_q[96:95]    = s2m_ndr_dataout.metavalue;
-                holding_q[112:97]   = s2m_ndr_dataout.tag;
-                holding_q[116:113]  = 'h0;//spare always 0
-                holding_q[127:117]  = 'h0;//rsvd always 0
+                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]       <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[44:33]    <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[45]       <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[46]       <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[47]       <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[48]       <= 'h0;//spare bit is always 0
+                holding_q[holding_wrptr].data[49]       <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[54:50]    <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[66:55]    <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[68:67]    <= 'h0; //spare bit is always 0
+                holding_q[holding_wrptr].data[69]       <= d2h_rsp_ddataout.valid;
+                holding_q[holding_wrptr].data[74:70]    <= d2h_rsp_ddataout.opcode;
+                holding_q[holding_wrptr].data[86:75]    <= d2h_rsp_ddataout.uqid;
+                holding_q[holding_wrptr].data[88:87]    <= 'h0;//spare bit always 0
+                holding_q[holding_wrptr].data[89]       <= s2m_ndr_dataout.valid;
+                holding_q[holding_wrptr].data[92:90]    <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[94:93]    <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[96:95]    <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[112:97]   <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[116:113]  <= 'h0;//spare always 0
+                holding_q[holding_wrptr].data[127:117]  <= 'h0;//rsvd always 0
+                holding_q[holding_wrptr].data[511:128]  <= d2h_data_dataout.data[383:0];
+                holding_q[holding_wrptr].valid          <= 'h1;
+                holding_wrptr                           <= holding_wrptr + 1;
+                holding_q[holding_wrptr+1].data[127:0]  <= d2h_data_dataout.data[511:384];
+                holding_q[holding_wrptr+1].valid        <= 'h0;
               end
               'h2: begin
-                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
-                holding_q[3]        = 'h0;//non data header so 0
-                holding_q[4]        = 'h0;//non data header so 0
-                holding_q[7:5]      = 'h1;//slot0 fmt is H0 so 0
-                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[19:17]    = 'h0;//reserved must be 0
-                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[32]       = d2h_req_dataout.valid;
-                holding_q[37:33]    = d2h_req_dataout.opcode;
-                holding_q[49:38]    = d2h_req_dataout.cqid;
-                holding_q[50]       = d2h_req_dataout.nt;
-                holding_q[57:51]    = 'h0;//spare always is 0
-                holding_q[103:58]   = d2h_req_dataout.address;
-                holding_q[110:104]  = 'h0;//spare bits always 0
-                holding_q[111]      = d2h_data_dataout.valid;
-                holding_q[123:112]  = d2h_data_dataout.uqid;
-                holding_q[124]      = d2h_data_dataout.chunkvalid;
-                holding_q[125]      = d2h_data_dataout.bogus;
-                holding_q[126]      = d2h_data_dataout.poison;
-                holding_q[127]      = 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]      <= 'h1;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]       <= d2h_req_dataout.valid;
+                holding_q[holding_wrptr].data[37:33]    <= d2h_req_dataout.opcode;
+                holding_q[holding_wrptr].data[49:38]    <= d2h_req_dataout.cqid;
+                holding_q[holding_wrptr].data[50]       <= d2h_req_dataout.nt;
+                holding_q[holding_wrptr].data[57:51]    <= 'h0;//spare always is 0
+                holding_q[holding_wrptr].data[103:58]   <= d2h_req_dataout.address;
+                holding_q[holding_wrptr].data[110:104]  <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[111]      <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[123:112]  <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[124]      <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[125]      <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[126]      <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[127]      <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[511:128]  <= d2h_data_dataout.data[383:0];
+                holding_q[holding_wrptr].valid          <= 'h1;
+                holding_wrptr                           <= holding_wrptr + 1;
+                holding_q[holding_wrptr+1].data[127:0]  <= d2h_data_dataout.data[511:384];
+                holding_q[holding_wrptr+1].valid        <= 'h0;
               end
               'h4: begin
-                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
-                holding_q[3]        = 'h0;//non data header so 0
-                holding_q[4]        = 'h0;//non data header so 0
-                holding_q[7:5]      = 'h2;//slot0 fmt is H0 so 0
-                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[19:17]    = 'h0;//reserved must be 0
-                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[32]       = d2h_data_dataout.valid;
-                holding_q[44:33]    = d2h_data_dataout.uqid;
-                holding_q[45]       = d2h_data_dataout.chunkvalid;
-                holding_q[46]       = d2h_data_dataout.bogus;
-                holding_q[47]       = d2h_data_dataout.poison;
-                holding_q[48]       = 'h0;//spare bit is always 0
-                holding_q[49]       = d2h_data_ddataout.valid;
-                holding_q[61:50]    = d2h_data_ddataout.uqid;
-                holding_q[62]       = d2h_data_ddataout.chunkvalid;
-                holding_q[63]       = d2h_data_ddataout.bogus;
-                holding_q[64]       = d2h_data_ddataout.poison;
-                holding_q[65]       = 'h0;//spare bits always 0
-                holding_q[66]       = d2h_data_tdataout.valid;
-                holding_q[78:67]    = d2h_data_tdataout.uqid;
-                holding_q[79]       = d2h_data_tdataout.chunkvalid;
-                holding_q[80]       = d2h_data_tdataout.bogus;
-                holding_q[81]       = d2h_data_tdataout.poison;
-                holding_q[82]       = 'h0;//spare bits always 0
-                holding_q[83]       = d2h_data_qdataout.valid;
-                holding_q[95:84]    = d2h_data_qdataout.uqid;
-                holding_q[96]       = d2h_data_qdataout.chunkvalid;
-                holding_q[97]       = d2h_data_qdataout.bogus;
-                holding_q[98]       = d2h_data_qdataout.poison;
-                holding_q[99]       = 'h0;//spare bits always 0
-                holding_q[100]      = d2h_rsp_dataout.valid;
-                holding_q[105:101]  = d2h_rsp_dataout.opcode;
-                holding_q[117:106]  = d2h_rsp_dataout.uqid;
-                holding_q[119:118]  = 'h0; //spare bits always 0
-                holding_q[127:120]  = 'h0;//rsvd bits always 0
+                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]      <= 'h2;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]       <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[44:33]    <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[45]       <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[46]       <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[47]       <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[48]       <= 'h0;//spare bit is always 0
+                holding_q[holding_wrptr].data[49]       <= d2h_data_ddataout.valid;
+                holding_q[holding_wrptr].data[61:50]    <= d2h_data_ddataout.uqid;
+                holding_q[holding_wrptr].data[62]       <= d2h_data_ddataout.chunkvalid;
+                holding_q[holding_wrptr].data[63]       <= d2h_data_ddataout.bogus;
+                holding_q[holding_wrptr].data[64]       <= d2h_data_ddataout.poison;
+                holding_q[holding_wrptr].data[65]       <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[66]       <= d2h_data_tdataout.valid;
+                holding_q[holding_wrptr].data[78:67]    <= d2h_data_tdataout.uqid;
+                holding_q[holding_wrptr].data[79]       <= d2h_data_tdataout.chunkvalid;
+                holding_q[holding_wrptr].data[80]       <= d2h_data_tdataout.bogus;
+                holding_q[holding_wrptr].data[81]       <= d2h_data_tdataout.poison;
+                holding_q[holding_wrptr].data[82]       <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[83]       <= d2h_data_qdataout.valid;
+                holding_q[holding_wrptr].data[95:84]    <= d2h_data_qdataout.uqid;
+                holding_q[holding_wrptr].data[96]       <= d2h_data_qdataout.chunkvalid;
+                holding_q[holding_wrptr].data[97]       <= d2h_data_qdataout.bogus;
+                holding_q[holding_wrptr].data[98]       <= d2h_data_qdataout.poison;
+                holding_q[holding_wrptr].data[99]       <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[100]      <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[105:101]  <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[117:106]  <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[119:118]  <= 'h0; //spare bits always 0
+                holding_q[holding_wrptr].data[127:120]  <= 'h0;//rsvd bits always 0
+                holding_q[holding_wrptr].data[511:128]  <= d2h_data_dataout.data[383:0];
+                holding_q[holding_wrptr].valid          <= 'h1;
+                holding_wrptr                           <= holding_wrptr + 4;
+                holding_q[holding_wrptr+1].data[127:0]  <= d2h_data_dataout.data[511:384];
+                holding_q[holding_wrptr+1].data[511:128]<= d2h_data_ddataout.data[383:0];
+                holding_q[holding_wrptr+1].valid        <= 'h1;
+                holding_q[holding_wrptr+2].data[127:0]  <= d2h_data_ddataout.data[511:384];
+                holding_q[holding_wrptr+2].data[511:128]<= d2h_data_tdataout.data[383:0];
+                holding_q[holding_wrptr+2].valid        <= 'h1;
+                holding_q[holding_wrptr+3].data[127:0]  <= d2h_data_tdataout.data[511:384];
+                holding_q[holding_wrptr+3].data[511:128]<= d2h_data_qdataout.data[383:0];
+                holding_q[holding_wrptr+3].valid        <= 'h1;
+                holding_q[holding_wrptr+4].data[127:0]  <= d2h_data_qdataout.data[511:384];
+                holding_q[holding_wrptr+4].valid        <= 'h0;
               end
               'h8: begin
-                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
-                holding_q[3]        = 'h0;//non data header so 0
-                holding_q[4]        = 'h0;//non data header so 0
-                holding_q[7:5]      = 'h3;//slot0 fmt is H0 so 0
-                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[19:17]    = 'h0;//reserved must be 0
-                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[32]       = s2m_drs_dataout.valid;
-                holding_q[35:33]    = s2m_drs_dataout.memopcode;
-                holding_q[37:36]    = s2m_drs_dataout.metafield;
-                holding_q[39:38]    = s2m_drs_dataout.metavalue;
-                holding_q[55:40]    = s2m_drs_dataout.tag;
-                holding_q[56]       = s2m_drs_dataout.poison;
-                holding_q[71:57]    = 'h0;// spare bits always 0
-                holding_q[72]       = s2m_ndr_dataout.valid;
-                holding_q[75:73]    = s2m_ndr_dataout.memopcode;
-                holding_q[77:76]    = s2m_ndr_dataout.metafield;
-                holding_q[79:78]    = s2m_ndr_dataout.metavalue;
-                holding_q[95:80]    = s2m_ndr_dataout.tag;
-                holding_q[99:96]    = 'h0;//spare bits always 0
-                holding_q[127:100]  = 'h0;//rsvd bits always 0
+                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]      <= 'h3;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]       <= s2m_drs_dataout.valid;
+                holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[37:36]    <= s2m_drs_dataout.metafield;
+                holding_q[holding_wrptr].data[39:38]    <= s2m_drs_dataout.metavalue;
+                holding_q[holding_wrptr].data[55:40]    <= s2m_drs_dataout.tag;
+                holding_q[holding_wrptr].data[56]       <= s2m_drs_dataout.poison;
+                holding_q[holding_wrptr].data[71:57]    <= 'h0;// spare bits always 0
+                holding_q[holding_wrptr].data[72]       <= s2m_ndr_dataout.valid;
+                holding_q[holding_wrptr].data[75:73]    <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[77:76]    <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[79:78]    <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[95:80]    <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[99:96]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[127:100]  <= 'h0;//rsvd bits always 0
+                holding_q[holding_wrptr].data[511:128]  <= s2m_drs_dataout.data[383:0];
+                holding_q[holding_wrptr].valid          <= 'h1;
+                holding_wrptr                           <= holding_wrptr + 1;
+                holding_q[holding_wrptr+1].data[127:0]  <= s2m_drs_dataout.data[511:384];
+                holding_q[holding_wrptr+1].valid        <= 'h0;
               end
               'h16: begin
-                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
-                holding_q[3]        = 'h0;//non data header so 0
-                holding_q[4]        = 'h0;//non data header so 0
-                holding_q[7:5]      = 'h4;//slot0 fmt is H0 so 0
-                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[19:17]    = 'h0;//reserved must be 0
-                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[32]       = s2m_ndr_dataout.valid;
-                holding_q[35:33]    = s2m_ndr_dataout.memopcode;
-                holding_q[37:36]    = s2m_ndr_dataout.metafield;
-                holding_q[39:38]    = s2m_ndr_dataout.metavalue;
-                holding_q[55:40]    = s2m_ndr_dataout.tag;
-                holding_q[59:56]    = 'h0;//spare bits are always 0
-                holding_q[60]       = s2m_ndr_ddataout.valid;
-                holding_q[63:61]    = s2m_ndr_ddataout.memopcode;
-                holding_q[65:64]    = s2m_ndr_ddataout.metafield;
-                holding_q[67:66]    = s2m_ndr_ddataout.metavalue;
-                holding_q[83:68]    = s2m_ndr_ddataout.tag;
-                holding_q[87:84]    = 'h0;//spare are always 0
-                holding_q[127:88]   = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]      <= 'h4;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]       <= s2m_ndr_dataout.valid;
+                holding_q[holding_wrptr].data[35:33]    <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[37:36]    <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[39:38]    <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[55:40]    <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[59:56]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[60]       <= s2m_ndr_ddataout.valid;
+                holding_q[holding_wrptr].data[63:61]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[65:64]    <= s2m_ndr_ddataout.metafield;
+                holding_q[holding_wrptr].data[67:66]    <= s2m_ndr_ddataout.metavalue;
+                holding_q[holding_wrptr].data[83:68]    <= s2m_ndr_ddataout.tag;
+                holding_q[holding_wrptr].data[87:84]    <= 'h0;//spare are always 0
+                holding_q[holding_wrptr].data[127:88]   <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].valid          <= 'h0;
               end
               'h32: begin
-                holding_q[0]        = 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[1]        = 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[2]        = 'h0;//TBD: logic for crdt ack to be added later
-                holding_q[3]        = 'h0;//non data header so 0
-                holding_q[4]        = 'h0;//non data header so 0
-                holding_q[7:5]      = 'h5;//slot0 fmt is H0 so 0
-                holding_q[10:8]     = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[13:11]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[16:14]    = 'h0;//this field will be reupdated after g slot is selected
-                holding_q[19:17]    = 'h0;//reserved must be 0
-                holding_q[23:20]    = 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[27:24]    = 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[31:28]    = 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[32]       = s2m_drs_dataout.valid;
-                holding_q[35:33]    = s2m_drs_dataout.memopcode;
-                holding_q[37:36]    = s2m_drs_dataout.metafield;
-                holding_q[39:38]    = s2m_drs_dataout.metavalue;
-                holding_q[55:40]    = s2m_drs_dataout.tag;
-                holding_q[56]       = s2m_drs_dataout.poison;
-                holding_q[71:57]    = 'h0;//spare bits always 0
-                holding_q[72]       = s2m_drs_ddataout.valid;
-                holding_q[75:73]    = s2m_drs_ddataout.memopcode;
-                holding_q[77:76]    = s2m_drs_ddataout.metafield;
-                holding_q[79:78]    = s2m_drs_ddataout.metavalue;
-                holding_q[95:80]    = s2m_drs_ddataout.tag;
-                holding_q[96]       = s2m_drs_ddataout.poison;
-                holding_q[111:97]   = 'h0;//spare bits are always 0
-                holding_q[127:112]  = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]      <= 'h5;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]       <= s2m_drs_dataout.valid;
+                holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[37:36]    <= s2m_drs_dataout.metafield;
+                holding_q[holding_wrptr].data[39:38]    <= s2m_drs_dataout.metavalue;
+                holding_q[holding_wrptr].data[55:40]    <= s2m_drs_dataout.tag;
+                holding_q[holding_wrptr].data[56]       <= s2m_drs_dataout.poison;
+                holding_q[holding_wrptr].data[71:57]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[72]       <= s2m_drs_ddataout.valid;
+                holding_q[holding_wrptr].data[75:73]    <= s2m_drs_ddataout.memopcode;
+                holding_q[holding_wrptr].data[77:76]    <= s2m_drs_ddataout.metafield;
+                holding_q[holding_wrptr].data[79:78]    <= s2m_drs_ddataout.metavalue;
+                holding_q[holding_wrptr].data[95:80]    <= s2m_drs_ddataout.tag;
+                holding_q[holding_wrptr].data[96]       <= s2m_drs_ddataout.poison;
+                holding_q[holding_wrptr].data[111:97]   <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[127:112]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[511:128]  <= s2m_drs_dataout.data[383:0];
+                holding_q[holding_wrptr].valid          <= 'h1;
+                holding_q[holding_wrptr+1].data[127:0]  <= s2m_drs_dataout.data[511:384];
+                holding_q[holding_wrptr+1].data[511:128]<= s2m_drs_ddataout.data[383:0];
+                holding_q[holding_wrptr+1].valid        <= 'h1;
+                holding_wrptr                           <= holding_wrptr + 2;
+                holding_q[holding_wrptr+2].valid        <= 'h0;
+                holding_q[holding_wrptr+2].data[127:0]  <= s2m_drs_ddataout.data[511:384];
               end
               default: begin
-                holding_q[0] = 'hX;
+                holding_q[holding_wrptr].valid          <= 'h0;
               end
             endcase
           end
           G_SLOT1: begin
             case(g_gnt_d)
               'h2: begin
-                holding_q[(SLOT1_OFFSET+0)]                       = d2h_req_dataout.valid;
-                holding_q[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]      = d2h_req_dataout.opcode;
-                holding_q[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)]     = d2h_req_dataout.cqid;
-                holding_q[(SLOT1_OFFSET+18)]                      = d2h_req_dataout.nt;
-                holding_q[(SLOT1_OFFSET+25):(SLOT1_OFFSET+19)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)]    = d2h_req_dataout.address[51:6];
-                holding_q[(SLOT1_OFFSET+78):(SLOT1_OFFSET+72)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT1_OFFSET+79)]                      = d2h_rsp_dataout.valid;
-                holding_q[(SLOT1_OFFSET+84):(SLOT1_OFFSET+80)]    = d2h_rsp_dataout.opcode;
-                holding_q[(SLOT1_OFFSET+96):(SLOT1_OFFSET+85)]    = d2h_rsp_dataout.uqid;
-                holding_q[(SLOT1_OFFSET+98):(SLOT1_OFFSET+97)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+99)]                      = d2h_rsp_ddataout.valid;
-                holding_q[(SLOT1_OFFSET+104):(SLOT1_OFFSET+100)]  = d2h_rsp_ddataout.opcode;
-                holding_q[(SLOT1_OFFSET+116):(SLOT1_OFFSET+105)]  = d2h_rsp_ddataout.uqid;
-                holding_q[(SLOT1_OFFSET+118):(SLOT1_OFFSET+117)]  = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+127):(SLOT1_OFFSET+119)]  = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= d2h_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]      <= d2h_req_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)]     <= d2h_req_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+18)]                      <= d2h_req_dataout.nt;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+25):(SLOT1_OFFSET+19)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)]    <= d2h_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+78):(SLOT1_OFFSET+72)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79)]                      <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+80)]    <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+96):(SLOT1_OFFSET+85)]    <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+98):(SLOT1_OFFSET+97)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+99)]                      <= d2h_rsp_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+100)]  <= d2h_rsp_ddataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+116):(SLOT1_OFFSET+105)]  <= d2h_rsp_ddataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+117)]  <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+119)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].valid                                        <= 'h0;
               end
               'h4: begin
-                holding_q[(SLOT1_OFFSET+0)]                       = d2h_req_dataout.valid;
-                holding_q[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]      = d2h_req_dataout.opcode;
-                holding_q[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)]     = d2h_req_dataout.cqid;
-                holding_q[(SLOT1_OFFSET+18)]                      = d2h_req_dataout.nt;
-                holding_q[(SLOT1_OFFSET+25):(SLOT1_OFFSET+19)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)]    = d2h_req_dataout.address[51:6];
-                holding_q[(SLOT1_OFFSET+78):(SLOT1_OFFSET+72)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT1_OFFSET+79)]                      = d2h_data_dataout.valid;
-                holding_q[(SLOT1_OFFSET+91):(SLOT1_OFFSET+80)]    = d2h_data_dataout.uqid;
-                holding_q[(SLOT1_OFFSET+92)]                      = d2h_data_dataout.chunkvalid;
-                holding_q[(SLOT1_OFFSET+93)]                      = d2h_data_dataout.bogus;
-                holding_q[(SLOT1_OFFSET+94)]                      = d2h_data_dataout.poison;
-                holding_q[(SLOT1_OFFSET+95)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+96)]                      = d2h_rsp_dataout.valid;
-                holding_q[(SLOT1_OFFSET+101):(SLOT1_OFFSET+97)]   = d2h_rsp_dataout.opcode;
-                holding_q[(SLOT1_OFFSET+113):(SLOT1_OFFSET+102)]  = d2h_rsp_dataout.uqid;
-                holding_q[(SLOT1_OFFSET+115):(SLOT1_OFFSET+114)]  = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+127):(SLOT1_OFFSET+116)]  = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= d2h_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]      <= d2h_req_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)]     <= d2h_req_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+18)]                      <= d2h_req_dataout.nt;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+25):(SLOT1_OFFSET+19)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)]    <= d2h_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+78):(SLOT1_OFFSET+72)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79)]                      <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+80)]    <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+92)]                      <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+93)]                      <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+94)]                      <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+95)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+96)]                      <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+101):(SLOT1_OFFSET+97)]   <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+113):(SLOT1_OFFSET+102)]  <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+115):(SLOT1_OFFSET+114)]  <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+116)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[511:256]                                <= d2h_data_dataout.data[255:0]
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_wrptr                                                         <= holding_wrptr + 1;
+                holding_q[holding_wrptr].data[255:0]                                  <= d2h_data_dataout.data[511:256]
+                holding_q[holding_wrptr].valid                                        <= 'h0;
               end  
               'h8: begin
-                holding_q[(SLOT1_OFFSET+0)]                       = d2h_data_dataout.valid;
-                holding_q[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)]     = d2h_data_dataout.uqid;
-                holding_q[(SLOT1_OFFSET+13)]                      = d2h_data_dataout.chunkvalid;
-                holding_q[(SLOT1_OFFSET+14)]                      = d2h_data_dataout.bogus;
-                holding_q[(SLOT1_OFFSET+15)]                      = d2h_data_dataout.poison;
-                holding_q[(SLOT1_OFFSET+16)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+17)]                      = d2h_data_ddataout.valid;
-                holding_q[(SLOT1_OFFSET+29):(SLOT1_OFFSET+18)]    = d2h_data_ddataout.uqid;
-                holding_q[(SLOT1_OFFSET+30)]                      = d2h_data_ddataout.chunkvalid;
-                holding_q[(SLOT1_OFFSET+31)]                      = d2h_data_ddataout.bogus;
-                holding_q[(SLOT1_OFFSET+32)]                      = d2h_data_ddataout.poison;
-                holding_q[(SLOT1_OFFSET+33)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+34)]                      = d2h_data_tdataout.valid;
-                holding_q[(SLOT1_OFFSET+46):(SLOT1_OFFSET+35)]    = d2h_data_tdataout.uqid;
-                holding_q[(SLOT1_OFFSET+47)]                      = d2h_data_tdataout.chunkvalid;
-                holding_q[(SLOT1_OFFSET+48)]                      = d2h_data_tdataout.bogus;
-                holding_q[(SLOT1_OFFSET+49)]                      = d2h_data_tdataout.poison;
-                holding_q[(SLOT1_OFFSET+50)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+51)]                      = d2h_data_qdataout.valid;
-                holding_q[(SLOT1_OFFSET+63):(SLOT1_OFFSET+52)]    = d2h_data_qdataout,uqid;
-                holding_q[(SLOT1_OFFSET+64)]                      = d2h_data_qdataout.chunkvalid;
-                holding_q[(SLOT1_OFFSET+65)]                      = d2h_data_qdataout.bogus;
-                holding_q[(SLOT1_OFFSET+66)]                      = d2h_data_qdataout.poison;
-                holding_q[(SLOT1_OFFSET+67)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+127):(SLOT1_OFFSET+68)]   = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)]     <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+13)]                      <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+14)]                      <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+15)]                      <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+16)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+17)]                      <= d2h_data_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+29):(SLOT1_OFFSET+18)]    <= d2h_data_ddataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+30)]                      <= d2h_data_ddataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+31)]                      <= d2h_data_ddataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+32)]                      <= d2h_data_ddataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+33)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+34)]                      <= d2h_data_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+46):(SLOT1_OFFSET+35)]    <= d2h_data_tdataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+47)]                      <= d2h_data_tdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+48)]                      <= d2h_data_tdataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+49)]                      <= d2h_data_tdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+50)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+51)]                      <= d2h_data_qdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+52)]    <= d2h_data_qdataout,uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+64)]                      <= d2h_data_qdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+65)]                      <= d2h_data_qdataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+66)]                      <= d2h_data_qdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+67)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+68)]   <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[511:256]                                <= d2h_data_dataout.data[255:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[255:0]                                <= d2h_data_dataout.data[511:256];
+                holding_q[holding_wrptr+1].data[511:256]                              <= d2h_data_ddataout.data[255:0];
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_q[holding_wrptr+2].data[255:0]                                <= d2h_data_ddataout.data[511:256];
+                holding_q[holding_wrptr+2].data[511:256]                              <= d2h_data_tdataout.data[255:0];
+                holding_q[holding_wrptr+2].valid                                      <= 'h1;
+                holding_q[holding_wrptr+3].data[255:0]                                <= d2h_data_tdataout.data[511:256];
+                holding_q[holding_wrptr+3].data[511:256]                              <= d2h_data_qdataout.data[255:0];
+                holding_q[holding_wrptr+3].valid                                      <= 'h1;
+                holding_q[holding_wrptr+4].data[255:0]                                <= d2h_data_qataout.data[511:256];
+                holding_q[holding_wrptr+4].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 4;
               end
               'h16: begin
-                holding_q[(SLOT1_OFFSET+0)]                       = s2m_drs_dataout.valid;
-                holding_q[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      = s2m_drs_dataout.memopcode;
-                holding_q[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      = s2m_drs_dataout.metafield;
-                holding_q[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]      = s2m_drs_dataout.metavalue;
-                holding_q[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]     = s2m_drs_dataout.tag;
-                holding_q[(SLOT1_OFFSET+24)]                      = s2m_drs_dataout.poison;
-                holding_q[(SLOT1_OFFSET+39):(SLOT1_OFFSET+25)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+40)]                      = s2m_ndr_dataout.valid; 
-                holding_q[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]    = s2m_ndr_dataout.memopcode;
-                holding_q[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]    = s2m_ndr_dataout.metafield;
-                holding_q[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]    = s2m_ndr_dataout.metavalue;
-                holding_q[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)]    = s2m_ndr_dataout.tag;
-                holding_q[(SLOT1_OFFSET+67):(SLOT1_OFFSET+64)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+68)]                      = s2m_ndr_ddataout.valid;
-                holding_q[(SLOT1_OFFSET+71):(SLOT1_OFFSET+69)]    = s2m_ndr_ddataout.memopcode;
-                holding_q[(SLOT1_OFFSET+73):(SLOT1_OFFSET+72)]    = s2m_ndr_ddataout.metafield;
-                holding_q[(SLOT1_OFFSET+75):(SLOT1_OFFSET+74)]    = s2m_ndr_ddataout.metavalue;
-                holding_q[(SLOT1_OFFSET+91):(SLOT1_OFFSET+76)]    = s2m_ndr_ddataout.tag;
-                holding_q[(SLOT1_OFFSET+95):(SLOT1_OFFSET+92)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+127):(SLOT1_OFFSET+96)]   = 'h0;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= s2m_drs_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      <= s2m_drs_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]     <= s2m_drs_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+24)]                      <= s2m_drs_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+39):(SLOT1_OFFSET+25)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+40)]                      <= s2m_ndr_dataout.valid; 
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]    <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]    <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]    <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)]    <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+67):(SLOT1_OFFSET+64)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+68)]                      <= s2m_ndr_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+69)]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+72)]    <= s2m_ndr_ddataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+75):(SLOT1_OFFSET+74)]    <= s2m_ndr_ddataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+76)]    <= s2m_ndr_ddataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+95):(SLOT1_OFFSET+92)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+96)]   <= 'h0;
+                holding_q[holding_wrptr].data[511:256]                                <= s2m_drs_dataout.data[255:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[255:0]                                <= s2m_drs_dataout.data[511:256];
+                holding_q[holding_wrptr+1].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h32: begin
-                holding_q[(SLOT1_OFFSET+0)]                       = s2m_ndr_dataout.valid;
-                holding_q[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      = s2m_ndr_dataout.memopcode;
-                holding_q[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      = s2m_ndr_dataout.metafield;
-                holding_q[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]      = s2m_ndr_dataout.metavalue;
-                holding_q[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]     = s2m_ndr_dataout.tag;
-                holding_q[(SLOT1_OFFSET+27):(SLOT1_OFFSET+24)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+28)]                      = s2m_ndr_ddataout.valid;
-                holding_q[(SLOT1_OFFSET+31):(SLOT1_OFFSET+29)]    = s2m_ndr_ddataout.memopcode;
-                holding_q[(SLOT1_OFFSET+33):(SLOT1_OFFSET+32)]    = s2m_ndr_ddataout.metafield;
-                holding_q[(SLOT1_OFFSET+35):(SLOT1_OFFSET+34)]    = s2m_ndr_ddataout.metavalue;
-                holding_q[(SLOT1_OFFSET+51):(SLOT1_OFFSET+36)]    = s2m_ndr_ddataout.tag;
-                holding_q[(SLOT1_OFFSET+55):(SLOT1_OFFSET+52)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+56)]                      = s2m_ndr_tdataout.valid;
-                holding_q[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)]    = s2m_ndr_tdataout.memopcode;
-                holding_q[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)]    = s2m_ndr_tdataout.metafield;
-                holding_q[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]    = s2m_ndr_tdataout.metavalue;
-                holding_q[(SLOT1_OFFSET+79):(SLOT1_OFFSET+64)]    = s2m_ndr_tdataout.tag;
-                holding_q[(SLOT1_OFFSET+83):(SLOT1_OFFSET+80)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+127):(SLOT1_OFFSET+84)]   = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= s2m_ndr_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]      <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]     <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+24)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+28)]                      <= s2m_ndr_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+31):(SLOT1_OFFSET+29)]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+33):(SLOT1_OFFSET+32)]    <= s2m_ndr_ddataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+35):(SLOT1_OFFSET+34)]    <= s2m_ndr_ddataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+51):(SLOT1_OFFSET+36)]    <= s2m_ndr_ddataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+55):(SLOT1_OFFSET+52)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+56)]                      <= s2m_ndr_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)]    <= s2m_ndr_tdataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)]    <= s2m_ndr_tdataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]    <= s2m_ndr_tdataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+64)]    <= s2m_ndr_tdataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+80)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+84)]   <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].valid                                        <= 'h0;
               end
               'h64: begin
-                holding_q[(SLOT1_OFFSET+0)]                       = s2m_drs_dataout.valid;
-                holding_q[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      = s2m_drs_dataout.memopcode;
-                holding_q[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      =  s2m_drs_dataout.metafield;
-                holding_q[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]      = s2m_drs_dataout.metavalue;
-                holding_q[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]     = s2m_drs_dataout.tag;
-                holding_q[(SLOT1_OFFSET+24)]                      = s2m_drs_dataout.poison;
-                holding_q[(SLOT1_OFFSET+39):(SLOT1_OFFSET+25)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+40)]                      = s2m_drs_ddataout.valid;
-                holding_q[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]    = s2m_drs_ddataout.memopcode;
-                holding_q[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]    = s2m_drs_ddataout.metafield;
-                holding_q[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]    = s2m_drs_ddataout.metavalue;
-                holding_q[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)]    = s2m_drs_ddataout.tag;
-                holding_q[(SLOT1_OFFSET+64)]                      = s2m_drs_ddataout.poison;
-                holding_q[(SLOT1_OFFSET+79):(SLOT1_OFFSET+65)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+80)] = s2m_drs_tdataout.valid;
-                holding_q[(SLOT1_OFFSET+83):(SLOT1_OFFSET+81)]    = s2m_drs_tdataout.memopcode;
-                holding_q[(SLOT1_OFFSET+85):(SLOT1_OFFSET+84)]    = s2m_drs_tdataout.metafield;
-                holding_q[(SLOT1_OFFSET+87):(SLOT1_OFFSET+86)]    = s2m_drs_tdataout.metavalue;
-                holding_q[(SLOT1_OFFSET+103):(SLOT1_OFFSET+88)]   = s2m_drs_tdataout.tag;
-                holding_q[(SLOT1_OFFSET+104)]                     = s2m_drs_tdataout.poison;
-                holding_q[(SLOT1_OFFSET+119):(SLOT1_OFFSET+105)]  = 'h0;//spare bits are always 0
-                holding_q[(SLOT1_OFFSET+127):(SLOT1_OFFSET+120)]  = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= s2m_drs_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      <=  s2m_drs_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]     <= s2m_drs_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+24)]                      <= s2m_drs_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+39):(SLOT1_OFFSET+25)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+40)]                      <= s2m_drs_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]    <= s2m_drs_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]    <= s2m_drs_ddataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]    <= s2m_drs_ddataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)]    <= s2m_drs_ddataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+64)]                      <= s2m_drs_ddataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+65)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+80)] <= s2m_drs_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+81)]    <= s2m_drs_tdataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+85):(SLOT1_OFFSET+84)]    <= s2m_drs_tdataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+87):(SLOT1_OFFSET+86)]    <= s2m_drs_tdataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+103):(SLOT1_OFFSET+88)]   <= s2m_drs_tdataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+104)]                     <= s2m_drs_tdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+119):(SLOT1_OFFSET+105)]  <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+120)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[511:256]                                <= s2m_drs_dataout.data[255:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[255:0]                                <= s2m_drs_dataout.data[511:256];
+                holding_q[holding_wrptr+1].data[511:256]                              <= s2m_drs_ddataout.data[255:0];
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_q[holding_wrptr+2].data[255:0]                                <= s2m_drs_ddataout.data[511:256];
+                holding_q[holding_wrptr+2].data[511:256]                              <= s2m_drs_tdataout.data[255:0];
+                holding_q[holding_wrptr+2].valid                                      <= 'h1;
+                holding_q[holding_wrptr+3].data[255:0]                                <= s2m_drs_tdataout.data[511:256];
+                holding_q[holding_wrptr+3].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 3;
               end          
               default: begin
-
+                holding_q[holding_wrptr].valid                                        <= 'h0;
               end
             endcase
           end
           G_SLOT2: begin
             case(g_gnt_d)    
               'h2: begin
-                holding_q[(SLOT2_OFFSET+0)]                       = d2h_req_dataout.valid;
-                holding_q[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]      = d2h_req_dataout.opcode;
-                holding_q[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)]     = d2h_req_dataout.cqid;
-                holding_q[(SLOT2_OFFSET+18)]                      = d2h_req_dataout.nt;
-                holding_q[(SLOT2_OFFSET+25):(SLOT2_OFFSET+19)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)]    = d2h_req_dataout.address[51:6];
-                holding_q[(SLOT2_OFFSET+78):(SLOT2_OFFSET+72)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT2_OFFSET+79)]                      = d2h_rsp_dataout.valid;
-                holding_q[(SLOT2_OFFSET+84):(SLOT2_OFFSET+80)]    = d2h_rsp_dataout.opcode;
-                holding_q[(SLOT2_OFFSET+96):(SLOT2_OFFSET+85)]    = d2h_rsp_dataout.uqid;
-                holding_q[(SLOT2_OFFSET+98):(SLOT2_OFFSET+97)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+99)]                      = d2h_rsp_ddataout.valid;
-                holding_q[(SLOT2_OFFSET+104):(SLOT2_OFFSET+100)]  = d2h_rsp_ddataout.opcode;
-                holding_q[(SLOT2_OFFSET+116):(SLOT2_OFFSET+105)]  = d2h_rsp_ddataout.uqid;
-                holding_q[(SLOT2_OFFSET+118):(SLOT2_OFFSET+117)]  = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+127):(SLOT2_OFFSET+119)]  = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= d2h_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]      <= d2h_req_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)]     <= d2h_req_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+18)]                      <= d2h_req_dataout.nt;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+25):(SLOT2_OFFSET+19)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)]    <= d2h_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+78):(SLOT2_OFFSET+72)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+79)]                      <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+80)]    <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+96):(SLOT2_OFFSET+85)]    <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+98):(SLOT2_OFFSET+97)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+99)]                      <= d2h_rsp_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+100)]  <= d2h_rsp_ddataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+116):(SLOT2_OFFSET+105)]  <= d2h_rsp_ddataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+117)]  <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+119)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].valid                                        <= 'h0;
               end
               'h4: begin
-                holding_q[(SLOT2_OFFSET+0)]                       = d2h_req_dataout.valid;
-                holding_q[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]      = d2h_req_dataout.opcode;
-                holding_q[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)]     = d2h_req_dataout.cqid;
-                holding_q[(SLOT2_OFFSET+18)]                      = d2h_req_dataout.nt;
-                holding_q[(SLOT2_OFFSET+25):(SLOT2_OFFSET+19)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)]    = d2h_req_dataout.address[51:6];
-                holding_q[(SLOT2_OFFSET+78):(SLOT2_OFFSET+72)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT2_OFFSET+79)]                      = d2h_data_dataout.valid;
-                holding_q[(SLOT2_OFFSET+91):(SLOT2_OFFSET+80)]    = d2h_data_dataout.uqid;
-                holding_q[(SLOT2_OFFSET+92)]                      = d2h_data_dataout.chunkvalid;
-                holding_q[(SLOT2_OFFSET+93)]                      = d2h_data_dataout.bogus;
-                holding_q[(SLOT2_OFFSET+94)]                      = d2h_data_dataout.poison;
-                holding_q[(SLOT2_OFFSET+95)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+96)]                      = d2h_rsp_dataout.valid;
-                holding_q[(SLOT2_OFFSET+101):(SLOT2_OFFSET+97)]   = d2h_rsp_dataout.opcode;
-                holding_q[(SLOT2_OFFSET+113):(SLOT2_OFFSET+102)]  = d2h_rsp_dataout.uqid;
-                holding_q[(SLOT2_OFFSET+115):(SLOT2_OFFSET+114)]  = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+127):(SLOT2_OFFSET+116)]  = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= d2h_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]      <= d2h_req_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)]     <= d2h_req_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+18)]                      <= d2h_req_dataout.nt;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+25):(SLOT2_OFFSET+19)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)]    <= d2h_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+78):(SLOT2_OFFSET+72)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+79)]                      <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+80)]    <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+92)]                      <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+93)]                      <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+94)]                      <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+95)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+96)]                      <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+101):(SLOT2_OFFSET+97)]   <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+113):(SLOT2_OFFSET+102)]  <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+115):(SLOT2_OFFSET+114)]  <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+116)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[511:384]                                <= d2h_data_dataout.data[127:0]
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_wrptr                                                         <= holding_wrptr + 1;
+                holding_q[holding_wrptr+1].data[383:0]                                <= d2h_data_dataout.data[511:128]
+                holding_q[holding_wrptr+1].valid                                      <= 'h0;
               end  
               'h8: begin
-                holding_q[(SLOT2_OFFSET+0)]                       = d2h_data_dataout.valid;
-                holding_q[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)]     = d2h_data_dataout.uqid;
-                holding_q[(SLOT2_OFFSET+13)]                      = d2h_data_dataout.chunkvalid;
-                holding_q[(SLOT2_OFFSET+14)]                      = d2h_data_dataout.bogus;
-                holding_q[(SLOT2_OFFSET+15)]                      = d2h_data_dataout.poison;
-                holding_q[(SLOT2_OFFSET+16)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+17)]                      = d2h_data_ddataout.valid;
-                holding_q[(SLOT2_OFFSET+29):(SLOT2_OFFSET+18)]    = d2h_data_ddataout.uqid;
-                holding_q[(SLOT2_OFFSET+30)]                      = d2h_data_ddataout.chunkvalid;
-                holding_q[(SLOT2_OFFSET+31)]                      = d2h_data_ddataout.bogus;
-                holding_q[(SLOT2_OFFSET+32)]                      = d2h_data_ddataout.poison;
-                holding_q[(SLOT2_OFFSET+33)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+34)]                      = d2h_data_tdataout.valid;
-                holding_q[(SLOT2_OFFSET+46):(SLOT2_OFFSET+35)]    = d2h_data_tdataout.uqid;
-                holding_q[(SLOT2_OFFSET+47)]                      = d2h_data_tdataout.chunkvalid;
-                holding_q[(SLOT2_OFFSET+48)]                      = d2h_data_tdataout.bogus;
-                holding_q[(SLOT2_OFFSET+49)]                      = d2h_data_tdataout.poison;
-                holding_q[(SLOT2_OFFSET+50)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+51)]                      = d2h_data_qdataout.valid;
-                holding_q[(SLOT2_OFFSET+63):(SLOT2_OFFSET+52)]    = d2h_data_qdataout,uqid;
-                holding_q[(SLOT2_OFFSET+64)]                      = d2h_data_qdataout.chunkvalid;
-                holding_q[(SLOT2_OFFSET+65)]                      = d2h_data_qdataout.bogus;
-                holding_q[(SLOT2_OFFSET+66)]                      = d2h_data_qdataout.poison;
-                holding_q[(SLOT2_OFFSET+67)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+127):(SLOT2_OFFSET+68)]   = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)]     <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+13)]                      <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+14)]                      <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+15)]                      <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+16)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+17)]                      <= d2h_data_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+29):(SLOT2_OFFSET+18)]    <= d2h_data_ddataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+30)]                      <= d2h_data_ddataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+31)]                      <= d2h_data_ddataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+32)]                      <= d2h_data_ddataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+33)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+34)]                      <= d2h_data_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+46):(SLOT2_OFFSET+35)]    <= d2h_data_tdataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+47)]                      <= d2h_data_tdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+48)]                      <= d2h_data_tdataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+49)]                      <= d2h_data_tdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+50)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+51)]                      <= d2h_data_qdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+52)]    <= d2h_data_qdataout,uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+64)]                      <= d2h_data_qdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+65)]                      <= d2h_data_qdataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+66)]                      <= d2h_data_qdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+67)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+68)]   <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[511:384]                                <= d2h_data_dataout.data[127:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[383:0]                                <= d2h_data_dataout.[511:128];
+                holding_q[holding_wrptr+1].data[511:384]                              <= d2h_data_ddataout.data[127:0];
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_q[holding_wrptr+2].data[383:0]                                <= d2h_data_ddataout.[511:128];
+                holding_q[holding_wrptr+2].data[511:384]                              <= d2h_data_tdataout.data[127:0];
+                holding_q[holding_wrptr+2].valid                                      <= 'h1;
+                holding_q[holding_wrptr+3].data[383:0]                                <= d2h_data_tdataout.[511:128];
+                holding_q[holding_wrptr+3].data[511:384]                              <= d2h_data_qdataout.data[127:0];
+                holding_q[holding_wrptr+3].valid                                      <= 'h1;
+                holding_q[holding_wrptr+4].data[383:0]                                <= d2h_data_qdataout.[511:128];
+                holding_q[holding_wrptr+4].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 4;
               end
               'h16: begin
-                holding_q[(SLOT2_OFFSET+0)]                       = s2m_drs_dataout.valid;
-                holding_q[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      = s2m_drs_dataout.memopcode;
-                holding_q[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]      = s2m_drs_dataout.metafield;
-                holding_q[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]      = s2m_drs_dataout.metavalue;
-                holding_q[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)]     = s2m_drs_dataout.tag;
-                holding_q[(SLOT2_OFFSET+24)]                      = s2m_drs_dataout.poison;
-                holding_q[(SLOT2_OFFSET+39):(SLOT2_OFFSET+25)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+40)]                      = s2m_ndr_dataout.valid; 
-                holding_q[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]    = s2m_ndr_dataout.memopcode;
-                holding_q[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)]    = s2m_ndr_dataout.metafield;
-                holding_q[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)]    = s2m_ndr_dataout.metavalue;
-                holding_q[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)]    = s2m_ndr_dataout.tag;
-                holding_q[(SLOT2_OFFSET+67):(SLOT2_OFFSET+64)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+68)]                      = s2m_ndr_ddataout.valid;
-                holding_q[(SLOT2_OFFSET+71):(SLOT2_OFFSET+69)]    = s2m_ndr_ddataout.memopcode;
-                holding_q[(SLOT2_OFFSET+73):(SLOT2_OFFSET+72)]    = s2m_ndr_ddataout.metafield;
-                holding_q[(SLOT2_OFFSET+75):(SLOT2_OFFSET+74)]    = s2m_ndr_ddataout.metavalue;
-                holding_q[(SLOT2_OFFSET+91):(SLOT2_OFFSET+76)]    = s2m_ndr_ddataout.tag;
-                holding_q[(SLOT2_OFFSET+95):(SLOT2_OFFSET+92)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+127):(SLOT2_OFFSET+96)]   = 'h0;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= s2m_drs_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]      <= s2m_drs_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)]     <= s2m_drs_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+24)]                      <= s2m_drs_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+39):(SLOT2_OFFSET+25)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+40)]                      <= s2m_ndr_dataout.valid; 
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]    <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)]    <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)]    <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)]    <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+67):(SLOT2_OFFSET+64)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+68)]                      <= s2m_ndr_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+69)]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+72)]    <= s2m_ndr_ddataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+75):(SLOT2_OFFSET+74)]    <= s2m_ndr_ddataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+76)]    <= s2m_ndr_ddataout.tag;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+95):(SLOT2_OFFSET+92)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+96)]   <= 'h0;
+                holding_q[holding_wrptr].data[511:384]                                <= s2m_drs_dataout.data[127:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[383:0]                                <= s2m_drs_dataout.data[511:128];
+                holding_q[holding_wrptr+1].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h32: begin
-                holding_q[(SLOT2_OFFSET+0)]                       = s2m_ndr_dataout.valid;
-                holding_q[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      = s2m_ndr_dataout.memopcode;
-                holding_q[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]      = s2m_ndr_dataout.metafield;
-                holding_q[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]      = s2m_ndr_dataout.metavalue;
-                holding_q[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)]     = s2m_ndr_dataout.tag;
-                holding_q[(SLOT2_OFFSET+27):(SLOT2_OFFSET+24)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+28)]                      = s2m_ndr_ddataout.valid;
-                holding_q[(SLOT2_OFFSET+31):(SLOT2_OFFSET+29)]    = s2m_ndr_ddataout.memopcode;
-                holding_q[(SLOT2_OFFSET+33):(SLOT2_OFFSET+32)]    = s2m_ndr_ddataout.metafield;
-                holding_q[(SLOT2_OFFSET+35):(SLOT2_OFFSET+34)]    = s2m_ndr_ddataout.metavalue;
-                holding_q[(SLOT2_OFFSET+51):(SLOT2_OFFSET+36)]    = s2m_ndr_ddataout.tag;
-                holding_q[(SLOT2_OFFSET+55):(SLOT2_OFFSET+52)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+56)]                      = s2m_ndr_tdataout.valid;
-                holding_q[(SLOT2_OFFSET+59):(SLOT2_OFFSET+57)]    = s2m_ndr_tdataout.memopcode;
-                holding_q[(SLOT2_OFFSET+61):(SLOT2_OFFSET+60)]    = s2m_ndr_tdataout.metafield;
-                holding_q[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)]    = s2m_ndr_tdataout.metavalue;
-                holding_q[(SLOT2_OFFSET+79):(SLOT2_OFFSET+64)]    = s2m_ndr_tdataout.tag;
-                holding_q[(SLOT2_OFFSET+83):(SLOT2_OFFSET+80)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+127):(SLOT2_OFFSET+84)]   = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= s2m_ndr_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]      <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]      <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)]     <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+24)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+28)]                      <= s2m_ndr_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+31):(SLOT2_OFFSET+29)]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+33):(SLOT2_OFFSET+32)]    <= s2m_ndr_ddataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+35):(SLOT2_OFFSET+34)]    <= s2m_ndr_ddataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+51):(SLOT2_OFFSET+36)]    <= s2m_ndr_ddataout.tag;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+55):(SLOT2_OFFSET+52)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+56)]                      <= s2m_ndr_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+59):(SLOT2_OFFSET+57)]    <= s2m_ndr_tdataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+60)]    <= s2m_ndr_tdataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)]    <= s2m_ndr_tdataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+79):(SLOT2_OFFSET+64)]    <= s2m_ndr_tdataout.tag;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+83):(SLOT2_OFFSET+80)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+84)]   <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].valid                                        <= 'h0;
               end
               'h64: begin
-                holding_q[(SLOT2_OFFSET+0)]                       = s2m_drs_dataout.valid;
-                holding_q[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      = s2m_drs_dataout.memopcode;
-                holding_q[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]      =  s2m_drs_dataout.metafield;
-                holding_q[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]      = s2m_drs_dataout.metavalue;
-                holding_q[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)]     = s2m_drs_dataout.tag;
-                holding_q[(SLOT2_OFFSET+24)]                      = s2m_drs_dataout.poison;
-                holding_q[(SLOT2_OFFSET+39):(SLOT2_OFFSET+25)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+40)]                      = s2m_drs_ddataout.valid;
-                holding_q[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]    = s2m_drs_ddataout.memopcode;
-                holding_q[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)]    = s2m_drs_ddataout.metafield;
-                holding_q[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)]    = s2m_drs_ddataout.metavalue;
-                holding_q[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)]    = s2m_drs_ddataout.tag;
-                holding_q[(SLOT2_OFFSET+64)]                      = s2m_drs_ddataout.poison;
-                holding_q[(SLOT2_OFFSET+79):(SLOT2_OFFSET+65)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+80)] = s2m_drs_tdataout.valid;
-                holding_q[(SLOT2_OFFSET+83):(SLOT2_OFFSET+81)]    = s2m_drs_tdataout.memopcode;
-                holding_q[(SLOT2_OFFSET+85):(SLOT2_OFFSET+84)]    = s2m_drs_tdataout.metafield;
-                holding_q[(SLOT2_OFFSET+87):(SLOT2_OFFSET+86)]    = s2m_drs_tdataout.metavalue;
-                holding_q[(SLOT2_OFFSET+103):(SLOT2_OFFSET+88)]   = s2m_drs_tdataout.tag;
-                holding_q[(SLOT2_OFFSET+104)]                     = s2m_drs_tdataout.poison;
-                holding_q[(SLOT2_OFFSET+119):(SLOT2_OFFSET+105)]  = 'h0;//spare bits are always 0
-                holding_q[(SLOT2_OFFSET+127):(SLOT2_OFFSET+120)]  = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= s2m_drs_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]      <=  s2m_drs_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)]     <= s2m_drs_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+24)]                      <= s2m_drs_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+39):(SLOT2_OFFSET+25)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+40)]                      <= s2m_drs_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]    <= s2m_drs_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)]    <= s2m_drs_ddataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)]    <= s2m_drs_ddataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)]    <= s2m_drs_ddataout.tag;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+64)]                      <= s2m_drs_ddataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+79):(SLOT2_OFFSET+65)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+80)] <= s2m_drs_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+83):(SLOT2_OFFSET+81)]    <= s2m_drs_tdataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+85):(SLOT2_OFFSET+84)]    <= s2m_drs_tdataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+87):(SLOT2_OFFSET+86)]    <= s2m_drs_tdataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+103):(SLOT2_OFFSET+88)]   <= s2m_drs_tdataout.tag;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+104)]                     <= s2m_drs_tdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+119):(SLOT2_OFFSET+105)]  <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+120)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[511:384]                                <= s2m_drs_dataout.data[127:0];
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[383:0]                                <= s2m_drs_dataout.data[511:128];
+                holding_q[holding_wrptr+1].data[511:384]                              <= s2m_drs_ddataout.data[127:0];
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_q[holding_wrptr+2].data[383:0]                                <= s2m_drs_ddataout.data[511:128];
+                holding_q[holding_wrptr+2].data[511:384]                              <= s2m_drs_tdataout.data[127:0];
+                holding_q[holding_wrptr+2].valid                                      <= 'h1;
+                holding_q[holding_wrptr+3].data[383:0]                                <= s2m_drs_tdataout.data[511:128];
+                holding_q[holding_wrptr+3].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 3;
               end   
               default: begin
-
+                holding_q[holding_wrptr].valid                                        <= 'h0;
               end
             endcase
           end
           G_SLOT3: begin
             case(g_gnt_d)
               'h2: begin
-                holding_q[(SLOT3_OFFSET+0)]                       = d2h_req_dataout.valid;
-                holding_q[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]      = d2h_req_dataout.opcode;
-                holding_q[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)]     = d2h_req_dataout.cqid;
-                holding_q[(SLOT3_OFFSET+18)]                      = d2h_req_dataout.nt;
-                holding_q[(SLOT3_OFFSET+25):(SLOT3_OFFSET+19)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)]    = d2h_req_dataout.address[51:6];
-                holding_q[(SLOT3_OFFSET+78):(SLOT3_OFFSET+72)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT3_OFFSET+79)]                      = d2h_rsp_dataout.valid;
-                holding_q[(SLOT3_OFFSET+84):(SLOT3_OFFSET+80)]    = d2h_rsp_dataout.opcode;
-                holding_q[(SLOT3_OFFSET+96):(SLOT3_OFFSET+85)]    = d2h_rsp_dataout.uqid;
-                holding_q[(SLOT3_OFFSET+98):(SLOT3_OFFSET+97)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+99)]                      = d2h_rsp_ddataout.valid;
-                holding_q[(SLOT3_OFFSET+104):(SLOT3_OFFSET+100)]  = d2h_rsp_ddataout.opcode;
-                holding_q[(SLOT3_OFFSET+116):(SLOT3_OFFSET+105)]  = d2h_rsp_ddataout.uqid;
-                holding_q[(SLOT3_OFFSET+118):(SLOT3_OFFSET+117)]  = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+127):(SLOT3_OFFSET+119)]  = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= d2h_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]      <= d2h_req_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)]     <= d2h_req_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+18)]                      <= d2h_req_dataout.nt;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+25):(SLOT3_OFFSET+19)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)]    <= d2h_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+78):(SLOT3_OFFSET+72)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+79)]                      <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+84):(SLOT3_OFFSET+80)]    <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+96):(SLOT3_OFFSET+85)]    <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+98):(SLOT3_OFFSET+97)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+99)]                      <= d2h_rsp_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+100)]  <= d2h_rsp_ddataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+116):(SLOT3_OFFSET+105)]  <= d2h_rsp_ddataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+117)]  <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+119)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h4: begin
-                holding_q[(SLOT3_OFFSET+0)]                       = d2h_req_dataout.valid;
-                holding_q[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]      = d2h_req_dataout.opcode;
-                holding_q[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)]     = d2h_req_dataout.cqid;
-                holding_q[(SLOT3_OFFSET+18)]                      = d2h_req_dataout.nt;
-                holding_q[(SLOT3_OFFSET+25):(SLOT3_OFFSET+19)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)]    = d2h_req_dataout.address[51:6];
-                holding_q[(SLOT3_OFFSET+78):(SLOT3_OFFSET+72)]    = 'h0;//spare bits always 0
-                holding_q[(SLOT3_OFFSET+79)]                      = d2h_data_dataout.valid;
-                holding_q[(SLOT3_OFFSET+91):(SLOT3_OFFSET+80)]    = d2h_data_dataout.uqid;
-                holding_q[(SLOT3_OFFSET+92)]                      = d2h_data_dataout.chunkvalid;
-                holding_q[(SLOT3_OFFSET+93)]                      = d2h_data_dataout.bogus;
-                holding_q[(SLOT3_OFFSET+94)]                      = d2h_data_dataout.poison;
-                holding_q[(SLOT3_OFFSET+95)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+96)]                      = d2h_rsp_dataout.valid;
-                holding_q[(SLOT3_OFFSET+101):(SLOT3_OFFSET+97)]   = d2h_rsp_dataout.opcode;
-                holding_q[(SLOT3_OFFSET+113):(SLOT3_OFFSET+102)]  = d2h_rsp_dataout.uqid;
-                holding_q[(SLOT3_OFFSET+115):(SLOT3_OFFSET+114)]  = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+127):(SLOT3_OFFSET+116)]  = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= d2h_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]      <= d2h_req_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)]     <= d2h_req_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+18)]                      <= d2h_req_dataout.nt;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+25):(SLOT3_OFFSET+19)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)]    <= d2h_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+78):(SLOT3_OFFSET+72)]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+79)]                      <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+80)]    <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+92)]                      <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+93)]                      <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+94)]                      <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+95)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+96)]                      <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+101):(SLOT3_OFFSET+97)]   <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+113):(SLOT3_OFFSET+102)]  <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+115):(SLOT3_OFFSET+114)]  <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+116)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[511:0]                                <= d2h_data_dataout.data[511:0]
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_wrptr                                                         <= holding_wrptr + 2;
+                holding_q[holding_wrptr+2].valid                                      <= 'h0;
               end  
               'h8: begin
-                holding_q[(SLOT3_OFFSET+0)]                       = d2h_data_dataout.valid;
-                holding_q[(SLOT3_OFFSET+12):(SLOT3_OFFSET+1)]     = d2h_data_dataout.uqid;
-                holding_q[(SLOT3_OFFSET+13)]                      = d2h_data_dataout.chunkvalid;
-                holding_q[(SLOT3_OFFSET+14)]                      = d2h_data_dataout.bogus;
-                holding_q[(SLOT3_OFFSET+15)]                      = d2h_data_dataout.poison;
-                holding_q[(SLOT3_OFFSET+16)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+17)]                      = d2h_data_ddataout.valid;
-                holding_q[(SLOT3_OFFSET+29):(SLOT3_OFFSET+18)]    = d2h_data_ddataout.uqid;
-                holding_q[(SLOT3_OFFSET+30)]                      = d2h_data_ddataout.chunkvalid;
-                holding_q[(SLOT3_OFFSET+31)]                      = d2h_data_ddataout.bogus;
-                holding_q[(SLOT3_OFFSET+32)]                      = d2h_data_ddataout.poison;
-                holding_q[(SLOT3_OFFSET+33)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+34)]                      = d2h_data_tdataout.valid;
-                holding_q[(SLOT3_OFFSET+46):(SLOT3_OFFSET+35)]    = d2h_data_tdataout.uqid;
-                holding_q[(SLOT3_OFFSET+47)]                      = d2h_data_tdataout.chunkvalid;
-                holding_q[(SLOT3_OFFSET+48)]                      = d2h_data_tdataout.bogus;
-                holding_q[(SLOT3_OFFSET+49)]                      = d2h_data_tdataout.poison;
-                holding_q[(SLOT3_OFFSET+50)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+51)]                      = d2h_data_qdataout.valid;
-                holding_q[(SLOT3_OFFSET+63):(SLOT3_OFFSET+52)]    = d2h_data_qdataout,uqid;
-                holding_q[(SLOT3_OFFSET+64)]                      = d2h_data_qdataout.chunkvalid;
-                holding_q[(SLOT3_OFFSET+65)]                      = d2h_data_qdataout.bogus;
-                holding_q[(SLOT3_OFFSET+66)]                      = d2h_data_qdataout.poison;
-                holding_q[(SLOT3_OFFSET+67)]                      = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+127):(SLOT3_OFFSET+68)]   = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+12):(SLOT3_OFFSET+1)]     <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+13)]                      <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+14)]                      <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+15)]                      <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+16)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+17)]                      <= d2h_data_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+29):(SLOT3_OFFSET+18)]    <= d2h_data_ddataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+30)]                      <= d2h_data_ddataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+31)]                      <= d2h_data_ddataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+32)]                      <= d2h_data_ddataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+33)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+34)]                      <= d2h_data_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+46):(SLOT3_OFFSET+35)]    <= d2h_data_tdataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+47)]                      <= d2h_data_tdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+48)]                      <= d2h_data_tdataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+49)]                      <= d2h_data_tdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+50)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+51)]                      <= d2h_data_qdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+52)]    <= d2h_data_qdataout,uqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+64)]                      <= d2h_data_qdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+65)]                      <= d2h_data_qdataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+66)]                      <= d2h_data_qdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+67)]                      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+68)]   <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[511:0]                                <= d2h_data_dataout.data;
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_q[holding_wrptr+2].data[511:0]                                <= d2h_data_ddataout.data;
+                holding_q[holding_wrptr+2].valid                                      <= 'h1;
+                holding_q[holding_wrptr+3].data[511:0]                                <= d2h_data_tdataout.data;
+                holding_q[holding_wrptr+3].valid                                      <= 'h1;
+                holding_q[holding_wrptr+4].data[511:0]                                <= d2h_data_qdataout.data;
+                holding_q[holding_wrptr+4].valid                                      <= 'h1;
+                //holding_q[holding_wrptr+5].valid                                      <= 'h0;
+                //holding_wrptr                                                         <= holding_wrptr + 5;
               end
               'h16: begin
-                holding_q[(SLOT3_OFFSET+0)]                       = s2m_drs_dataout.valid;
-                holding_q[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      = s2m_drs_dataout.memopcode;
-                holding_q[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]      = s2m_drs_dataout.metafield;
-                holding_q[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]      = s2m_drs_dataout.metavalue;
-                holding_q[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)]     = s2m_drs_dataout.tag;
-                holding_q[(SLOT3_OFFSET+24)]                      = s2m_drs_dataout.poison;
-                holding_q[(SLOT3_OFFSET+39):(SLOT3_OFFSET+25)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+40)]                      = s2m_ndr_dataout.valid; 
-                holding_q[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]    = s2m_ndr_dataout.memopcode;
-                holding_q[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)]    = s2m_ndr_dataout.metafield;
-                holding_q[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)]    = s2m_ndr_dataout.metavalue;
-                holding_q[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)]    = s2m_ndr_dataout.tag;
-                holding_q[(SLOT3_OFFSET+67):(SLOT3_OFFSET+64)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+68)]                      = s2m_ndr_ddataout.valid;
-                holding_q[(SLOT3_OFFSET+71):(SLOT3_OFFSET+69)]    = s2m_ndr_ddataout.memopcode;
-                holding_q[(SLOT3_OFFSET+73):(SLOT3_OFFSET+72)]    = s2m_ndr_ddataout.metafield;
-                holding_q[(SLOT3_OFFSET+75):(SLOT3_OFFSET+74)]    = s2m_ndr_ddataout.metavalue;
-                holding_q[(SLOT3_OFFSET+91):(SLOT3_OFFSET+76)]    = s2m_ndr_ddataout.tag;
-                holding_q[(SLOT3_OFFSET+95):(SLOT3_OFFSET+92)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+127):(SLOT3_OFFSET+96)]   = 'h0;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= s2m_drs_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]      <= s2m_drs_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)]     <= s2m_drs_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+24)]                      <= s2m_drs_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+39):(SLOT3_OFFSET+25)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+40)]                      <= s2m_ndr_dataout.valid; 
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]    <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)]    <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)]    <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)]    <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+67):(SLOT3_OFFSET+64)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+68)]                      <= s2m_ndr_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+69)]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+72)]    <= s2m_ndr_ddataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+75):(SLOT3_OFFSET+74)]    <= s2m_ndr_ddataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+76)]    <= s2m_ndr_ddataout.tag;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+95):(SLOT3_OFFSET+92)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+96)]   <= 'h0;
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[511:0]                                <= s2m_drs_dataout.data[511:0];
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_q[holding_wrptr+2].valid                                      <= 'h0;
+                holding_wrptr                                                         <= holding_wrptr + 2;
               end
               'h32: begin
-                holding_q[(SLOT3_OFFSET+0)]                       = s2m_ndr_dataout.valid;
-                holding_q[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      = s2m_ndr_dataout.memopcode;
-                holding_q[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]      = s2m_ndr_dataout.metafield;
-                holding_q[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]      = s2m_ndr_dataout.metavalue;
-                holding_q[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)]     = s2m_ndr_dataout.tag;
-                holding_q[(SLOT3_OFFSET+27):(SLOT3_OFFSET+24)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+28)]                      = s2m_ndr_ddataout.valid;
-                holding_q[(SLOT3_OFFSET+31):(SLOT3_OFFSET+29)]    = s2m_ndr_ddataout.memopcode;
-                holding_q[(SLOT3_OFFSET+33):(SLOT3_OFFSET+32)]    = s2m_ndr_ddataout.metafield;
-                holding_q[(SLOT3_OFFSET+35):(SLOT3_OFFSET+34)]    = s2m_ndr_ddataout.metavalue;
-                holding_q[(SLOT3_OFFSET+51):(SLOT3_OFFSET+36)]    = s2m_ndr_ddataout.tag;
-                holding_q[(SLOT3_OFFSET+55):(SLOT3_OFFSET+52)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+56)]                      = s2m_ndr_tdataout.valid;
-                holding_q[(SLOT3_OFFSET+59):(SLOT3_OFFSET+57)]    = s2m_ndr_tdataout.memopcode;
-                holding_q[(SLOT3_OFFSET+61):(SLOT3_OFFSET+60)]    = s2m_ndr_tdataout.metafield;
-                holding_q[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)]    = s2m_ndr_tdataout.metavalue;
-                holding_q[(SLOT3_OFFSET+79):(SLOT3_OFFSET+64)]    = s2m_ndr_tdataout.tag;
-                holding_q[(SLOT3_OFFSET+83):(SLOT3_OFFSET+80)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+127):(SLOT3_OFFSET+84)]   = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= s2m_ndr_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]      <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]      <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)]     <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+24)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+28)]                      <= s2m_ndr_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+31):(SLOT3_OFFSET+29)]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+33):(SLOT3_OFFSET+32)]    <= s2m_ndr_ddataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+35):(SLOT3_OFFSET+34)]    <= s2m_ndr_ddataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+51):(SLOT3_OFFSET+36)]    <= s2m_ndr_ddataout.tag;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+55):(SLOT3_OFFSET+52)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+56)]                      <= s2m_ndr_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+59):(SLOT3_OFFSET+57)]    <= s2m_ndr_tdataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+60)]    <= s2m_ndr_tdataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)]    <= s2m_ndr_tdataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+79):(SLOT3_OFFSET+64)]    <= s2m_ndr_tdataout.tag;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+83):(SLOT3_OFFSET+80)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+84)]   <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_wrptr                                                         <= holding_wrptr + 1;
+                holding_q[holding_wrptr+1].valid                                      <= 'h0;
               end
               'h64: begin
-                holding_q[(SLOT3_OFFSET+0)]                       = s2m_drs_dataout.valid;
-                holding_q[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      = s2m_drs_dataout.memopcode;
-                holding_q[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]      =  s2m_drs_dataout.metafield;
-                holding_q[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]      = s2m_drs_dataout.metavalue;
-                holding_q[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)]     = s2m_drs_dataout.tag;
-                holding_q[(SLOT3_OFFSET+24)]                      = s2m_drs_dataout.poison;
-                holding_q[(SLOT3_OFFSET+39):(SLOT3_OFFSET+25)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+40)]                      = s2m_drs_ddataout.valid;
-                holding_q[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]    = s2m_drs_ddataout.memopcode;
-                holding_q[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)]    = s2m_drs_ddataout.metafield;
-                holding_q[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)]    = s2m_drs_ddataout.metavalue;
-                holding_q[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)]    = s2m_drs_ddataout.tag;
-                holding_q[(SLOT3_OFFSET+64)]                      = s2m_drs_ddataout.poison;
-                holding_q[(SLOT3_OFFSET+79):(SLOT3_OFFSET+65)]    = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+80)] = s2m_drs_tdataout.valid;
-                holding_q[(SLOT3_OFFSET+83):(SLOT3_OFFSET+81)]    = s2m_drs_tdataout.memopcode;
-                holding_q[(SLOT3_OFFSET+85):(SLOT3_OFFSET+84)]    = s2m_drs_tdataout.metafield;
-                holding_q[(SLOT3_OFFSET+87):(SLOT3_OFFSET+86)]    = s2m_drs_tdataout.metavalue;
-                holding_q[(SLOT3_OFFSET+103):(SLOT3_OFFSET+88)]   = s2m_drs_tdataout.tag;
-                holding_q[(SLOT3_OFFSET+104)]                     = s2m_drs_tdataout.poison;
-                holding_q[(SLOT3_OFFSET+119):(SLOT3_OFFSET+105)]  = 'h0;//spare bits are always 0
-                holding_q[(SLOT3_OFFSET+127):(SLOT3_OFFSET+120)]  = 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= s2m_drs_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]      <=  s2m_drs_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)]     <= s2m_drs_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+24)]                      <= s2m_drs_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+39):(SLOT3_OFFSET+25)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+40)]                      <= s2m_drs_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]    <= s2m_drs_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)]    <= s2m_drs_ddataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)]    <= s2m_drs_ddataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)]    <= s2m_drs_ddataout.tag;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+64)]                      <= s2m_drs_ddataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+79):(SLOT3_OFFSET+65)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+80)] <= s2m_drs_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+83):(SLOT3_OFFSET+81)]    <= s2m_drs_tdataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+85):(SLOT3_OFFSET+84)]    <= s2m_drs_tdataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+87):(SLOT3_OFFSET+86)]    <= s2m_drs_tdataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+103):(SLOT3_OFFSET+88)]   <= s2m_drs_tdataout.tag;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+104)]                     <= s2m_drs_tdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+119):(SLOT3_OFFSET+105)]  <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+120)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].valid                                        <= 'h1;
+                holding_q[holding_wrptr+1].data[511:0]                                <= s2m_drs_dataout.data[511:0];
+                holding_q[holding_wrptr+1].valid                                      <= 'h1;
+                holding_q[holding_wrptr+2].data[511:0]                                <= s2m_drs_ddataout.data[511:0];
+                holding_q[holding_wrptr+2].valid                                      <= 'h1;
+                holding_q[holding_wrptr+3].data[511:0]                                <= s2m_drs_tdataout.data[511:0];
+                holding_q[holding_wrptr+3].valid                                      <= 'h1;
+                holding_wrptr                                                         <= holding_wrptr + 4;
+                holding_q[holding_wrptr+4].valid                                      <= 'h0;
               end   
               default: begin
-
+                holding_q[holding_wrptr].valid                                        <= 'h0;
               end
             endcase
           end
         endcase
+      end
+    end
+  end
+
+  always@(dev_tx_dl_if.clk) begin
+    if(!dev_tx_dl_if.rstn) begin
+      dev_tx_dl_if.valid <= 'h0;
+      dev_tx_dl_if.data <= 'h0;
+      holding_rdptr <= 'h0;
+    end else begin
+      if(holding_q.valid[holding_rdptr]) begin
+        dev_tx_dl_if.valid <= holding_q.valid[holding_rdptr];
+        dev_tx_dl_if.data <= holding_q.data[holding_rdptr];
+        if(holding_rdptr == 4) begin
+          holding_rdptr <= 'h0;
+        end else begin
+          holding_rdptr <= holding_rdptr + 1;
+        end
       end
     end
   end
@@ -2233,7 +2633,9 @@ module cxl_host
     cxl_mem_m2s_req_if.host_if_mp host_m2s_req_if,
     cxl_mem_m2s_rwd_if.host_if_mp host_m2s_rwd_if,
     cxl_mem_s2m_ndr_if.host_if_mp host_s2m_ndr_if,
-    cxl_mem_s2m_drs_if.host_if_mp host_s2m_drs_if
+    cxl_mem_s2m_drs_if.host_if_mp host_s2m_drs_if,
+    cxl_host_tx_dl_if.tx_mp host_tx_dl_if,
+    cxl_host_rx_dl_if.rx_mp host_rx_dl_if
 );
 
   logic h2d_req_occ;
@@ -2523,7 +2925,9 @@ module cxl_device
     dev_m2s_req_if.dev_if_mp dev_m2s_req_if,
     dev_m2s_rwd_if.dev_if_mp dev_m2s_rwd_if,
     dev_s2m_ndr_if.dev_if_mp dev_s2m_ndr_if,
-    dev_s2m_drs_if.dev_if_mp dev_s2m_drs_if
+    dev_s2m_drs_if.dev_if_mp dev_s2m_drs_if,
+    cxl_dev_tx_dl_if.tx_mp dev_tx_dl_if,
+    cxl_dev_rx_dl_if.rx_mp dev_rx_dl_if
 );
 
   logic d2h_req_occ;
