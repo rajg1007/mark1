@@ -763,7 +763,7 @@ module host_tx_path#(
 
   assign h_req = (slot_sel>1) ? 'h0: h_val;
   assign g_req = (slot_sel[0])? 'h0: g_val;
-  
+  //TODO: serious missing piece is if roll over cnt exceeds then packing of further data should be avoided
   //ll pkt buffer
   always@(posedge clk) begin
     if(!rstn) begin
@@ -1652,7 +1652,8 @@ module device_tx_path#(
   
   assign h_req = (slot_sel>1)? 'h0: h_val;
   assign g_req = (slot_sel[0])? 'h0: g_val;
-
+  //TODO: assignment of slot number is missing in the header of pkt after generic slot is selected 
+  //TODO: serious missing piece is if roll over cnt exceeds then packing of further data should be avoided
   //ll pkt buffer
   always@(posedge clk) begin
     if(!rstn) begin
@@ -2515,6 +2516,640 @@ module device_tx_path#(
 
 endmodule
 
+module cxl_lrsm_rrsm(
+  input logic clk,
+  input logic rstn,
+  input logic crc_pass,
+  input logic crc_fail,
+  input logic retryable_flit,
+  input logic non_retryable_flit,
+  input logic retry_req_rcvd,
+  input logic phy_rst,
+  input logic phy_reinit,
+  output logic phy_link_rst,
+  output logic retry_req_snt,
+  input logic phy_link_up,
+  input logic [7:0] retry_ack_num_retry,
+  input logic retry_ack_empty_bit,
+  input logic retry_ack_rcvd,
+  output logic retry_ack_snt
+);
+  
+  typedef enum {
+  	RETRY_LOCAL_NORMAL,
+    RETRY_LLRREQ,
+    RETRY_PHY_REINIT,
+    RETRY_LOCAL_IDLE,
+    RETRY_ABORT
+  } l_states_t;
+  l_states_t l_states;
+  
+  typedef enum {
+    RETRY_REMOTE_NORMAL,
+    RETRY_LLRACK
+  } r_states_t;
+  r_states_t r_states;
+  
+  logic [7:0] local_num_free_buf;
+  logic [7:0] local_eseq_num;
+  logic [7:0] local_num_ack;
+  logic [3:0] local_num_retry;
+  logic [3:0] local_num_phy_reinit;
+  logic [11:0] ack_timer;
+  
+  //lrsm
+  always@(posedge clk) begin
+    if(!rstn) begin
+      l_states <= RETRY_LOCAL_NORMAL;
+      local_num_free_buf <= {8{1'b1}};
+      local_num_ack <= 'h0;
+      local_eseq_num <= 'h0;
+      local_num_retry <= 'h0;
+      local_num_phy_reinit <= 'h0;
+  	  phy_link_rst <= 'h0;    
+      retry_req_snt <= 'h0;
+    end else begin
+      case(l_states)
+		RETRY_LOCAL_NORMAL: begin
+          if(crc_pass && retryable_flit) begin 
+        	l_states <= RETRY_LOCAL_NORMAL;
+            local_num_free_buf <= local_num_free_buf + 1;
+            local_num_ack <= local_num_ack + 1;
+            local_eseq_num <= local_eseq_num + 1;
+            local_num_retry <= 'h0;
+            local_num_phy_reinit <= 'h0;
+          end else if(crc_pass && non_retryable_flit) begin
+        	l_states <= RETRY_LOCAL_NORMAL;
+          end else if(crc_fail && non_retryable_flit) begin
+            l_states <= RETRY_LLRREQ;
+          end else if(phy_rst || phy_reinit) begin
+            l_states <= RETRY_PHY_REINIT;
+          end
+        end
+        RETRY_LLRREQ: begin
+          if((local_num_retry == 'hf) && (local_num_phy_reinit == 'hf)) begin
+            l_states <= RETRY_ABORT;
+          end else if((local_num_retry == 'hf) && (local_num_phy_reinit < 'hf)) begin
+            l_states <= RETRY_PHY_REINIT;
+            local_num_phy_reinit <= local_num_phy_reinit + 1;
+            phy_link_rst <= 'h1;
+          end else if((local_num_retry < 'hf) && (!retry_req_snt)) begin
+            l_states <= RETRY_LLRREQ;
+          end else if((local_num_retry < 'hf) && retry_req_snt) begin
+            l_states <= RETRY_LOCAL_IDLE;
+            local_num_retry <= local_num_retry + 1;
+          end else if(crc_fail) begin
+            l_states <= RETRY_LLRREQ;
+          end else if(phy_rst || phy_reinit) begin
+            l_states <= RETRY_PHY_REINIT;
+          end
+        end
+        RETRY_PHY_REINIT: begin
+          if(phy_link_up) begin
+            l_states <= RETRY_LLRREQ;
+            local_num_retry <= 'h0;
+          end
+        end
+        RETRY_LOCAL_IDLE: begin
+          if(retry_ack_rcvd && (retry_ack_num_retry == local_num_retry)) begin
+            l_states <= RETRY_LOCAL_NORMAL;
+            ack_timer <='h0;
+            if(retry_ack_empty_bit) begin
+              local_num_retry <= 'h0;
+              local_num_phy_retry <= 'h0;
+            end
+          end else if(retry_ack_rcvd && (retry_ack_num_retry != local_num_retry)) begin
+            l_states <= RETRY_LOCAL_IDLE;
+            ack_timer <= ack_timer + 1;
+          end else if(ack_timer == 'hfff) begin
+            l_states <= RETRY_LLRREQ;
+            ack_timer <='h0;
+          end else if(phy_rst || phy_reinit) begin
+            l_states <= RETRY_PHY_REINIT;
+          end else begin
+            l_states <= RETRY_LOCAL_IDLE;
+            ack_timer <= ack_timer + 1;
+          end
+        end
+        RETRY_ABORT: begin
+          l_states <= RETRY_ABORT;
+        end
+        default: begin
+          l_states <= 'hx;
+        end
+      endcase	
+    end
+  end
+
+  //rrsm
+  always@(posedge clk) begin
+    if(!rstn) begin
+      retry_ack_snt <= 'h0;
+    end else begin
+      case(r_states)
+      RETRY_REMOTE_NORMAL: begin
+        if(crc_pass && !retry_req_rcvd) begin
+          r_states <= RETRY_REMOTE_NORMAL;
+        end else if(crc_pass && retry_req_rcvd) begin
+          r_states <= RETRY_LLRACK;
+        end
+      end
+      RETRY_LLRACK: begin
+        if((!retry_ack_snt) && (!phy_rst) && (!phy_reinit)) begin
+          r_states <= RETRY_LLRACK;
+        end else if(retry_ack_snt || phy_rst || phy_reinit) begin
+          r_states <= RETRY_REMOTE_NORMAL
+        end
+      end
+      default: begin
+        r_states <= 'hx;
+      end
+      endcase
+    end
+  end
+  
+  //retry req/ack snt logic tbd
+  
+endmodule
+
+module c2c_checker#(
+
+)(
+  output logic crc_pass,
+  output logic c2c_fail,
+  cxl_host_rx_dl_if.rx_mp host_rx_dl_if
+);
+
+
+
+endmodule
+
+module host_rx_path #(
+
+)(
+  cxl_host_rx_dl_if.rx_mp host_rx_dl_if,
+  output logic retry_ack_snt,
+  output logic retry_req_snt,
+  output logic phy_link_rst,
+  input logic phy_rst,
+  input logic phy_reinit,
+  input logic phy_link_up
+);
+
+  typedef enum {
+    RETRY_NOFRAME,
+    RETRY_FRAME1,
+    RETRY_FRAME2,
+    RETRY_FRAME3,
+    RETRY_FRAME4,
+    RETRY_FRAME5
+  } retry_frame_states_t;
+  retry_frame_states_t retry_frame_states;
+  logic crc_pass;
+  logic crc_fail;
+  logic retryable_flit;
+  logic non_retryable_flit;
+  logic retry_req_rcvd;
+  logic retry_req_snt;
+  logic [7:0] retry_ack_num_retry;
+  logic retry_ack_empty_bit;
+  logic retry_ack_rcvd;
+  logic retry_ack_snt;
+  cxl_host_rx_dl_if.rx_mp host_rx_dl_if_d;//assuming crc checker takes 1 cycle to tell crc pass or fail
+  logic retry_frame_detect;
+  logic retry_req_detect;
+  logic retry_ack_detect;
+  logic retry_idle_detect;
+
+  function void header0(
+    input logic [127:0] data, 
+    output d2h_data_txn_t d2h_data_txn, 
+    output d2h_rsp_txn_t d2h_rsp_txn[2], 
+    output s2m_ndr_txn_t s2m_ndr_txn
+  );
+
+    
+
+  endfunction
+
+  function void header1(
+    input logic [127:0] data, 
+    output d2h_req_txn_t d2h_req_txn, 
+    output d2h_data_txn_t d2h_data_txn
+  );
+
+    
+
+  endfunction
+
+  function void header2(
+    input logic [127:0] data, 
+    output d2h_data_txn_t d2h_data_txn[4], 
+    output d2h_rsp_txn_t d2h_rsp_txn
+  );
+
+    
+
+  endfunction
+
+  function void header3(
+    input logic [127:0] data, 
+    output s2m_drs_txn_t s2m_drs_txn, 
+    output s2m_ndr_txn_t s2m_ndr_txn
+  );
+
+    
+
+  endfunction
+
+  function void header4(
+    input logic [127:0] data, 
+    output s2m_ndr_txn_t s2m_ndr_txn[2]
+  );
+
+    
+
+  endfunction
+
+  function void header5(
+    input logic [127:0] data, 
+    output s2m_drs_txn_t s2m_drs_txn[2]
+  );
+
+    s2m_drs_dataout[0].valid       = holding_q.data[32];
+    s2m_drs_dataout[0].memopcode   = holding_q.data[35:33];
+    s2m_drs_dataout[0].metafield   = holding_q.data[37:36];
+    s2m_drs_dataout[0].metavalue   = holding_q.data[39:38];
+    s2m_drs_dataout[0].tag         = holding_q.data[55:40];
+    s2m_drs_dataout[0].poison      = holding_q.data[56];
+    s2m_drs_dataout[1].valid       = holding_q.data[72];
+    s2m_drs_dataout[1].memopcode   = holding_q.data[75:73];
+    s2m_drs_dataout[1].metafield   = holding_q.data[77:76];
+    s2m_drs_dataout[1].metavalue   = holding_q.data[79:78];
+    s2m_drs_dataout[1].tag         = holding_q.data[95:80];
+    s2m_drs_dataout[1].poison      = holding_q.data[96];
+
+  endfunction
+
+  function void generic1(
+    input logic [127:0] data,
+    output d2h_req_txn_t d2h_req_txn,
+    output d2h_rsp_txn_t d2h_rsp_txn[2]
+  );
+
+  endfunction
+
+  function void generic2(
+    input logic [127:0] data,
+    output d2h_req_txn_t d2h_req_txn,
+    output d2h_data_txn_t d2h_data_txn,
+    output d2h_rsp_txn_t d2h_rsp_txn
+  );
+
+  endfunction
+
+  function void generic3(
+    input logic [127:0] data,
+    output d2h_data_txn_t d2h_data_txn[4]
+  );
+
+  endfunction
+
+  function void generic4(
+    input logic [127:0] data,
+    output s2m_drs_txn_t s2m_drs_txn,
+    output s2m_ndr_txn_t s2m_ndr_txn[2]
+  );
+
+  endfunction
+
+  function void generic5(
+    input logic [127:0] data,
+    output s2m_ndr_txn_t s2m_ndr_txn[3]
+  );
+
+  endfunction
+
+  function void generic6(
+    input logic [127:0] data,
+    output s2m_drs_txn_t s2m_drs_txn
+  );
+
+  endfunction
+
+  always@(posedge host_rx_dl_if.clk) begin
+    if(!host_rx_dl_if.rstn) begin
+      
+    end else begin
+
+    end
+  end
+
+  cxl_lrsm_rrsm cxl_lrsm_rrsm_inst#(
+
+  )(
+    .clk(host_rx_dl_if.clk),
+    .rstn(host_rx_dl_if.rstn),
+    .*
+  );
+
+  crc_checker c2c_checker_inst#(
+
+  )(
+    .*
+  );
+
+  assign retry_frame_detect = (host_rx_dl_if_d.data[39:36] == 'h3) && (host_rx_dl_if_d.data[35:32] = 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retry_idle_detect = (host_rx_dl_if_d.data[39:36] == 'h0) && (host_rx_dl_if_d.data[35:32] = 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retry_req_detect = (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] = 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retry_ack_detect = (host_rx_dl_if_d.data[39:36] == 'h2) && (host_rx_dl_if_d.data[35:32] = 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
+  assign non_retryable_flit = (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
+  //TODO: serious mistake I am assuming only one side of the link can have error at a time
+
+  always@(posedge host_rx_dl_if.clk) begin
+    if(!host_rx_dl_if.rstn) begin
+      host_rx_dl_if_d.valid <= 'h0;
+      host_rx_dl_if_d.data <= 'h0;
+    end else begin
+      host_rx_dl_if_d.valid <= host_rx_dl_if.valid;
+      host_rx_dl_if_d.data <= host_rx_dl_if.data;
+      if(host_rx_dl_if_d.valid) begin
+        case(retry_frame_states) 
+        RETRY_NOFRAME: begin
+          retry_req_rcvd <= 'h0;
+          retry_ack_rcvd <= 'h0;
+          if(retry_frame_detect) begin  
+            retry_frame_states <= RETRY_FRAME1;
+          end else begin
+            retry_frame_states <= RETRY_NOFRAME;
+          end
+        end
+        RETRY_FRAME1: begin
+          if(retry_frame_detect) begin  
+            retry_frame_states <= RETRY_FRAME2;
+          end else begin
+            retry_frame_states <= RETRY_NOFRAME;
+          end
+        end
+        RETRY_FRAME2: begin
+          if(retry_frame_detect) begin  
+            retry_frame_states <= RETRY_FRAME3;
+          end else begin
+            retry_frame_states <= RETRY_NOFRAME;
+          end
+        end
+        RETRY_FRAME3: begin
+          if(retry_frame_detect) begin  
+            retry_frame_states <= RETRY_FRAME4;
+          end else begin
+            retry_frame_states <= RETRY_NOFRAME;
+          end
+        end
+        RETRY_FRAME4: begin
+          if(retry_frame_detect) begin  
+            retry_frame_states <= RETRY_FRAME5;
+          end else begin
+            retry_frame_states <= RETRY_NOFRAME;
+          end
+        end
+        RETRY_FRAME5: begin
+          if(retry_frame_detect) begin  
+            retry_frame_states <= RETRY_FRAME5;
+          end else if(retry_req_detect) begin
+            retry_frame_states <= RETRY_NOFRAME;
+            retry_req_rcvd <= 'h1;
+            retry_frame_states <= RETRY_NOFRAME;
+          end else if(retry_ack_detect) begin
+            retry_ack_rcvd <= 'h1;
+            retry_ack_empty_bit <= host_rx_dl_if_d.data[64];
+            retry_ack_num_retry <= host_rx_dl_if_d.data[71:67];
+            retry_frame_states <= RETRY_NOFRAME;
+          end else begin
+            retry_req_rcvd <= 'h0;
+            retry_ack_rcvd <= 'h0;
+            retry_frame_states <= RETRY_NOFRAME;
+          end
+        end
+        default: begin
+            retry_frame_states <= 'hX;
+        end
+        endcase
+      end
+    end
+  end
+
+endmodule
+
+module device_rx_path #(
+
+)(
+  cxl_dev_rx_dl_if.rx_mp dev_rx_dl_if,
+  output logic retry_ack_snt,
+  output logic retry_req_snt,
+  output logic phy_link_rst,
+  input logic phy_rst,
+  input logic phy_reinit,
+  input logic phy_link_up
+);
+
+  typedef enum {
+    RETRY_NOFRAME,
+    RETRY_FRAME1,
+    RETRY_FRAME2,
+    RETRY_FRAME3,
+    RETRY_FRAME4,
+    RETRY_FRAME5
+  } retry_frame_states_t;
+  retry_frame_states_t retry_frame_states;
+  logic crc_pass;
+  logic crc_fail;
+  logic retryable_flit;
+  logic non_retryable_flit;
+  logic retry_req_rcvd;
+  logic retry_req_snt;
+  logic [7:0] retry_ack_num_retry;
+  logic retry_ack_empty_bit;
+  logic retry_ack_rcvd;
+  logic retry_ack_snt;
+  cxl_dev_rx_dl_if.rx_mp dev_rx_dl_if_d;//assuming crc checker takes 1 cycle to tell crc pass or fail
+  logic retry_frame_detect;
+  logic retry_req_detect;
+  logic retry_ack_detect;
+  logic retry_idle_detect;
+
+  cxl_lrsm_rrsm cxl_lrsm_rrsm_inst#(
+
+  )(
+    .clk(dev_rx_dl_if.clk),
+    .rstn(dev_rx_dl_if.rstn),
+    .*
+  );
+
+  crc_checker c2c_checker_inst#(
+
+  )(
+    .*
+  );
+
+  assign retry_frame_detect = (dev_rx_dl_if_d.data[39:36] == 'h3) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retry_idle_detect = (dev_rx_dl_if_d.data[39:36] == 'h0) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retry_req_detect = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retry_ack_detect = (dev_rx_dl_if_d.data[39:36] == 'h2) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
+  assign non_retryable_flit = (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
+  //TODO: serious mistake I am assuming only one side of the link can have error at a time
+  
+  always@(posedge dev_rx_dl_if.clk) begin
+    if(!dev_rx_dl_if.rstn) begin
+      dev_rx_dl_if_d.valid <= 'h0;
+      dev_rx_dl_if_d.data <= 'h0;
+    end else begin
+      dev_rx_dl_if_d.valid <= dev_rx_dl_if.valid;
+      dev_rx_dl_if_d.data <= dev_rx_dl_if.data;
+      if(dev_rx_dl_if_d.valid) begin
+        case(retry_frame_states) 
+        RETRY_NOFRAME: begin
+          retry_req_rcvd <= 'h0;
+          retry_ack_rcvd <= 'h0;
+          if(retry_frame_detect) begin  
+            retry_frame_states <= RETRY_FRAME0;
+          end else begin
+            retry_frame_states <= RETRY_NOFRAME;
+          end
+        end
+        RETRY_FRAME1: begin
+          if(retry_frame_detect) begin  
+            retry_frame_states <= RETRY_FRAME1;
+          end else begin
+            retry_frame_states <= RETRY_NOFRAME;
+          end
+        end
+        RETRY_FRAME2: begin
+          if(retry_frame_detect) begin  
+            retry_frame_states <= RETRY_FRAME2;
+          end else begin
+            retry_frame_states <= RETRY_NOFRAME;
+          end
+        end
+        RETRY_FRAME3: begin
+          if(retry_frame_detect) begin  
+            retry_frame_states <= RETRY_FRAME3;
+          end else begin
+            retry_frame_states <= RETRY_NOFRAME;
+          end
+        end
+        RETRY_FRAME4: begin
+          if(retry_frame_detect) begin  
+            retry_frame_states <= RETRY_FRAME4;
+          end else begin
+            retry_frame_states <= RETRY_NOFRAME;
+          end
+        end
+        RETRY_FRAME5: begin
+          if(retry_frame_detect) begin  
+            retry_frame_states <= RETRY_FRAME5;
+          end else if(retry_req_detect) begin
+            retry_frame_states <= RETRY_NOFRAME;
+            retry_req_rcvd <= 'h1;
+            retry_frame_states <= RETRY_NOFRAME;
+          end else if(retry_ack_detect) begin
+            retry_ack_rcvd <= 'h1;
+            retry_ack_empty_bit <= dev_rx_dl_if_d.data[64];
+            retry_ack_num_retry <= dev_rx_dl_if_d.data[71:67];
+            retry_frame_states <= RETRY_NOFRAME;
+          end else begin
+            retry_req_rcvd <= 'h0;
+            retry_ack_rcvd <= 'h0;
+            retry_frame_states <= RETRY_NOFRAME;
+          end
+        end
+        default: begin
+            retry_frame_states <= 'hX;
+        end
+        endcase
+      end
+    end
+  end
+
+endmodule
+
+module replay_buffer#(
+  parameter REPLAY_BUFFER_SIZE = 256,
+  parameter REPLAY_BUFFER_WIDTH = 512
+)(
+  cxl_host_tx_dl_if.mon replay_inbuff_if,
+  cxl_host_tx_dl_if.tx_mp replay_outbuff_if,
+  input logic ack,
+  input logic nack,
+  input logic fullack
+  output logic replay_buff_overflow,
+  output logic replay_buff_undrflow,
+  output logic [$clog2(REPLAY_BUFFER_SIZE)-1:0] numfreebuf
+);
+  localparam REPLAY_BUFF_IDX_WIDTH = $clog2(REPLAY_BUFFER_SIZE);
+  typedef struct{
+    logic valid;
+    logic [REPLAY_BUFFER_WIDTH-1:0] data;
+  } replay_buff_t;
+  replay_buff_t replay_buff[REPLAY_BUFFER_SIZE];  
+  logic [REPLAY_BUFFER_IDX_WIDTH:0] replay_wrptr;
+  logic [REPLAY_BUFFER_IDX_WIDTH:0] replay_rdptr;
+  logic [REPLAY_BUFFER_IDX_WIDTH-1:0] replay_cnt;  
+
+  always@(replay_inbuff_if.clk) begin
+    if(!replay_inbuff_if.rstn) begin
+      replay_outbuff_if.valid <= 'h0;
+      replay_outbuff_if.data  <= 'h0;
+      replay_wrptr            <= 'h0;
+      replay_rdptr            <= 'h0;
+    end else begin
+      if(replay_inbuff_if.valid) begin
+        replay_buff[replay_wrptr].valid   <= replay_inbuff_if.valid;
+        replay_buff[replay_wrptr].data    <= replay_inbuff_if.data;
+        replay_wrptr                      <= replay_wrptr + 1;
+      end 
+      if(ack) begin
+        replay_buff[replay_rdptr].valid   <= 'h0;
+        replay_buff[replay_rdptr+1].valid <= 'h0;
+        replay_buff[replay_rdptr+2].valid <= 'h0;
+        replay_buff[replay_rdptr+3].valid <= 'h0;
+        replay_buff[replay_rdptr+4].valid <= 'h0;
+        replay_buff[replay_rdptr+5].valid <= 'h0;
+        replay_buff[replay_rdptr+6].valid <= 'h0;
+        replay_buff[replay_rdptr+7].valid <= 'h0;
+        replay_rdptr                      <= replay_rdptr + 8;
+      end
+      if(replay_wrptr == replay_rdptr) begin
+        replay_buff_empty <='h1;
+      end else begin
+        replay_buff_empty <='h0;
+      end
+      if((replay_wrptr[REPLAY_BUFF_IDX_WIDTH] != replay_rdptr[REPLAY_BUFF_IDX_WIDTH]) && (replay_wrptr[REPLAY_BUFF_IDX_WIDTH-1:0] == replay_rdptr[REPLAY_BUFF_IDX_WIDTH-1:0])) begin
+        replay_buff_full <= 'h1;
+      end else begin
+        replay_buff_full <= 'h0;
+      end
+      if(nack) begin
+
+      end
+      if(replay_buff_empty && (!($stable(replay_rdptr)))) begin
+        replay_buff_undrflow <= 'h1;
+      end else begin
+        replay_buff_undrflow <= 'h0;
+      end
+      if(replay_buff_empty && (!($stable(replay_rdptr)))) begin
+        replay_buff_overflow <= 'h1;
+      end else begin
+        replay_buff_overflow <= 'h0;
+      end
+    end
+  end
+
+  assign numfreebuf = replay_wrptr - replay_rdptr;
+
+endmodule
+
 module buffer#(
   parameter DEPTH = 256,
   parameter ADDR_WIDTH = $clog2(DEPTH),
@@ -2673,6 +3308,7 @@ module cxl_host
   m2s_rwd_txn_t m2s_rwd_dataout;
   m2s_rwd_txn_t m2s_rwd_ddataout;
   m2s_rwd_txn_t m2s_rwd_qdataout;
+
 
   buffer d2h_req_fifo_inst#(
     DEPTH = 32,
@@ -2905,6 +3541,18 @@ module cxl_host
   );
 
   host_tx_path host_tx_path_inst#(
+
+  )(
+    .*
+  );
+
+  host_rx_path host_rx_path_inst#(
+
+  )(
+    .*
+  );
+
+  replay_buffer replay_buffer_inst#(
 
   )(
     .*
@@ -3216,7 +3864,19 @@ module cxl_device
   	.occupancy
   );
 
-  device_tx_path device_tx_path#(
+  device_tx_path device_tx_path_inst#(
+
+  )(
+    .*
+  );
+
+  device_rx_path device_rx_path_inst#(
+
+  )(
+    .*
+  );
+
+  replay_buffer replay_buffer_inst#(
 
   )(
     .*
