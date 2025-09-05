@@ -133,6 +133,11 @@ typedef struct {
   logic [GEET_CXL_DATA_WIDTH-1:0] data;
 } d2h_data_txn_t;
 
+typedef struct{
+  logic [3:0] pending_data_slot;
+  d2h_data_txn_t d2h_data_txn;
+} d2h_data_pkt_t;
+
 typedef struct {
   logic valid;
   h2d_req_opcode_t opcode;
@@ -156,6 +161,11 @@ typedef struct {
   logic goerr;
   logic [GEET_CXL_DATA_WIDTH-1:0] data;
 } h2d_data_txn_t;
+
+typedef struct{
+  logic [3:0] pending_data_slot;
+  h2d_data_txn_t h2d_data_txn;
+} h2d_data_pkt_t;
 
 typedef struct {
   logic valid;
@@ -181,6 +191,11 @@ typedef struct {
   logic [GEET_CXL_DATA_WIDTH-1:0] data;
 } m2s_rwd_txn_t;
 
+typedef struct{
+  logic [3:0] pending_data_slot;
+  m2s_rwd_txn_t m2s_rwd_txn;
+} m2s_rwd_pkt_t;
+
 typedef struct {
   logic valid;
   s2m_ndr_opcode_t opcode;
@@ -198,6 +213,11 @@ typedef struct {
   logic poison;
   logic [GEET_CXL_DATA_WIDTH-1:0] data;
 } s2m_drs_txn_t;
+
+typedef struct{
+  logic [3:0] pending_data_slot;
+  s2m_drs_txn_t s2m_drs_txn;
+} s2m_drs_pkt_t;
 
 endpackage
 
@@ -813,7 +833,7 @@ module host_tx_path#(
             slot_sel <= 'hX;
         end 
       endcase
-      
+     //TODO: bug/major flaw in packing logic after data slot ends in slot0/1/2 then slots123/23/3 should not be packed currently you are just sending available pkts into these slots without header slot entry so receiver cannot decode these generic slots  
       if(!($stable(slot_sel))) begin
         case(slot_sel_d)
           H_SLOT0: begin
@@ -2694,6 +2714,11 @@ module host_rx_path #(
   input logic phy_rst,
   input logic phy_reinit,
   input logic phy_link_up
+  output d2h_req_txn_t d2h_req_pkt,
+  output d2h_rsp_txn_t d2h_rsp_pkt,
+  output d2h_data_pkt_t d2h_data_pkt,
+  output s2m_ndr_txn_t s2m_ndr_pkt,
+  output s2m_drs_pkt_t s2m_drs_pkt
 );
 
   typedef enum {
@@ -2720,128 +2745,709 @@ module host_rx_path #(
   logic retry_req_detect;
   logic retry_ack_detect;
   logic retry_idle_detect;
+  logic data_slot[4];
+  logic data_slot_d[4];
 
   function void header0(
-    input logic [127:0] data, 
-    output d2h_data_txn_t d2h_data_txn, 
+    input logic [511:0] data, 
+    output d2h_data_pkt_t d2h_data_pkt, 
     output d2h_rsp_txn_t d2h_rsp_txn[2], 
     output s2m_ndr_txn_t s2m_ndr_txn
   );
 
-    
+    d2h_data_pkt.pending_data_slot          = 'hf;
+    d2h_data_pkt.d2h_data_txn.valid         = data[32];
+    d2h_data_pkt.d2h_data_txn.uqid          = data[44:33];
+    d2h_data_pkt.d2h_data_txn.chunkvalid    = data[45];
+    d2h_data_pkt.d2h_data_txn.bogus         = data[46];
+    d2h_data_pkt.d2h_data_txn.poison        = data[47];
+    d2h_rsp_txn[0].valid                    = data[49];
+    d2h_rsp_txn[0].opcode                   = data[54:50];
+    d2h_rsp_txn[0].uqid                     = data[66:55];
+    d2h_rsp_txn[1].valid                    = data[69];
+    d2h_rsp_txn[1].opcode                   = data[74:70];
+    d2h_rsp_txn[1].uqid                     = data[86:75];
+    s2m_ndr_txn.valid                       = data[89];
+    s2m_ndr_txn.memopcode                   = data[92:90];
+    s2m_ndr_txn.metafield                   = data[94:93];
+    s2m_ndr_txn.metavalue                   = data[96:95];
+    s2m_ndr_txn.tag                         = data[112:97];
 
   endfunction
 
   function void header1(
-    input logic [127:0] data, 
+    input logic [511:0] data, 
     output d2h_req_txn_t d2h_req_txn, 
-    output d2h_data_txn_t d2h_data_txn
+    output d2h_data_pkt_t d2h_data_pkt
   );
 
-    
+    d2h_req_txn.valid                     = data[32];
+    d2h_req_txn.opcode                    = data[37:33];
+    d2h_req_txn.cqid                      = data[49:38];
+    d2h_req_txn.nt                        = data[50];
+    d2h_req_txn.address                   = data[103:58];
+    d2h_data_pkt.pending_data_slot        = 'hf;
+    d2h_data_pkt.d2h_data_txn.valid       = data[111];
+    d2h_data_pkt.d2h_data_txn.uqid        = data[123:112];
+    d2h_data_pkt.d2h_data_txn.chunkvalid  = data[124];
+    d2h_data_pkt.d2h_data_txn.bogus       = data[125];
+    d2h_data_pkt.d2h_data_txn.poison      = data[126];
 
   endfunction
 
   function void header2(
-    input logic [127:0] data, 
-    output d2h_data_txn_t d2h_data_txn[4], 
+    input logic [511:0] data, 
+    output d2h_data_pkt_t d2h_data_pkt[4], 
     output d2h_rsp_txn_t d2h_rsp_txn
   );
 
-    
+    d2h_data_pkt[0].pending_data_slot        = 'hf;
+    d2h_data_pkt[0].d2h_data_txn.valid       = data[32];
+    d2h_data_pkt[0].d2h_data_txn.uqid        = data[44:33];
+    d2h_data_pkt[0].d2h_data_txn.chunkvalid  = data[45];
+    d2h_data_pkt[0].d2h_data_txn.bogus       = data[46];
+    d2h_data_pkt[0].d2h_data_txn.poison      = data[47];
+    d2h_data_pkt[1].pending_data_slot        = 'hf
+    d2h_data_pkt[1].d2h_data_txn.valid       = data[49];
+    d2h_data_pkt[1].d2h_data_txn.uqid        = data[61:50];
+    d2h_data_pkt[1].d2h_data_txn.chunkvalid  = data[62];
+    d2h_data_pkt[1].d2h_data_txn.bogus       = data[63];
+    d2h_data_pkt[1].d2h_data_txn.poison      = data[64];
+    d2h_data_pkt[2].pending_data_slot        = 'hf
+    d2h_data_pkt[2].d2h_data_txn.valid       = data[66];
+    d2h_data_pkt[2].d2h_data_txn.uqid        = data[78:67];
+    d2h_data_pkt[2].d2h_data_txn.chunkvalid  = data[79];
+    d2h_data_pkt[2].d2h_data_txn.bogus       = data[80];
+    d2h_data_pkt[2].d2h_data_txn.poison      = data[81];
+    d2h_data_pkt[3].pending_data_slot        = 'hf
+    d2h_data_pkt[3].d2h_data_txn.valid       = data[83];
+    d2h_data_pkt[3].d2h_data_txn.uqid        = data[95:84];
+    d2h_data_pkt[3].d2h_data_txn.chunkvalid  = data[96];
+    d2h_data_pkt[3].d2h_data_txn.bogus       = data[97];
+    d2h_data_pkt[3].d2h_data_txn.poison      = data[98];
+    d2h_rsp_txn.valid                        = data[100];
+    d2h_rsp_txn.opcode                       = data[105:101];
+    d2h_rsp_txn.uqid                         = data[117:106];
 
   endfunction
 
   function void header3(
-    input logic [127:0] data, 
-    output s2m_drs_txn_t s2m_drs_txn, 
+    input logic [511:0] data, 
+    output s2m_drs_pkt_t s2m_drs_pkt, 
     output s2m_ndr_txn_t s2m_ndr_txn
   );
 
-    
+    s2m_drs_pkt.pending_data_slot        = 'hf;
+    s2m_drs_pkt.s2m_drs_txn.valid        = data[32];
+    s2m_drs_pkt.s2m_drs_txn.memopcode    = data[35:33];
+    s2m_drs_pkt.s2m_drs_txn.metafield    = data[37:36];
+    s2m_drs_pkt.s2m_drs_txn.metavalue    = data[39:38];
+    s2m_drs_pkt.s2m_drs_txn.tag          = data[55:40];
+    s2m_drs_pkt.s2m_drs_txn.poison       = data[56];
+    s2m_ndr_txn.valid                    = data[72];
+    s2m_ndr_txn.memopcode                = data[75:73];
+    s2m_ndr_txn.metafield                = data[77:76];
+    s2m_ndr_txn.metavalue                = data[79:78];
+    s2m_ndr_txn.tag                      = data[95:80];
 
   endfunction
 
   function void header4(
-    input logic [127:0] data, 
+    input logic [511:0] data, 
     output s2m_ndr_txn_t s2m_ndr_txn[2]
   );
 
-    
+    s2m_ndr_txn[0].valid        = data[32];
+    s2m_ndr_txn[0].memopcode    = data[35:33];
+    s2m_ndr_txn[0].metafield    = data[37:36];
+    s2m_ndr_txn[0].metavalue    = data[39:38];
+    s2m_ndr_txn[0].tag          = data[55:40];
+    s2m_ndr_txn[1].valid        = data[60];
+    s2m_ndr_txn[1].memopcode    = data[63:61];
+    s2m_ndr_txn[1].metafield    = data[65:64];
+    s2m_ndr_txn[1].metavalue    = data[67:66];
+    s2m_ndr_txn[1].tag          = data[83:68];
 
   endfunction
 
   function void header5(
-    input logic [127:0] data, 
-    output s2m_drs_txn_t s2m_drs_txn[2]
+    input logic [511:0] data, 
+    output s2m_drs_pkt_t s2m_drs_pkt[2]
   );
 
-    s2m_drs_dataout[0].valid       = holding_q.data[32];
-    s2m_drs_dataout[0].memopcode   = holding_q.data[35:33];
-    s2m_drs_dataout[0].metafield   = holding_q.data[37:36];
-    s2m_drs_dataout[0].metavalue   = holding_q.data[39:38];
-    s2m_drs_dataout[0].tag         = holding_q.data[55:40];
-    s2m_drs_dataout[0].poison      = holding_q.data[56];
-    s2m_drs_dataout[1].valid       = holding_q.data[72];
-    s2m_drs_dataout[1].memopcode   = holding_q.data[75:73];
-    s2m_drs_dataout[1].metafield   = holding_q.data[77:76];
-    s2m_drs_dataout[1].metavalue   = holding_q.data[79:78];
-    s2m_drs_dataout[1].tag         = holding_q.data[95:80];
-    s2m_drs_dataout[1].poison      = holding_q.data[96];
+    s2m_drs_pkt[0].pending_data_slot        = 'hf;
+    s2m_drs_pkt[0].s2m_drs_txn.valid        = data[32];
+    s2m_drs_pkt[0].s2m_drs_txn.memopcode    = data[35:33];
+    s2m_drs_pkt[0].s2m_drs_txn.metafield    = data[37:36];
+    s2m_drs_pkt[0].s2m_drs_txn.metavalue    = data[39:38];
+    s2m_drs_pkt[0].s2m_drs_txn.tag          = data[55:40];
+    s2m_drs_pkt[0].s2m_drs_txn.poison       = data[56];
+    s2m_drs_pkt[1].pending_data_slot        = 'hf;
+    s2m_drs_pkt[1].s2m_drs_txn.valid        = data[72];
+    s2m_drs_pkt[1].s2m_drs_txn.memopcode    = data[75:73];
+    s2m_drs_pkt[1].s2m_drs_txn.metafield    = data[77:76];
+    s2m_drs_pkt[1].s2m_drs_txn.metavalue    = data[79:78];
+    s2m_drs_pkt[1].s2m_drs_txn.tag          = data[95:80];
+    s2m_drs_pkt[1].s2m_drs_txn.poison       = data[96];
 
   endfunction
 
+  function void generic0(
+    input logic [511:0] data,
+    input logic [3:0] slot_data,
+    inout d2h_req_pkt_t d2h_data_txn[4],
+    inout s2m_drs_pkt_t s2m_drs_txn[4]
+  );
+    
+  endfunction
+  
   function void generic1(
-    input logic [127:0] data,
+    input logic [1:0] slot_sel,
+    input logic [511:0] data,
     output d2h_req_txn_t d2h_req_txn,
     output d2h_rsp_txn_t d2h_rsp_txn[2]
   );
 
+    if(slot_sel == 'h1) begin
+      d2h_req_txn.valid        = data[(SLOT1_OFFSET+0)];
+      d2h_req_txn.opcode       = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)];
+      d2h_req_txn.cqid         = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
+      d2h_req_txn.nt           = data[(SLOT1_OFFSET+18)];
+      d2h_req_txn.address      = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
+      d2h_rsp_txn[0].valid        = data[(SLOT1_OFFSET+79)];
+      d2h_rsp_txn[0].opcode       = data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+80)];
+      d2h_rsp_txn[0].uqid         = data[(SLOT1_OFFSET+96):(SLOT1_OFFSET+85)];
+      d2h_rsp_txn[1].valid        = data[(SLOT1_OFFSET+99)];
+      d2h_rsp_txn[1].opcode       = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+100)];
+      d2h_rsp_txn[1].uqid         = data[(SLOT1_OFFSET+116):(SLOT1_OFFSET+105)];
+    end else if(slot_sel == 'h2) begin
+      d2h_req_txn.valid        = data[(SLOT2_OFFSET+0)];
+      d2h_req_txn.opcode       = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)];
+      d2h_req_txn.cqid         = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
+      d2h_req_txn.nt           = data[(SLOT2_OFFSET+18)];
+      d2h_req_txn.address      = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
+      d2h_rsp_txn[0].valid        = data[(SLOT2_OFFSET+79)];
+      d2h_rsp_txn[0].opcode       = data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+80)];
+      d2h_rsp_txn[0].uqid         = data[(SLOT2_OFFSET+96):(SLOT2_OFFSET+85)];
+      d2h_rsp_txn[1].valid        = data[(SLOT2_OFFSET+99)];
+      d2h_rsp_txn[1].opcode       = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+100)];
+      d2h_rsp_txn[1].uqid         = data[(SLOT2_OFFSET+116):(SLOT2_OFFSET+105)];
+    end else if(slot_sel == 'h3) begin
+      d2h_req_txn.valid        = data[(SLOT3_OFFSET+0)];
+      d2h_req_txn.opcode       = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)];
+      d2h_req_txn.cqid         = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
+      d2h_req_txn.nt           = data[(SLOT3_OFFSET+18)];
+      d2h_req_txn.address      = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
+      d2h_rsp_txn[0].valid        = data[(SLOT3_OFFSET+79)];
+      d2h_rsp_txn[0].opcode       = data[(SLOT3_OFFSET+84):(SLOT3_OFFSET+80)];
+      d2h_rsp_txn[0].uqid         = data[(SLOT3_OFFSET+96):(SLOT3_OFFSET+85)];
+      d2h_rsp_txn[1].valid        = data[(SLOT3_OFFSET+99)];
+      d2h_rsp_txn[1].opcode       = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+100)];
+      d2h_rsp_txn[1].uqid         = data[(SLOT3_OFFSET+116):(SLOT3_OFFSET+105)];
+    end else begin
+      d2h_req_txn.valid = 'hX;
+      d2h_rsp_txn[0].valid = 'hX;
+      d2h_rsp_txn[1].valid = 'hX;
+    end
+
   endfunction
 
   function void generic2(
-    input logic [127:0] data,
+    input logic [1:0] slot_sel,
+    input logic [511:0] data,
     output d2h_req_txn_t d2h_req_txn,
-    output d2h_data_txn_t d2h_data_txn,
+    output d2h_data_pkt_t d2h_data_pkt,
     output d2h_rsp_txn_t d2h_rsp_txn
   );
+
+    if(slot_sel == 'h1) begin
+      d2h_req_txn.valid                    = data[(SLOT1_OFFSET+0)];
+      d2h_req_txn.opcode                   = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)];
+      d2h_req_txn.cqid                     = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
+      d2h_req_txn.nt                       = data[(SLOT1_OFFSET+18)];
+      d2h_req_txn.address                  = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
+      d2h_data_pkt.pending_data_slot       = 'hf;
+      d2h_data_pkt.d2h_data_txn.valid      = data[(SLOT1_OFFSET+79)];
+      d2h_data_pkt.d2h_data_txn.uqid       = data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+80)];
+      d2h_data_pkt.d2h_data_txn.chunkvalid = data[(SLOT1_OFFSET+92)];
+      d2h_data_pkt.d2h_data_txn.bogus      = data[(SLOT1_OFFSET+93)];
+      d2h_data_pkt.d2h_data_txn.poison     = data[(SLOT1_OFFSET+94)];
+      d2h_rsp_txn.valid                    = data[(SLOT1_OFFSET+96)];
+      d2h_rsp_txn.opcode                   = data[(SLOT1_OFFSET+101):(SLOT1_OFFSET+97)];
+      d2h_rsp_txn.uqid                     = data[(SLOT1_OFFSET+113):(SLOT1_OFFSET+102)];
+    end else if(slot_sel == 'h2) begin
+      d2h_req_txn.valid                    = data[(SLOT2_OFFSET+0)];
+      d2h_req_txn.opcode                   = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)];
+      d2h_req_txn.cqid                     = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
+      d2h_req_txn.nt                       = data[(SLOT2_OFFSET+18)];
+      d2h_req_txn.address                  = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
+      d2h_data_pkt.pending_data_slot       = 'hf;
+      d2h_data_pkt.d2h_data_txn.valid      = data[(SLOT2_OFFSET+79)];
+      d2h_data_pkt.d2h_data_txn.uqid       = data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+80)];
+      d2h_data_pkt.d2h_data_txn.chunkvalid = data[(SLOT2_OFFSET+92)];
+      d2h_data_pkt.d2h_data_txn.bogus      = data[(SLOT2_OFFSET+93)];
+      d2h_data_pkt.d2h_data_txn.poison     = data[(SLOT2_OFFSET+94)];
+      d2h_rsp_txn.valid                    = data[(SLOT2_OFFSET+96)];
+      d2h_rsp_txn.opcode                   = data[(SLOT2_OFFSET+101):(SLOT2_OFFSET+97)];
+      d2h_rsp_txn.uqid                     = data[(SLOT2_OFFSET+113):(SLOT2_OFFSET+102)];
+    end else if(slot_sel == 'h3) begin
+      d2h_req_txn.valid                    = data[(SLOT3_OFFSET+0)];
+      d2h_req_txn.opcode                   = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)];
+      d2h_req_txn.cqid                     = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
+      d2h_req_txn.nt                       = data[(SLOT3_OFFSET+18)];
+      d2h_req_txn.address                  = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
+      d2h_data_pkt.pending_data_slot       = 'hf;
+      d2h_data_pkt.d2h_data_txn.valid      = data[(SLOT3_OFFSET+79)];
+      d2h_data_pkt.d2h_data_txn.uqid       = data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+80)];
+      d2h_data_pkt.d2h_data_txn.chunkvalid = data[(SLOT3_OFFSET+92)];
+      d2h_data_pkt.d2h_data_txn.bogus      = data[(SLOT3_OFFSET+93)];
+      d2h_data_pkt.d2h_data_txn.poison     = data[(SLOT3_OFFSET+94)];
+      d2h_rsp_txn.valid                    = data[(SLOT3_OFFSET+96)];
+      d2h_rsp_txn.opcode                   = data[(SLOT3_OFFSET+101):(SLOT3_OFFSET+97)];
+      d2h_rsp_txn.uqid                     = data[(SLOT3_OFFSET+113):(SLOT3_OFFSET+102)];
+    end else begin
+      d2h_req_txn.valid = 'hX;
+      d2h_data_pkt.d2h_data_txn.valid = 'hX;
+      d2h_rsp_txn.valid = 'hX;
+    end
 
   endfunction
 
   function void generic3(
-    input logic [127:0] data,
-    output d2h_data_txn_t d2h_data_txn[4]
+    input logic [1:0] slot_sel,
+    input logic [511:0] data,
+    output d2h_data_pkt_t d2h_data_pkt[4]
   );
+
+    if(slot_sel == 'h1) begin      
+      d2h_data_pkt[0].pending_data_slot         = 'hf;
+      d2h_data_pkt[0].d2h_data_txn.valid        = data[(SLOT1_OFFSET+0)];
+      d2h_data_pkt[0].d2h_data_txn.uqid         = data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)];
+      d2h_data_pkt[0].d2h_data_txn.chunkvalid   = data[(SLOT1_OFFSET+13)];
+      d2h_data_pkt[0].d2h_data_txn.bogus        = data[(SLOT1_OFFSET+14)];
+      d2h_data_pkt[0].d2h_data_txn.poison       = data[(SLOT1_OFFSET+15)];
+      d2h_data_pkt[1].pending_data_slot         = 'hf;
+      d2h_data_pkt[1].d2h_data_txn.valid        = data[(SLOT1_OFFSET+17)];
+      d2h_data_pkt[1].d2h_data_txn.uqid         = data[(SLOT1_OFFSET+29):(SLOT1_OFFSET+18)];
+      d2h_data_pkt[1].d2h_data_txn.chunkvalid   = data[(SLOT1_OFFSET+30)];
+      d2h_data_pkt[1].d2h_data_txn.bogus        = data[(SLOT1_OFFSET+31)];
+      d2h_data_pkt[1].d2h_data_txn.poison       = data[(SLOT1_OFFSET+32)];
+      d2h_data_pkt[2].pending_data_slot         = 'hf;
+      d2h_data_pkt[2].d2h_data_txn.valid        = data[(SLOT1_OFFSET+34)];
+      d2h_data_pkt[2].d2h_data_txn.uqid         = data[(SLOT1_OFFSET+46):(SLOT1_OFFSET+35)];
+      d2h_data_pkt[2].d2h_data_txn.chunkvalid   = data[(SLOT1_OFFSET+47)];
+      d2h_data_pkt[2].d2h_data_txn.bogus        = data[(SLOT1_OFFSET+48)];
+      d2h_data_pkt[2].d2h_data_txn.poison       = data[(SLOT1_OFFSET+49)];
+      d2h_data_pkt[3].pending_data_slot         = 'hf;
+      d2h_data_pkt[3].d2h_data_txn.valid        = data[(SLOT1_OFFSET+51)];
+      d2h_data_pkt[3].d2h_data_txn.uqid         = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+52)];
+      d2h_data_pkt[3].d2h_data_txn.chunkvalid   = data[(SLOT1_OFFSET+64)];
+      d2h_data_pkt[3].d2h_data_txn.bogus        = data[(SLOT1_OFFSET+65)];
+      d2h_data_pkt[3].d2h_data_txn.poison       = data[(SLOT1_OFFSET+66)];
+    end else if(slot_sel == 'h2) begin
+      d2h_data_pkt[0].pending_data_slot         = 'hf;
+      d2h_data_pkt[0].d2h_data_txn.valid        = data[(SLOT2_OFFSET+0)];
+      d2h_data_pkt[0].d2h_data_txn.uqid         = data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)];
+      d2h_data_pkt[0].d2h_data_txn.chunkvalid   = data[(SLOT2_OFFSET+13)];
+      d2h_data_pkt[0].d2h_data_txn.bogus        = data[(SLOT2_OFFSET+14)];
+      d2h_data_pkt[0].d2h_data_txn.poison       = data[(SLOT2_OFFSET+15)];
+      d2h_data_pkt[1].pending_data_slot         = 'hf;
+      d2h_data_pkt[1].d2h_data_txn.valid        = data[(SLOT2_OFFSET+17)];
+      d2h_data_pkt[1].d2h_data_txn.uqid         = data[(SLOT2_OFFSET+29):(SLOT2_OFFSET+18)];
+      d2h_data_pkt[1].d2h_data_txn.chunkvalid   = data[(SLOT2_OFFSET+30)];
+      d2h_data_pkt[1].d2h_data_txn.bogus        = data[(SLOT2_OFFSET+31)];
+      d2h_data_pkt[1].d2h_data_txn.poison       = data[(SLOT2_OFFSET+32)];
+      d2h_data_pkt[2].pending_data_slot         = 'hf;
+      d2h_data_pkt[2].d2h_data_txn.valid        = data[(SLOT2_OFFSET+34)];
+      d2h_data_pkt[2].d2h_data_txn.uqid         = data[(SLOT2_OFFSET+46):(SLOT2_OFFSET+35)];
+      d2h_data_pkt[2].d2h_data_txn.chunkvalid   = data[(SLOT2_OFFSET+47)];
+      d2h_data_pkt[2].d2h_data_txn.bogus        = data[(SLOT2_OFFSET+48)];
+      d2h_data_pkt[2].d2h_data_txn.poison       = data[(SLOT2_OFFSET+49)];
+      d2h_data_pkt[3].pending_data_slot         = 'hf;
+      d2h_data_pkt[3].d2h_data_txn.valid        = data[(SLOT2_OFFSET+51)];
+      d2h_data_pkt[3].d2h_data_txn.uqid         = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+52)];
+      d2h_data_pkt[3].d2h_data_txn.chunkvalid   = data[(SLOT2_OFFSET+64)];
+      d2h_data_pkt[3].d2h_data_txn.bogus        = data[(SLOT2_OFFSET+65)];
+      d2h_data_pkt[3].d2h_data_txn.poison       = data[(SLOT2_OFFSET+66)];
+    end else if(slot_sel == 'h3) begin
+      d2h_data_pkt[0].pending_data_slot         = 'hf;
+      d2h_data_pkt[0].d2h_data_txn.valid        = data[(SLOT3_OFFSET+0)];
+      d2h_data_pkt[0].d2h_data_txn.uqid         = data[(SLOT3_OFFSET+12):(SLOT3_OFFSET+1)];
+      d2h_data_pkt[0].d2h_data_txn.chunkvalid   = data[(SLOT3_OFFSET+13)];
+      d2h_data_pkt[0].d2h_data_txn.bogus        = data[(SLOT3_OFFSET+14)];
+      d2h_data_pkt[0].d2h_data_txn.poison       = data[(SLOT3_OFFSET+15)];
+      d2h_data_pkt[1].pending_data_slot         = 'hf;
+      d2h_data_pkt[1].d2h_data_txn.valid        = data[(SLOT3_OFFSET+17)];
+      d2h_data_pkt[1].d2h_data_txn.uqid         = data[(SLOT3_OFFSET+29):(SLOT3_OFFSET+18)];
+      d2h_data_pkt[1].d2h_data_txn.chunkvalid   = data[(SLOT3_OFFSET+30)];
+      d2h_data_pkt[1].d2h_data_txn.bogus        = data[(SLOT3_OFFSET+31)];
+      d2h_data_pkt[1].d2h_data_txn.poison       = data[(SLOT3_OFFSET+32)];
+      d2h_data_pkt[2].pending_data_slot         = 'hf;
+      d2h_data_pkt[2].d2h_data_txn.valid        = data[(SLOT3_OFFSET+34)];
+      d2h_data_pkt[2].d2h_data_txn.uqid         = data[(SLOT3_OFFSET+46):(SLOT3_OFFSET+35)];
+      d2h_data_pkt[2].d2h_data_txn.chunkvalid   = data[(SLOT3_OFFSET+47)];
+      d2h_data_pkt[2].d2h_data_txn.bogus        = data[(SLOT3_OFFSET+48)];
+      d2h_data_pkt[2].d2h_data_txn.poison       = data[(SLOT3_OFFSET+49)];
+      d2h_data_pkt[3].pending_data_slot         = 'hf;
+      d2h_data_pkt[3].d2h_data_txn.valid        = data[(SLOT3_OFFSET+51)];
+      d2h_data_pkt[3].d2h_data_txn.uqid         = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+52)];
+      d2h_data_pkt[3].d2h_data_txn.chunkvalid   = data[(SLOT3_OFFSET+64)];
+      d2h_data_pkt[3].d2h_data_txn.bogus        = data[(SLOT3_OFFSET+65)];
+      d2h_data_pkt[3].d2h_data_txn.poison       = data[(SLOT3_OFFSET+66)];
+    end else begin
+      d2h_data_pkt[0].d2h_data_txn.valid = 'hX;
+      d2h_data_pkt[1].d2h_data_txn.valid = 'hX;
+      d2h_data_pkt[2].d2h_data_txn.valid = 'hX;
+      d2h_data_pkt[3].d2h_data_txn.valid = 'hX;
+    end
 
   endfunction
 
   function void generic4(
-    input logic [127:0] data,
-    output s2m_drs_txn_t s2m_drs_txn,
+    input logic [1:0] slot_sel,
+    input logic [511:0] data,
+    output s2m_drs_pkt_t s2m_drs_pkt,
     output s2m_ndr_txn_t s2m_ndr_txn[2]
   );
+
+    if(slot_sel == 'h1) begin
+      s2m_drs_pkt.pending_data_slot     = 'hf;
+      s2m_drs_pkt.s2m_drs_txn.valid     = data[(SLOT1_OFFSET+0)];
+      s2m_drs_pkt.s2m_drs_txn.memopcode = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
+      s2m_drs_pkt.s2m_drs_txn.metafield = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)];
+      s2m_drs_pkt.s2m_drs_txn.metavalue = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)];
+      s2m_drs_pkt.s2m_drs_txn.tag       = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
+      s2m_drs_pkt.s2m_drs_txn.poison    = data[(SLOT1_OFFSET+24)];
+      s2m_ndr_txn[0].valid              = data[(SLOT1_OFFSET+40)];
+      s2m_ndr_txn[0].memopcode          = data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)];
+      s2m_ndr_txn[0].metafield          = data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)];
+      s2m_ndr_txn[0].metavalue          = data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)];
+      s2m_ndr_txn[0].tag                = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)];
+      s2m_ndr_txn[1].valid              = data[(SLOT1_OFFSET+68)];
+      s2m_ndr_txn[1].memopcode          = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+69)];
+      s2m_ndr_txn[1].metafield          = data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+72)];
+      s2m_ndr_txn[1].metavalue          = data[(SLOT1_OFFSET+75):(SLOT1_OFFSET+74)];
+      s2m_ndr_txn[1].tag                = data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+76)];
+    end else if(slot_sel == 'h2) begin
+      s2m_drs_pkt.pending_data_slot     = 'hf;
+      s2m_drs_pkt.s2m_drs_txn.valid     = data[(SLOT2_OFFSET+0)];
+      s2m_drs_pkt.s2m_drs_txn.memopcode = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
+      s2m_drs_pkt.s2m_drs_txn.metafield = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)];
+      s2m_drs_pkt.s2m_drs_txn.metavalue = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)];
+      s2m_drs_pkt.s2m_drs_txn.tag       = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
+      s2m_drs_pkt.s2m_drs_txn.poison    = data[(SLOT2_OFFSET+24)];
+      s2m_ndr_txn[0].valid              = data[(SLOT2_OFFSET+40)];
+      s2m_ndr_txn[0].memopcode          = data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)];
+      s2m_ndr_txn[0].metafield          = data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)];
+      s2m_ndr_txn[0].metavalue          = data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)];
+      s2m_ndr_txn[0].tag                = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)];
+      s2m_ndr_txn[1].valid              = data[(SLOT2_OFFSET+68)];
+      s2m_ndr_txn[1].memopcode          = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+69)];
+      s2m_ndr_txn[1].metafield          = data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+72)];
+      s2m_ndr_txn[1].metavalue          = data[(SLOT2_OFFSET+75):(SLOT2_OFFSET+74)];
+      s2m_ndr_txn[1].tag                = data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+76)];
+    end else if(slot_sel == 'h3) begin
+      s2m_drs_pkt.pending_data_slot     = 'hf;
+      s2m_drs_pkt.s2m_drs_txn.valid     = data[(SLOT3_OFFSET+0)];
+      s2m_drs_pkt.s2m_drs_txn.memopcode = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
+      s2m_drs_pkt.s2m_drs_txn.metafield = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)];
+      s2m_drs_pkt.s2m_drs_txn.metavalue = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)];
+      s2m_drs_pkt.s2m_drs_txn.tag       = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
+      s2m_drs_pkt.s2m_drs_txn.poison    = data[(SLOT3_OFFSET+24)];
+      s2m_ndr_txn[0].valid              = data[(SLOT3_OFFSET+40)];
+      s2m_ndr_txn[0].memopcode          = data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)];
+      s2m_ndr_txn[0].metafield          = data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)];
+      s2m_ndr_txn[0].metavalue          = data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)];
+      s2m_ndr_txn[0].tag                = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)];
+      s2m_ndr_txn[1].valid              = data[(SLOT3_OFFSET+68)];
+      s2m_ndr_txn[1].memopcode          = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+69)];
+      s2m_ndr_txn[1].metafield          = data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+72)];
+      s2m_ndr_txn[1].metavalue          = data[(SLOT3_OFFSET+75):(SLOT3_OFFSET+74)];
+      s2m_ndr_txn[1].tag                = data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+76)];
+    end else begin
+      s2m_drs_pkt.s2m_drs_txn.valid = 'hX;
+      s2m_ndr_txn[0].valid = 'hX;
+      s2m_ndr_txn[1].valid = 'hX;
+    end
 
   endfunction
 
   function void generic5(
-    input logic [127:0] data,
+    input logic [1:0] slot_sel,
+    input logic [511:0] data,
     output s2m_ndr_txn_t s2m_ndr_txn[3]
   );
+
+    if(slot_sel == 'h1) begin
+      s2m_ndr_txn[0].valid        = data[(SLOT1_OFFSET+0)];
+      s2m_ndr_txn[0].memopcode    = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
+      s2m_ndr_txn[0].metafield    = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)];
+      s2m_ndr_txn[0].metavalue    = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)];
+      s2m_ndr_txn[0].tag          = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
+      s2m_ndr_txn[1].valid        = data[(SLOT1_OFFSET+28)];
+      s2m_ndr_txn[1].memopcode    = data[(SLOT1_OFFSET+31):(SLOT1_OFFSET+29)];
+      s2m_ndr_txn[1].metafield    = data[(SLOT1_OFFSET+33):(SLOT1_OFFSET+32)];
+      s2m_ndr_txn[1].metavalue    = data[(SLOT1_OFFSET+35):(SLOT1_OFFSET+34)];
+      s2m_ndr_txn[1].tag          = data[(SLOT1_OFFSET+51):(SLOT1_OFFSET+36)];
+      s2m_ndr_txn[2].valid        = data[(SLOT1_OFFSET+56)];
+      s2m_ndr_txn[2].memopcode    = data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)];
+      s2m_ndr_txn[2].metafield    = data[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)];
+      s2m_ndr_txn[2].metavalue    = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)];
+      s2m_ndr_txn[2].tag          = data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+64)];
+    end else if(slot_sel == 'h2) begin
+      s2m_ndr_txn[0].valid        = data[(SLOT2_OFFSET+0)];
+      s2m_ndr_txn[0].memopcode    = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
+      s2m_ndr_txn[0].metafield    = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)];
+      s2m_ndr_txn[0].metavalue    = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)];
+      s2m_ndr_txn[0].tag          = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
+      s2m_ndr_txn[1].valid        = data[(SLOT2_OFFSET+28)];
+      s2m_ndr_txn[1].memopcode    = data[(SLOT2_OFFSET+31):(SLOT2_OFFSET+29)];
+      s2m_ndr_txn[1].metafield    = data[(SLOT2_OFFSET+33):(SLOT2_OFFSET+32)];
+      s2m_ndr_txn[1].metavalue    = data[(SLOT2_OFFSET+35):(SLOT2_OFFSET+34)];
+      s2m_ndr_txn[1].tag          = data[(SLOT2_OFFSET+51):(SLOT2_OFFSET+36)];
+      s2m_ndr_txn[2].valid        = data[(SLOT2_OFFSET+56)];
+      s2m_ndr_txn[2].memopcode    = data[(SLOT2_OFFSET+59):(SLOT2_OFFSET+57)];
+      s2m_ndr_txn[2].metafield    = data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+60)];
+      s2m_ndr_txn[2].metavalue    = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)];
+      s2m_ndr_txn[2].tag          = data[(SLOT2_OFFSET+79):(SLOT2_OFFSET+64)];
+    end else if(slot_sel == 'h3) begin
+      s2m_ndr_txn[0].valid        = data[(SLOT3_OFFSET+0)];
+      s2m_ndr_txn[0].memopcode    = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
+      s2m_ndr_txn[0].metafield    = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)];
+      s2m_ndr_txn[0].metavalue    = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)];
+      s2m_ndr_txn[0].tag          = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
+      s2m_ndr_txn[1].valid        = data[(SLOT3_OFFSET+28)];
+      s2m_ndr_txn[1].memopcode    = data[(SLOT3_OFFSET+31):(SLOT3_OFFSET+29)];
+      s2m_ndr_txn[1].metafield    = data[(SLOT3_OFFSET+33):(SLOT3_OFFSET+32)];
+      s2m_ndr_txn[1].metavalue    = data[(SLOT3_OFFSET+35):(SLOT3_OFFSET+34)];
+      s2m_ndr_txn[1].tag          = data[(SLOT3_OFFSET+51):(SLOT3_OFFSET+36)];
+      s2m_ndr_txn[2].valid        = data[(SLOT3_OFFSET+56)];
+      s2m_ndr_txn[2].memopcode    = data[(SLOT3_OFFSET+59):(SLOT3_OFFSET+57)];
+      s2m_ndr_txn[2].metafield    = data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+60)];
+      s2m_ndr_txn[2].metavalue    = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)];
+      s2m_ndr_txn[2].tag          = data[(SLOT3_OFFSET+79):(SLOT3_OFFSET+64)];
+    end else begin
+      s2m_ndr_txn[0].valid        = 'hX;
+      s2m_ndr_txn[1].valid        = 'hX;
+      s2m_ndr_txn[2].valid        = 'hX;
+    end
 
   endfunction
 
   function void generic6(
-    input logic [127:0] data,
-    output s2m_drs_txn_t s2m_drs_txn
+    input logic [1:0] slot_sel,
+    input logic [511:0] data,
+    output s2m_drs_pkt_t s2m_drs_pkt[3]
   );
+
+    if(slot_sel == 'h1) begin
+      s2m_drs_pkt[0].pending_data_slot        = 'hf;
+      s2m_drs_pkt[0].s2m_drs_txn.valid        = data[(SLOT1_OFFSET+0)];
+      s2m_drs_pkt[0].s2m_drs_txn.memopcode    = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
+      s2m_drs_pkt[0].s2m_drs_txn.metafield    = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)];
+      s2m_drs_pkt[0].s2m_drs_txn.metavalue    = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)];
+      s2m_drs_pkt[0].s2m_drs_txn.tag          = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
+      s2m_drs_pkt[0].s2m_drs_txn.poison       = data[(SLOT1_OFFSET+24)];
+      s2m_drs_pkt[1].pending_data_slot        = 'hf;
+      s2m_drs_pkt[1].s2m_drs_txn.valid        = data[(SLOT1_OFFSET+40)];
+      s2m_drs_pkt[1].s2m_drs_txn.memopcode    = data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)];
+      s2m_drs_pkt[1].s2m_drs_txn.metafield    = data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)];
+      s2m_drs_pkt[1].s2m_drs_txn.metavalue    = data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)];
+      s2m_drs_pkt[1].s2m_drs_txn.tag          = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)];
+      s2m_drs_pkt[1].s2m_drs_txn.poison       = data[(SLOT1_OFFSET+64)];
+      s2m_drs_pkt[2].pending_data_slot        = 'hf;
+      s2m_drs_pkt[2].s2m_drs_txn.valid        = data[(SLOT1_OFFSET+80)];
+      s2m_drs_pkt[2].s2m_drs_txn.memopcode    = data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+81)];
+      s2m_drs_pkt[2].s2m_drs_txn.metafield    = data[(SLOT1_OFFSET+85):(SLOT1_OFFSET+84)];
+      s2m_drs_pkt[2].s2m_drs_txn.metavalue    = data[(SLOT1_OFFSET+87):(SLOT1_OFFSET+86)];
+      s2m_drs_pkt[2].s2m_drs_txn.tag          = data[(SLOT1_OFFSET+103):(SLOT1_OFFSET+88)];
+      s2m_drs_pkt[2].s2m_drs_txn.poison       = data[(SLOT1_OFFSET+104)];
+    end else if(slot_sel == 'h2) begin
+      s2m_drs_pkt[0].pending_data_slot        = 'hf;
+      s2m_drs_pkt[0].s2m_drs_txn.valid        = data[(SLOT2_OFFSET+0)];
+      s2m_drs_pkt[0].s2m_drs_txn.memopcode    = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
+      s2m_drs_pkt[0].s2m_drs_txn.metafield    = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)];
+      s2m_drs_pkt[0].s2m_drs_txn.metavalue    = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)];
+      s2m_drs_pkt[0].s2m_drs_txn.tag          = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
+      s2m_drs_pkt[0].s2m_drs_txn.poison       = data[(SLOT2_OFFSET+24)];
+      s2m_drs_pkt[1].pending_data_slot        = 'hf;
+      s2m_drs_pkt[1].s2m_drs_txn.valid        = data[(SLOT2_OFFSET+40)];
+      s2m_drs_pkt[1].s2m_drs_txn.memopcode    = data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)];
+      s2m_drs_pkt[1].s2m_drs_txn.metafield    = data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)];
+      s2m_drs_pkt[1].s2m_drs_txn.metavalue    = data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)];
+      s2m_drs_pkt[1].s2m_drs_txn.tag          = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)];
+      s2m_drs_pkt[1].s2m_drs_txn.poison       = data[(SLOT2_OFFSET+64)];
+      s2m_drs_pkt[2].pending_data_slot        = 'hf;
+      s2m_drs_pkt[2].s2m_drs_txn.valid        = data[(SLOT2_OFFSET+80)];
+      s2m_drs_pkt[2].s2m_drs_txn.memopcode    = data[(SLOT2_OFFSET+83):(SLOT2_OFFSET+81)];
+      s2m_drs_pkt[2].s2m_drs_txn.metafield    = data[(SLOT2_OFFSET+85):(SLOT2_OFFSET+84)];
+      s2m_drs_pkt[2].s2m_drs_txn.metavalue    = data[(SLOT2_OFFSET+87):(SLOT2_OFFSET+86)];
+      s2m_drs_pkt[2].s2m_drs_txn.tag          = data[(SLOT2_OFFSET+103):(SLOT2_OFFSET+88)];
+      s2m_drs_pkt[2].s2m_drs_txn.poison       = data[(SLOT2_OFFSET+104)];
+    end else if(slot_sel == 'h3) begin
+      s2m_drs_pkt[0].pending_data_slot        = 'hf;
+      s2m_drs_pkt[0].s2m_drs_txn.valid        = data[(SLOT3_OFFSET+0)];
+      s2m_drs_pkt[0].s2m_drs_txn.memopcode    = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
+      s2m_drs_pkt[0].s2m_drs_txn.metafield    = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)];
+      s2m_drs_pkt[0].s2m_drs_txn.metavalue    = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)];
+      s2m_drs_pkt[0].s2m_drs_txn.tag          = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
+      s2m_drs_pkt[0].s2m_drs_txn.poison       = data[(SLOT3_OFFSET+24)];
+      s2m_drs_pkt[1].pending_data_slot        = 'hf;
+      s2m_drs_pkt[1].s2m_drs_txn.valid        = data[(SLOT3_OFFSET+40)];
+      s2m_drs_pkt[1].s2m_drs_txn.memopcode    = data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)];
+      s2m_drs_pkt[1].s2m_drs_txn.metafield    = data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)];
+      s2m_drs_pkt[1].s2m_drs_txn.metavalue    = data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)];
+      s2m_drs_pkt[1].s2m_drs_txn.tag          = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)];
+      s2m_drs_pkt[1].s2m_drs_txn.poison       = data[(SLOT3_OFFSET+64)];
+      s2m_drs_pkt[2].pending_data_slot        = 'hf;
+      s2m_drs_pkt[2].s2m_drs_txn.valid        = data[(SLOT3_OFFSET+80)];
+      s2m_drs_pkt[2].s2m_drs_txn.memopcode    = data[(SLOT3_OFFSET+83):(SLOT3_OFFSET+81)];
+      s2m_drs_pkt[2].s2m_drs_txn.metafield    = data[(SLOT3_OFFSET+85):(SLOT3_OFFSET+84)];
+      s2m_drs_pkt[2].s2m_drs_txn.metavalue    = data[(SLOT3_OFFSET+87):(SLOT3_OFFSET+86)];
+      s2m_drs_pkt[2].s2m_drs_txn.tag          = data[(SLOT3_OFFSET+103):(SLOT3_OFFSET+88)];
+      s2m_drs_pkt[2].s2m_drs_txn.poison       = data[(SLOT3_OFFSET+104)];
+    end else begin
+      s2m_drs_pkt[0].s2m_drs_txn.valid = 'hX;
+      s2m_drs_pkt[1].s2m_drs_txn.valid = 'hX;
+      s2m_drs_pkt[2].s2m_drs_txn.valid = 'hX;
+    end
 
   endfunction
 
+
   always@(posedge host_rx_dl_if.clk) begin
     if(!host_rx_dl_if.rstn) begin
-      
+      //TODO: not sure if this foreach will initialize for all indeces
+      foreach(data_slot[i]) data_slot[i] <= 'h0;
+      foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
     end else begin
+      data_slot_d[0] <= data_slot[0];
+      data_slot_d[1] <= data_slot[1];
+      data_slot_d[2] <= data_slot[2];
+      data_slot_d[3] <= data_slot[3];
+      data_slot_d[4] <= data_slot[4];
+    end
+  end
+  
+  always_comb begin
+    if(host_rx_dl_if_d.valid && !data_slot_d[0][0]) begin 
+      if((host_rx_dl_if_d.data[7:5] == 'h0) || (host_rx_dl_if_d.data[7:5] == 'h5)) begin
+        data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
+      end else if((host_rx_dl_if_d.data[7:5] == 'h1) || (host_rx_dl_if_d.data[7:5] == 'h2) || (host_rx_dl_if_d.data[7:5] == 'h4)) begin
+        data_slot[0] = 'he; data_slot[1] = 'h1; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
+      end else begin
+        data_slot[0] = 'he; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h1;
+      end
+    end else if(host_rx_dl_if_d.valid && data_slot[0][0]) begin
+      data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
+    end
+  end
 
+  always_comb begin
+    if(host_rx_dl_if_d.valid && retryable_flit) begin
+      if(!data_slot[0][0]) begin
+        case(host_rx_dl_if_d.data[7:5])
+          'h0: begin
+            header0(host_rx_dl_if_d.data, d2h_data_pkt, d2h_rsp_pkt[2], s2m_ndr_pkt);
+          end
+          'h1: begin
+            header1(host_rx_dl_if_d.data, d2h_req_pkt, d2h_data_pkt);
+          end
+          'h2: begin
+            header2(host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_rsp_pkt);
+          end
+          'h3: begin
+            header3(host_rx_dl_if_d.data, s2m_drs_pkt, s2m_ndr_pkt);
+          end
+          'h4: begin
+            header4(host_rx_dl_if_d.data, s2m_ndr_pkt[2]);
+          end
+          'h5: begin
+            header5(host_rx_dl_if_d.data, s2m_drs_pkt[2]);
+          end
+          default: begin
+
+          end
+        endcase
+        case(host_rx_dl_if_d.data[10:8])
+          'h0: begin
+            generic0('h1, host_rx_dl_if_d.data);
+          end
+          'h1: begin
+            generic1('h1, host_rx_dl_if_d.data, d2h_req_pkt, d2h_rsp_pkt[2]);
+          end
+          'h2: begin
+            generic2('h1, host_rx_dl_if_d.data, d2h_req_pkt, d2h_data_pkt, d2h_rsp_pkt);
+          end
+          'h3: begin
+            generic3('h1, host_rx_dl_if_d.data, d2h_data_pkt[4]);
+          end
+          'h4: begin
+            generic4('h1, host_rx_dl_if_d.data, s2m_drs_pkt, s2m_ndr_pkt[2]);
+          end
+          'h5: begin
+            generic5('h1, host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
+          end
+          'h6: begin
+            generic6('h1, host_rx_dl_if_d.data, s2m_drs_pkt[3]);
+          end
+          default: begin
+          
+          end
+        endcase
+        case(host_rx_dl_if_d.data[13:11])
+          'h0: begin
+            generic0('h2, host_rx_dl_if_d.data);
+          end
+          'h1: begin
+            generic1('h2, host_rx_dl_if_d.data, d2h_req_pkt, d2h_rsp_pkt[2]);
+          end
+          'h2: begin
+            generic2('h2, host_rx_dl_if_d.data, d2h_req_pkt, d2h_data_pkt, d2h_rsp_pkt);
+          end
+          'h3: begin
+            generic3('h2, host_rx_dl_if_d.data, d2h_data_pkt[4]);
+          end
+          'h4: begin
+            generic4('h2, host_rx_dl_if_d.data, s2m_drs_pkt, s2m_ndr_pkt[2]);
+          end
+          'h5: begin
+            generic5('h2, host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
+          end
+          'h6: begin
+            generic6('h2, host_rx_dl_if_d.data, s2m_drs_pkt[3]);
+          end
+          default: begin
+          
+          end
+        endcase
+        case(host_rx_dl_if_d.data[16:14])
+          'h0: begin
+            generic0('h3, host_rx_dl_if_d.data);
+          end
+          'h1: begin
+            generic1('h3, host_rx_dl_if_d.data, d2h_req_pkt, d2h_rsp_pkt[2]);
+          end
+          'h2: begin
+            generic2('h3, host_rx_dl_if_d.data, d2h_req_pkt, d2h_data_pkt, d2h_rsp_pkt);
+          end
+          'h3: begin
+            generic3('h3, host_rx_dl_if_d.data, d2h_data_pkt[4]);
+          end
+          'h4: begin
+            generic4('h3, host_rx_dl_if_d.data, s2m_drs_pkt, s2m_ndr_pkt[2]);
+          end
+          'h5: begin
+            generic5('h3, host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
+          end
+          'h6: begin
+            generic6('h3, host_rx_dl_if_d.data, s2m_drs_pkt[3]);
+          end
+          default: begin
+          
+          end
+        endcase
+      end
     end
   end
 
@@ -2863,8 +3469,8 @@ module host_rx_path #(
   assign retry_idle_detect = (host_rx_dl_if_d.data[39:36] == 'h0) && (host_rx_dl_if_d.data[35:32] = 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
   assign retry_req_detect = (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] = 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
   assign retry_ack_detect = (host_rx_dl_if_d.data[39:36] == 'h2) && (host_rx_dl_if_d.data[35:32] = 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
-  assign non_retryable_flit = (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
+  assign non_retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
+  assign retryable_flit = (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
   //TODO: serious mistake I am assuming only one side of the link can have error at a time
 
   always@(posedge host_rx_dl_if.clk) begin
@@ -2950,7 +3556,12 @@ module device_rx_path #(
   output logic phy_link_rst,
   input logic phy_rst,
   input logic phy_reinit,
-  input logic phy_link_up
+  input logic phy_link_up,
+  output h2d_req_txn_t h2d_req_pkt,
+  output h2d_rsp_txn_t h2d_rsp_pkt,
+  output h2d_data_txn_t h2d_data_pkt,
+  output m2s_req_txn_t m2s_req_pkt,
+  output m2s_rwd_txn_t m2s_rwd_pkt
 );
 
   typedef enum {
@@ -2977,6 +3588,652 @@ module device_rx_path #(
   logic retry_req_detect;
   logic retry_ack_detect;
   logic retry_idle_detect;
+  logic data_slot[4];
+  logic data_slot_d[4];
+  
+  function void header0(
+    input logic [511:0] data,
+    output h2d_req_txn_t h2d_req_txn,
+    output h2d_rsp_txn_t h2d_rsp_txn
+  );
+    h2d_req_txn.valid        = data[32];
+    h2d_req_txn.opcode       = data[35:33];
+    h2d_req_txn.address      = data[81:36];
+    h2d_req_txn.uqid         = data[93:82];
+    h2d_rsp_txn.valid        = data[96];
+    h2d_rsp_txn.opcode       = data[100:97];
+    h2d_rsp_txn.rspdata      = data[112:101];
+    h2d_rsp_txn.rsppre       = data[114:113];
+    h2d_rsp_txn.cqid         = data[126:115];
+  endfunction
+
+  function void header1(
+    input logic [511:0] data,
+    output h2d_data_pkt_t h2d_data_pkt,
+    output h2d_rsp_txn_t h2d_rsp_txn[2]
+  );
+    h2d_data_pkt.pending_data_slot        = 'hf;
+    h2d_data_pkt.h2d_data_txn.valid       = data[32];
+    h2d_data_pkt.h2d_data_txn.cqid        = data[44:33];
+    h2d_data_pkt.h2d_data_txn.chunkvalid  = data[45];
+    h2d_data_pkt.h2d_data_txn.poison      = data[46];
+    h2d_data_pkt.h2d_data_txn.goerr       = data[47];
+    h2d_rsp_txn[0].valid                  = data[56];
+    h2d_rsp_txn[0].opcode                 = data[60:57];
+    h2d_rsp_txn[0].rspdata                = data[72:61];
+    h2d_rsp_txn[0].rsppre                 = data[74:73];
+    h2d_rsp_txn[0].cqid                   = data[86:75];
+    h2d_rsp_txn[1].valid                  = data[88];
+    h2d_rsp_txn[1].opcode                 = data[92:89];
+    h2d_rsp_txn[1].rspdata                = data[104:93];
+    h2d_rsp_txn[1].rsppre                 = data[106:105];
+    h2d_rsp_txn[1].cqid                   = data[118:107];
+
+  endfunction
+
+  function void header2(
+    input logic [511:0] data,
+    output h2d_req_txn_t h2d_req_txn,
+    output h2d_data_pkt_t h2d_data_pkt
+  );
+    h2d_req_txn.valid                     = data[32];
+    h2d_req_txn.opcode                    = data[35:33];
+    h2d_req_txn.address                   = data[81:36];
+    h2d_req_txn.uqid                      = data[93:82];
+    h2d_data_pkt.h2d_data_txn.valid       = data[96];
+    h2d_data_pkt.h2d_data_txn.cqid        = data[108:97];
+    h2d_data_pkt.h2d_data_txn.chunkvalid  = data[109];
+    h2d_data_pkt.h2d_data_txn.poison      = data[110];
+    h2d_data_pkt.h2d_data_txn.goerr       = data[111];
+  endfunction
+
+  function void header3(
+    input logic [511:0] data,
+    output h2d_data_pkt_t h2d_data_pkt[4]
+  );
+
+    h2d_data_pkt[0].pending_data_slot        = 'hf;
+    h2d_data_pkt[0].h2d_data_txn.valid       = data[32];
+    h2d_data_pkt[0].h2d_data_txn.cqid        = data[44:33];
+    h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[45];
+    h2d_data_pkt[0].h2d_data_txn.poison      = data[46];
+    h2d_data_pkt[0].h2d_data_txn.goerr       = data[47];
+    h2d_data_pkt[1].pending_data_slot        = 'hf;
+    h2d_data_pkt[1].h2d_data_txn.valid       = data[56];
+    h2d_data_pkt[1].h2d_data_txn.cqid        = data[68:57];
+    h2d_data_pkt[1].h2d_data_txn.chunkvalid  = data[69];
+    h2d_data_pkt[1].h2d_data_txn.poison      = data[70];
+    h2d_data_pkt[1].h2d_data_txn.goerr       = data[71];
+    h2d_data_pkt[2].pending_data_slot        = 'hf;
+    h2d_data_pkt[2].h2d_data_txn.valid       = data[80];
+    h2d_data_pkt[2].h2d_data_txn.cqid        = data[92:81];
+    h2d_data_pkt[2].h2d_data_txn.chunkvalid  = data[93];
+    h2d_data_pkt[2].h2d_data_txn.poison      = data[94];
+    h2d_data_pkt[2].h2d_data_txn.goerr       = data[95];
+    h2d_data_pkt[3].pending_data_slot        = 'hf;
+    h2d_data_pkt[3].h2d_data_txn.valid       = data[104];
+    h2d_data_pkt[3].h2d_data_txn.cqid        = data[116:105];
+    h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[117];
+    h2d_data_pkt[3].h2d_data_txn.poison      = data[118];
+    h2d_data_pkt[3].h2d_data_txn.goerr       = data[119];
+    
+  endfunction
+
+  function void header4(
+    input logic [511:0] data,
+    output m2s_rwd_pkt_t m2s_rwd_pkt
+  );
+    m2s_rwd_pkt.pending_data_slot        = 'hf;
+    m2s_rwd_pkt.m2s_rwd_txn.valid        = data[32];
+    m2s_rwd_pkt.m2s_rwd_txn.memopcode    = data[36:33];
+    m2s_rwd_pkt.m2s_rwd_txn.snptype      = data[39:37];
+    m2s_rwd_pkt.m2s_rwd_txn.metafield    = data[41:40];
+    m2s_rwd_pkt.m2s_rwd_txn.metavalue    = data[43:42];
+    m2s_rwd_pkt.m2s_rwd_txn.tag          = data[58:44];
+    m2s_rwd_pkt.m2s_rwd_txn.address      = data[105:59];
+    m2s_rwd_pkt.m2s_rwd_txn.poison       = data[106];
+    m2s_rwd_pkt.m2s_rwd_txn.tc           = data[108:107];
+
+  endfunction
+
+  function void header5(
+    input logic [511:0] data,
+    output m2s_req_txn_t m2s_req_txn
+  );
+    m2s_req_txn.valid        = data[32];
+    m2s_req_txn.memopcode    = data[36:33];
+    m2s_req_txn.snptype      = data[39:37];
+    m2s_req_txn.metafield    = data[41:40];
+    m2s_req_txn.metavalue    = data[43:42];
+    m2s_req_txn.tag          = data[58:44];
+    m2s_req_txn.address      = data[106:59];
+    m2s_req_txn.tc           = data[108:107];
+  endfunction
+
+  function void generic1(
+    input logic [1:0] slot_sel,
+    input logic [511:0] data,
+    output h2d_rsp_txn_t h2d_rsp_txn[4]
+  );
+
+    if(slot_sel == 'h1) begin
+      h2d_rsp_txn[0].valid        = data[(SLOT1_OFFSET+0)];
+      h2d_rsp_txn[0].opcode       = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
+      h2d_rsp_txn[0].rspdata      = data[(SLOT1_OFFSET+16):(SLOT1_OFFSET+5)];
+      h2d_rsp_txn[0].rsppre       = data[(SLOT1_OFFSET+18):(SLOT1_OFFSET+17)];
+      h2d_rsp_txn[0].cqid         = data[(SLOT1_OFFSET+30):(SLOT1_OFFSET+19)];
+      h2d_rsp_txn[1].valid        = data[(SLOT1_OFFSET+32)];
+      h2d_rsp_txn[1].opcode       = data[(SLOT1_OFFSET+36):(SLOT1_OFFSET+33)];
+      h2d_rsp_txn[1].rspdata      = data[(SLOT1_OFFSET+48):(SLOT1_OFFSET+37)];
+      h2d_rsp_txn[1].rsppre       = data[(SLOT1_OFFSET+50):(SLOT1_OFFSET+49)];
+      h2d_rsp_txn[1].cqid         = data[(SLOT1_OFFSET+62):(SLOT1_OFFSET+51)];
+      h2d_rsp_txn[2].valid        = data[(SLOT1_OFFSET+64)];
+      h2d_rsp_txn[2].opcode       = data[(SLOT1_OFFSET+68):(SLOT1_OFFSET+65)];
+      h2d_rsp_txn[2].rspdata      = data[(SLOT1_OFFSET+80):(SLOT1_OFFSET+69)];
+      h2d_rsp_txn[2].rsppre       = data[(SLOT1_OFFSET+82):(SLOT1_OFFSET+81)];
+      h2d_rsp_txn[2].cqid         = data[(SLOT1_OFFSET+94):(SLOT1_OFFSET+83)];
+      h2d_rsp_txn[3].valid        = data[(SLOT1_OFFSET+96)];
+      h2d_rsp_txn[3].opcode       = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)];
+      h2d_rsp_txn[3].rspdata      = data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)];
+      h2d_rsp_txn[3].rsppre       = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
+      h2d_rsp_txn[3].cqid         = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
+    end else if(slot_sel == 'h2) begin
+      h2d_rsp_txn[0].valid        = data[(SLOT2_OFFSET+0)];
+      h2d_rsp_txn[0].opcode       = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
+      h2d_rsp_txn[0].rspdata      = data[(SLOT2_OFFSET+16):(SLOT2_OFFSET+5)];
+      h2d_rsp_txn[0].rsppre       = data[(SLOT2_OFFSET+18):(SLOT2_OFFSET+17)];
+      h2d_rsp_txn[0].cqid         = data[(SLOT2_OFFSET+30):(SLOT2_OFFSET+19)];
+      h2d_rsp_txn[1].valid        = data[(SLOT2_OFFSET+32)];
+      h2d_rsp_txn[1].opcode       = data[(SLOT2_OFFSET+36):(SLOT2_OFFSET+33)];
+      h2d_rsp_txn[1].rspdata      = data[(SLOT2_OFFSET+48):(SLOT2_OFFSET+37)];
+      h2d_rsp_txn[1].rsppre       = data[(SLOT2_OFFSET+50):(SLOT2_OFFSET+49)];
+      h2d_rsp_txn[1].cqid         = data[(SLOT2_OFFSET+62):(SLOT2_OFFSET+51)];
+      h2d_rsp_txn[2].valid        = data[(SLOT2_OFFSET+64)];
+      h2d_rsp_txn[2].opcode       = data[(SLOT2_OFFSET+68):(SLOT2_OFFSET+65)];
+      h2d_rsp_txn[2].rspdata      = data[(SLOT2_OFFSET+80):(SLOT2_OFFSET+69)];
+      h2d_rsp_txn[2].rsppre       = data[(SLOT2_OFFSET+82):(SLOT2_OFFSET+81)];
+      h2d_rsp_txn[2].cqid         = data[(SLOT2_OFFSET+94):(SLOT2_OFFSET+83)];
+      h2d_rsp_txn[3].valid        = data[(SLOT2_OFFSET+96)];
+      h2d_rsp_txn[3].opcode       = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
+      h2d_rsp_txn[3].rspdata      = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+      h2d_rsp_txn[3].rsppre       = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+      h2d_rsp_txn[3].cqid         = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];
+    end else if(slot_sel == 'h3) begin
+      h2d_rsp_txn[0].valid        = data[(SLOT3_OFFSET+0)];
+      h2d_rsp_txn[0].opcode       = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
+      h2d_rsp_txn[0].rspdata      = data[(SLOT3_OFFSET+16):(SLOT3_OFFSET+5)];
+      h2d_rsp_txn[0].rsppre       = data[(SLOT3_OFFSET+18):(SLOT3_OFFSET+17)];
+      h2d_rsp_txn[0].cqid         = data[(SLOT3_OFFSET+30):(SLOT3_OFFSET+19)];
+      h2d_rsp_txn[1].valid        = data[(SLOT3_OFFSET+32)];
+      h2d_rsp_txn[1].opcode       = data[(SLOT3_OFFSET+36):(SLOT3_OFFSET+33)];
+      h2d_rsp_txn[1].rspdata      = data[(SLOT3_OFFSET+48):(SLOT3_OFFSET+37)];
+      h2d_rsp_txn[1].rsppre       = data[(SLOT3_OFFSET+50):(SLOT3_OFFSET+49)];
+      h2d_rsp_txn[1].cqid         = data[(SLOT3_OFFSET+62):(SLOT3_OFFSET+51)];
+      h2d_rsp_txn[2].valid        = data[(SLOT3_OFFSET+64)];
+      h2d_rsp_txn[2].opcode       = data[(SLOT3_OFFSET+68):(SLOT3_OFFSET+65)];
+      h2d_rsp_txn[2].rspdata      = data[(SLOT3_OFFSET+80):(SLOT3_OFFSET+69)];
+      h2d_rsp_txn[2].rsppre       = data[(SLOT3_OFFSET+82):(SLOT3_OFFSET+81)];
+      h2d_rsp_txn[2].cqid         = data[(SLOT3_OFFSET+94):(SLOT3_OFFSET+83)];
+      h2d_rsp_txn[3].valid        = data[(SLOT3_OFFSET+96)];
+      h2d_rsp_txn[3].opcode       = data[(SLOT3_OFFSET+100):(SLOT3_OFFSET+97)];
+      h2d_rsp_txn[3].rspdata      = data[(SLOT3_OFFSET+112):(SLOT3_OFFSET+101)];
+      h2d_rsp_txn[3].rsppre       = data[(SLOT3_OFFSET+114):(SLOT3_OFFSET+113)];
+      h2d_rsp_txn[3].cqid         = data[(SLOT3_OFFSET+126):(SLOT3_OFFSET+115)];    
+    end else begin
+      h2d_rsp_txn[0].valid = 'hX;
+      h2d_rsp_txn[1].valid = 'hX;
+      h2d_rsp_txn[2].valid = 'hX;
+      h2d_rsp_txn[3].valid = 'hX;
+    end
+
+  endfunction
+
+  function void generic2(
+    input logic [1:0] slot_sel,
+    input logic [511:0] data,
+    output h2d_req_txn_t h2d_req_txn,
+    output h2d_data_pkt_t h2d_data_pkt,
+    output h2d_rsp_txn_t h2d_rsp_txn
+  );
+
+    if(slot_sel == 'h1) begin
+      h2d_req_txn.valid                     = data[(SLOT1_OFFSET+0)];
+      h2d_req_txn.opcode                    = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
+      h2d_req_txn.address                   = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
+      h2d_req_txn.uqid                      = data[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)];
+      h2d_data_pkt.pending_data_slot        = 'hf;
+      h2d_data_pkt.h2d_data_txn.valid       = data[(SLOT1_OFFSET+64)];
+      h2d_data_pkt.h2d_data_txn.cqid        = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+65)];
+      h2d_data_pkt.h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+77)];
+      h2d_data_pkt.h2d_data_txn.poison      = data[(SLOT1_OFFSET+78)];
+      h2d_data_pkt.h2d_data_txn.goerr       = data[(SLOT1_OFFSET+79)];
+      h2d_rsp_txn.valid                     = data[(SLOT1_OFFSET+88)];
+      h2d_rsp_txn.opcode                    = data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)];
+      h2d_rsp_txn.rspdata                   = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)];
+      h2d_rsp_txn.rsppre                    = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
+      h2d_rsp_txn.cqid                      = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
+    end else if(slot_sel == 'h2) begin
+      h2d_req_txn.valid                     = data[(SLOT2_OFFSET+0)];
+      h2d_req_txn.opcode                    = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
+      h2d_req_txn.address                   = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
+      h2d_req_txn.uqid                      = data[(SLOT2_OFFSET+61)+(SLOT2_OFFSET+50)];
+      h2d_data_pkt.pending_data_slot        = 'hf;
+      h2d_data_pkt.h2d_data_txn.valid       = data[(SLOT2_OFFSET+64)];
+      h2d_data_pkt.h2d_data_txn.cqid        = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+65)];
+      h2d_data_pkt.h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+77)];
+      h2d_data_pkt.h2d_data_txn.poison      = data[(SLOT2_OFFSET+78)];
+      h2d_data_pkt.h2d_data_txn.goerr       = data[(SLOT2_OFFSET+79)];
+      h2d_rsp_txn.valid                     = data[(SLOT2_OFFSET+88)];
+      h2d_rsp_txn.opcode                    = data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)];
+      h2d_rsp_txn.rspdata                   = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)];
+      h2d_rsp_txn.rsppre                    = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
+      h2d_rsp_txn.cqid                      = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
+    end else if(slot_sel == 'h3) begin
+      h2d_req_txn.valid                     = data[(SLOT3_OFFSET+0)];
+      h2d_req_txn.opcode                    = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
+      h2d_req_txn.address                   = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
+      h2d_req_txn.uqid                      = data[(SLOT3_OFFSET+61)+(SLOT3_OFFSET+50)];
+      h2d_data_pkt.pending_data_slot        = 'hf;
+      h2d_data_pkt.h2d_data_txn.valid       = data[(SLOT3_OFFSET+64)];
+      h2d_data_pkt.h2d_data_txn.cqid        = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+65)];
+      h2d_data_pkt.h2d_data_txn.chunkvalid  = data[(SLOT3_OFFSET+77)];
+      h2d_data_pkt.h2d_data_txn.poison      = data[(SLOT3_OFFSET+78)];
+      h2d_data_pkt.h2d_data_txn.goerr       = data[(SLOT3_OFFSET+79)];
+      h2d_rsp_txn.valid                     = data[(SLOT3_OFFSET+88)];
+      h2d_rsp_txn.opcode                    = data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)];
+      h2d_rsp_txn.rspdata                   = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)];
+      h2d_rsp_txn.rsppre                    = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
+      h2d_rsp_txn.cqid                      = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
+    end else begin
+      h2d_req_txn.valid = 'hX;
+      h2d_data_pkt.h2d_data_txn.valid = 'hX;
+      h2d_rsp_txn.valid = 'hX;
+    end
+
+  endfunction
+
+  function void generic3(
+    input logic [1:0] slot_sel,
+    input logic [511:0] data,
+    output h2d_data_pkt_t h2d_data_pkt[4],
+    output h2d_rsp_txn_t h2d_rsp_txn
+  );
+
+    if(slot_sel == 'h1) begin
+      h2d_data_pkt[0].pending_data_slot        = 'hf;
+      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT1_OFFSET+0)];
+      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)];
+      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+13)];
+      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT1_OFFSET+14)];
+      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+15)];
+      h2d_data_pkt[1].pending_data_slot        = 'hf;
+      h2d_data_pkt[1].h2d_data_txn.valid       = data[(SLOT1_OFFSET+24)];
+      h2d_data_pkt[1].h2d_data_txn.cqid        = data[(SLOT1_OFFSET+36):(SLOT1_OFFSET+25)];
+      h2d_data_pkt[1].h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+37)];
+      h2d_data_pkt[1].h2d_data_txn.poison      = data[(SLOT1_OFFSET+38)];
+      h2d_data_pkt[1].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+39)];
+      h2d_data_pkt[2].pending_data_slot        = 'hf;
+      h2d_data_pkt[2].h2d_data_txn.valid       = data[(SLOT1_OFFSET+48)];
+      h2d_data_pkt[2].h2d_data_txn.cqid        = data[(SLOT1_OFFSET+60):(SLOT1_OFFSET+49)];
+      h2d_data_pkt[2].h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+61)];
+      h2d_data_pkt[2].h2d_data_txn.poison      = data[(SLOT1_OFFSET+62)];
+      h2d_data_pkt[2].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+63)];
+      h2d_data_pkt[3].pending_data_slot        = 'hf;
+      h2d_data_pkt[3].h2d_data_txn.valid       = data[(SLOT1_OFFSET+72)];
+      h2d_data_pkt[3].h2d_data_txn.cqid        = data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+73)];
+      h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+85)];
+      h2d_data_pkt[3].h2d_data_txn.poison      = data[(SLOT1_OFFSET+86)];
+      h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+87)];
+      h2d_rsp_txn.h2d_data_txn.valid           = data[(SLOT1_OFFSET+96)];
+      h2d_rsp_txn.h2d_data_txn.opcode          = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)];
+      h2d_rsp_txn.h2d_data_txn.rspdata         = data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)];
+      h2d_rsp_txn.h2d_data_txn.rsppre          = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
+      h2d_rsp_txn.h2d_data_txn.cqid            = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
+    end else if(slot_sel == 'h2) begin
+      h2d_data_pkt[0].pending_data_slot        = 'hf;
+      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT2_OFFSET+0)];
+      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)];
+      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+13)];
+      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT2_OFFSET+14)];
+      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+15)];
+      h2d_data_pkt[1].pending_data_slot        = 'hf;
+      h2d_data_pkt[1].h2d_data_txn.valid       = data[(SLOT2_OFFSET+24)];
+      h2d_data_pkt[1].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+36):(SLOT2_OFFSET+25)];
+      h2d_data_pkt[1].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+37)];
+      h2d_data_pkt[1].h2d_data_txn.poison      = data[(SLOT2_OFFSET+38)];
+      h2d_data_pkt[1].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+39)];
+      h2d_data_pkt[2].pending_data_slot        = 'hf;
+      h2d_data_pkt[2].h2d_data_txn.valid       = data[(SLOT2_OFFSET+48)];
+      h2d_data_pkt[2].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+60):(SLOT2_OFFSET+49)];
+      h2d_data_pkt[2].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+61)];
+      h2d_data_pkt[2].h2d_data_txn.poison      = data[(SLOT2_OFFSET+62)];
+      h2d_data_pkt[2].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+63)];
+      h2d_data_pkt[3].pending_data_slot        = 'hf;
+      h2d_data_pkt[3].h2d_data_txn.valid       = data[(SLOT2_OFFSET+72)];
+      h2d_data_pkt[3].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+73)];
+      h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+85)];
+      h2d_data_pkt[3].h2d_data_txn.poison      = data[(SLOT2_OFFSET+86)];
+      h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+87)];
+      h2d_rsp_txn.h2d_data_txn.valid           = data[(SLOT2_OFFSET+96)];
+      h2d_rsp_txn.h2d_data_txn.opcode          = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
+      h2d_rsp_txn.h2d_data_txn.rspdata         = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+      h2d_rsp_txn.h2d_data_txn.rsppre          = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+      h2d_rsp_txn.h2d_data_txn.cqid            = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];    
+    end else if(slot_sel == 'h3) begin
+      h2d_data_pkt[0].pending_data_slot        = 'hf;
+      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT2_OFFSET+0)];
+      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)];
+      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+13)];
+      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT2_OFFSET+14)];
+      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+15)];
+      h2d_data_pkt[1].pending_data_slot        = 'hf;
+      h2d_data_pkt[1].h2d_data_txn.valid       = data[(SLOT2_OFFSET+24)];
+      h2d_data_pkt[1].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+36):(SLOT2_OFFSET+25)];
+      h2d_data_pkt[1].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+37)];
+      h2d_data_pkt[1].h2d_data_txn.poison      = data[(SLOT2_OFFSET+38)];
+      h2d_data_pkt[1].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+39)];
+      h2d_data_pkt[2].pending_data_slot        = 'hf;
+      h2d_data_pkt[2].h2d_data_txn.valid       = data[(SLOT2_OFFSET+48)];
+      h2d_data_pkt[2].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+60):(SLOT2_OFFSET+49)];
+      h2d_data_pkt[2].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+61)];
+      h2d_data_pkt[2].h2d_data_txn.poison      = data[(SLOT2_OFFSET+62)];
+      h2d_data_pkt[2].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+63)];
+      h2d_data_pkt[3].pending_data_slot        = 'hf;
+      h2d_data_pkt[3].h2d_data_txn.valid       = data[(SLOT2_OFFSET+72)];
+      h2d_data_pkt[3].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+73)];
+      h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+85)];
+      h2d_data_pkt[3].h2d_data_txn.poison      = data[(SLOT2_OFFSET+86)];
+      h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+87)];
+      h2d_rsp_txn.h2d_data_txn.valid           = data[(SLOT2_OFFSET+96)];
+      h2d_rsp_txn.h2d_data_txn.opcode          = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
+      h2d_rsp_txn.h2d_data_txn.rspdata         = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+      h2d_rsp_txn.h2d_data_txn.rsppre          = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+      h2d_rsp_txn.h2d_data_txn.cqid            = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];   
+    end else begin
+      h2d_data_pkt[0].h2d_data_txn.valid = 'hX;
+      h2d_data_pkt[1].h2d_data_txn.valid = 'hX;
+      h2d_data_pkt[2].h2d_data_txn.valid = 'hX;
+      h2d_data_pkt[3].h2d_data_txn.valid = 'hX;
+      h2d_rsp_txn.h2d_data_txn.valid = 'hX;
+    end
+
+  endfunction
+  
+  function void generic4(
+    input logic [1:0] slot_sel,
+    input logic [511:0] data,
+    output m2s_req_txn_t m2s_req_txn,
+    output h2d_data_pkt_t h2d_data_pkt,
+    output [127:0] data_q[4]
+  );
+
+    if(slot_sel == 'h1) begin
+      m2s_req_txn.valid                     = data[(SLOT1_OFFSET+0)];
+      m2s_req_txn.memopcode                 = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
+      m2s_req_txn.snptype                   = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)];
+      m2s_req_txn.metafield                 = data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)];
+      m2s_req_txn.metavalue                 = data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)];
+      m2s_req_txn.tag                       = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
+      m2s_req_txn.address                   = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
+      m2s_req_txn.tc                        = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
+      h2d_data_pkt.pending_data_slot        = 'hf;
+      h2d_data_pkt.h2d_data_txn.valid       = data[(SLOT1_OFFSET+88)];
+      h2d_data_pkt.h2d_data_txn.cqid        = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+89)];
+      h2d_data_pkt.h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+101)];
+      h2d_data_pkt.h2d_data_txn.poison      = data[(SLOT1_OFFSET+102)];
+      h2d_data_pkt.h2d_data_txn.goerr       = data[(SLOT1_OFFSET+103)];
+    end else if(slot_sel == 'h2) begin
+      m2s_req_txn.valid                     = data[(SLOT2_OFFSET+0)];
+      m2s_req_txn.memopcode                 = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
+      m2s_req_txn.snptype                   = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)];
+      m2s_req_txn.metafield                 = data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)];
+      m2s_req_txn.metavalue                 = data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)];
+      m2s_req_txn.tag                       = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
+      m2s_req_txn.address                   = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
+      m2s_req_txn.tc                        = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
+      h2d_data_pkt.pending_data_slot        = 'hf;
+      h2d_data_pkt.h2d_data_txn.valid       = data[(SLOT2_OFFSET+88)];
+      h2d_data_pkt.h2d_data_txn.cqid        = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+89)];
+      h2d_data_pkt.h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+101)];
+      h2d_data_pkt.h2d_data_txn.poison      = data[(SLOT2_OFFSET+102)];
+      h2d_data_pkt.h2d_data_txn.goerr       = data[(SLOT2_OFFSET+103)];
+    end else if(slot_sel == 'h3) begin
+      m2s_req_txn.valid                     = data[(SLOT3_OFFSET+0)];
+      m2s_req_txn.memopcode                 = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
+      m2s_req_txn.snptype                   = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)];
+      m2s_req_txn.metafield                 = data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)];
+      m2s_req_txn.metavalue                 = data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)];
+      m2s_req_txn.tag                       = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
+      m2s_req_txn.address                   = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
+      m2s_req_txn.tc                        = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
+      h2d_data_pkt.pending_data_slot        = 'hf;
+      h2d_data_pkt.h2d_data_txn.valid       = data[(SLOT3_OFFSET+88)];
+      h2d_data_pkt.h2d_data_txn.cqid        = data[(SLOT3_OFFSET+100):(SLOT3_OFFSET+89)];
+      h2d_data_pkt.h2d_data_txn.chunkvalid  = data[(SLOT3_OFFSET+101)];
+      h2d_data_pkt.h2d_data_txn.poison      = data[(SLOT3_OFFSET+102)];
+      h2d_data_pkt.h2d_data_txn.goerr       = data[(SLOT3_OFFSET+103)];
+    end else begin
+      m2s_req_txn.valid = 'hX;
+      h2d_data_pkt.h2d_data_txn.valid = 'hX;
+    end
+
+  endfunction
+  
+  function void generic5(
+    input logic [1:0] slot_sel,
+    input logic [511:0] data,
+    output m2s_rwd_pkt_t m2s_rwd_pkt,
+    output h2d_rsp_txn_t h2d_rsp_txn
+  );
+
+    if(slot_sel == 'h1) begin
+      m2s_rwd_pkt.pending_data_slot        = 'hf;
+      m2s_rwd_pkt.m2s_rwd_txn.valid        = data[(SLOT1_OFFSET+0)];
+      m2s_rwd_pkt.m2s_rwd_txn.memopcode    = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
+      m2s_rwd_pkt.m2s_rwd_txn.snptype      = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)];
+      m2s_rwd_pkt.m2s_rwd_txn.metafield    = data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)];
+      m2s_rwd_pkt.m2s_rwd_txn.metavalue    = data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)];
+      m2s_rwd_pkt.m2s_rwd_txn.tag          = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
+      m2s_rwd_pkt.m2s_rwd_txn.address      = data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+28)];
+      m2s_rwd_pkt.m2s_rwd_txn.poison       = data[(SLOT1_OFFSET+74)];
+      m2s_rwd_pkt.m2s_rwd_txn.tc           = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
+      h2d_rsp_txn.valid                    = data[(SLOT1_OFFSET+88)];
+      h2d_rsp_txn.opcode                   = data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)];
+      h2d_rsp_txn.rspdata                  = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)];
+      h2d_rsp_txn.rsppre                   = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
+      h2d_rsp_txn.cqid                     = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
+    end else if(slot_sel == 'h2) begin
+      m2s_rwd_pkt.pending_data_slot        = 'hf;
+      m2s_rwd_pkt.m2s_rwd_txn.valid        = data[(SLOT2_OFFSET+0)];
+      m2s_rwd_pkt.m2s_rwd_txn.memopcode    = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
+      m2s_rwd_pkt.m2s_rwd_txn.snptype      = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)];
+      m2s_rwd_pkt.m2s_rwd_txn.metafield    = data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)];
+      m2s_rwd_pkt.m2s_rwd_txn.metavalue    = data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)];
+      m2s_rwd_pkt.m2s_rwd_txn.tag          = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
+      m2s_rwd_pkt.m2s_rwd_txn.address      = data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+28)];
+      m2s_rwd_pkt.m2s_rwd_txn.poison       = data[(SLOT2_OFFSET+74)];
+      m2s_rwd_pkt.m2s_rwd_txn.tc           = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
+      h2d_rsp_txn.valid                    = data[(SLOT2_OFFSET+88)];
+      h2d_rsp_txn.opcode                   = data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)];
+      h2d_rsp_txn.rspdata                  = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)];
+      h2d_rsp_txn.rsppre                   = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
+      h2d_rsp_txn.cqid                     = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
+    end else if(slot_sel == 'h3) begin
+      m2s_rwd_pkt.pending_data_slot        = 'hf;
+      m2s_rwd_pkt.m2s_rwd_txn.valid        = data[(SLOT3_OFFSET+0)];
+      m2s_rwd_pkt.m2s_rwd_txn.memopcode    = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
+      m2s_rwd_pkt.m2s_rwd_txn.snptype      = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)];
+      m2s_rwd_pkt.m2s_rwd_txn.metafield    = data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)];
+      m2s_rwd_pkt.m2s_rwd_txn.metavalue    = data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)];
+      m2s_rwd_pkt.m2s_rwd_txn.tag          = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
+      m2s_rwd_pkt.m2s_rwd_txn.address      = data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+28)];
+      m2s_rwd_pkt.m2s_rwd_txn.poison       = data[(SLOT3_OFFSET+74)];
+      m2s_rwd_pkt.m2s_rwd_txn.tc           = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
+      h2d_rsp_txn.valid                    = data[(SLOT3_OFFSET+88)];
+      h2d_rsp_txn.opcode                   = data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)];
+      h2d_rsp_txn.rspdata                  = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)];
+      h2d_rsp_txn.rsppre                   = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
+      h2d_rsp_txn.cqid                     = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
+    end else begin
+      m2s_rwd_pkt.m2s_rwd_txn.valid = 'hX;
+      h2d_rsp_txn.valid = 'hX;
+    end
+
+  endfunction
+
+  always@(posedge dev_rx_dl_if.clk) begin
+    if(!dev_rx_dl_if.rstn) begin
+      //TODO: not sure if this foreach will initialize for all indeces
+      foreach(data_slot[i]) data_slot[i] <= 'h0;
+      foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
+    end else begin
+      data_slot_d[0] <= data_slot[0];
+      data_slot_d[1] <= data_slot[1];
+      data_slot_d[2] <= data_slot[2];
+      data_slot_d[3] <= data_slot[3];
+      data_slot_d[4] <= data_slot[4];
+    end
+  end
+
+  always_comb begin
+    if(dev_rx_dl_if_d.valid && !data_slot_d[0][0]) begin 
+      if((dev_rx_dl_if_d.data[7:5] == 'h0) || (dev_rx_dl_if_d.data[7:5] == 'h5)) begin
+        data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
+      end else if((dev_rx_dl_if_d.data[7:5] == 'h1) || (dev_rx_dl_if_d.data[7:5] == 'h2) || (dev_rx_dl_if_d.data[7:5] == 'h4)) begin
+        data_slot[0] = 'he; data_slot[1] = 'h1; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
+      end else begin
+        data_slot[0] = 'he; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h1;
+      end
+    end else if(dev_rx_dl_if_d.valid && data_slot[0][0]) begin
+      data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
+    end
+  end
+      /* else if(dev_rx_dl_if_d.valid && (!data_slot_d[0][1])) begin
+        if(dev_rx_dl_if_d.data[10:8] == 'h1) begin
+          data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+        end else if((dev_rx_dl_if_d.data[10:8] == 'h2) || (dev_rx_dl_if_d.data[10:8] == 'h4) || (dev_rx_dl_if_d.data[10:8] == 'h5)) begin
+          data_slot[0] <= 'hc; data_slot[1] <= 'h3; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+        end else if(dev_rx_dl_if_d.data[10:8] == 'h3) begin
+          data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h3;
+        end
+      end else if(dev_rx_dl_if_d.valid && (!data_slot[0][2])) begin
+        if(dev_rx_dl_if_d.data[13:11] == 'h1) begin
+          data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+        end else if((dev_rx_dl_if_d.data[13:11] == 'h2) || (dev_rx_dl_if_d.data[13:11] == 'h4) || (dev_rx_dl_if_d.data[13:11] == 'h5)) begin
+          data_slot[0] <= 'h8; data_slot[1] <= 'h7; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+        end else if( (dev_rx_dl_if_d.data[13:11] == 'h3)        ) begin
+          data_slot[0] <= 'h8; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h7;
+        end
+      end else if(dev_rx_dl_if_d.valid && (!data_slot_d[0][3])) begin
+        if(dev_rx_dl_if_d.data[16:14] == 'h1) begin
+          data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+        end else if((dev_rx_dl_if_d.data[16:14] == 'h2) || (dev_rx_dl_if_d.data[16:14] == 'h4) || (dev_rx_dl_if_d.data[16:14] == 'h5)) begin
+          data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+        end else if(dev_rx_dl_if_d.data[16:14] == 'h3) begin
+          data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
+        end
+      end else begin
+        data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+      end*/
+
+  always_comb begin
+    if(dev_rx_dl_if_d.valid && retryable_flit) begin
+      if(!data_slot[0][0]) begin
+        case(dev_rx_dl_if_d.data[7:5])
+          'h0: begin
+            header0(dev_rx_dl_if_d.data, h2d_req_pkt, h2d_rsp_pkt);
+          end
+          'h1: begin
+            header1(dev_rx_dl_if_d.data, h2d_data_pkt, h2d_rsp_pkt[2]);
+          end
+          'h2: begin
+            header2(dev_rx_dl_if_d.data, h2d_req_pkt, h2d_data_pkt);
+          end
+          'h3: begin
+            header3(dev_rx_dl_if_d.data, h2d_data_pkt[4]);
+          end
+          'h4: begin
+            header4(dev_rx_dl_if_d.data, m2s_rwd_pkt);
+          end
+          'h5: begin
+            header5(dev_rx_dl_if_d.data, m2s_req_pkt);
+          end
+          default: begin
+
+          end
+        endcase
+        case(dev_rx_dl_if_d.data[10:8])
+          'h0: begin
+            generic0('h1, dev_rx_dl_if_d.data);
+          end
+          'h1: begin
+            generic1('h1, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
+          end
+          'h2: begin
+            generic2('h1, dev_rx_dl_if_d.data, h2d_req_pkt, h2d_data_pkt, h2d_rsp_pkt);
+          end
+          'h3: begin
+            generic3('h1, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt);
+          end
+          'h4: begin
+            generic4('h1, dev_rx_dl_if_d.data, m2s_req_pkt, h2d_data_pkt);
+          end
+          'h5: begin
+            generic5('h1, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt);
+          end
+          default: begin
+          
+          end
+        endcase
+        case(dev_rx_dl_if_d.data[13:11])
+          'h0: begin
+            generic0('h2, dev_rx_dl_if_d.data);
+          end
+          'h1: begin
+            generic1('h2, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
+          end
+          'h2: begin
+            generic2('h2, dev_rx_dl_if_d.data, h2d_req_pkt, h2d_data_pkt, h2d_rsp_pkt);
+          end
+          'h3: begin
+            generic3('h2, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt);
+          end
+          'h4: begin
+            generic4('h2, dev_rx_dl_if_d.data, m2s_req_pkt, h2d_data_pkt);
+          end
+          'h5: begin
+            generic5('h2, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt);
+          end
+          default: begin
+          
+          end
+        endcase
+        case(dev_rx_dl_if_d.data[16:14])
+          'h0: begin
+            generic0('h3, dev_rx_dl_if_d.data);
+          end
+          'h1: begin
+            generic1('h3, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
+          end
+          'h2: begin
+            generic2('h3, dev_rx_dl_if_d.data, h2d_req_pkt, h2d_data_pkt, h2d_rsp_pkt);
+          end
+          'h3: begin
+            generic3('h3, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt);
+          end
+          'h4: begin
+            generic4('h3, dev_rx_dl_if_d.data, m2s_req_pkt, h2d_data_pkt);
+          end
+          'h5: begin
+            generic5('h3, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt);
+          end
+          default: begin
+          
+          end
+        endcase
+      end
+    end
+  end
 
   cxl_lrsm_rrsm cxl_lrsm_rrsm_inst#(
 
@@ -2996,8 +4253,8 @@ module device_rx_path #(
   assign retry_idle_detect = (dev_rx_dl_if_d.data[39:36] == 'h0) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
   assign retry_req_detect = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
   assign retry_ack_detect = (dev_rx_dl_if_d.data[39:36] == 'h2) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
-  assign non_retryable_flit = (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
+  assign non_retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
+  assign retryable_flit = (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
   //TODO: serious mistake I am assuming only one side of the link can have error at a time
   
   always@(posedge dev_rx_dl_if.clk) begin
