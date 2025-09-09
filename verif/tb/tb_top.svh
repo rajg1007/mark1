@@ -2745,8 +2745,15 @@ module host_rx_path #(
   logic retry_req_detect;
   logic retry_ack_detect;
   logic retry_idle_detect;
-  logic data_slot[4];
-  logic data_slot_d[4];
+  logic data_slot[5];
+  logic data_slot_d[5];
+  d2h_data_pkt_t d2h_data_pkt_d[4];
+  s2m_drs_pkt_t s2m_drs_pkt_d[3];
+  logic [1:0] d2h_req_ptr;
+  logic [1:0] d2h_rsp_ptr;
+  logic [1:0] d2h_data_ptr;
+  logic [1:0] s2m_ndr_ptr;
+  logic [1:0] s2m_drs_ptr;
 
   function void header0(
     input logic [511:0] data, 
@@ -2893,8 +2900,8 @@ module host_rx_path #(
   endfunction
 
   function void generic0(
-    input logic [511:0] data,
     input logic [1:0] slot_sel,
+    input logic [511:0] data,
     inout d2h_req_pkt_t d2h_data_pkt[4],
     inout s2m_drs_pkt_t s2m_drs_pkt[4]
   );
@@ -2980,12 +2987,14 @@ module host_rx_path #(
         end else if(s2m_drs_pkt[2].pending_data_slot == 'h8) begin
           s2m_drs_pkt[2].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0]
           s2m_drs_pkt[2].pending_data_slot = 'h0;
-          if(s2m_drs_pkt[3].pending_data_slot != 'h0) begin
+          //TODO: next gen upgrade if s2m drs max size increases to 4
+          /*if(s2m_drs_pkt[3].pending_data_slot != 'h0) begin
             s2m_drs_pkt[3].s2m_drs_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
             s2m_drs_pkt[3].pending_data_slot = 'h8;
-          end
+          end*/
         end else begin
-          if(s2m_drs_pkt[3].pending_data_slot == 'hf) begin
+          //TODO: next gen upgrade if s2m drs max size increases to 4
+          /*if(s2m_drs_pkt[3].pending_data_slot == 'hf) begin
             s2m_drs_pkt[3].s2m_drs_txn.data = data;
             s2m_drs_pkt[3].pending_data_slot = 'h0;
           end else if(s2m_drs_pkt[3].pending_data_slot == 'he) begin
@@ -2999,7 +3008,7 @@ module host_rx_path #(
             s2m_drs_pkt[3].pending_data_slot = 'h0;
           end else begin
             
-          end
+          end*/
         end
       end
     end
@@ -3524,11 +3533,47 @@ module host_rx_path #(
 
   endfunction
 
+  always@(posedge host_rx_dl_if.clk) begin
+    if(!host_rx_dl_if.rstn) begin
+      //TODO: not sure if this foreach will initialize for all indeces
+      foreach(data_slot[i]) data_slot[i] <= 'h0;
+      foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
+    end else begin
+      if(host_rx_dl_if_d.valid && retryable_flit) begin
+        data_slot[0] <= data_slot[1]; 
+        data_slot[1] <= data_slot[2]; 
+        data_slot[2] <= data_slot[3]; 
+        data_slot[3] <= data_slot[4]; 
+        data_slot[4] <= 'h0;
+      end
+      data_slot_d[0] <= data_slot[0];
+      data_slot_d[1] <= data_slot[1];
+      data_slot_d[2] <= data_slot[2];
+      data_slot_d[3] <= data_slot[3];
+      data_slot_d[4] <= data_slot[4];
+      d2h_data_pkt_d[0].pending_data_slot <= d2h_data_pkt[0].pending_data_slot;
+      d2h_data_pkt_d[1].pending_data_slot <= d2h_data_pkt[1].pending_data_slot;
+      d2h_data_pkt_d[2].pending_data_slot <= d2h_data_pkt[2].pending_data_slot;
+      d2h_data_pkt_d[3].pending_data_slot <= d2h_data_pkt[3].pending_data_slot;
+      s2m_drs_pkt_d[0].pending_data_slot  <= s2m_drs_pkt[0].pending_data_slot;
+      s2m_drs_pkt_d[1].pending_data_slot  <= s2m_drs_pkt[1].pending_data_slot;
+      s2m_drs_pkt_d[2].pending_data_slot  <= s2m_drs_pkt[2].pending_data_slot;
+    end
+  end
 
   //TODO: put the packing logic restrictions in the arbiter logic itself so here I do not need to worry why I am getting illegal pkts we can have assertions to catch the max sub pkts that can be packed
   //TODO: put asserts to catch if there any illegal values on Hslots or Gslots otherwise bellow logic will be very hard to debug
   always_comb begin
-    if(host_rx_dl_if_d.valid && !data_slot_d[0][0]) begin 
+    if(host_rx_dl_if_d.valid && retryable_flit &&
+        (!data_slot_d[0][3] || 
+          ((data_slot_d[0] == 'hf) && 
+            ((d2h_data_pkt_d[0].pending_data_slot == 0) && (s2m_drs_pkt_d[0].pending_data_slot == 0)) &&
+            ((d2h_data_pkt_d[1].pending_data_slot == 0) && (s2m_drs_pkt_d[1].pending_data_slot == 0)) &&
+            ((d2h_data_pkt_d[2].pending_data_slot == 0) && (s2m_drs_pkt_d[2].pending_data_slot == 0)) &&
+            ((d2h_data_pkt_d[3].pending_data_slot == 0))
+          )
+        )
+      ) begin 
       if(host_rx_dl_if_d.data[7:5] == 'h4) begin
         data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;//need to add what happens when slot 1 is g slot
         if((host_rx_dl_if_d.data[10:8] == 'h1) || (host_rx_dl_if_d.data[10:8] == 'h5)) begin
@@ -3565,127 +3610,169 @@ module host_rx_path #(
       end else begin
         data_slot[0] = 'he; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h1;
       end
-    end else if(host_rx_dl_if_d.valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
-      data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
+    //end else if(host_rx_dl_if_d.valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
+      //data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
     end
-  end
   
-  always@(posedge host_rx_dl_if.clk) begin
-    if(!host_rx_dl_if.rstn) begin
-      //TODO: not sure if this foreach will initialize for all indeces
-      foreach(data_slot[i]) data_slot[i] <= 'h0;
-      foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
-    end else begin
-      data_slot_d[0] <= data_slot[0];
-      data_slot_d[1] <= data_slot[1];
-      data_slot_d[2] <= data_slot[2];
-      data_slot_d[3] <= data_slot[3];
-      data_slot_d[4] <= data_slot[4];
-      if(host_rx_dl_if_d.valid && retryable_flit) begin
-        if(!data_slot[0][0]) begin
-          case(host_rx_dl_if_d.data[7:5])
+    if(host_rx_dl_if_d.valid && retryable_flit) begin
+      if(!data_slot[0][0]) begin
+        d2h_req_ptr = 'h0;
+        d2h_rsp_ptr = 'h0;
+        d2h_data_ptr = 'h0;
+        s2m_ndr_ptr = 'h0;
+        s2m_drs_ptr = 'h0;
+        case(host_rx_dl_if_d.data[7:5])
           'h0: begin
-            header0(host_rx_dl_if_d.data, d2h_data_pkt, d2h_rsp_pkt[2], s2m_ndr_pkt);
+            header0(host_rx_dl_if_d.data, d2h_data_pkt, d2h_data_ptr, d2h_rsp_pkt[2], d2h_rsp_ptr, s2m_ndr_pkt, s2m_ndr_ptr);
+            d2h_data_ptr = d2h_data_ptr + 1;
+            d2h_rsp_ptr = d2h_rsp_ptr + 2;
+            s2m_ndr_ptr = s2m_ndr_ptr + 1; 
           end
           'h1: begin
-            header1(host_rx_dl_if_d.data, d2h_req_pkt, d2h_data_pkt);
-
+            header1(host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_data_pkt, d2h_data_ptr);
+            d2h_req_ptr = d2h_req_ptr + 1;
+            d2h_data_ptr = d2h_data_ptr + 1;
           end
           'h2: begin
-            header2(host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_rsp_pkt);
+            header2(host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr, d2h_rsp_pkt, d2h_rsp_ptr);
+            d2h_data_ptr = d2h_data_ptr + 4;
+            d2h_rsp_ptr = d2h_rsp_ptr + 1;
           end
           'h3: begin
-            header3(host_rx_dl_if_d.data, s2m_drs_pkt, s2m_ndr_pkt);
+            header3(host_rx_dl_if_d.data, s2m_drs_pkt, s2m_drs_ptr, s2m_ndr_pkt, s2m_ndr_ptr);
+            s2m_drs_ptr = s2m_drs_ptr + 1;
+            s2m_ndr_ptr = s2m_ndr_ptr + 1;
           end
           'h4: begin
-            header4(host_rx_dl_if_d.data, s2m_ndr_pkt[2]);
+            header4(host_rx_dl_if_d.data, s2m_ndr_pkt[2], s2m_ndr_ptr);
+            s2m_ndr_ptr = s2m_ndr_ptr + 2;
           end
           'h5: begin
-            header5(host_rx_dl_if_d.data, s2m_drs_pkt[2]);
+            header5(host_rx_dl_if_d.data, s2m_drs_pkt[2], s2m_drs_ptr);
+            s2m_drs_ptr = s2m_drs_ptr + 2;
           end
           default: begin
 
           end
-          endcase
-          case(host_rx_dl_if_d.data[10:8])
+        endcase
+        case(host_rx_dl_if_d.data[10:8])
           'h0: begin
-            generic0('h1, host_rx_dl_if_d.data);
+            generic0('h1, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr, s2m_drs_pkt[4], s2m_drs_ptr);
+            //d2h_data_ptr = d2h_data_ptr + 4;
+            //s2m_drs_ptr = s2m_drs_ptr + 1;
           end
           'h1: begin
-            generic1('h1, host_rx_dl_if_d.data, d2h_req_pkt, d2h_rsp_pkt[2]);
+            generic1('h1, host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_rsp_pkt[2], d2h_rsp_ptr);
+            d2h_req_ptr = d2h_req_ptr + 1;
+            d2h_rsp_ptr = d2h_rsp_ptr + 2;
           end
           'h2: begin
-            generic2('h1, host_rx_dl_if_d.data, d2h_req_pkt, d2h_data_pkt, d2h_rsp_pkt);
+            generic2('h1, host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_data_pkt, d2h_data_ptr, d2h_rsp_pkt, d2h_rsp_ptr);
+            d2h_req_ptr = d2h_req_ptr + 1;
+            d2h_data_ptr = d2h_data_ptr + 1;
+            d2h_rsp_ptr = d2h_rsp_ptr + 1;
           end
           'h3: begin
-            generic3('h1, host_rx_dl_if_d.data, d2h_data_pkt[4]);
+            generic3('h1, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr);
+            d2h_data_ptr = d2h_data_ptr + 4;
           end
           'h4: begin
-            generic4('h1, host_rx_dl_if_d.data, s2m_drs_pkt, s2m_ndr_pkt[2]);
+            generic4('h1, host_rx_dl_if_d.data, s2m_drs_pkt, s2m_drs_ptr, s2m_ndr_pkt[2], s2m_ndr_ptr);
+            s2m_drs_ptr = s2m_drs_ptr + 1;
+            s2m_ndr_ptr = s2m_ndr_ptr + 2;
           end
           'h5: begin
-            generic5('h1, host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
+            generic5('h1, host_rx_dl_if_d.data, s2m_ndr_pkt[3], s2m_ndr_ptr);
+            s2m_ndr_ptr = s2m_ndr_ptr + 3;
           end
           'h6: begin
-            generic6('h1, host_rx_dl_if_d.data, s2m_drs_pkt[3]);
+            generic6('h1, host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_drs_ptr);
+            s2m_drs_ptr = s2m_drs_ptr + 3;
           end
           default: begin
           
           end
-          endcase
-          case(host_rx_dl_if_d.data[13:11])
+        endcase
+        case(host_rx_dl_if_d.data[13:11])
           'h0: begin
-            generic0('h2, host_rx_dl_if_d.data);
+            generic0('h2, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr, s2m_drs_pkt[4], s2m_drs_ptr);
+            //d2h_data_ptr = d2h_data_ptr + 4;
+            //s2m_drs_ptr = s2m_drs_ptr + 1;
           end
           'h1: begin
-            generic1('h2, host_rx_dl_if_d.data, d2h_req_pkt, d2h_rsp_pkt[2]);
+            generic1('h2, host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_rsp_pkt[2], d2h_rsp_ptr);
+            d2h_req_ptr = d2h_req_ptr + 1;
+            d2h_rsp_ptr = d2h_rsp_ptr + 2;
           end
           'h2: begin
-            generic2('h2, host_rx_dl_if_d.data, d2h_req_pkt, d2h_data_pkt, d2h_rsp_pkt);
+            generic2('h2, host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_data_pkt, d2h_data_ptr, d2h_rsp_pkt, d2h_rsp_ptr);
+            d2h_req_ptr = d2h_req_ptr + 1;
+            d2h_data_ptr = d2h_data_ptr + 1;
+            d2h_rsp_ptr = d2h_rsp_ptr + 1;
           end
           'h3: begin
-            generic3('h2, host_rx_dl_if_d.data, d2h_data_pkt[4]);
+            generic3('h2, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr);
+            d2h_data_ptr = d2h_data_ptr + 4;
           end
           'h4: begin
-            generic4('h2, host_rx_dl_if_d.data, s2m_drs_pkt, s2m_ndr_pkt[2]);
+            generic4('h2, host_rx_dl_if_d.data, s2m_drs_pkt, s2m_drs_ptr, s2m_ndr_pkt[2], s2m_ndr_ptr);
+            s2m_drs_ptr = s2m_drs_ptr + 1;
+            s2m_ndr_ptr = s2m_ndr_ptr + 2;
           end
           'h5: begin
-            generic5('h2, host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
+            generic5('h2, host_rx_dl_if_d.data, s2m_ndr_pkt[3], s2m_ndr_ptr);
+            s2m_ndr_ptr = s2m_ndr_ptr + 3;
           end
           'h6: begin
-            generic6('h2, host_rx_dl_if_d.data, s2m_drs_pkt[3]);
+            generic6('h2, host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_drs_ptr);
+            s2m_drs_ptr = s2m_drs_ptr + 3;
           end
           default: begin
           
           end
-          endcase
-          case(host_rx_dl_if_d.data[16:14])
+        endcase
+        case(host_rx_dl_if_d.data[16:14])
           'h0: begin
-            generic0('h3, host_rx_dl_if_d.data);
+            generic0('h3, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr, s2m_drs_pkt[4], s2m_drs_ptr);
+            //d2h_data_ptr = d2h_data_ptr + 4;
+            //s2m_drs_ptr = s2m_drs_ptr + 1;
           end
           'h1: begin
-            generic1('h3, host_rx_dl_if_d.data, d2h_req_pkt, d2h_rsp_pkt[2]);
+            generic1('h3, host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_rsp_pkt[2], d2h_rsp_ptr);
+            d2h_req_ptr = d2h_req_ptr + 1;
+            d2h_rsp_ptr = d2h_rsp_ptr + 2;
           end
           'h2: begin
-            generic2('h3, host_rx_dl_if_d.data, d2h_req_pkt, d2h_data_pkt, d2h_rsp_pkt);
+            generic2('h3, host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_data_pkt, d2h_data_ptr, d2h_rsp_pkt, d2h_rsp_ptr);
+            d2h_req_ptr = d2h_req_ptr + 1;
+            d2h_data_ptr = d2h_data_ptr + 1;
+            d2h_rsp_ptr = d2h_rsp_ptr + 1;
           end
           'h3: begin
-            generic3('h3, host_rx_dl_if_d.data, d2h_data_pkt[4]);
+            generic3('h3, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr);
+            d2h_data_ptr = d2h_data_ptr + 4;
           end
           'h4: begin
-            generic4('h3, host_rx_dl_if_d.data, s2m_drs_pkt, s2m_ndr_pkt[2]);
+            generic4('h3, host_rx_dl_if_d.data, s2m_drs_pkt, s2m_drs_ptr, s2m_ndr_pkt[2], s2m_ndr_ptr);
+            s2m_drs_ptr = s2m_drs_ptr + 1;
+            s2m_ndr_ptr = s2m_ndr_ptr + 2;
           end
           'h5: begin
-            generic5('h3, host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
+            generic5('h3, host_rx_dl_if_d.data, s2m_ndr_pkt[3], s2m_ndr_ptr);
+            s2m_ndr_ptr = s2m_ndr_ptr + 3;
           end
           'h6: begin
-            generic6('h3, host_rx_dl_if_d.data, s2m_drs_pkt[3]);
+            generic6('h3, host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_drs_ptr);
+            s2m_drs_ptr = s2m_drs_ptr + 3;
           end
           default: begin
           
           end
-          endcase
-        end
+        endcase
+      end else if(data_slot[0][0]) begin
+        generic0('h0, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr, s2m_drs_pkt[4], s2m_drs_ptr);
+        //d2h_data_ptr = d2h_data_ptr + 4;
+        //s2m_drs_ptr = s2m_drs_ptr + 4;
       end
     end
   end
@@ -3796,10 +3883,10 @@ module device_rx_path #(
   input logic phy_rst,
   input logic phy_reinit,
   input logic phy_link_up,
-  output h2d_req_txn_t h2d_req_pkt,
-  output h2d_rsp_txn_t h2d_rsp_pkt,
-  output h2d_data_txn_t h2d_data_pkt,
-  output m2s_req_txn_t m2s_req_pkt,
+  output h2d_req_txn_t h2d_req_pkt[2],
+  output h2d_rsp_txn_t h2d_rsp_pkt[4],
+  output h2d_data_txn_t h2d_data_pkt[4],
+  output m2s_req_txn_t m2s_req_pkt[2],
   output m2s_rwd_txn_t m2s_rwd_pkt
 );
 
@@ -3827,9 +3914,16 @@ module device_rx_path #(
   logic retry_req_detect;
   logic retry_ack_detect;
   logic retry_idle_detect;
-  logic data_slot[4];
-  logic data_slot_d[4];
-  
+  logic data_slot[5];
+  logic data_slot_d[5];
+  h2d_data_pkt_t h2d_data_pkt_d[4];
+  m2s_rwd_txn_t m2s_rwd_pkt_d;
+  logic [1:0] h2d_req_ptr;
+  logic [1:0] h2d_rsp_ptr;
+  logic [1:0] h2d_data_ptr;
+  logic [1:0] m2s_req_ptr;
+  logic [1:0] m2s_rwd_ptr;
+
   function void header0(
     input logic [511:0] data,
     output h2d_req_txn_t h2d_req_txn,
@@ -3950,10 +4044,10 @@ module device_rx_path #(
   endfunction
 
   function void generic0(
-    input logic [511:0] data,
     input logic [1:0] slot_sel,
-    inout m2s_rwd_pkt_t m2s_rwd_pkt[4],
-    inout h2d_data_pkt_t h2d_data_pkt[4]
+    input logic [511:0] data,
+    inout h2d_data_pkt_t h2d_data_pkt[4],
+    inout m2s_rwd_pkt_t m2s_rwd_pkt
   );
     if(m2s_rwd_pkt[0].pending_data_slot == 'hf) begin
       if(slot_sel == 1) begin
@@ -3972,26 +4066,30 @@ module device_rx_path #(
     end else if(m2s_rwd_pkt[0].pending_data_slot == 'he) begin
       m2s_rwd_pkt[0].m2s_rwd_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0]; 
       m2s_rwd_pkt[0].pending_data_slot = 'h0;
+      /*TODO: next gen upgrade logic
       if(m2s_rwd_pkt[1].pending_data_slot != 0) begin
         m2s_rwd_pkt[1].m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
         m2s_rwd_pkt[1].pending_data_slot = 'he;
-      end
+      end*/
     end else if(m2s_rwd_pkt[0].pending_data_slot == 'hc) begin
       m2s_rwd_pkt[0].m2s_rwd_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0]; 
       m2s_rwd_pkt[0].pending_data_slot = 'h0;
-      if(m2s_rwd_pkt[1].pending_data_slot != 0) begin
+      //TODO:maybe for future gen where size of rwd is > 1
+      /*if(m2s_rwd_pkt[1].pending_data_slot != 0) begin
         m2s_rwd_pkt[1].m2s_rwd_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
         m2s_rwd_pkt[1].pending_data_slot = 'hc;
-      end
+      end*/
     end else if(m2s_rwd_pkt[0].pending_data_slot == 'h8) begin
       m2s_rwd_pkt[0].m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0]; 
       m2s_rwd_pkt[0].pending_data_slot = 'h0;
-      if(m2s_rwd_pkt[1].pending_data_slot != 0) begin
+      //TODO:maybe for future gen where size of rwd is > 1
+      /*if(m2s_rwd_pkt[1].pending_data_slot != 0) begin
         m2s_rwd_pkt[1].m2s_rwd_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
         m2s_rwd_pkt[1].pending_data_slot = 'h8;
-      end
+      end*/
     end else begin
-      if(m2s_rwd_pkt[1].pending_data_slot == 'hf) begin
+      //TODO:maybe for future gen where size of rwd is > 1
+      /*if(m2s_rwd_pkt[1].pending_data_slot == 'hf) begin
         m2s_rwd_pkt[1].m2s_rwd_txn.data = data;
         m2s_rwd_pkt[1].pending_data_slot = 'h0;
       end else if(m2s_rwd_pkt[1].pending_data_slot == 'he) begin
@@ -4057,7 +4155,7 @@ module device_rx_path #(
             
           end
         end
-      end
+      end*/
     end
 
     if(h2d_data_pkt[0].pending_data_slot == 'hf) begin
@@ -4341,11 +4439,11 @@ module device_rx_path #(
       h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+85)];
       h2d_data_pkt[3].h2d_data_txn.poison      = data[(SLOT1_OFFSET+86)];
       h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+87)];
-      h2d_rsp_txn.h2d_data_txn.valid           = data[(SLOT1_OFFSET+96)];
-      h2d_rsp_txn.h2d_data_txn.opcode          = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)];
-      h2d_rsp_txn.h2d_data_txn.rspdata         = data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)];
-      h2d_rsp_txn.h2d_data_txn.rsppre          = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
-      h2d_rsp_txn.h2d_data_txn.cqid            = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
+      h2d_rsp_txn.valid                        = data[(SLOT1_OFFSET+96)];
+      h2d_rsp_txn.opcode                       = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)];
+      h2d_rsp_txn.rspdata                      = data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)];
+      h2d_rsp_txn.rsppre                       = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
+      h2d_rsp_txn.cqid                         = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
     end else if(slot_sel == 'h2) begin
       h2d_data_pkt[0].pending_data_slot        = 'hf;
       h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT2_OFFSET+0)];
@@ -4371,11 +4469,11 @@ module device_rx_path #(
       h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+85)];
       h2d_data_pkt[3].h2d_data_txn.poison      = data[(SLOT2_OFFSET+86)];
       h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+87)];
-      h2d_rsp_txn.h2d_data_txn.valid           = data[(SLOT2_OFFSET+96)];
-      h2d_rsp_txn.h2d_data_txn.opcode          = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
-      h2d_rsp_txn.h2d_data_txn.rspdata         = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
-      h2d_rsp_txn.h2d_data_txn.rsppre          = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
-      h2d_rsp_txn.h2d_data_txn.cqid            = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];    
+      h2d_rsp_txn.valid                        = data[(SLOT2_OFFSET+96)];
+      h2d_rsp_txn.opcode                       = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
+      h2d_rsp_txn.rspdata                      = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+      h2d_rsp_txn.rsppre                       = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+      h2d_rsp_txn.cqid                         = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];    
     end else if(slot_sel == 'h3) begin
       h2d_data_pkt[0].pending_data_slot        = 'hf;
       h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT2_OFFSET+0)];
@@ -4401,17 +4499,17 @@ module device_rx_path #(
       h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+85)];
       h2d_data_pkt[3].h2d_data_txn.poison      = data[(SLOT2_OFFSET+86)];
       h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+87)];
-      h2d_rsp_txn.h2d_data_txn.valid           = data[(SLOT2_OFFSET+96)];
-      h2d_rsp_txn.h2d_data_txn.opcode          = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
-      h2d_rsp_txn.h2d_data_txn.rspdata         = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
-      h2d_rsp_txn.h2d_data_txn.rsppre          = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
-      h2d_rsp_txn.h2d_data_txn.cqid            = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];   
+      h2d_rsp_txn.valid                        = data[(SLOT2_OFFSET+96)];
+      h2d_rsp_txn.opcode                       = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
+      h2d_rsp_txn.rspdata                      = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+      h2d_rsp_txn.rsppre                       = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+      h2d_rsp_txn.cqid                         = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];   
     end else begin
       h2d_data_pkt[0].h2d_data_txn.valid = 'hX;
       h2d_data_pkt[1].h2d_data_txn.valid = 'hX;
       h2d_data_pkt[2].h2d_data_txn.valid = 'hX;
       h2d_data_pkt[3].h2d_data_txn.valid = 'hX;
-      h2d_rsp_txn.h2d_data_txn.valid = 'hX;
+      h2d_rsp_txn.valid                  = 'hX;
     end
 
   endfunction
@@ -4420,8 +4518,7 @@ module device_rx_path #(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
     output m2s_req_txn_t m2s_req_txn,
-    output h2d_data_pkt_t h2d_data_pkt,
-    output [127:0] data_q[4]
+    output h2d_data_pkt_t h2d_data_pkt
   );
 
     if(slot_sel == 'h1) begin
@@ -4538,10 +4635,48 @@ module device_rx_path #(
 
   endfunction
 
+  always@(posedge dev_rx_dl_if.clk) begin
+    if(!dev_rx_dl_if.rstn) begin
+      //TODO: not sure if this foreach will initialize for all indeces
+      foreach(data_slot[i]) data_slot[i] <= 'h0;
+      foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
+    end else begin
+      if(dev_rx_dl_if_d.valid && retryable_flit) begin
+        data_slot[0] <= data_slot[1];
+        data_slot[1] <= data_slot[2];
+        data_slot[2] <= data_slot[3];
+        data_slot[3] <= data_slot[4];
+        data_slot[4] <= 'h0;
+      end
+      data_slot_d[0] <= data_slot[0];
+      data_slot_d[1] <= data_slot[1];
+      data_slot_d[2] <= data_slot[2];
+      data_slot_d[3] <= data_slot[3];
+      data_slot_d[4] <= data_slot[4];
+      m2s_rwd_pkt_d.pending_data_slot     <= m2s_rwd_pkt.pending_data_slot;
+      h2d_data_pkt_d[0].pending_data_slot <= h2d_data_pkt[0].pending_data_slot;
+      h2d_data_pkt_d[1].pending_data_slot <= h2d_data_pkt[1].pending_data_slot;
+      h2d_data_pkt_d[2].pending_data_slot <= h2d_data_pkt[2].pending_data_slot;
+      h2d_data_pkt_d[3].pending_data_slot <= h2d_data_pkt[3].pending_data_slot;
+    end
+  end
+  
   //TODO: put the packing logic restrictions in the arbiter logic itself so here I do not need to worry why I am getting illegal pkts we can have assertions to catch the max sub pkts that can be packed
   //TODO: put asserts to catch if there any illegal values on Hslots or Gslots otherwise bellow logic will be very hard to debug
   always_comb begin
-    if(dev_rx_dl_if_d.valid && !data_slot_d[0][0]) begin 
+    if(dev_rx_dl_if_d.valid && retryable_flit && 
+        (!data_slot_d[0][3] || 
+          ((data_slot_d[0] == 'hf) && 
+            (
+              (h2d_data_pkt_d[0].pending_data_slot == 'h0) &&
+              (h2d_data_pkt_d[1].pending_data_slot == 'h0) &&
+              (h2d_data_pkt_d[2].pending_data_slot == 'h0) &&
+              (h2d_data_pkt_d[3].pending_data_slot == 'h0) &&
+              (m2s_rwd_pkt_d.pending_data_slot == 'h0)
+            )
+          )
+        )
+      ) begin 
       if(dev_rx_dl_if_d.data[7:5] == 'h4) begin
         data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;//need to add what happens when slot 1 is g slot
         if((dev_rx_dl_if_d.data[10:8] == 'h1) || (dev_rx_dl_if_d.data[10:8] == 'h5)) begin
@@ -4578,120 +4713,154 @@ module device_rx_path #(
       end else begin
         data_slot[0] = 'he; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h1;
       end
-    end else if(dev_rx_dl_if_d.valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
-      data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
+    //end else if(dev_rx_dl_if_d.valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
+      //data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
     end
-  end
-  
-  always@(posedge dev_rx_dl_if.clk) begin
-    if(!dev_rx_dl_if.rstn) begin
-      //TODO: not sure if this foreach will initialize for all indeces
-      foreach(data_slot[i]) data_slot[i] <= 'h0;
-      foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
-    end else begin
-      data_slot_d[0] <= data_slot[0];
-      data_slot_d[1] <= data_slot[1];
-      data_slot_d[2] <= data_slot[2];
-      data_slot_d[3] <= data_slot[3];
-      data_slot_d[4] <= data_slot[4];
-      if(dev_rx_dl_if_d.valid && retryable_flit) begin
-        if(!data_slot[0][0]) begin
-          case(dev_rx_dl_if_d.data[7:5])
+    
+    if(dev_rx_dl_if_d.valid && retryable_flit) begin
+      if(!data_slot[0][0]) begin
+        case(dev_rx_dl_if_d.data[7:5])
           'h0: begin
-            header0(dev_rx_dl_if_d.data, h2d_req_pkt, h2d_rsp_pkt);
+            header0(dev_rx_dl_if_d.data, h2d_req_pkt, h2d_req_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
+            h2d_req_ptr = h2d_req_ptr + 1;
+            h2d_rsp_ptr = h2d_rsp_ptr + 1;
           end
           'h1: begin
-            header1(dev_rx_dl_if_d.data, h2d_data_pkt, h2d_rsp_pkt[2]);
+            header1(dev_rx_dl_if_d.data, h2d_data_pkt, h2d_data_ptr, h2d_rsp_pkt[2], h2d_rsp_ptr);
+            h2d_data_ptr = h2d_data_ptr + 1;
+            h2d_rsp_ptr = h2d_rsp_ptr + 2;
           end
           'h2: begin
-            header2(dev_rx_dl_if_d.data, h2d_req_pkt, h2d_data_pkt);
+            header2(dev_rx_dl_if_d.data, h2d_req_pkt, h2d_req_ptr, h2d_data_pkt, h2d_data_ptr);
+            h2d_req_ptr = h2d_req_ptr + 1;
+            h2d_data_ptr = h2d_data_ptr + 1;
           end
           'h3: begin
-            header3(dev_rx_dl_if_d.data, h2d_data_pkt[4]);
+            header3(dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr);
+            h2d_data_ptr = h2d_data_ptr + 4;
           end
           'h4: begin
-            header4(dev_rx_dl_if_d.data, m2s_rwd_pkt);
+            header4(dev_rx_dl_if_d.data, m2s_rwd_pkt, m2s_rwd_ptr);
+            m2s_rwd_ptr = m2s_rwd_ptr + 1;
           end
           'h5: begin
-            header5(dev_rx_dl_if_d.data, m2s_req_pkt);
+            header5(dev_rx_dl_if_d.data, m2s_req_pkt, m2s_req_ptr);
+            m2s_req_ptr = m2s_req_ptr + 1;
           end
           default: begin
 
           end
-          endcase
-          case(dev_rx_dl_if_d.data[10:8])
+        endcase
+        case(dev_rx_dl_if_d.data[10:8])
           'h0: begin
-            generic0('h1, dev_rx_dl_if_d.data);
+            generic0('h1, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, m2s_rwd_pkt, m2s_rwd_ptr);
+            //h2d_data_ptr = h2d_data_ptr + 4;
+            //m2s_rwd_ptr = m2s_rwd_ptr + 1;
           end
           'h1: begin
-            generic1('h1, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
+            generic1('h1, dev_rx_dl_if_d.data, h2d_rsp_pkt[4], h2d_rsp_ptr);
+            h2d_rsp_ptr = h2d_rsp_ptr + 4;
           end
           'h2: begin
-            generic2('h1, dev_rx_dl_if_d.data, h2d_req_pkt, h2d_data_pkt, h2d_rsp_pkt);
+            generic2('h1, dev_rx_dl_if_d.data, h2d_req_pkt, h2d_req_ptr, h2d_data_pkt, h2d_data_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
+            h2d_req_ptr = h2d_req_ptr + 1;
+            h2d_data_ptr = h2d_data_ptr + 1;
+            h2d_rsp_ptr = h2d_rsp_ptr + 1;
           end
           'h3: begin
-            generic3('h1, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt);
+            generic3('h1, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
+            h2d_data_ptr = h2d_data_ptr + 4;
+            h2d_rsp_ptr = h2d_rsp_ptr + 1;
           end
           'h4: begin
-            generic4('h1, dev_rx_dl_if_d.data, m2s_req_pkt, h2d_data_pkt);
+            generic4('h1, dev_rx_dl_if_d.data, m2s_req_pkt, m2s_req_ptr, h2d_data_pkt, h2d_data_ptr);
+            m2s_req_ptr = m2s_req_ptr + 1;
+            h2d_data_ptr = h2d_data_ptr + 1;
           end
           'h5: begin
-            generic5('h1, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt);
+            generic5('h1, dev_rx_dl_if_d.data, m2s_rwd_pkt, m2s_rwd_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
+            m2s_rwd_ptr = m2s_rwd_ptr + 1;
+            h2d_rsp_ptr = h2d_rsp_ptr + 1;
           end
           default: begin
           
           end
-          endcase
-          case(dev_rx_dl_if_d.data[13:11])
+        endcase
+        case(dev_rx_dl_if_d.data[13:11])
           'h0: begin
-            generic0('h2, dev_rx_dl_if_d.data);
+            generic0('h2, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, m2s_rwd_pkt, m2s_rwd_ptr);
+            //h2d_data_ptr = h2d_data_ptr + 4;
+            //m2s_rwd_ptr = m2s_rwd_ptr + 1;
           end
           'h1: begin
-            generic1('h2, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
+            generic1('h2, dev_rx_dl_if_d.data, h2d_rsp_pkt[4], h2d_rsp_ptr);
+            h2d_rsp_ptr = h2d_rsp_ptr + 4;
           end
           'h2: begin
-            generic2('h2, dev_rx_dl_if_d.data, h2d_req_pkt, h2d_data_pkt, h2d_rsp_pkt);
+            generic2('h2, dev_rx_dl_if_d.data, h2d_req_pkt, h2d_req_ptr, h2d_data_pkt, h2d_data_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
+            h2d_req_ptr = h2d_req_ptr + 1;
+            h2d_data_ptr = h2d_data_ptr + 1;
+            h2d_rsp_ptr = h2d_rsp_ptr + 1;
           end
           'h3: begin
-            generic3('h2, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt);
+            generic3('h2, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
+            h2d_data_ptr = h2d_data_ptr + 4;
+            h2d_rsp_ptr = h2d_rsp_ptr + 1;
           end
           'h4: begin
-            generic4('h2, dev_rx_dl_if_d.data, m2s_req_pkt, h2d_data_pkt);
+            generic4('h2, dev_rx_dl_if_d.data, m2s_req_pkt, m2s_req_ptr, h2d_data_pkt, h2d_data_ptr);
+            m2s_req_ptr = m2s_req_ptr + 1;
+            h2d_data_ptr = h2d_data_ptr + 1;
           end
           'h5: begin
-            generic5('h2, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt);
+            generic5('h2, dev_rx_dl_if_d.data, m2s_rwd_pkt, m2s_rwd_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
+            m2s_rwd_ptr = m2s_rwd_ptr + 1;
+            h2d_rsp_ptr = h2d_rsp_ptr + 1;
           end
           default: begin
           
           end
-          endcase
-          case(dev_rx_dl_if_d.data[16:14])
+        endcase
+        case(dev_rx_dl_if_d.data[16:14])
           'h0: begin
-            generic0('h3, dev_rx_dl_if_d.data);
+            generic0('h3, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, m2s_rwd_pkt, m2s_rwd_ptr);
+            //h2d_data_ptr = h2d_data_ptr + 4;
+            //m2s_rwd_ptr = m2s_rwd_ptr + 1;
           end
           'h1: begin
-            generic1('h3, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
+            generic1('h3, dev_rx_dl_if_d.data, h2d_rsp_pkt[4], h2d_rsp_ptr);
+            h2d_rsp_ptr = h2d_rsp_ptr + 4;
           end
           'h2: begin
-            generic2('h3, dev_rx_dl_if_d.data, h2d_req_pkt, h2d_data_pkt, h2d_rsp_pkt);
+            generic2('h3, dev_rx_dl_if_d.data, h2d_req_pkt, h2d_req_ptr, h2d_data_pkt, h2d_data_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
+            h2d_req_ptr = h2d_req_ptr + 1;
+            h2d_data_ptr = h2d_data_ptr + 1;
+            h2d_rsp_ptr = h2d_rsp_ptr + 1;
           end
           'h3: begin
-            generic3('h3, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt);
+            generic3('h3, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
+            h2d_data_ptr = h2d_data_ptr + 4;
+            h2d_rsp_ptr = h2d_rsp_ptr + 1;
           end
           'h4: begin
-            generic4('h3, dev_rx_dl_if_d.data, m2s_req_pkt, h2d_data_pkt);
+            generic4('h3, dev_rx_dl_if_d.data, m2s_req_pkt, m2s_req_ptr, h2d_data_pkt, h2d_data_ptr);
+            m2s_req_ptr = m2s_req_ptr + 1;
+            h2d_data_ptr = h2d_data_ptr + 1;
           end
           'h5: begin
-            generic5('h3, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt);
+            generic5('h3, dev_rx_dl_if_d.data, m2s_rwd_pkt, m2s_rwd_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
+            m2s_rwd_ptr = m2s_rwd_ptr + 1;
+            h2d_rsp_ptr = h2d_rsp_ptr + 1;
           end
           default: begin
           
           end
-          endcase
-        end
+        endcase
+      end else if(data_slot[0][0]) begin
+          generic0('h0, dev_rx_dl_if_d.data, h2d_data_pkt[4], m2s_rwd_pkt);
       end
     end
-  end
+  end 
 
   cxl_lrsm_rrsm cxl_lrsm_rrsm_inst#(
 
