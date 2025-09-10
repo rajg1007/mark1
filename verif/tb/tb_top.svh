@@ -2897,7 +2897,7 @@ module host_rx_path #(
   function void generic0(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    inout d2h_req_pkt_t d2h_data_pkt[4],
+    inout d2h_req_txn_t d2h_data_pkt[4],
     inout s2m_drs_pkt_t s2m_drs_pkt[3]
   );
     
@@ -5086,7 +5086,13 @@ module buffer#(
   	input logic trval,
   	input logic qrval,
   	input logic wval,
+  	input logic dwval,
+  	input logic twval,
+  	input logic qwval,
     input FIFO_DATA_TYPE datain,
+    input FIFO_DATA_TYPE ddatain,
+    input FIFO_DATA_TYPE tdatain,
+    input FIFO_DATA_TYPE qdatain,
     output FIFO_DATA_TYPE dataout,
     output FIFO_DATA_TYPE ddataout,
     output FIFO_DATA_TYPE tdataout,
@@ -5233,6 +5239,11 @@ module cxl_host
   m2s_rwd_txn_t m2s_rwd_ddataout;
   m2s_rwd_txn_t m2s_rwd_qdataout;
 
+  d2h_req_txn_t d2h_req_pkt[4];
+  d2h_rsp_txn_t d2h_rsp_pkt[2];
+  d2h_data_pkt_t d2h_data_pkt[4];
+  s2m_ndr_txn_t s2m_ndr_pkt[3];
+  s2m_drs_pkt_t s2m_drs_pkt[3];
 
   buffer d2h_req_fifo_inst#(
     DEPTH = 32,
@@ -5242,8 +5253,14 @@ module cxl_host
 	  .clk(host_d2h_req_if.clk),
   	.rstn(host_d2h_req_if.rstn),
   	.rval(host_d2h_req_if.ready),
-  	.wval,
-    .datain,
+  	.wval(d2h_req_txn[0].valid),
+  	.dwval(d2h_req_txn[1].valid),
+  	.twval(d2h_req_txn[2].valid),
+  	.qwval(d2h_req_txn[3].valid),
+    .datain(d2h_req_txn[0]),
+    .ddatain(d2h_req_txn[1]),
+    .tdatain(d2h_req_txn[2]),
+    .qdatain(d2h_req_txn[3]),
     .dataout(host_d2h_req_if.d2h_req_txn),
   	.eseq,
   	.wptr,
@@ -5263,8 +5280,10 @@ module cxl_host
 	  .clk(host_d2h_rsp_if.clk),
   	.rstn(host_d2h_rsp_if.rstn),
   	.rval(host_d2h_rsp_if.ready),
-  	.wval,
-    .datain,
+  	.wval(d2h_rsp_pkt[0].valid),
+  	.dwval(d2h_rsp_pkt[1].valid),
+    .datain(d2h_rsp_pkt[0]),
+    .ddatain(d2h_rsp_pkt[1]),
     .dataout(host_d2h_rsp_if.d2h_rsp_txn),
   	.eseq,
   	.wptr,
@@ -5284,8 +5303,12 @@ module cxl_host
 	  .clk(host_d2h_data_if.clk),
   	.rstn(host_d2h_data_if.rstn),
   	.rval(host_d2h_data_if.ready),
-  	.wval,
-    .datain,
+  	.wval(((d2h_data_pkt[0].d2h_data_txn.valid) && (!(|d2h_data_pkt[0].pending_data_slot)))),
+  	.qwval(((d2h_data_pkt[3].d2h_data_txn.valid) && (!(|d2h_data_pkt[3].pending_data_slot)))),
+    .datain(d2h_data_pkt[0].d2h_data_txn),
+    .ddatain(d2h_data_pkt[1].d2h_data_txn),
+    .tdatain(d2h_data_pkt[2].d2h_data_txn),
+    .qdatain(d2h_data_pkt[3].d2h_data_txn),
     .dataout(host_d2h_data_if.d2h_data_txn),
   	.eseq,
   	.wptr,
@@ -5305,8 +5328,12 @@ module cxl_host
 	  .clk(host_s2m_ndr_if.clk),
   	.rstn(host_s2m_ndr_if.rstn),
   	.rval(host_s2m_ndr_if.ready),
-  	.wval,
-    .datain,
+  	.wval(s2m_ndr_txn[0].valid),
+  	.dwval(s2m_ndr_txn[1].valid),
+  	.twval(s2m_ndr_txn[2].valid),
+    .datain(s2m_ndr_txn[0]),
+    .ddatain(s2m_ndr_txn[1]),
+    .tdatain(s2m_ndr_txn[2]),
     .dataout(host_s2m_ndr_if.s2m_ndr_txn),
   	.eseq,
   	.wptr,
@@ -5326,8 +5353,12 @@ module cxl_host
 	  .clk(host_s2m_drs_if.clk),
   	.rstn(host_s2m_drs_if.rstn),
   	.rval(host_s2m_drs_if.ready),
-  	.wval,
-    .datain,
+  	.wval(((s2m_drs_pkt[0].s2m_drs_txn.valid) && (!(|s2m_drs_pkt[0].pending_data_slot)))),
+  	.dwval(((s2m_drs_pkt[1].s2m_drs_txn.valid) && (!(|s2m_drs_pkt[1].pending_data_slot)))),
+  	.twval(((s2m_drs_pkt[2].s2m_drs_txn.valid) && (!(|s2m_drs_pkt[2].pending_data_slot)))),
+    .datain(s2m_drs_pkt[0].s2m_drs_txn),
+    .ddatain(s2m_drs_pkt[1].s2m_drs_txn),
+    .tdatain(s2m_drs_pkt[2].s2m_drs_txn),
     .dataout(host_s2m_drs_if.s2m_drs_txn),
   	.eseq,
   	.wptr,
@@ -5548,6 +5579,12 @@ module cxl_device
   s2m_drs_txn_t s2m_drs_tdataout;
   s2m_drs_txn_t s2m_drs_qdataout;
 
+  h2d_req_txn_t h2d_req_txn[2];
+  h2d_rsp_txn_t h2d_rsp_txn[4];
+  h2d_data_pkt_t h2d_data_pkt[4];
+  m2s_req_txn_t m2s_req_pkt[2];
+  m2s_rwd_pkt_t m2s_rwd_pkt;
+
   buffer d2h_req_fifo_inst#(
     DEPTH = 32,
     ADDR_WIDTH = 5,
@@ -5691,8 +5728,10 @@ module cxl_device
 	  .clk(dev_m2s_req_if.clk),
   	.rstn(dev_m2s_req_if.rstn),
   	.rval(dev_m2s_req_if.ready),
-  	.wval,
-    .datain,
+  	.wval(m2s_req_txn[0].valid),
+  	.dwval(m2s_req_txn[1].valid),
+    .datain(m2s_req_txn[0]),
+    .ddatain(m2s_req_txn[1]),
     .dataout(dev_m2s_req_if.m2s_req_txn),
   	.eseq,
   	.wptr,
@@ -5712,8 +5751,8 @@ module cxl_device
 	  .clk(dev_m2s_rwd_if.clk),
   	.rstn(dev_m2s_rwd_if.rstn),
   	.rval(dev_m2s_rwd_if.ready),
-  	.wval,
-    .datain,
+  	.wval(((m2s_rwd_pkt.m2s_rwd_txn.valid) && (!(|m2s_rwd_pkt.pending_data_slot)))),
+    .datain(m2s_rwd_pkt.m2s_rwd_txn),
     .dataout(dev_m2s_rwd_if.m2s_rwd_txn),
   	.eseq,
   	.wptr,
@@ -5733,8 +5772,10 @@ module cxl_device
 	  .clk(dev_h2d_req_if.clk),
   	.rstn(dev_h2d_req_if.rstn),
   	.rval(dev_h2d_req_if.ready),
-  	.wval,
-    .datain,
+  	.wval(h2d_req_txn[0].valid),
+  	.dwval(h2d_req_txn[1].valid),
+    .datain(h2d_req_txn[0]),
+    .ddatain(h2d_req_txn[1]),
     .dataout(dev_h2d_req_if.h2d_req_txn),
   	.eseq,
   	.wptr,
@@ -5754,8 +5795,14 @@ module cxl_device
 	  .clk(dev_h2d_rsp_if.clk),
   	.rstn(dev_h2d_rsp_if.rstn),
   	.rval(dev_h2d_rsp_if.ready),
-  	.wval,
-    .datain,
+  	.wval(h2d_rsp_txn[0].valid),
+  	.dwval(h2d_rsp_txn[1].valid),
+  	.twval(h2d_rsp_txn[2].valid),
+  	.qwval(h2d_rsp_txn[3].valid),
+    .datain(h2d_rsp_txn[0]),
+    .ddatain(h2d_rsp_txn[1]),
+    .tdatain(h2d_rsp_txn[2]),
+    .qdatain(h2d_rsp_txn[3]),
     .dataout(dev_h2d_rsp_if.h2d_rsp_txn),
   	.eseq,
   	.wptr,
@@ -5775,8 +5822,12 @@ module cxl_device
 	  .clk(dev_h2d_data_if.clk),
   	.rstn(dev_h2d_data_if.rstn),
   	.rval(dev_h2d_data_if.ready),
-  	.wval,
-    .datain,
+  	.wval(((h2d_data_pkt[0].h2d_data_txn.valid) && (!(|h2d_data_pkt[0].pending_data_slot)))),
+  	.wval(((h2d_data_pkt[3].h2d_data_txn.valid) && (!(|h2d_data_pkt[3].pending_data_slot)))),
+  	.datain(h2d_data_pkt[0].h2d_data_txn),
+  	.ddatain(h2d_data_pkt[1].h2d_data_txn),
+  	.tdatain(h2d_data_pkt[2].h2d_data_txn),
+  	.qdatain(h2d_data_pkt[3].h2d_data_txn),
     .dataout(dev_h2d_data_if.h2d_data_txn),
   	.eseq,
   	.wptr,
