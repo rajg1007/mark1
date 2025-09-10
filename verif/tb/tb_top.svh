@@ -2714,11 +2714,11 @@ module host_rx_path #(
   input logic phy_rst,
   input logic phy_reinit,
   input logic phy_link_up
-  output d2h_req_txn_t d2h_req_pkt,
-  output d2h_rsp_txn_t d2h_rsp_pkt,
-  output d2h_data_pkt_t d2h_data_pkt,
-  output s2m_ndr_txn_t s2m_ndr_pkt,
-  output s2m_drs_pkt_t s2m_drs_pkt
+  output d2h_req_txn_t d2h_req_pkt[4],
+  output d2h_rsp_txn_t d2h_rsp_pkt[2],
+  output d2h_data_pkt_t d2h_data_pkt[4],
+  output s2m_ndr_txn_t s2m_ndr_pkt[3],
+  output s2m_drs_pkt_t s2m_drs_pkt[3]
 );
 
   typedef enum {
@@ -2749,63 +2749,58 @@ module host_rx_path #(
   logic data_slot_d[5];
   d2h_data_pkt_t d2h_data_pkt_d[4];
   s2m_drs_pkt_t s2m_drs_pkt_d[3];
-  logic [1:0] d2h_req_ptr;
-  logic [1:0] d2h_rsp_ptr;
-  logic [1:0] d2h_data_ptr;
-  logic [1:0] s2m_ndr_ptr;
-  logic [1:0] s2m_drs_ptr;
 
   function void header0(
     input logic [511:0] data, 
-    output d2h_data_pkt_t d2h_data_pkt, 
+    output d2h_data_pkt_t d2h_data_pkt[4], 
     output d2h_rsp_txn_t d2h_rsp_txn[2], 
-    output s2m_ndr_txn_t s2m_ndr_txn
+    output s2m_ndr_txn_t s2m_ndr_txn[3]
   );
 
-    d2h_data_pkt.pending_data_slot          = 'hf;
-    d2h_data_pkt.d2h_data_txn.valid         = data[32];
-    d2h_data_pkt.d2h_data_txn.uqid          = data[44:33];
-    d2h_data_pkt.d2h_data_txn.chunkvalid    = data[45];
-    d2h_data_pkt.d2h_data_txn.bogus         = data[46];
-    d2h_data_pkt.d2h_data_txn.poison        = data[47];
-    d2h_rsp_txn[0].valid                    = data[49];
-    d2h_rsp_txn[0].opcode                   = data[54:50];
-    d2h_rsp_txn[0].uqid                     = data[66:55];
-    d2h_rsp_txn[1].valid                    = data[69];
-    d2h_rsp_txn[1].opcode                   = data[74:70];
-    d2h_rsp_txn[1].uqid                     = data[86:75];
-    s2m_ndr_txn.valid                       = data[89];
-    s2m_ndr_txn.memopcode                   = data[92:90];
-    s2m_ndr_txn.metafield                   = data[94:93];
-    s2m_ndr_txn.metavalue                   = data[96:95];
-    s2m_ndr_txn.tag                         = data[112:97];
+    d2h_data_pkt[0].pending_data_slot          = 'hf;
+    d2h_data_pkt[0].d2h_data_txn.valid         = data[32];
+    d2h_data_pkt[0].d2h_data_txn.uqid          = data[44:33];
+    d2h_data_pkt[0].d2h_data_txn.chunkvalid    = data[45];
+    d2h_data_pkt[0].d2h_data_txn.bogus         = data[46];
+    d2h_data_pkt[0].d2h_data_txn.poison        = data[47];
+    d2h_rsp_txn[0].valid                       = data[49];
+    d2h_rsp_txn[0].opcode                      = data[54:50];
+    d2h_rsp_txn[0].uqid                        = data[66:55];
+    d2h_rsp_txn[1].valid                       = data[69];
+    d2h_rsp_txn[1].opcode                      = data[74:70];
+    d2h_rsp_txn[1].uqid                        = data[86:75];
+    s2m_ndr_txn[0].valid                       = data[89];
+    s2m_ndr_txn[0].memopcode                   = data[92:90];
+    s2m_ndr_txn[0].metafield                   = data[94:93];
+    s2m_ndr_txn[0].metavalue                   = data[96:95];
+    s2m_ndr_txn[0].tag                         = data[112:97];
 
   endfunction
 
   function void header1(
     input logic [511:0] data, 
-    output d2h_req_txn_t d2h_req_txn, 
-    output d2h_data_pkt_t d2h_data_pkt
+    output d2h_req_txn_t d2h_req_txn[4], 
+    output d2h_data_pkt_t d2h_data_pkt[4]
   );
 
-    d2h_req_txn.valid                     = data[32];
-    d2h_req_txn.opcode                    = data[37:33];
-    d2h_req_txn.cqid                      = data[49:38];
-    d2h_req_txn.nt                        = data[50];
-    d2h_req_txn.address                   = data[103:58];
-    d2h_data_pkt.pending_data_slot        = 'hf;
-    d2h_data_pkt.d2h_data_txn.valid       = data[111];
-    d2h_data_pkt.d2h_data_txn.uqid        = data[123:112];
-    d2h_data_pkt.d2h_data_txn.chunkvalid  = data[124];
-    d2h_data_pkt.d2h_data_txn.bogus       = data[125];
-    d2h_data_pkt.d2h_data_txn.poison      = data[126];
+    d2h_req_txn[0].valid                     = data[32];
+    d2h_req_txn[0].opcode                    = data[37:33];
+    d2h_req_txn[0].cqid                      = data[49:38];
+    d2h_req_txn[0].nt                        = data[50];
+    d2h_req_txn[0].address                   = data[103:58];
+    d2h_data_pkt[0].pending_data_slot        = 'hf;
+    d2h_data_pkt[0].d2h_data_txn.valid       = data[111];
+    d2h_data_pkt[0].d2h_data_txn.uqid        = data[123:112];
+    d2h_data_pkt[0].d2h_data_txn.chunkvalid  = data[124];
+    d2h_data_pkt[0].d2h_data_txn.bogus       = data[125];
+    d2h_data_pkt[0].d2h_data_txn.poison      = data[126];
 
   endfunction
 
   function void header2(
     input logic [511:0] data, 
     output d2h_data_pkt_t d2h_data_pkt[4], 
-    output d2h_rsp_txn_t d2h_rsp_txn
+    output d2h_rsp_txn_t d2h_rsp_txn[2]
   );
 
     d2h_data_pkt[0].pending_data_slot        = 'hf;
@@ -2832,36 +2827,36 @@ module host_rx_path #(
     d2h_data_pkt[3].d2h_data_txn.chunkvalid  = data[96];
     d2h_data_pkt[3].d2h_data_txn.bogus       = data[97];
     d2h_data_pkt[3].d2h_data_txn.poison      = data[98];
-    d2h_rsp_txn.valid                        = data[100];
-    d2h_rsp_txn.opcode                       = data[105:101];
-    d2h_rsp_txn.uqid                         = data[117:106];
+    d2h_rsp_txn[0].valid                     = data[100];
+    d2h_rsp_txn[0].opcode                    = data[105:101];
+    d2h_rsp_txn[0].uqid                      = data[117:106];
 
   endfunction
 
   function void header3(
     input logic [511:0] data, 
-    output s2m_drs_pkt_t s2m_drs_pkt, 
-    output s2m_ndr_txn_t s2m_ndr_txn
+    output s2m_drs_pkt_t s2m_drs_pkt[3], 
+    output s2m_ndr_txn_t s2m_ndr_txn[3]
   );
 
-    s2m_drs_pkt.pending_data_slot        = 'hf;
-    s2m_drs_pkt.s2m_drs_txn.valid        = data[32];
-    s2m_drs_pkt.s2m_drs_txn.memopcode    = data[35:33];
-    s2m_drs_pkt.s2m_drs_txn.metafield    = data[37:36];
-    s2m_drs_pkt.s2m_drs_txn.metavalue    = data[39:38];
-    s2m_drs_pkt.s2m_drs_txn.tag          = data[55:40];
-    s2m_drs_pkt.s2m_drs_txn.poison       = data[56];
-    s2m_ndr_txn.valid                    = data[72];
-    s2m_ndr_txn.memopcode                = data[75:73];
-    s2m_ndr_txn.metafield                = data[77:76];
-    s2m_ndr_txn.metavalue                = data[79:78];
-    s2m_ndr_txn.tag                      = data[95:80];
+    s2m_drs_pkt[0].pending_data_slot        = 'hf;
+    s2m_drs_pkt[0].s2m_drs_txn.valid        = data[32];
+    s2m_drs_pkt[0].s2m_drs_txn.memopcode    = data[35:33];
+    s2m_drs_pkt[0].s2m_drs_txn.metafield    = data[37:36];
+    s2m_drs_pkt[0].s2m_drs_txn.metavalue    = data[39:38];
+    s2m_drs_pkt[0].s2m_drs_txn.tag          = data[55:40];
+    s2m_drs_pkt[0].s2m_drs_txn.poison       = data[56];
+    s2m_ndr_txn[0].valid                    = data[72];
+    s2m_ndr_txn[0].memopcode                = data[75:73];
+    s2m_ndr_txn[0].metafield                = data[77:76];
+    s2m_ndr_txn[0].metavalue                = data[79:78];
+    s2m_ndr_txn[0].tag                      = data[95:80];
 
   endfunction
 
   function void header4(
     input logic [511:0] data, 
-    output s2m_ndr_txn_t s2m_ndr_txn[2]
+    output s2m_ndr_txn_t s2m_ndr_txn[3]
   );
 
     s2m_ndr_txn[0].valid        = data[32];
@@ -2879,7 +2874,7 @@ module host_rx_path #(
 
   function void header5(
     input logic [511:0] data, 
-    output s2m_drs_pkt_t s2m_drs_pkt[2]
+    output s2m_drs_pkt_t s2m_drs_pkt[3]
   );
 
     s2m_drs_pkt[0].pending_data_slot        = 'hf;
@@ -2903,7 +2898,7 @@ module host_rx_path #(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
     inout d2h_req_pkt_t d2h_data_pkt[4],
-    inout s2m_drs_pkt_t s2m_drs_pkt[4]
+    inout s2m_drs_pkt_t s2m_drs_pkt[3]
   );
     
     if(s2m_drs_pkt[0].pending_data_slot == 'hf) begin
@@ -3123,48 +3118,48 @@ module host_rx_path #(
   function void generic1(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output d2h_req_txn_t d2h_req_txn,
+    output d2h_req_txn_t d2h_req_txn[4],
     output d2h_rsp_txn_t d2h_rsp_txn[2]
   );
 
     if(slot_sel == 'h1) begin
-      d2h_req_txn.valid        = data[(SLOT1_OFFSET+0)];
-      d2h_req_txn.opcode       = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)];
-      d2h_req_txn.cqid         = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
-      d2h_req_txn.nt           = data[(SLOT1_OFFSET+18)];
-      d2h_req_txn.address      = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
-      d2h_rsp_txn[0].valid     = data[(SLOT1_OFFSET+79)];
-      d2h_rsp_txn[0].opcode    = data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+80)];
-      d2h_rsp_txn[0].uqid      = data[(SLOT1_OFFSET+96):(SLOT1_OFFSET+85)];
-      d2h_rsp_txn[1].valid     = data[(SLOT1_OFFSET+99)];
-      d2h_rsp_txn[1].opcode    = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+100)];
-      d2h_rsp_txn[1].uqid      = data[(SLOT1_OFFSET+116):(SLOT1_OFFSET+105)];
+      d2h_req_txn[0].valid        = data[(SLOT1_OFFSET+0)];
+      d2h_req_txn[0].opcode       = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)];
+      d2h_req_txn[0].cqid         = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
+      d2h_req_txn[0].nt           = data[(SLOT1_OFFSET+18)];
+      d2h_req_txn[0].address      = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
+      d2h_rsp_txn[0].valid        = data[(SLOT1_OFFSET+79)];
+      d2h_rsp_txn[0].opcode       = data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+80)];
+      d2h_rsp_txn[0].uqid         = data[(SLOT1_OFFSET+96):(SLOT1_OFFSET+85)];
+      d2h_rsp_txn[1].valid        = data[(SLOT1_OFFSET+99)];
+      d2h_rsp_txn[1].opcode       = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+100)];
+      d2h_rsp_txn[1].uqid         = data[(SLOT1_OFFSET+116):(SLOT1_OFFSET+105)];
     end else if(slot_sel == 'h2) begin
-      d2h_req_txn.valid        = data[(SLOT2_OFFSET+0)];
-      d2h_req_txn.opcode       = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)];
-      d2h_req_txn.cqid         = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
-      d2h_req_txn.nt           = data[(SLOT2_OFFSET+18)];
-      d2h_req_txn.address      = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
-      d2h_rsp_txn[0].valid     = data[(SLOT2_OFFSET+79)];
-      d2h_rsp_txn[0].opcode    = data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+80)];
-      d2h_rsp_txn[0].uqid      = data[(SLOT2_OFFSET+96):(SLOT2_OFFSET+85)];
-      d2h_rsp_txn[1].valid     = data[(SLOT2_OFFSET+99)];
-      d2h_rsp_txn[1].opcode    = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+100)];
-      d2h_rsp_txn[1].uqid      = data[(SLOT2_OFFSET+116):(SLOT2_OFFSET+105)];
+      d2h_req_txn[0].valid        = data[(SLOT2_OFFSET+0)];
+      d2h_req_txn[0].opcode       = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)];
+      d2h_req_txn[0].cqid         = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
+      d2h_req_txn[0].nt           = data[(SLOT2_OFFSET+18)];
+      d2h_req_txn[0].address      = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
+      d2h_rsp_txn[0].valid        = data[(SLOT2_OFFSET+79)];
+      d2h_rsp_txn[0].opcode       = data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+80)];
+      d2h_rsp_txn[0].uqid         = data[(SLOT2_OFFSET+96):(SLOT2_OFFSET+85)];
+      d2h_rsp_txn[1].valid        = data[(SLOT2_OFFSET+99)];
+      d2h_rsp_txn[1].opcode       = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+100)];
+      d2h_rsp_txn[1].uqid         = data[(SLOT2_OFFSET+116):(SLOT2_OFFSET+105)];
     end else if(slot_sel == 'h3) begin
-      d2h_req_txn.valid        = data[(SLOT3_OFFSET+0)];
-      d2h_req_txn.opcode       = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)];
-      d2h_req_txn.cqid         = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
-      d2h_req_txn.nt           = data[(SLOT3_OFFSET+18)];
-      d2h_req_txn.address      = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
-      d2h_rsp_txn[0].valid     = data[(SLOT3_OFFSET+79)];
-      d2h_rsp_txn[0].opcode    = data[(SLOT3_OFFSET+84):(SLOT3_OFFSET+80)];
-      d2h_rsp_txn[0].uqid      = data[(SLOT3_OFFSET+96):(SLOT3_OFFSET+85)];
-      d2h_rsp_txn[1].valid     = data[(SLOT3_OFFSET+99)];
-      d2h_rsp_txn[1].opcode    = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+100)];
-      d2h_rsp_txn[1].uqid      = data[(SLOT3_OFFSET+116):(SLOT3_OFFSET+105)];
+      d2h_req_txn[0].valid        = data[(SLOT3_OFFSET+0)];
+      d2h_req_txn[0].opcode       = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)];
+      d2h_req_txn[0].cqid         = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
+      d2h_req_txn[0].nt           = data[(SLOT3_OFFSET+18)];
+      d2h_req_txn[0].address      = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
+      d2h_rsp_txn[0].valid        = data[(SLOT3_OFFSET+79)];
+      d2h_rsp_txn[0].opcode       = data[(SLOT3_OFFSET+84):(SLOT3_OFFSET+80)];
+      d2h_rsp_txn[0].uqid         = data[(SLOT3_OFFSET+96):(SLOT3_OFFSET+85)];
+      d2h_rsp_txn[1].valid        = data[(SLOT3_OFFSET+99)];
+      d2h_rsp_txn[1].opcode       = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+100)];
+      d2h_rsp_txn[1].uqid         = data[(SLOT3_OFFSET+116):(SLOT3_OFFSET+105)];
     end else begin
-      d2h_req_txn.valid = 'hX;
+      d2h_req_txn[0].valid = 'hX;
       d2h_rsp_txn[0].valid = 'hX;
       d2h_rsp_txn[1].valid = 'hX;
     end
@@ -3174,60 +3169,60 @@ module host_rx_path #(
   function void generic2(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output d2h_req_txn_t d2h_req_txn,
-    output d2h_data_pkt_t d2h_data_pkt,
-    output d2h_rsp_txn_t d2h_rsp_txn
+    output d2h_req_txn_t d2h_req_txn[4],
+    output d2h_data_pkt_t d2h_data_pkt[4],
+    output d2h_rsp_txn_t d2h_rsp_txn[2]
   );
 
     if(slot_sel == 'h1) begin
-      d2h_req_txn.valid                    = data[(SLOT1_OFFSET+0)];
-      d2h_req_txn.opcode                   = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)];
-      d2h_req_txn.cqid                     = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
-      d2h_req_txn.nt                       = data[(SLOT1_OFFSET+18)];
-      d2h_req_txn.address                  = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
-      d2h_data_pkt.pending_data_slot       = 'hf;
-      d2h_data_pkt.d2h_data_txn.valid      = data[(SLOT1_OFFSET+79)];
-      d2h_data_pkt.d2h_data_txn.uqid       = data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+80)];
-      d2h_data_pkt.d2h_data_txn.chunkvalid = data[(SLOT1_OFFSET+92)];
-      d2h_data_pkt.d2h_data_txn.bogus      = data[(SLOT1_OFFSET+93)];
-      d2h_data_pkt.d2h_data_txn.poison     = data[(SLOT1_OFFSET+94)];
-      d2h_rsp_txn.valid                    = data[(SLOT1_OFFSET+96)];
-      d2h_rsp_txn.opcode                   = data[(SLOT1_OFFSET+101):(SLOT1_OFFSET+97)];
-      d2h_rsp_txn.uqid                     = data[(SLOT1_OFFSET+113):(SLOT1_OFFSET+102)];
+      d2h_req_txn[0].valid                    = data[(SLOT1_OFFSET+0)];
+      d2h_req_txn[0].opcode                   = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)];
+      d2h_req_txn[0].cqid                     = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
+      d2h_req_txn[0].nt                       = data[(SLOT1_OFFSET+18)];
+      d2h_req_txn[0].address                  = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
+      d2h_data_pkt[0].pending_data_slot       = 'hf;
+      d2h_data_pkt[0].d2h_data_txn.valid      = data[(SLOT1_OFFSET+79)];
+      d2h_data_pkt[0].d2h_data_txn.uqid       = data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+80)];
+      d2h_data_pkt[0].d2h_data_txn.chunkvalid = data[(SLOT1_OFFSET+92)];
+      d2h_data_pkt[0].d2h_data_txn.bogus      = data[(SLOT1_OFFSET+93)];
+      d2h_data_pkt[0].d2h_data_txn.poison     = data[(SLOT1_OFFSET+94)];
+      d2h_rsp_txn[0].valid                    = data[(SLOT1_OFFSET+96)];
+      d2h_rsp_txn[0].opcode                   = data[(SLOT1_OFFSET+101):(SLOT1_OFFSET+97)];
+      d2h_rsp_txn[0].uqid                     = data[(SLOT1_OFFSET+113):(SLOT1_OFFSET+102)];
     end else if(slot_sel == 'h2) begin
-      d2h_req_txn.valid                    = data[(SLOT2_OFFSET+0)];
-      d2h_req_txn.opcode                   = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)];
-      d2h_req_txn.cqid                     = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
-      d2h_req_txn.nt                       = data[(SLOT2_OFFSET+18)];
-      d2h_req_txn.address                  = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
-      d2h_data_pkt.pending_data_slot       = 'hf;
-      d2h_data_pkt.d2h_data_txn.valid      = data[(SLOT2_OFFSET+79)];
-      d2h_data_pkt.d2h_data_txn.uqid       = data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+80)];
-      d2h_data_pkt.d2h_data_txn.chunkvalid = data[(SLOT2_OFFSET+92)];
-      d2h_data_pkt.d2h_data_txn.bogus      = data[(SLOT2_OFFSET+93)];
-      d2h_data_pkt.d2h_data_txn.poison     = data[(SLOT2_OFFSET+94)];
-      d2h_rsp_txn.valid                    = data[(SLOT2_OFFSET+96)];
-      d2h_rsp_txn.opcode                   = data[(SLOT2_OFFSET+101):(SLOT2_OFFSET+97)];
-      d2h_rsp_txn.uqid                     = data[(SLOT2_OFFSET+113):(SLOT2_OFFSET+102)];
+      d2h_req_txn[0].valid                    = data[(SLOT2_OFFSET+0)];
+      d2h_req_txn[0].opcode                   = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)];
+      d2h_req_txn[0].cqid                     = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
+      d2h_req_txn[0].nt                       = data[(SLOT2_OFFSET+18)];
+      d2h_req_txn[0].address                  = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
+      d2h_data_pkt[0].pending_data_slot       = 'hf;
+      d2h_data_pkt[0].d2h_data_txn.valid      = data[(SLOT2_OFFSET+79)];
+      d2h_data_pkt[0].d2h_data_txn.uqid       = data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+80)];
+      d2h_data_pkt[0].d2h_data_txn.chunkvalid = data[(SLOT2_OFFSET+92)];
+      d2h_data_pkt[0].d2h_data_txn.bogus      = data[(SLOT2_OFFSET+93)];
+      d2h_data_pkt[0].d2h_data_txn.poison     = data[(SLOT2_OFFSET+94)];
+      d2h_rsp_txn[0].valid                    = data[(SLOT2_OFFSET+96)];
+      d2h_rsp_txn[0].opcode                   = data[(SLOT2_OFFSET+101):(SLOT2_OFFSET+97)];
+      d2h_rsp_txn[0].uqid                     = data[(SLOT2_OFFSET+113):(SLOT2_OFFSET+102)];
     end else if(slot_sel == 'h3) begin
-      d2h_req_txn.valid                    = data[(SLOT3_OFFSET+0)];
-      d2h_req_txn.opcode                   = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)];
-      d2h_req_txn.cqid                     = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
-      d2h_req_txn.nt                       = data[(SLOT3_OFFSET+18)];
-      d2h_req_txn.address                  = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
-      d2h_data_pkt.pending_data_slot       = 'hf;
-      d2h_data_pkt.d2h_data_txn.valid      = data[(SLOT3_OFFSET+79)];
-      d2h_data_pkt.d2h_data_txn.uqid       = data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+80)];
-      d2h_data_pkt.d2h_data_txn.chunkvalid = data[(SLOT3_OFFSET+92)];
-      d2h_data_pkt.d2h_data_txn.bogus      = data[(SLOT3_OFFSET+93)];
-      d2h_data_pkt.d2h_data_txn.poison     = data[(SLOT3_OFFSET+94)];
-      d2h_rsp_txn.valid                    = data[(SLOT3_OFFSET+96)];
-      d2h_rsp_txn.opcode                   = data[(SLOT3_OFFSET+101):(SLOT3_OFFSET+97)];
-      d2h_rsp_txn.uqid                     = data[(SLOT3_OFFSET+113):(SLOT3_OFFSET+102)];
+      d2h_req_txn[0].valid                    = data[(SLOT3_OFFSET+0)];
+      d2h_req_txn[0].opcode                   = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)];
+      d2h_req_txn[0].cqid                     = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
+      d2h_req_txn[0].nt                       = data[(SLOT3_OFFSET+18)];
+      d2h_req_txn[0].address                  = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
+      d2h_data_pkt[0].pending_data_slot       = 'hf;
+      d2h_data_pkt[0].d2h_data_txn.valid      = data[(SLOT3_OFFSET+79)];
+      d2h_data_pkt[0].d2h_data_txn.uqid       = data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+80)];
+      d2h_data_pkt[0].d2h_data_txn.chunkvalid = data[(SLOT3_OFFSET+92)];
+      d2h_data_pkt[0].d2h_data_txn.bogus      = data[(SLOT3_OFFSET+93)];
+      d2h_data_pkt[0].d2h_data_txn.poison     = data[(SLOT3_OFFSET+94)];
+      d2h_rsp_txn[0].valid                    = data[(SLOT3_OFFSET+96)];
+      d2h_rsp_txn[0].opcode                   = data[(SLOT3_OFFSET+101):(SLOT3_OFFSET+97)];
+      d2h_rsp_txn[0].uqid                     = data[(SLOT3_OFFSET+113):(SLOT3_OFFSET+102)];
     end else begin
-      d2h_req_txn.valid = 'hX;
-      d2h_data_pkt.d2h_data_txn.valid = 'hX;
-      d2h_rsp_txn.valid = 'hX;
+      d2h_req_txn[0].valid = 'hX;
+      d2h_data_pkt[0].d2h_data_txn.valid = 'hX;
+      d2h_rsp_txn[0].valid = 'hX;
     end
 
   endfunction
@@ -3314,10 +3309,10 @@ module host_rx_path #(
       d2h_data_pkt[3].d2h_data_txn.bogus        = data[(SLOT3_OFFSET+65)];
       d2h_data_pkt[3].d2h_data_txn.poison       = data[(SLOT3_OFFSET+66)];
     end else begin
-      d2h_data_pkt[0].d2h_data_txn.valid = 'hX;
-      d2h_data_pkt[1].d2h_data_txn.valid = 'hX;
-      d2h_data_pkt[2].d2h_data_txn.valid = 'hX;
-      d2h_data_pkt[3].d2h_data_txn.valid = 'hX;
+      d2h_data_pkt[0].d2h_data_txn.valid        = 'hX;
+      d2h_data_pkt[1].d2h_data_txn.valid        = 'hX;
+      d2h_data_pkt[2].d2h_data_txn.valid        = 'hX;
+      d2h_data_pkt[3].d2h_data_txn.valid        = 'hX;
     end
 
   endfunction
@@ -3325,66 +3320,66 @@ module host_rx_path #(
   function void generic4(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output s2m_drs_pkt_t s2m_drs_pkt,
-    output s2m_ndr_txn_t s2m_ndr_txn[2]
+    output s2m_drs_pkt_t s2m_drs_pkt[3],
+    output s2m_ndr_txn_t s2m_ndr_txn[3]
   );
 
     if(slot_sel == 'h1) begin
-      s2m_drs_pkt.pending_data_slot     = 'hf;
-      s2m_drs_pkt.s2m_drs_txn.valid     = data[(SLOT1_OFFSET+0)];
-      s2m_drs_pkt.s2m_drs_txn.memopcode = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
-      s2m_drs_pkt.s2m_drs_txn.metafield = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)];
-      s2m_drs_pkt.s2m_drs_txn.metavalue = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)];
-      s2m_drs_pkt.s2m_drs_txn.tag       = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
-      s2m_drs_pkt.s2m_drs_txn.poison    = data[(SLOT1_OFFSET+24)];
-      s2m_ndr_txn[0].valid              = data[(SLOT1_OFFSET+40)];
-      s2m_ndr_txn[0].memopcode          = data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)];
-      s2m_ndr_txn[0].metafield          = data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)];
-      s2m_ndr_txn[0].metavalue          = data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)];
-      s2m_ndr_txn[0].tag                = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)];
-      s2m_ndr_txn[1].valid              = data[(SLOT1_OFFSET+68)];
-      s2m_ndr_txn[1].memopcode          = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+69)];
-      s2m_ndr_txn[1].metafield          = data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+72)];
-      s2m_ndr_txn[1].metavalue          = data[(SLOT1_OFFSET+75):(SLOT1_OFFSET+74)];
-      s2m_ndr_txn[1].tag                = data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+76)];
+      s2m_drs_pkt[0].pending_data_slot     = 'hf;
+      s2m_drs_pkt[0].s2m_drs_txn.valid     = data[(SLOT1_OFFSET+0)];
+      s2m_drs_pkt[0].s2m_drs_txn.memopcode = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
+      s2m_drs_pkt[0].s2m_drs_txn.metafield = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)];
+      s2m_drs_pkt[0].s2m_drs_txn.metavalue = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)];
+      s2m_drs_pkt[0].s2m_drs_txn.tag       = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
+      s2m_drs_pkt[0].s2m_drs_txn.poison    = data[(SLOT1_OFFSET+24)];
+      s2m_ndr_txn[0].valid                 = data[(SLOT1_OFFSET+40)];
+      s2m_ndr_txn[0].memopcode             = data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)];
+      s2m_ndr_txn[0].metafield             = data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)];
+      s2m_ndr_txn[0].metavalue             = data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)];
+      s2m_ndr_txn[0].tag                   = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)];
+      s2m_ndr_txn[1].valid                 = data[(SLOT1_OFFSET+68)];
+      s2m_ndr_txn[1].memopcode             = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+69)];
+      s2m_ndr_txn[1].metafield             = data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+72)];
+      s2m_ndr_txn[1].metavalue             = data[(SLOT1_OFFSET+75):(SLOT1_OFFSET+74)];
+      s2m_ndr_txn[1].tag                   = data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+76)];
     end else if(slot_sel == 'h2) begin
-      s2m_drs_pkt.pending_data_slot     = 'hf;
-      s2m_drs_pkt.s2m_drs_txn.valid     = data[(SLOT2_OFFSET+0)];
-      s2m_drs_pkt.s2m_drs_txn.memopcode = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
-      s2m_drs_pkt.s2m_drs_txn.metafield = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)];
-      s2m_drs_pkt.s2m_drs_txn.metavalue = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)];
-      s2m_drs_pkt.s2m_drs_txn.tag       = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
-      s2m_drs_pkt.s2m_drs_txn.poison    = data[(SLOT2_OFFSET+24)];
-      s2m_ndr_txn[0].valid              = data[(SLOT2_OFFSET+40)];
-      s2m_ndr_txn[0].memopcode          = data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)];
-      s2m_ndr_txn[0].metafield          = data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)];
-      s2m_ndr_txn[0].metavalue          = data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)];
-      s2m_ndr_txn[0].tag                = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)];
-      s2m_ndr_txn[1].valid              = data[(SLOT2_OFFSET+68)];
-      s2m_ndr_txn[1].memopcode          = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+69)];
-      s2m_ndr_txn[1].metafield          = data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+72)];
-      s2m_ndr_txn[1].metavalue          = data[(SLOT2_OFFSET+75):(SLOT2_OFFSET+74)];
-      s2m_ndr_txn[1].tag                = data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+76)];
+      s2m_drs_pkt[0].pending_data_slot     = 'hf;
+      s2m_drs_pkt[0].s2m_drs_txn.valid     = data[(SLOT2_OFFSET+0)];
+      s2m_drs_pkt[0].s2m_drs_txn.memopcode = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
+      s2m_drs_pkt[0].s2m_drs_txn.metafield = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)];
+      s2m_drs_pkt[0].s2m_drs_txn.metavalue = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)];
+      s2m_drs_pkt[0].s2m_drs_txn.tag       = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
+      s2m_drs_pkt[0].s2m_drs_txn.poison    = data[(SLOT2_OFFSET+24)];
+      s2m_ndr_txn[0].valid                 = data[(SLOT2_OFFSET+40)];
+      s2m_ndr_txn[0].memopcode             = data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)];
+      s2m_ndr_txn[0].metafield             = data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)];
+      s2m_ndr_txn[0].metavalue             = data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)];
+      s2m_ndr_txn[0].tag                   = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)];
+      s2m_ndr_txn[1].valid                 = data[(SLOT2_OFFSET+68)];
+      s2m_ndr_txn[1].memopcode             = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+69)];
+      s2m_ndr_txn[1].metafield             = data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+72)];
+      s2m_ndr_txn[1].metavalue             = data[(SLOT2_OFFSET+75):(SLOT2_OFFSET+74)];
+      s2m_ndr_txn[1].tag                   = data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+76)];
     end else if(slot_sel == 'h3) begin
-      s2m_drs_pkt.pending_data_slot     = 'hf;
-      s2m_drs_pkt.s2m_drs_txn.valid     = data[(SLOT3_OFFSET+0)];
-      s2m_drs_pkt.s2m_drs_txn.memopcode = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
-      s2m_drs_pkt.s2m_drs_txn.metafield = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)];
-      s2m_drs_pkt.s2m_drs_txn.metavalue = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)];
-      s2m_drs_pkt.s2m_drs_txn.tag       = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
-      s2m_drs_pkt.s2m_drs_txn.poison    = data[(SLOT3_OFFSET+24)];
-      s2m_ndr_txn[0].valid              = data[(SLOT3_OFFSET+40)];
-      s2m_ndr_txn[0].memopcode          = data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)];
-      s2m_ndr_txn[0].metafield          = data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)];
-      s2m_ndr_txn[0].metavalue          = data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)];
-      s2m_ndr_txn[0].tag                = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)];
-      s2m_ndr_txn[1].valid              = data[(SLOT3_OFFSET+68)];
-      s2m_ndr_txn[1].memopcode          = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+69)];
-      s2m_ndr_txn[1].metafield          = data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+72)];
-      s2m_ndr_txn[1].metavalue          = data[(SLOT3_OFFSET+75):(SLOT3_OFFSET+74)];
-      s2m_ndr_txn[1].tag                = data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+76)];
+      s2m_drs_pkt[0].pending_data_slot     = 'hf;
+      s2m_drs_pkt[0].s2m_drs_txn.valid     = data[(SLOT3_OFFSET+0)];
+      s2m_drs_pkt[0].s2m_drs_txn.memopcode = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
+      s2m_drs_pkt[0].s2m_drs_txn.metafield = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)];
+      s2m_drs_pkt[0].s2m_drs_txn.metavalue = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)];
+      s2m_drs_pkt[0].s2m_drs_txn.tag       = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
+      s2m_drs_pkt[0].s2m_drs_txn.poison    = data[(SLOT3_OFFSET+24)];
+      s2m_ndr_txn[0].valid                 = data[(SLOT3_OFFSET+40)];
+      s2m_ndr_txn[0].memopcode             = data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)];
+      s2m_ndr_txn[0].metafield             = data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)];
+      s2m_ndr_txn[0].metavalue             = data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)];
+      s2m_ndr_txn[0].tag                   = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)];
+      s2m_ndr_txn[1].valid                 = data[(SLOT3_OFFSET+68)];
+      s2m_ndr_txn[1].memopcode             = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+69)];
+      s2m_ndr_txn[1].metafield             = data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+72)];
+      s2m_ndr_txn[1].metavalue             = data[(SLOT3_OFFSET+75):(SLOT3_OFFSET+74)];
+      s2m_ndr_txn[1].tag                   = data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+76)];
     end else begin
-      s2m_drs_pkt.s2m_drs_txn.valid = 'hX;
+      s2m_drs_pkt[0].s2m_drs_txn.valid = 'hX;
       s2m_ndr_txn[0].valid = 'hX;
       s2m_ndr_txn[1].valid = 'hX;
     end
@@ -3616,40 +3611,24 @@ module host_rx_path #(
   
     if(host_rx_dl_if_d.valid && retryable_flit) begin
       if(!data_slot[0][0]) begin
-        d2h_req_ptr = 'h0;
-        d2h_rsp_ptr = 'h0;
-        d2h_data_ptr = 'h0;
-        s2m_ndr_ptr = 'h0;
-        s2m_drs_ptr = 'h0;
         case(host_rx_dl_if_d.data[7:5])
           'h0: begin
-            header0(host_rx_dl_if_d.data, d2h_data_pkt, d2h_data_ptr, d2h_rsp_pkt[2], d2h_rsp_ptr, s2m_ndr_pkt, s2m_ndr_ptr);
-            d2h_data_ptr = d2h_data_ptr + 1;
-            d2h_rsp_ptr = d2h_rsp_ptr + 2;
-            s2m_ndr_ptr = s2m_ndr_ptr + 1; 
+            header0(host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_rsp_pkt[2], s2m_ndr_pkt[3]);
           end
           'h1: begin
-            header1(host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_data_pkt, d2h_data_ptr);
-            d2h_req_ptr = d2h_req_ptr + 1;
-            d2h_data_ptr = d2h_data_ptr + 1;
+            header1(host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_data_pkt[4]);
           end
           'h2: begin
-            header2(host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr, d2h_rsp_pkt, d2h_rsp_ptr);
-            d2h_data_ptr = d2h_data_ptr + 4;
-            d2h_rsp_ptr = d2h_rsp_ptr + 1;
+            header2(host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_rsp_pkt[2]);
           end
           'h3: begin
-            header3(host_rx_dl_if_d.data, s2m_drs_pkt, s2m_drs_ptr, s2m_ndr_pkt, s2m_ndr_ptr);
-            s2m_drs_ptr = s2m_drs_ptr + 1;
-            s2m_ndr_ptr = s2m_ndr_ptr + 1;
+            header3(host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_ndr_pkt[3]);
           end
           'h4: begin
-            header4(host_rx_dl_if_d.data, s2m_ndr_pkt[2], s2m_ndr_ptr);
-            s2m_ndr_ptr = s2m_ndr_ptr + 2;
+            header4(host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
           end
           'h5: begin
-            header5(host_rx_dl_if_d.data, s2m_drs_pkt[2], s2m_drs_ptr);
-            s2m_drs_ptr = s2m_drs_ptr + 2;
+            header5(host_rx_dl_if_d.data, s2m_drs_pkt[3]);
           end
           default: begin
 
@@ -3657,37 +3636,25 @@ module host_rx_path #(
         endcase
         case(host_rx_dl_if_d.data[10:8])
           'h0: begin
-            generic0('h1, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr, s2m_drs_pkt[4], s2m_drs_ptr);
-            //d2h_data_ptr = d2h_data_ptr + 4;
-            //s2m_drs_ptr = s2m_drs_ptr + 1;
+            generic0('h1, host_rx_dl_if_d.data, d2h_data_pkt[4], s2m_drs_pkt[3]);
           end
           'h1: begin
-            generic1('h1, host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_rsp_pkt[2], d2h_rsp_ptr);
-            d2h_req_ptr = d2h_req_ptr + 1;
-            d2h_rsp_ptr = d2h_rsp_ptr + 2;
+            generic1('h1, host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_rsp_pkt[2]);
           end
           'h2: begin
-            generic2('h1, host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_data_pkt, d2h_data_ptr, d2h_rsp_pkt, d2h_rsp_ptr);
-            d2h_req_ptr = d2h_req_ptr + 1;
-            d2h_data_ptr = d2h_data_ptr + 1;
-            d2h_rsp_ptr = d2h_rsp_ptr + 1;
+            generic2('h1, host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_data_pkt[4], d2h_rsp_pkt[2]);
           end
           'h3: begin
-            generic3('h1, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr);
-            d2h_data_ptr = d2h_data_ptr + 4;
+            generic3('h1, host_rx_dl_if_d.data, d2h_data_pkt[4]);
           end
           'h4: begin
-            generic4('h1, host_rx_dl_if_d.data, s2m_drs_pkt, s2m_drs_ptr, s2m_ndr_pkt[2], s2m_ndr_ptr);
-            s2m_drs_ptr = s2m_drs_ptr + 1;
-            s2m_ndr_ptr = s2m_ndr_ptr + 2;
+            generic4('h1, host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_ndr_pkt[3]);
           end
           'h5: begin
-            generic5('h1, host_rx_dl_if_d.data, s2m_ndr_pkt[3], s2m_ndr_ptr);
-            s2m_ndr_ptr = s2m_ndr_ptr + 3;
+            generic5('h1, host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
           end
           'h6: begin
-            generic6('h1, host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_drs_ptr);
-            s2m_drs_ptr = s2m_drs_ptr + 3;
+            generic6('h1, host_rx_dl_if_d.data, s2m_drs_pkt[3]);
           end
           default: begin
           
@@ -3695,37 +3662,25 @@ module host_rx_path #(
         endcase
         case(host_rx_dl_if_d.data[13:11])
           'h0: begin
-            generic0('h2, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr, s2m_drs_pkt[4], s2m_drs_ptr);
-            //d2h_data_ptr = d2h_data_ptr + 4;
-            //s2m_drs_ptr = s2m_drs_ptr + 1;
+            generic0('h2, host_rx_dl_if_d.data, d2h_data_pkt[4], s2m_drs_pkt[3]);
           end
           'h1: begin
-            generic1('h2, host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_rsp_pkt[2], d2h_rsp_ptr);
-            d2h_req_ptr = d2h_req_ptr + 1;
-            d2h_rsp_ptr = d2h_rsp_ptr + 2;
+            generic1('h2, host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_rsp_pkt[2]);
           end
           'h2: begin
-            generic2('h2, host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_data_pkt, d2h_data_ptr, d2h_rsp_pkt, d2h_rsp_ptr);
-            d2h_req_ptr = d2h_req_ptr + 1;
-            d2h_data_ptr = d2h_data_ptr + 1;
-            d2h_rsp_ptr = d2h_rsp_ptr + 1;
+            generic2('h2, host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_data_pkt[4], d2h_rsp_pkt[2]);
           end
           'h3: begin
-            generic3('h2, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr);
-            d2h_data_ptr = d2h_data_ptr + 4;
+            generic3('h2, host_rx_dl_if_d.data, d2h_data_pkt[4]);
           end
           'h4: begin
-            generic4('h2, host_rx_dl_if_d.data, s2m_drs_pkt, s2m_drs_ptr, s2m_ndr_pkt[2], s2m_ndr_ptr);
-            s2m_drs_ptr = s2m_drs_ptr + 1;
-            s2m_ndr_ptr = s2m_ndr_ptr + 2;
+            generic4('h2, host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_ndr_pkt[3]);
           end
           'h5: begin
-            generic5('h2, host_rx_dl_if_d.data, s2m_ndr_pkt[3], s2m_ndr_ptr);
-            s2m_ndr_ptr = s2m_ndr_ptr + 3;
+            generic5('h2, host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
           end
           'h6: begin
-            generic6('h2, host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_drs_ptr);
-            s2m_drs_ptr = s2m_drs_ptr + 3;
+            generic6('h2, host_rx_dl_if_d.data, s2m_drs_pkt[3]);
           end
           default: begin
           
@@ -3733,46 +3688,32 @@ module host_rx_path #(
         endcase
         case(host_rx_dl_if_d.data[16:14])
           'h0: begin
-            generic0('h3, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr, s2m_drs_pkt[4], s2m_drs_ptr);
-            //d2h_data_ptr = d2h_data_ptr + 4;
-            //s2m_drs_ptr = s2m_drs_ptr + 1;
+            generic0('h3, host_rx_dl_if_d.data, d2h_data_pkt[4], s2m_drs_pkt[3]);
           end
           'h1: begin
-            generic1('h3, host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_rsp_pkt[2], d2h_rsp_ptr);
-            d2h_req_ptr = d2h_req_ptr + 1;
-            d2h_rsp_ptr = d2h_rsp_ptr + 2;
+            generic1('h3, host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_rsp_pkt[2]);
           end
           'h2: begin
-            generic2('h3, host_rx_dl_if_d.data, d2h_req_pkt, d2h_req_ptr, d2h_data_pkt, d2h_data_ptr, d2h_rsp_pkt, d2h_rsp_ptr);
-            d2h_req_ptr = d2h_req_ptr + 1;
-            d2h_data_ptr = d2h_data_ptr + 1;
-            d2h_rsp_ptr = d2h_rsp_ptr + 1;
+            generic2('h3, host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_data_pkt[4], d2h_rsp_pkt[2]);
           end
           'h3: begin
-            generic3('h3, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr);
-            d2h_data_ptr = d2h_data_ptr + 4;
+            generic3('h3, host_rx_dl_if_d.data, d2h_data_pkt[4]);
           end
           'h4: begin
-            generic4('h3, host_rx_dl_if_d.data, s2m_drs_pkt, s2m_drs_ptr, s2m_ndr_pkt[2], s2m_ndr_ptr);
-            s2m_drs_ptr = s2m_drs_ptr + 1;
-            s2m_ndr_ptr = s2m_ndr_ptr + 2;
+            generic4('h3, host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_ndr_pkt[3]);
           end
           'h5: begin
-            generic5('h3, host_rx_dl_if_d.data, s2m_ndr_pkt[3], s2m_ndr_ptr);
-            s2m_ndr_ptr = s2m_ndr_ptr + 3;
+            generic5('h3, host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
           end
           'h6: begin
-            generic6('h3, host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_drs_ptr);
-            s2m_drs_ptr = s2m_drs_ptr + 3;
+            generic6('h3, host_rx_dl_if_d.data, s2m_drs_pkt[3]);
           end
           default: begin
           
           end
         endcase
       end else if(data_slot[0][0]) begin
-        generic0('h0, host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_data_ptr, s2m_drs_pkt[4], s2m_drs_ptr);
-        //d2h_data_ptr = d2h_data_ptr + 4;
-        //s2m_drs_ptr = s2m_drs_ptr + 4;
+        generic0('h0, host_rx_dl_if_d.data, d2h_data_pkt[4], s2m_drs_pkt[3]);
       end
     end
   end
@@ -3926,31 +3867,31 @@ module device_rx_path #(
 
   function void header0(
     input logic [511:0] data,
-    output h2d_req_txn_t h2d_req_txn,
-    output h2d_rsp_txn_t h2d_rsp_txn
+    output h2d_req_txn_t h2d_req_txn[2],
+    output h2d_rsp_txn_t h2d_rsp_txn[4]
   );
-    h2d_req_txn.valid        = data[32];
-    h2d_req_txn.opcode       = data[35:33];
-    h2d_req_txn.address      = data[81:36];
-    h2d_req_txn.uqid         = data[93:82];
-    h2d_rsp_txn.valid        = data[96];
-    h2d_rsp_txn.opcode       = data[100:97];
-    h2d_rsp_txn.rspdata      = data[112:101];
-    h2d_rsp_txn.rsppre       = data[114:113];
-    h2d_rsp_txn.cqid         = data[126:115];
+    h2d_req_txn[0].valid        = data[32];
+    h2d_req_txn[0].opcode       = data[35:33];
+    h2d_req_txn[0].address      = data[81:36];
+    h2d_req_txn[0].uqid         = data[93:82];
+    h2d_rsp_txn[0].valid        = data[96];
+    h2d_rsp_txn[0].opcode       = data[100:97];
+    h2d_rsp_txn[0].rspdata      = data[112:101];
+    h2d_rsp_txn[0].rsppre       = data[114:113];
+    h2d_rsp_txn[0].cqid         = data[126:115];
   endfunction
 
   function void header1(
     input logic [511:0] data,
-    output h2d_data_pkt_t h2d_data_pkt,
-    output h2d_rsp_txn_t h2d_rsp_txn[2]
+    output h2d_data_pkt_t h2d_data_pkt[4],
+    output h2d_rsp_txn_t h2d_rsp_txn[4]
   );
-    h2d_data_pkt.pending_data_slot        = 'hf;
-    h2d_data_pkt.h2d_data_txn.valid       = data[32];
-    h2d_data_pkt.h2d_data_txn.cqid        = data[44:33];
-    h2d_data_pkt.h2d_data_txn.chunkvalid  = data[45];
-    h2d_data_pkt.h2d_data_txn.poison      = data[46];
-    h2d_data_pkt.h2d_data_txn.goerr       = data[47];
+    h2d_data_pkt[0].pending_data_slot        = 'hf;
+    h2d_data_pkt[0].h2d_data_txn.valid       = data[32];
+    h2d_data_pkt[0].h2d_data_txn.cqid        = data[44:33];
+    h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[45];
+    h2d_data_pkt[0].h2d_data_txn.poison      = data[46];
+    h2d_data_pkt[0].h2d_data_txn.goerr       = data[47];
     h2d_rsp_txn[0].valid                  = data[56];
     h2d_rsp_txn[0].opcode                 = data[60:57];
     h2d_rsp_txn[0].rspdata                = data[72:61];
@@ -3966,18 +3907,18 @@ module device_rx_path #(
 
   function void header2(
     input logic [511:0] data,
-    output h2d_req_txn_t h2d_req_txn,
-    output h2d_data_pkt_t h2d_data_pkt
+    output h2d_req_txn_t h2d_req_txn[2],
+    output h2d_data_pkt_t h2d_data_pkt[4]
   );
-    h2d_req_txn.valid                     = data[32];
-    h2d_req_txn.opcode                    = data[35:33];
-    h2d_req_txn.address                   = data[81:36];
-    h2d_req_txn.uqid                      = data[93:82];
-    h2d_data_pkt.h2d_data_txn.valid       = data[96];
-    h2d_data_pkt.h2d_data_txn.cqid        = data[108:97];
-    h2d_data_pkt.h2d_data_txn.chunkvalid  = data[109];
-    h2d_data_pkt.h2d_data_txn.poison      = data[110];
-    h2d_data_pkt.h2d_data_txn.goerr       = data[111];
+    h2d_req_txn[0].valid                     = data[32];
+    h2d_req_txn[0].opcode                    = data[35:33];
+    h2d_req_txn[0].address                   = data[81:36];
+    h2d_req_txn[0].uqid                      = data[93:82];
+    h2d_data_pkt[0].h2d_data_txn.valid       = data[96];
+    h2d_data_pkt[0].h2d_data_txn.cqid        = data[108:97];
+    h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[109];
+    h2d_data_pkt[0].h2d_data_txn.poison      = data[110];
+    h2d_data_pkt[0].h2d_data_txn.goerr       = data[111];
   endfunction
 
   function void header3(
@@ -4031,16 +3972,16 @@ module device_rx_path #(
 
   function void header5(
     input logic [511:0] data,
-    output m2s_req_txn_t m2s_req_txn
+    output m2s_req_txn_t m2s_req_txn[2]
   );
-    m2s_req_txn.valid        = data[32];
-    m2s_req_txn.memopcode    = data[36:33];
-    m2s_req_txn.snptype      = data[39:37];
-    m2s_req_txn.metafield    = data[41:40];
-    m2s_req_txn.metavalue    = data[43:42];
-    m2s_req_txn.tag          = data[58:44];
-    m2s_req_txn.address      = data[106:59];
-    m2s_req_txn.tc           = data[108:107];
+    m2s_req_txn[0].valid        = data[32];
+    m2s_req_txn[0].memopcode    = data[36:33];
+    m2s_req_txn[0].snptype      = data[39:37];
+    m2s_req_txn[0].metafield    = data[41:40];
+    m2s_req_txn[0].metavalue    = data[43:42];
+    m2s_req_txn[0].tag          = data[58:44];
+    m2s_req_txn[0].address      = data[106:59];
+    m2s_req_txn[0].tc           = data[108:107];
   endfunction
 
   function void generic0(
@@ -4346,63 +4287,112 @@ module device_rx_path #(
   function void generic2(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output h2d_req_txn_t h2d_req_txn,
-    output h2d_data_pkt_t h2d_data_pkt,
-    output h2d_rsp_txn_t h2d_rsp_txn
+    output h2d_req_txn_t h2d_req_txn[2],
+    input int h2d_req_ptr,
+    output h2d_data_pkt_t h2d_data_pkt[4],
+    output h2d_rsp_txn_t h2d_rsp_txn[4],
+    input int h2d_rsp_ptr
   );
 
     if(slot_sel == 'h1) begin
-      h2d_req_txn.valid                     = data[(SLOT1_OFFSET+0)];
-      h2d_req_txn.opcode                    = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
-      h2d_req_txn.address                   = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
-      h2d_req_txn.uqid                      = data[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)];
-      h2d_data_pkt.pending_data_slot        = 'hf;
-      h2d_data_pkt.h2d_data_txn.valid       = data[(SLOT1_OFFSET+64)];
-      h2d_data_pkt.h2d_data_txn.cqid        = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+65)];
-      h2d_data_pkt.h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+77)];
-      h2d_data_pkt.h2d_data_txn.poison      = data[(SLOT1_OFFSET+78)];
-      h2d_data_pkt.h2d_data_txn.goerr       = data[(SLOT1_OFFSET+79)];
-      h2d_rsp_txn.valid                     = data[(SLOT1_OFFSET+88)];
-      h2d_rsp_txn.opcode                    = data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)];
-      h2d_rsp_txn.rspdata                   = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)];
-      h2d_rsp_txn.rsppre                    = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
-      h2d_rsp_txn.cqid                      = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
+      if(h2d_req_ptr > 0) begin
+        h2d_req_txn[1].valid                     = data[(SLOT1_OFFSET+0)];
+        h2d_req_txn[1].opcode                    = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
+        h2d_req_txn[1].address                   = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
+        h2d_req_txn[1].uqid                      = data[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)];
+      end else begin
+        h2d_req_txn[0].valid                     = data[(SLOT1_OFFSET+0)];
+        h2d_req_txn[0].opcode                    = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
+        h2d_req_txn[0].address                   = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
+        h2d_req_txn[0].uqid                      = data[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)];
+      end
+      h2d_data_pkt[0].pending_data_slot        = 'hf;
+      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT1_OFFSET+64)];
+      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+65)];
+      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+77)];
+      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT1_OFFSET+78)];
+      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+79)];
+      if(h2d_rsp_ptr > 0) begin
+        h2d_rsp_txn[1].valid                     = data[(SLOT1_OFFSET+88)];
+        h2d_rsp_txn[1].opcode                    = data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)];
+        h2d_rsp_txn[1].rspdata                   = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)];
+        h2d_rsp_txn[1].rsppre                    = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
+        h2d_rsp_txn[1].cqid                      = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
+      end else begin
+        h2d_rsp_txn[0].valid                     = data[(SLOT1_OFFSET+88)];
+        h2d_rsp_txn[0].opcode                    = data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)];
+        h2d_rsp_txn[0].rspdata                   = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)];
+        h2d_rsp_txn[0].rsppre                    = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
+        h2d_rsp_txn[0].cqid                      = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
+      end
     end else if(slot_sel == 'h2) begin
-      h2d_req_txn.valid                     = data[(SLOT2_OFFSET+0)];
-      h2d_req_txn.opcode                    = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
-      h2d_req_txn.address                   = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
-      h2d_req_txn.uqid                      = data[(SLOT2_OFFSET+61)+(SLOT2_OFFSET+50)];
-      h2d_data_pkt.pending_data_slot        = 'hf;
-      h2d_data_pkt.h2d_data_txn.valid       = data[(SLOT2_OFFSET+64)];
-      h2d_data_pkt.h2d_data_txn.cqid        = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+65)];
-      h2d_data_pkt.h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+77)];
-      h2d_data_pkt.h2d_data_txn.poison      = data[(SLOT2_OFFSET+78)];
-      h2d_data_pkt.h2d_data_txn.goerr       = data[(SLOT2_OFFSET+79)];
-      h2d_rsp_txn.valid                     = data[(SLOT2_OFFSET+88)];
-      h2d_rsp_txn.opcode                    = data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)];
-      h2d_rsp_txn.rspdata                   = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)];
-      h2d_rsp_txn.rsppre                    = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
-      h2d_rsp_txn.cqid                      = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
+      if(h2d_req_ptr > 0) begin
+        h2d_req_txn[1].valid                = data[(SLOT2_OFFSET+0)];
+        h2d_req_txn[1].opcode               = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
+        h2d_req_txn[1].address              = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
+        h2d_req_txn[1].uqid                 = data[(SLOT2_OFFSET+61)+(SLOT2_OFFSET+50)];
+      end else begin
+        h2d_req_txn[0].valid                = data[(SLOT2_OFFSET+0)];
+        h2d_req_txn[0].opcode               = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
+        h2d_req_txn[0].address              = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
+        h2d_req_txn[0].uqid                 = data[(SLOT2_OFFSET+61)+(SLOT2_OFFSET+50)];
+      end
+      h2d_data_pkt[0].pending_data_slot        = 'hf;
+      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT2_OFFSET+64)];
+      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+65)];
+      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+77)];
+      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT2_OFFSET+78)];
+      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+79)];
+      if(h2d_rsp_ptr > 0) begin
+        h2d_rsp_txn[1].valid                = data[(SLOT2_OFFSET+88)];
+        h2d_rsp_txn[1].opcode               = data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)];
+        h2d_rsp_txn[1].rspdata              = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)];
+        h2d_rsp_txn[1].rsppre               = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
+        h2d_rsp_txn[1].cqid                 = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
+      end else begin
+        h2d_rsp_txn[0].valid                = data[(SLOT2_OFFSET+88)];
+        h2d_rsp_txn[0].opcode               = data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)];
+        h2d_rsp_txn[0].rspdata              = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)];
+        h2d_rsp_txn[0].rsppre               = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
+        h2d_rsp_txn[0].cqid                 = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
+      end
     end else if(slot_sel == 'h3) begin
-      h2d_req_txn.valid                     = data[(SLOT3_OFFSET+0)];
-      h2d_req_txn.opcode                    = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
-      h2d_req_txn.address                   = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
-      h2d_req_txn.uqid                      = data[(SLOT3_OFFSET+61)+(SLOT3_OFFSET+50)];
-      h2d_data_pkt.pending_data_slot        = 'hf;
-      h2d_data_pkt.h2d_data_txn.valid       = data[(SLOT3_OFFSET+64)];
-      h2d_data_pkt.h2d_data_txn.cqid        = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+65)];
-      h2d_data_pkt.h2d_data_txn.chunkvalid  = data[(SLOT3_OFFSET+77)];
-      h2d_data_pkt.h2d_data_txn.poison      = data[(SLOT3_OFFSET+78)];
-      h2d_data_pkt.h2d_data_txn.goerr       = data[(SLOT3_OFFSET+79)];
-      h2d_rsp_txn.valid                     = data[(SLOT3_OFFSET+88)];
-      h2d_rsp_txn.opcode                    = data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)];
-      h2d_rsp_txn.rspdata                   = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)];
-      h2d_rsp_txn.rsppre                    = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
-      h2d_rsp_txn.cqid                      = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
+      if(h2d_req_ptr > 0) begin
+        h2d_req_txn[1].valid                = data[(SLOT3_OFFSET+0)];
+        h2d_req_txn[1].opcode               = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
+        h2d_req_txn[1].address              = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
+        h2d_req_txn[1].uqid                 = data[(SLOT3_OFFSET+61)+(SLOT3_OFFSET+50)];
+      end else begin
+        h2d_req_txn[0].valid                = data[(SLOT3_OFFSET+0)];
+        h2d_req_txn[0].opcode               = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
+        h2d_req_txn[0].address              = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
+        h2d_req_txn[0].uqid                 = data[(SLOT3_OFFSET+61)+(SLOT3_OFFSET+50)];
+      end
+      h2d_data_pkt[0].pending_data_slot        = 'hf;
+      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT3_OFFSET+64)];
+      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+65)];
+      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT3_OFFSET+77)];
+      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT3_OFFSET+78)];
+      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT3_OFFSET+79)];
+      if(h2d_rsp_ptr > 0) begin
+        h2d_rsp_txn[1].valid                = data[(SLOT3_OFFSET+88)];
+        h2d_rsp_txn[1].opcode               = data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)];
+        h2d_rsp_txn[1].rspdata              = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)];
+        h2d_rsp_txn[1].rsppre               = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
+        h2d_rsp_txn[1].cqid                 = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
+      end else begin
+        h2d_rsp_txn[0].valid                = data[(SLOT3_OFFSET+88)];
+        h2d_rsp_txn[0].opcode               = data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)];
+        h2d_rsp_txn[0].rspdata              = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)];
+        h2d_rsp_txn[0].rsppre               = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
+        h2d_rsp_txn[0].cqid                 = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
+      end
     end else begin
-      h2d_req_txn.valid = 'hX;
+      h2d_req_txn[0].valid = 'hX;
+      h2d_req_txn[1].valid = 'hX;
       h2d_data_pkt.h2d_data_txn.valid = 'hX;
-      h2d_rsp_txn.valid = 'hX;
+      h2d_rsp_txn[0].valid = 'hX;
+      h2d_rsp_txn[1].valid = 'hX;
     end
 
   endfunction
@@ -4411,7 +4401,8 @@ module device_rx_path #(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
     output h2d_data_pkt_t h2d_data_pkt[4],
-    output h2d_rsp_txn_t h2d_rsp_txn
+    output h2d_rsp_txn_t h2d_rsp_txn[4],
+    input int h2d_rsp_ptr
   );
 
     if(slot_sel == 'h1) begin
@@ -4439,11 +4430,19 @@ module device_rx_path #(
       h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+85)];
       h2d_data_pkt[3].h2d_data_txn.poison      = data[(SLOT1_OFFSET+86)];
       h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+87)];
-      h2d_rsp_txn.valid                        = data[(SLOT1_OFFSET+96)];
-      h2d_rsp_txn.opcode                       = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)];
-      h2d_rsp_txn.rspdata                      = data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)];
-      h2d_rsp_txn.rsppre                       = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
-      h2d_rsp_txn.cqid                         = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
+      if(h2d_rsp_ptr > 0) begin
+        h2d_rsp_txn[1].valid                   = data[(SLOT1_OFFSET+96)];
+        h2d_rsp_txn[1].opcode                  = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)];
+        h2d_rsp_txn[1].rspdata                 = data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)];
+        h2d_rsp_txn[1].rsppre                  = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
+        h2d_rsp_txn[1].cqid                    = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
+      end else begin
+        h2d_rsp_txn[0].valid                   = data[(SLOT1_OFFSET+96)];
+        h2d_rsp_txn[0].opcode                  = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)];
+        h2d_rsp_txn[0].rspdata                 = data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)];
+        h2d_rsp_txn[0].rsppre                  = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
+        h2d_rsp_txn[0].cqid                    = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
+      end
     end else if(slot_sel == 'h2) begin
       h2d_data_pkt[0].pending_data_slot        = 'hf;
       h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT2_OFFSET+0)];
@@ -4469,11 +4468,19 @@ module device_rx_path #(
       h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+85)];
       h2d_data_pkt[3].h2d_data_txn.poison      = data[(SLOT2_OFFSET+86)];
       h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+87)];
-      h2d_rsp_txn.valid                        = data[(SLOT2_OFFSET+96)];
-      h2d_rsp_txn.opcode                       = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
-      h2d_rsp_txn.rspdata                      = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
-      h2d_rsp_txn.rsppre                       = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
-      h2d_rsp_txn.cqid                         = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];    
+      if(h2d_rsp_ptr > 0) begin
+        h2d_rsp_txn[1].valid                   = data[(SLOT2_OFFSET+96)];
+        h2d_rsp_txn[1].opcode                  = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
+        h2d_rsp_txn[1].rspdata                 = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+        h2d_rsp_txn[1].rsppre                  = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+        h2d_rsp_txn[1].cqid                    = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];    
+      end else begin
+        h2d_rsp_txn[0].valid                   = data[(SLOT2_OFFSET+96)];
+        h2d_rsp_txn[0].opcode                  = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
+        h2d_rsp_txn[0].rspdata                 = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+        h2d_rsp_txn[0].rsppre                  = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+        h2d_rsp_txn[0].cqid                    = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];    
+      end
     end else if(slot_sel == 'h3) begin
       h2d_data_pkt[0].pending_data_slot        = 'hf;
       h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT2_OFFSET+0)];
@@ -4499,17 +4506,26 @@ module device_rx_path #(
       h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+85)];
       h2d_data_pkt[3].h2d_data_txn.poison      = data[(SLOT2_OFFSET+86)];
       h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+87)];
-      h2d_rsp_txn.valid                        = data[(SLOT2_OFFSET+96)];
-      h2d_rsp_txn.opcode                       = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
-      h2d_rsp_txn.rspdata                      = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
-      h2d_rsp_txn.rsppre                       = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
-      h2d_rsp_txn.cqid                         = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];   
+      if(h2d_rsp_ptr > 0) begin
+        h2d_rsp_txn[1].valid                   = data[(SLOT2_OFFSET+96)];
+        h2d_rsp_txn[1].opcode                  = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
+        h2d_rsp_txn[1].rspdata                 = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+        h2d_rsp_txn[1].rsppre                  = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+        h2d_rsp_txn[1].cqid                    = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];   
+      end else begin
+        h2d_rsp_txn[0].valid                   = data[(SLOT2_OFFSET+96)];
+        h2d_rsp_txn[0].opcode                  = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
+        h2d_rsp_txn[0].rspdata                 = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+        h2d_rsp_txn[0].rsppre                  = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+        h2d_rsp_txn[0].cqid                    = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];   
+      end
     end else begin
       h2d_data_pkt[0].h2d_data_txn.valid = 'hX;
       h2d_data_pkt[1].h2d_data_txn.valid = 'hX;
       h2d_data_pkt[2].h2d_data_txn.valid = 'hX;
       h2d_data_pkt[3].h2d_data_txn.valid = 'hX;
-      h2d_rsp_txn.valid                  = 'hX;
+      h2d_rsp_txn[0].valid               = 'hX;
+      h2d_rsp_txn[1].valid               = 'hX;
     end
 
   endfunction
@@ -4517,57 +4533,92 @@ module device_rx_path #(
   function void generic4(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output m2s_req_txn_t m2s_req_txn,
-    output h2d_data_pkt_t h2d_data_pkt
+    output m2s_req_txn_t m2s_req_txn[2],
+    input int m2s_req_ptr,
+    output h2d_data_pkt_t h2d_data_pkt[4]
   );
 
     if(slot_sel == 'h1) begin
-      m2s_req_txn.valid                     = data[(SLOT1_OFFSET+0)];
-      m2s_req_txn.memopcode                 = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
-      m2s_req_txn.snptype                   = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)];
-      m2s_req_txn.metafield                 = data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)];
-      m2s_req_txn.metavalue                 = data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)];
-      m2s_req_txn.tag                       = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
-      m2s_req_txn.address                   = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
-      m2s_req_txn.tc                        = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
-      h2d_data_pkt.pending_data_slot        = 'hf;
-      h2d_data_pkt.h2d_data_txn.valid       = data[(SLOT1_OFFSET+88)];
-      h2d_data_pkt.h2d_data_txn.cqid        = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+89)];
-      h2d_data_pkt.h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+101)];
-      h2d_data_pkt.h2d_data_txn.poison      = data[(SLOT1_OFFSET+102)];
-      h2d_data_pkt.h2d_data_txn.goerr       = data[(SLOT1_OFFSET+103)];
+      if(m2s_req_ptr > 0) begin
+        m2s_req_txn[1].valid                = data[(SLOT1_OFFSET+0)];
+        m2s_req_txn[1].memopcode            = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
+        m2s_req_txn[1].snptype              = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)];
+        m2s_req_txn[1].metafield            = data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)];
+        m2s_req_txn[1].metavalue            = data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)];
+        m2s_req_txn[1].tag                  = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
+        m2s_req_txn[1].address              = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
+        m2s_req_txn[1].tc                   = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
+      end else begin
+        m2s_req_txn[0].valid                = data[(SLOT1_OFFSET+0)];
+        m2s_req_txn[0].memopcode            = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
+        m2s_req_txn[0].snptype              = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)];
+        m2s_req_txn[0].metafield            = data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)];
+        m2s_req_txn[0].metavalue            = data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)];
+        m2s_req_txn[0].tag                  = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
+        m2s_req_txn[0].address              = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
+        m2s_req_txn[0].tc                   = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
+      end
+      h2d_data_pkt[0].pending_data_slot        = 'hf;
+      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT1_OFFSET+88)];
+      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+89)];
+      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+101)];
+      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT1_OFFSET+102)];
+      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+103)];
     end else if(slot_sel == 'h2) begin
-      m2s_req_txn.valid                     = data[(SLOT2_OFFSET+0)];
-      m2s_req_txn.memopcode                 = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
-      m2s_req_txn.snptype                   = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)];
-      m2s_req_txn.metafield                 = data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)];
-      m2s_req_txn.metavalue                 = data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)];
-      m2s_req_txn.tag                       = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
-      m2s_req_txn.address                   = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
-      m2s_req_txn.tc                        = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
-      h2d_data_pkt.pending_data_slot        = 'hf;
-      h2d_data_pkt.h2d_data_txn.valid       = data[(SLOT2_OFFSET+88)];
-      h2d_data_pkt.h2d_data_txn.cqid        = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+89)];
-      h2d_data_pkt.h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+101)];
-      h2d_data_pkt.h2d_data_txn.poison      = data[(SLOT2_OFFSET+102)];
-      h2d_data_pkt.h2d_data_txn.goerr       = data[(SLOT2_OFFSET+103)];
+      if(m2s_req_ptr > 0) begin
+        m2s_req_txn[1].valid                = data[(SLOT2_OFFSET+0)];
+        m2s_req_txn[1].memopcode            = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
+        m2s_req_txn[1].snptype              = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)];
+        m2s_req_txn[1].metafield            = data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)];
+        m2s_req_txn[1].metavalue            = data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)];
+        m2s_req_txn[1].tag                  = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
+        m2s_req_txn[1].address              = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
+        m2s_req_txn[1].tc                   = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
+      end else begin
+        m2s_req_txn[0].valid                = data[(SLOT2_OFFSET+0)];
+        m2s_req_txn[0].memopcode            = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
+        m2s_req_txn[0].snptype              = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)];
+        m2s_req_txn[0].metafield            = data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)];
+        m2s_req_txn[0].metavalue            = data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)];
+        m2s_req_txn[0].tag                  = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
+        m2s_req_txn[0].address              = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
+        m2s_req_txn[0].tc                   = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
+      end
+      h2d_data_pkt[0].pending_data_slot        = 'hf;
+      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT2_OFFSET+88)];
+      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+89)];
+      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+101)];
+      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT2_OFFSET+102)];
+      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+103)];
     end else if(slot_sel == 'h3) begin
-      m2s_req_txn.valid                     = data[(SLOT3_OFFSET+0)];
-      m2s_req_txn.memopcode                 = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
-      m2s_req_txn.snptype                   = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)];
-      m2s_req_txn.metafield                 = data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)];
-      m2s_req_txn.metavalue                 = data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)];
-      m2s_req_txn.tag                       = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
-      m2s_req_txn.address                   = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
-      m2s_req_txn.tc                        = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
-      h2d_data_pkt.pending_data_slot        = 'hf;
-      h2d_data_pkt.h2d_data_txn.valid       = data[(SLOT3_OFFSET+88)];
-      h2d_data_pkt.h2d_data_txn.cqid        = data[(SLOT3_OFFSET+100):(SLOT3_OFFSET+89)];
-      h2d_data_pkt.h2d_data_txn.chunkvalid  = data[(SLOT3_OFFSET+101)];
-      h2d_data_pkt.h2d_data_txn.poison      = data[(SLOT3_OFFSET+102)];
-      h2d_data_pkt.h2d_data_txn.goerr       = data[(SLOT3_OFFSET+103)];
+      if(m2s_req_ptr > 0) begin
+        m2s_req_txn[1].valid                = data[(SLOT3_OFFSET+0)];
+        m2s_req_txn[1].memopcode            = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
+        m2s_req_txn[1].snptype              = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)];
+        m2s_req_txn[1].metafield            = data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)];
+        m2s_req_txn[1].metavalue            = data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)];
+        m2s_req_txn[1].tag                  = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
+        m2s_req_txn[1].address              = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
+        m2s_req_txn[1].tc                   = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
+      end else begin
+        m2s_req_txn[0].valid                = data[(SLOT3_OFFSET+0)];
+        m2s_req_txn[0].memopcode            = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
+        m2s_req_txn[0].snptype              = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)];
+        m2s_req_txn[0].metafield            = data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)];
+        m2s_req_txn[0].metavalue            = data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)];
+        m2s_req_txn[0].tag                  = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
+        m2s_req_txn[0].address              = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
+        m2s_req_txn[0].tc                   = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
+      end
+      h2d_data_pkt[0].pending_data_slot        = 'hf;
+      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT3_OFFSET+88)];
+      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT3_OFFSET+100):(SLOT3_OFFSET+89)];
+      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT3_OFFSET+101)];
+      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT3_OFFSET+102)];
+      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT3_OFFSET+103)];
     end else begin
-      m2s_req_txn.valid = 'hX;
+      m2s_req_txn[0].valid = 'hX;
+      m2s_req_txn[1].valid = 'hX;
       h2d_data_pkt.h2d_data_txn.valid = 'hX;
     end
 
@@ -4577,7 +4628,8 @@ module device_rx_path #(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
     output m2s_rwd_pkt_t m2s_rwd_pkt,
-    output h2d_rsp_txn_t h2d_rsp_txn
+    output h2d_rsp_txn_t h2d_rsp_txn[4],
+    input int h2d_rsp_ptr
   );
 
     if(slot_sel == 'h1) begin
@@ -4591,11 +4643,19 @@ module device_rx_path #(
       m2s_rwd_pkt.m2s_rwd_txn.address      = data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+28)];
       m2s_rwd_pkt.m2s_rwd_txn.poison       = data[(SLOT1_OFFSET+74)];
       m2s_rwd_pkt.m2s_rwd_txn.tc           = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
-      h2d_rsp_txn.valid                    = data[(SLOT1_OFFSET+88)];
-      h2d_rsp_txn.opcode                   = data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)];
-      h2d_rsp_txn.rspdata                  = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)];
-      h2d_rsp_txn.rsppre                   = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
-      h2d_rsp_txn.cqid                     = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
+      if(h2d_rsp_ptr > 0) begin
+        h2d_rsp_txn[1].valid               = data[(SLOT1_OFFSET+88)];
+        h2d_rsp_txn[1].opcode              = data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)];
+        h2d_rsp_txn[1].rspdata             = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)];
+        h2d_rsp_txn[1].rsppre              = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
+        h2d_rsp_txn[1].cqid                = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
+      end else begin
+        h2d_rsp_txn[0].valid               = data[(SLOT1_OFFSET+88)];
+        h2d_rsp_txn[0].opcode              = data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)];
+        h2d_rsp_txn[0].rspdata             = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)];
+        h2d_rsp_txn[0].rsppre              = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
+        h2d_rsp_txn[0].cqid                = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
+      end
     end else if(slot_sel == 'h2) begin
       m2s_rwd_pkt.pending_data_slot        = 'hf;
       m2s_rwd_pkt.m2s_rwd_txn.valid        = data[(SLOT2_OFFSET+0)];
@@ -4607,11 +4667,19 @@ module device_rx_path #(
       m2s_rwd_pkt.m2s_rwd_txn.address      = data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+28)];
       m2s_rwd_pkt.m2s_rwd_txn.poison       = data[(SLOT2_OFFSET+74)];
       m2s_rwd_pkt.m2s_rwd_txn.tc           = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
-      h2d_rsp_txn.valid                    = data[(SLOT2_OFFSET+88)];
-      h2d_rsp_txn.opcode                   = data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)];
-      h2d_rsp_txn.rspdata                  = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)];
-      h2d_rsp_txn.rsppre                   = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
-      h2d_rsp_txn.cqid                     = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
+      if(h2d_rsp_ptr > 0) begin
+        h2d_rsp_txn[1].valid               = data[(SLOT2_OFFSET+88)];
+        h2d_rsp_txn[1].opcode              = data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)];
+        h2d_rsp_txn[1].rspdata             = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)];
+        h2d_rsp_txn[1].rsppre              = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
+        h2d_rsp_txn[1].cqid                = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
+      end else begin
+        h2d_rsp_txn[0].valid               = data[(SLOT2_OFFSET+88)];
+        h2d_rsp_txn[0].opcode              = data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)];
+        h2d_rsp_txn[0].rspdata             = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)];
+        h2d_rsp_txn[0].rsppre              = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
+        h2d_rsp_txn[0].cqid                = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
+      end
     end else if(slot_sel == 'h3) begin
       m2s_rwd_pkt.pending_data_slot        = 'hf;
       m2s_rwd_pkt.m2s_rwd_txn.valid        = data[(SLOT3_OFFSET+0)];
@@ -4623,14 +4691,23 @@ module device_rx_path #(
       m2s_rwd_pkt.m2s_rwd_txn.address      = data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+28)];
       m2s_rwd_pkt.m2s_rwd_txn.poison       = data[(SLOT3_OFFSET+74)];
       m2s_rwd_pkt.m2s_rwd_txn.tc           = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
-      h2d_rsp_txn.valid                    = data[(SLOT3_OFFSET+88)];
-      h2d_rsp_txn.opcode                   = data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)];
-      h2d_rsp_txn.rspdata                  = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)];
-      h2d_rsp_txn.rsppre                   = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
-      h2d_rsp_txn.cqid                     = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
+      if(h2d_rsp_ptr > 0) begin
+        h2d_rsp_txn[1].valid               = data[(SLOT3_OFFSET+88)];
+        h2d_rsp_txn[1].opcode              = data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)];
+        h2d_rsp_txn[1].rspdata             = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)];
+        h2d_rsp_txn[1].rsppre              = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
+        h2d_rsp_txn[1].cqid                = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
+      end else begin
+        h2d_rsp_txn[0].valid               = data[(SLOT3_OFFSET+88)];
+        h2d_rsp_txn[0].opcode              = data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)];
+        h2d_rsp_txn[0].rspdata             = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)];
+        h2d_rsp_txn[0].rsppre              = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
+        h2d_rsp_txn[0].cqid                = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
+      end
     end else begin
       m2s_rwd_pkt.m2s_rwd_txn.valid = 'hX;
-      h2d_rsp_txn.valid = 'hX;
+      h2d_rsp_txn[0].valid = 'hX;
+      h2d_rsp_txn[1].valid = 'hX;
     end
 
   endfunction
@@ -4719,32 +4796,31 @@ module device_rx_path #(
     
     if(dev_rx_dl_if_d.valid && retryable_flit) begin
       if(!data_slot[0][0]) begin
+        h2d_req_ptr = 'h0;
+        h2d_rsp_ptr = 'h0;
+        h2d_data_ptr = 'h0;
+        m2s_req_ptr = 'h0;
+        m2s_rwd_ptr = 'h0;
         case(dev_rx_dl_if_d.data[7:5])
           'h0: begin
-            header0(dev_rx_dl_if_d.data, h2d_req_pkt, h2d_req_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
+            header0(dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_rsp_pkt[4]);
             h2d_req_ptr = h2d_req_ptr + 1;
             h2d_rsp_ptr = h2d_rsp_ptr + 1;
           end
           'h1: begin
-            header1(dev_rx_dl_if_d.data, h2d_data_pkt, h2d_data_ptr, h2d_rsp_pkt[2], h2d_rsp_ptr);
-            h2d_data_ptr = h2d_data_ptr + 1;
-            h2d_rsp_ptr = h2d_rsp_ptr + 2;
+            header1(dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt[4]);
           end
           'h2: begin
-            header2(dev_rx_dl_if_d.data, h2d_req_pkt, h2d_req_ptr, h2d_data_pkt, h2d_data_ptr);
-            h2d_req_ptr = h2d_req_ptr + 1;
-            h2d_data_ptr = h2d_data_ptr + 1;
+            header2(dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_data_pkt[4]);
           end
           'h3: begin
-            header3(dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr);
-            h2d_data_ptr = h2d_data_ptr + 4;
+            header3(dev_rx_dl_if_d.data, h2d_data_pkt[4]);
           end
           'h4: begin
-            header4(dev_rx_dl_if_d.data, m2s_rwd_pkt, m2s_rwd_ptr);
-            m2s_rwd_ptr = m2s_rwd_ptr + 1;
+            header4(dev_rx_dl_if_d.data, m2s_rwd_pkt);
           end
           'h5: begin
-            header5(dev_rx_dl_if_d.data, m2s_req_pkt, m2s_req_ptr);
+            header5(dev_rx_dl_if_d.data, m2s_req_pkt[2]);
             m2s_req_ptr = m2s_req_ptr + 1;
           end
           default: begin
@@ -4753,34 +4829,22 @@ module device_rx_path #(
         endcase
         case(dev_rx_dl_if_d.data[10:8])
           'h0: begin
-            generic0('h1, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, m2s_rwd_pkt, m2s_rwd_ptr);
-            //h2d_data_ptr = h2d_data_ptr + 4;
-            //m2s_rwd_ptr = m2s_rwd_ptr + 1;
+            generic0('h1, dev_rx_dl_if_d.data, h2d_data_pkt[4], m2s_rwd_pkt);
           end
           'h1: begin
-            generic1('h1, dev_rx_dl_if_d.data, h2d_rsp_pkt[4], h2d_rsp_ptr);
-            h2d_rsp_ptr = h2d_rsp_ptr + 4;
+            generic1('h1, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
           end
           'h2: begin
-            generic2('h1, dev_rx_dl_if_d.data, h2d_req_pkt, h2d_req_ptr, h2d_data_pkt, h2d_data_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
-            h2d_req_ptr = h2d_req_ptr + 1;
-            h2d_data_ptr = h2d_data_ptr + 1;
-            h2d_rsp_ptr = h2d_rsp_ptr + 1;
+            generic2('h1, dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_req_ptr, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           'h3: begin
-            generic3('h1, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
-            h2d_data_ptr = h2d_data_ptr + 4;
-            h2d_rsp_ptr = h2d_rsp_ptr + 1;
+            generic3('h1, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           'h4: begin
-            generic4('h1, dev_rx_dl_if_d.data, m2s_req_pkt, m2s_req_ptr, h2d_data_pkt, h2d_data_ptr);
-            m2s_req_ptr = m2s_req_ptr + 1;
-            h2d_data_ptr = h2d_data_ptr + 1;
+            generic4('h1, dev_rx_dl_if_d.data, m2s_req_pkt[2], m2s_req_ptr, h2d_data_pkt[4], h2d_data_ptr);
           end
           'h5: begin
-            generic5('h1, dev_rx_dl_if_d.data, m2s_rwd_pkt, m2s_rwd_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
-            m2s_rwd_ptr = m2s_rwd_ptr + 1;
-            h2d_rsp_ptr = h2d_rsp_ptr + 1;
+            generic5('h1, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           default: begin
           
@@ -4788,34 +4852,22 @@ module device_rx_path #(
         endcase
         case(dev_rx_dl_if_d.data[13:11])
           'h0: begin
-            generic0('h2, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, m2s_rwd_pkt, m2s_rwd_ptr);
-            //h2d_data_ptr = h2d_data_ptr + 4;
-            //m2s_rwd_ptr = m2s_rwd_ptr + 1;
+            generic0('h2, dev_rx_dl_if_d.data, h2d_data_pkt[4], m2s_rwd_pkt);
           end
           'h1: begin
-            generic1('h2, dev_rx_dl_if_d.data, h2d_rsp_pkt[4], h2d_rsp_ptr);
-            h2d_rsp_ptr = h2d_rsp_ptr + 4;
+            generic1('h2, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
           end
           'h2: begin
-            generic2('h2, dev_rx_dl_if_d.data, h2d_req_pkt, h2d_req_ptr, h2d_data_pkt, h2d_data_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
-            h2d_req_ptr = h2d_req_ptr + 1;
-            h2d_data_ptr = h2d_data_ptr + 1;
-            h2d_rsp_ptr = h2d_rsp_ptr + 1;
+            generic2('h2, dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_req_ptr, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           'h3: begin
-            generic3('h2, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
-            h2d_data_ptr = h2d_data_ptr + 4;
-            h2d_rsp_ptr = h2d_rsp_ptr + 1;
+            generic3('h2, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           'h4: begin
-            generic4('h2, dev_rx_dl_if_d.data, m2s_req_pkt, m2s_req_ptr, h2d_data_pkt, h2d_data_ptr);
-            m2s_req_ptr = m2s_req_ptr + 1;
-            h2d_data_ptr = h2d_data_ptr + 1;
+            generic4('h2, dev_rx_dl_if_d.data, m2s_req_pkt[2], m2s_req_ptr, h2d_data_pkt[4], h2d_data_ptr);
           end
           'h5: begin
-            generic5('h2, dev_rx_dl_if_d.data, m2s_rwd_pkt, m2s_rwd_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
-            m2s_rwd_ptr = m2s_rwd_ptr + 1;
-            h2d_rsp_ptr = h2d_rsp_ptr + 1;
+            generic5('h2, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           default: begin
           
@@ -4823,34 +4875,22 @@ module device_rx_path #(
         endcase
         case(dev_rx_dl_if_d.data[16:14])
           'h0: begin
-            generic0('h3, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, m2s_rwd_pkt, m2s_rwd_ptr);
-            //h2d_data_ptr = h2d_data_ptr + 4;
-            //m2s_rwd_ptr = m2s_rwd_ptr + 1;
+            generic0('h3, dev_rx_dl_if_d.data, h2d_data_pkt[4], m2s_rwd_pkt);
           end
           'h1: begin
-            generic1('h3, dev_rx_dl_if_d.data, h2d_rsp_pkt[4], h2d_rsp_ptr);
-            h2d_rsp_ptr = h2d_rsp_ptr + 4;
+            generic1('h3, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
           end
           'h2: begin
-            generic2('h3, dev_rx_dl_if_d.data, h2d_req_pkt, h2d_req_ptr, h2d_data_pkt, h2d_data_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
-            h2d_req_ptr = h2d_req_ptr + 1;
-            h2d_data_ptr = h2d_data_ptr + 1;
-            h2d_rsp_ptr = h2d_rsp_ptr + 1;
+            generic2('h3, dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_req_ptr, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           'h3: begin
-            generic3('h3, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
-            h2d_data_ptr = h2d_data_ptr + 4;
-            h2d_rsp_ptr = h2d_rsp_ptr + 1;
+            generic3('h3, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           'h4: begin
-            generic4('h3, dev_rx_dl_if_d.data, m2s_req_pkt, m2s_req_ptr, h2d_data_pkt, h2d_data_ptr);
-            m2s_req_ptr = m2s_req_ptr + 1;
-            h2d_data_ptr = h2d_data_ptr + 1;
+            generic4('h3, dev_rx_dl_if_d.data, m2s_req_pkt, m2s_req_ptr[2], h2d_data_pkt[4], h2d_data_ptr);
           end
           'h5: begin
-            generic5('h3, dev_rx_dl_if_d.data, m2s_rwd_pkt, m2s_rwd_ptr, h2d_rsp_pkt, h2d_rsp_ptr);
-            m2s_rwd_ptr = m2s_rwd_ptr + 1;
-            h2d_rsp_ptr = h2d_rsp_ptr + 1;
+            generic5('h3, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           default: begin
           
