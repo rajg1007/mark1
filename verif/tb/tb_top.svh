@@ -685,11 +685,21 @@ endmodule
 module host_tx_path#(
 
 )(
+  input int d2h_req_occ,
+  input int d2h_rsp_occ,
+  input int d2h_data_occ,
+  input int s2m_ndr_occ,
+  input int s2m_drs_occ,
   input int h2d_req_occ,
   input int h2d_rsp_occ,
   input int h2d_data_occ,
   input int m2s_req_occ,
   input int m2s_rwd_occ,
+  input int d2h_req_wptr,
+  input int d2h_rsp_wptr,
+  input int d2h_data_wptr,
+  input int s2m_ndr_wptr,
+  input int s2m_drs_wptr,
   output logic h2d_req_rval,
   output logic h2d_req_drval,
   output logic h2d_req_qrval,
@@ -723,6 +733,7 @@ module host_tx_path#(
   cxl_host_tx_dl_if.tx_mp host_tx_dl_if,
   cxl_host_rx_dl_if.rx_mp host_rx_dl_if
 );
+
   localparam SLOT1_OFFSET = 128;
   localparam SLOT2_OFFSET = 256;
   localparam SLOT3_OFFSET = 384;
@@ -750,6 +761,33 @@ module host_tx_path#(
     logic [511:0] data;
   } holding_q_t;
   holding_q_t holding_q[6];
+  logic lru;
+  int d2h_req_outstanding_credits;
+  int d2h_req_consumed_credits;
+  int d2h_req_occ_d;
+  int d2h_rsp_outstanding_credits;
+  int d2h_rsp_consumed_credits;
+  int d2h_rsp_occ_d;
+  int d2h_data_outstanding_credits;
+  int d2h_data_consumed_credits;
+  int d2h_data_occ_d;
+  int s2m_ndr_outstanding_credits;
+  int s2m_ndr_consumed_credits;
+  int s2m_ndr_occ_d;
+  int s2m_drs_outstanding_credits;
+  int s2m_drs_consumed_credits;
+  int s2m_drs_occ_d;
+  typedef struct{
+    bit pending;
+    int credit_to_be_sent[4];
+  } crdt_tbs_t;
+  crdt_tbs_t d2h_req_crdt_tbs;
+  crdt_tbs_t d2h_rsp_crdt_tbs;
+  crdt_tbs_t d2h_data_crdt_tbs;
+  crdt_tbs_t s2m_ndr_crdt_tbs;
+  crdt_tbs_t s2m_drs_crdt_tbs;
+  logic [2:0] d2h_req_crdt_send;
+  //IMP INFO:consider s2m ndr as rsp credits and s2m drs as data credits
 
   ASSERT_ONEHOT_SLOT_SEL:assert property @(posedge clk) disable iff (!rstn) $onehot(slot_sel);
 
@@ -783,6 +821,339 @@ module host_tx_path#(
 
   assign h_req = (slot_sel>1) ? 'h0: h_val;
   assign g_req = (slot_sel[0])? 'h0: g_val;
+
+  always_comb begin
+    d2h_req_outstanding_credits   = (d2h_req_occ_d  > d2h_req_occ ) ? (d2h_req_occ_d  - d2h_req_occ   ) : 'h0;
+    d2h_rsp_outstanding_credits   = (d2h_rsp_occ_d  > d2h_rsp_occ ) ? (d2h_rsp_occ_d  - d2h_rsp_occ   ) : 'h0;
+    d2h_data_outstanding_credits  = (d2h_data_occ_d > d2h_data_occ) ? (d2h_data_occ_d - d2h_data_occ  ) : 'h0;
+    s2m_ndr_outstanding_credits   = (s2m_ndr_occ_d  > s2m_ndr_occ ) ? (s2m_ndr_occ_d  - s2m_ndr_occ   ) : 'h0;
+    s2m_drs_outstanding_credits   = (s2m_drs_occ_d  > s2m_drs_occ ) ? (s2m_drs_occ_d  - s2m_drs_occ   ) : 'h0;
+    d2h_req_consumed_credits      = (d2h_req_occ_d  < d2h_req_occ ) ? (d2h_req_occ    - d2h_req_occ_d ) : 'h0;
+    d2h_rsp_consumed_credits      = (d2h_rsp_occ_d  < d2h_rsp_occ ) ? (d2h_rsp_occ    - d2h_rsp_occ_d ) : 'h0;
+    d2h_data_consumed_credits     = (d2h_data_occ_d < d2h_data_occ) ? (d2h_data_occ   - d2h_data_occ_d) : 'h0;
+    s2m_ndr_consumed_credits      = (s2m_ndr_occ_d  < s2m_ndr_occ ) ? (s2m_ndr_occ    - s2m_ndr_occ_d ) : 'h0;
+    s2m_drs_consumed_credits      = (s2m_drs_occ_d  < s2m_drs_occ ) ? (s2m_drs_occ    - s2m_drs_occ_d ) : 'h0;
+    d2h_req_crdt_send             = (d2h_req_crdt_tbs[3].pending)? (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_req_crdt_tbs[2].pending)? (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_req_crdt_tbs[1].pending)? (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_req_crdt_tbs[0].pending)? (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+                                  : 'h0;
+    d2h_rsp_crdt_send             = (d2h_rsp_crdt_tbs[3].pending)? (d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_rsp_crdt_tbs[2].pending)? (d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_rsp_crdt_tbs[1].pending)? (d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_rsp_crdt_tbs[0].pending)? (d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+                                  : 'h0;
+    d2h_data_crdt_send             = (d2h_data_crdt_tbs[3].pending)? (d2h_data_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (d2h_data_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (d2h_data_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (d2h_data_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (d2h_data_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_data_crdt_tbs[2].pending)? (d2h_data_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (d2h_data_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (d2h_data_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (d2h_data_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (d2h_data_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_data_crdt_tbs[1].pending)? (d2h_data_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (d2h_data_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (d2h_data_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (d2h_data_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (d2h_data_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_data_crdt_tbs[0].pending)? (d2h_data_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (d2h_data_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (d2h_data_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (d2h_data_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (d2h_data_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+                                  : 'h0;
+    s2m_ndr_crdt_send             = (s2m_ndr_crdt_tbs[3].pending)? (s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (s2m_ndr_crdt_tbs[2].pending)? (s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (s2m_ndr_crdt_tbs[1].pending)? (s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (s2m_ndr_crdt_tbs[0].pending)? (s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+                                  : 'h0;
+    s2m_drs_crdt_send             = (s2m_drs_crdt_tbs[3].pending)? (s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (s2m_drs_crdt_tbs[2].pending)? (s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (s2m_drs_crdt_tbs[1].pending)? (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (s2m_drs_crdt_tbs[0].pending)? (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+                                  : 'h0;
+  end
+
+  always@(posedge clk) begin
+    if(!rstn) begin
+      lru <= 'h0;
+      d2h_req_occ   <= 'd0;
+      d2h_rsp_occ   <= 'd0;
+      d2h_data_occ  <= 'd0;
+      s2m_ndr_occ   <= 'd0;
+      s2m_drs_occ   <= 'd0;
+      d2h_req_occ_d   <= 'd0;
+      d2h_rsp_occ_d   <= 'd0;
+      d2h_data_occ_d  <= 'd0;
+      s2m_ndr_occ_d   <= 'd0;
+      s2m_drs_occ_d   <= 'd0;
+      d2h_req_crdt_send <= 'h0;
+      d2h_req_consumed_credits  <= 'h0;
+      d2h_rsp_consumed_credits  <= 'h0;
+      d2h_data_consumed_credits <= 'h0;
+      s2m_ndr_consumed_credits  <= 'h0;
+      s2m_drs_consumed_credits  <= 'h0;
+      d2h_req_outstanding_credits <= 'd0;
+      d2h_rsp_outstanding_credits <= 'd0;
+      d2h_data_outstanding_credits<= 'd0;
+      s2m_ndr_outstanding_credits <= 'd0;
+      s2m_drs_outstanding_credits <= 'd0;
+      d2h_req_crdt_tbs[0].pending <= 'h1;
+      d2h_req_crdt_tbs[1].pending <= 'h1;
+      d2h_req_crdt_tbs[2].pending <= 'h1;
+      d2h_req_crdt_tbs[3].pending <= 'h1;
+      d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
+      d2h_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
+      d2h_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
+      d2h_req_crdt_tbs[3].credit_to_be_sent <= 'd64;
+    end else begin 
+      d2h_req_occ_d   <= d2h_req_occ;
+      d2h_rsp_occ_d   <= d2h_rsp_occ;
+      d2h_data_occ_d  <= d2h_data_occ;
+      s2m_ndr_occ_d   <= s2m_ndr_occ;
+      s2m_drs_occ_d   <= s2m_drs_occ;
+      if((d2h_req_crdt_tbs[0].credit_to_be_sent + d2h_req_outstanding_credits) <= 'd64) begin
+        d2h_req_crdt_tbs[0].pending <= 'h1;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0)) begin
+          d2h_req_crdt_tbs[0].credit_to_be_sent <= d2h_req_crdt_tbs[0].credit_to_be_sent + d2h_req_outstanding_credits - ((d2h_req_crdt_send == 'h7)? 'd64: (d2h_req_crdt_send == 'h6)? 'h32: (d2h_req_crdt_send == 'h5)? 'h16: (d2h_req_crdt_send == 'h4)? 'h8: (d2h_req_crdt_send == 'h3)? 'h4: d2h_req_crdt_send);
+        end else begin
+          d2h_req_crdt_tbs[0].credit_to_be_sent <= d2h_req_crdt_tbs[0].credit_to_be_sent + d2h_req_outstanding_credits;
+        end
+      end else if(((d2h_req_crdt_tbs[0].credit_to_be_sent + d2h_req_outstanding_credits) > 'd64) && ((d2h_req_crdt_tbs[1].credit_to_be_sent + d2h_req_outstanding_credits) <= 'd64)) begin
+        d2h_req_crdt_tbs[0].pending <= 'h1;
+        d2h_req_crdt_tbs[1].pending <= 'h1;
+        d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0)) begin
+          d2h_req_crdt_tbs[0].credit_to_be_sent <= d2h_req_crdt_tbs[0].credit_to_be_sent + d2h_req_outstanding_credits - ((d2h_req_crdt_send == 'h7)? 'd64: (d2h_req_crdt_send == 'h6)? 'h32: (d2h_req_crdt_send == 'h5)? 'h16: (d2h_req_crdt_send == 'h4)? 'h8: (d2h_req_crdt_send == 'h3)? 'h4: d2h_req_crdt_send);
+        end else begin
+          d2h_req_crdt_tbs[1].credit_to_be_sent <= d2h_req_crdt_tbs[1].credit_to_be_sent + d2h_req_outstanding_credits;
+        end
+      end else if(((d2h_req_crdt_tbs[1].credit_to_be_sent + d2h_req_outstanding_credits) > 'd64) && ((d2h_req_crdt_tbs[2].credit_to_be_sent + d2h_req_outstanding_credits) <= 'd64)) begin
+        d2h_req_crdt_tbs[0].pending <= 'h1;
+        d2h_req_crdt_tbs[1].pending <= 'h1;
+        d2h_req_crdt_tbs[2].pending <= 'h1;
+        d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        d2h_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0)) begin
+          d2h_req_crdt_tbs[0].credit_to_be_sent <= d2h_req_crdt_tbs[0].credit_to_be_sent + d2h_req_outstanding_credits - ((d2h_req_crdt_send == 'h7)? 'd64: (d2h_req_crdt_send == 'h6)? 'h32: (d2h_req_crdt_send == 'h5)? 'h16: (d2h_req_crdt_send == 'h4)? 'h8: (d2h_req_crdt_send == 'h3)? 'h4: d2h_req_crdt_send);
+        end else begin
+          d2h_req_crdt_tbs[2].credit_to_be_sent <= d2h_req_crdt_tbs[2].credit_to_be_sent + d2h_req_outstanding_credits;
+        end
+      end else if(((d2h_req_crdt_tbs[2].credit_to_be_sent + d2h_req_outstanding_credits) > 'd64) && ((d2h_req_crdt_tbs[3].credit_to_be_sent + d2h_req_outstanding_credits) <= 'd64)) begin
+        d2h_req_crdt_tbs[0].pending <= 'h1;
+        d2h_req_crdt_tbs[1].pending <= 'h1;
+        d2h_req_crdt_tbs[2].pending <= 'h1;
+        d2h_req_crdt_tbs[3].pending <= 'h1;
+        d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        d2h_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        d2h_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0)) begin
+          d2h_req_crdt_tbs[0].credit_to_be_sent <= d2h_req_crdt_tbs[0].credit_to_be_sent + d2h_req_outstanding_credits - ((d2h_req_crdt_send == 'h7)? 'd64: (d2h_req_crdt_send == 'h6)? 'h32: (d2h_req_crdt_send == 'h5)? 'h16: (d2h_req_crdt_send == 'h4)? 'h8: (d2h_req_crdt_send == 'h3)? 'h4: d2h_req_crdt_send);
+        end else begin
+          d2h_req_crdt_tbs[3].credit_to_be_sent <= d2h_req_crdt_tbs[3].credit_to_be_sent + d2h_req_outstanding_credits;
+        end
+      end
+      if((d2h_rsp_crdt_tbs[0].credit_to_be_sent + d2h_rsp_outstanding_credits) <= 'd64) begin
+        d2h_rsp_crdt_tbs[0].pending <= 'h1;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((s2m_ndr_crdt_send > 0) && (lru == 0)) || (s2m_ndr_crdt_send == 0))) begin
+          d2h_rsp_crdt_tbs[0].credit_to_be_sent <= d2h_rsp_crdt_tbs[0].credit_to_be_sent + d2h_rsp_outstanding_credits - ((d2h_rsp_crdt_send == 'h7)? 'd64: (d2h_rsp_crdt_send == 'h6)? 'h32: (d2h_rsp_crdt_send == 'h5)? 'h16: (d2h_rsp_crdt_send == 'h4)? 'h8: (d2h_rsp_crdt_send == 'h3)? 'h4: d2h_rsp_crdt_send);
+          if(s2m_ndr_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          d2h_rsp_crdt_tbs[0].credit_to_be_sent <= d2h_rsp_crdt_tbs[0].credit_to_be_sent + d2h_rsp_outstanding_credits;
+        end
+      end else if(((d2h_rsp_crdt_tbs[0].credit_to_be_sent + d2h_rsp_outstanding_credits) > 'd64) && ((d2h_rsp_crdt_tbs[1].credit_to_be_sent + d2h_rsp_outstanding_credits) <= 'd64)) begin
+        d2h_rsp_crdt_tbs[0].pending <= 'h1;
+        d2h_rsp_crdt_tbs[1].pending <= 'h1;
+        d2h_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((s2m_ndr_crdt_send > 0) && (lru == 0)) || (s2m_ndr_crdt_send == 0))) begin
+          d2h_rsp_crdt_tbs[0].credit_to_be_sent <= d2h_rsp_crdt_tbs[0].credit_to_be_sent + d2h_rsp_outstanding_credits - ((d2h_rsp_crdt_send == 'h7)? 'd64: (d2h_rsp_crdt_send == 'h6)? 'h32: (d2h_rsp_crdt_send == 'h5)? 'h16: (d2h_rsp_crdt_send == 'h4)? 'h8: (d2h_rsp_crdt_send == 'h3)? 'h4: d2h_rsp_crdt_send);
+          if(s2m_ndr_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          d2h_rsp_crdt_tbs[1].credit_to_be_sent <= d2h_rsp_crdt_tbs[1].credit_to_be_sent + d2h_rsp_outstanding_credits;
+        end
+      end else if(((d2h_rsp_crdt_tbs[1].credit_to_be_sent + d2h_rsp_outstanding_credits) > 'd64) && ((d2h_rsp_crdt_tbs[2].credit_to_be_sent + d2h_rsp_outstanding_credits) <= 'd64)) begin
+        d2h_rsp_crdt_tbs[0].pending <= 'h1;
+        d2h_rsp_crdt_tbs[1].pending <= 'h1;
+        d2h_rsp_crdt_tbs[2].pending <= 'h1;
+        d2h_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        d2h_rsp_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((s2m_ndr_crdt_send > 0) && (lru == 0)) || (s2m_ndr_crdt_send == 0))) begin
+          d2h_rsp_crdt_tbs[0].credit_to_be_sent <= d2h_rsp_crdt_tbs[0].credit_to_be_sent + d2h_rsp_outstanding_credits - ((d2h_rsp_crdt_send == 'h7)? 'd64: (d2h_rsp_crdt_send == 'h6)? 'h32: (d2h_rsp_crdt_send == 'h5)? 'h16: (d2h_rsp_crdt_send == 'h4)? 'h8: (d2h_rsp_crdt_send == 'h3)? 'h4: d2h_rsp_crdt_send);
+          if(s2m_ndr_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          d2h_rsp_crdt_tbs[2].credit_to_be_sent <= d2h_rsp_crdt_tbs[2].credit_to_be_sent + d2h_rsp_outstanding_credits;
+        end
+      end else if(((d2h_rsp_crdt_tbs[2].credit_to_be_sent + d2h_rsp_outstanding_credits) > 'd64) && ((d2h_rsp_crdt_tbs[3].credit_to_be_sent + d2h_rsp_outstanding_credits) <= 'd64)) begin
+        d2h_rsp_crdt_tbs[0].pending <= 'h1;
+        d2h_rsp_crdt_tbs[1].pending <= 'h1;
+        d2h_rsp_crdt_tbs[2].pending <= 'h1;
+        d2h_rsp_crdt_tbs[3].pending <= 'h1;
+        d2h_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        d2h_rsp_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        d2h_rsp_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((s2m_ndr_crdt_send > 0) && (lru == 0)) || (s2m_ndr_crdt_send == 0))) begin
+          d2h_rsp_crdt_tbs[0].credit_to_be_sent <= d2h_rsp_crdt_tbs[0].credit_to_be_sent + d2h_rsp_outstanding_credits - ((d2h_rsp_crdt_send == 'h7)? 'd64: (d2h_rsp_crdt_send == 'h6)? 'h32: (d2h_rsp_crdt_send == 'h5)? 'h16: (d2h_rsp_crdt_send == 'h4)? 'h8: (d2h_rsp_crdt_send == 'h3)? 'h4: d2h_rsp_crdt_send);
+          if(s2m_ndr_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          d2h_rsp_crdt_tbs[3].credit_to_be_sent <= d2h_rsp_crdt_tbs[3].credit_to_be_sent + d2h_rsp_outstanding_credits;
+        end
+      end
+      if((d2h_data_crdt_tbs[0].credit_to_be_sent + d2h_data_outstanding_credits) <= 'd64) begin
+        d2h_data_crdt_tbs[0].pending <= 'h1;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((s2m_drs_crdt_send > 0) && (lru == 0)) || (s2m_drs_crdt_send == 0))) begin
+          d2h_data_crdt_tbs[0].credit_to_be_sent <= d2h_data_crdt_tbs[0].credit_to_be_sent + d2h_data_outstanding_credits - ((d2h_data_crdt_send == 'h7)? 'd64: (d2h_data_crdt_send == 'h6)? 'h32: (d2h_data_crdt_send == 'h5)? 'h16: (d2h_data_crdt_send == 'h4)? 'h8: (d2h_data_crdt_send == 'h3)? 'h4: d2h_data_crdt_send);
+          if(s2m_drs_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          d2h_data_crdt_tbs[0].credit_to_be_sent <= d2h_data_crdt_tbs[0].credit_to_be_sent + d2h_data_outstanding_credits;
+        end
+      end else if(((d2h_data_crdt_tbs[0].credit_to_be_sent + d2h_data_outstanding_credits) > 'd64) && ((d2h_data_crdt_tbs[1].credit_to_be_sent + d2h_data_outstanding_credits) <= 'd64)) begin
+        d2h_data_crdt_tbs[0].pending <= 'h1;
+        d2h_data_crdt_tbs[1].pending <= 'h1;
+        d2h_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((s2m_drs_crdt_send > 0) && (lru == 0)) || (s2m_drs_crdt_send == 0))) begin
+          d2h_data_crdt_tbs[0].credit_to_be_sent <= d2h_data_crdt_tbs[0].credit_to_be_sent + d2h_data_outstanding_credits - ((d2h_data_crdt_send == 'h7)? 'd64: (d2h_data_crdt_send == 'h6)? 'h32: (d2h_data_crdt_send == 'h5)? 'h16: (d2h_data_crdt_send == 'h4)? 'h8: (d2h_data_crdt_send == 'h3)? 'h4: d2h_data_crdt_send);
+          if(s2m_drs_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          d2h_data_crdt_tbs[1].credit_to_be_sent <= d2h_data_crdt_tbs[1].credit_to_be_sent + d2h_data_outstanding_credits;
+        end
+      end else if(((d2h_data_crdt_tbs[1].credit_to_be_sent + d2h_data_outstanding_credits) > 'd64) && ((d2h_data_crdt_tbs[2].credit_to_be_sent + d2h_data_outstanding_credits) <= 'd64)) begin
+        d2h_data_crdt_tbs[0].pending <= 'h1;
+        d2h_data_crdt_tbs[1].pending <= 'h1;
+        d2h_data_crdt_tbs[2].pending <= 'h1;
+        d2h_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        d2h_data_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((s2m_drs_crdt_send > 0) && (lru == 0)) || (s2m_drs_crdt_send == 0))) begin
+          d2h_data_crdt_tbs[0].credit_to_be_sent <= d2h_data_crdt_tbs[0].credit_to_be_sent + d2h_data_outstanding_credits - ((d2h_data_crdt_send == 'h7)? 'd64: (d2h_data_crdt_send == 'h6)? 'h32: (d2h_data_crdt_send == 'h5)? 'h16: (d2h_data_crdt_send == 'h4)? 'h8: (d2h_data_crdt_send == 'h3)? 'h4: d2h_data_crdt_send);
+          if(s2m_drs_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          d2h_data_crdt_tbs[2].credit_to_be_sent <= d2h_data_crdt_tbs[2].credit_to_be_sent + d2h_data_outstanding_credits;
+        end
+      end else if(((d2h_data_crdt_tbs[2].credit_to_be_sent + d2h_data_outstanding_credits) > 'd64) && ((d2h_data_crdt_tbs[3].credit_to_be_sent + d2h_data_outstanding_credits) <= 'd64)) begin
+        d2h_data_crdt_tbs[0].pending <= 'h1;
+        d2h_data_crdt_tbs[1].pending <= 'h1;
+        d2h_data_crdt_tbs[2].pending <= 'h1;
+        d2h_data_crdt_tbs[3].pending <= 'h1;
+        d2h_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        d2h_data_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        d2h_data_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((s2m_drs_crdt_send > 0) && (lru == 0)) || (s2m_drs_crdt_send == 0))) begin
+          d2h_data_crdt_tbs[0].credit_to_be_sent <= d2h_data_crdt_tbs[0].credit_to_be_sent + d2h_data_outstanding_credits - ((d2h_data_crdt_send == 'h7)? 'd64: (d2h_data_crdt_send == 'h6)? 'h32: (d2h_data_crdt_send == 'h5)? 'h16: (d2h_data_crdt_send == 'h4)? 'h8: (d2h_data_crdt_send == 'h3)? 'h4: d2h_data_crdt_send);
+          if(s2m_drs_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          d2h_data_crdt_tbs[3].credit_to_be_sent <= d2h_data_crdt_tbs[3].credit_to_be_sent + d2h_data_outstanding_credits;
+        end
+      end
+      if((s2m_ndr_crdt_tbs[0].credit_to_be_sent + s2m_ndr_outstanding_credits) <= 'd64) begin
+        s2m_ndr_crdt_tbs[0].pending <= 'h1;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((d2h_rsp_crdt_send > 0) && (lru == 1)) || (d2h_rsp_crdt_send == 0))) begin
+          s2m_ndr_crdt_tbs[0].credit_to_be_sent <= s2m_ndr_crdt_tbs[0].credit_to_be_sent + s2m_ndr_outstanding_credits - ((s2m_ndr_crdt_send == 'h7)? 'd64: (s2m_ndr_crdt_send == 'h6)? 'h32: (s2m_ndr_crdt_send == 'h5)? 'h16: (s2m_ndr_crdt_send == 'h4)? 'h8: (s2m_ndr_crdt_send == 'h3)? 'h4: s2m_ndr_crdt_send);
+          if(d2h_rsp_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          s2m_ndr_crdt_tbs[0].credit_to_be_sent <= s2m_ndr_crdt_tbs[0].credit_to_be_sent + s2m_ndr_outstanding_credits;
+        end
+      end else if(((s2m_ndr_crdt_tbs[0].credit_to_be_sent + s2m_ndr_outstanding_credits) > 'd64) && ((s2m_ndr_crdt_tbs[1].credit_to_be_sent + s2m_ndr_outstanding_credits) <= 'd64)) begin
+        s2m_ndr_crdt_tbs[0].pending <= 'h1;
+        s2m_ndr_crdt_tbs[1].pending <= 'h1;
+        s2m_ndr_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((d2h_rsp_crdt_send > 0) && (lru == 1)) || (d2h_rsp_crdt_send == 0))) begin
+          s2m_ndr_crdt_tbs[0].credit_to_be_sent <= s2m_ndr_crdt_tbs[0].credit_to_be_sent + s2m_ndr_outstanding_credits - ((s2m_ndr_crdt_send == 'h7)? 'd64: (s2m_ndr_crdt_send == 'h6)? 'h32: (s2m_ndr_crdt_send == 'h5)? 'h16: (s2m_ndr_crdt_send == 'h4)? 'h8: (s2m_ndr_crdt_send == 'h3)? 'h4: s2m_ndr_crdt_send);
+          if(d2h_rsp_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          s2m_ndr_crdt_tbs[1].credit_to_be_sent <= s2m_ndr_crdt_tbs[1].credit_to_be_sent + s2m_ndr_outstanding_credits;
+        end
+      end else if(((s2m_ndr_crdt_tbs[1].credit_to_be_sent + s2m_ndr_outstanding_credits) > 'd64) && ((s2m_ndr_crdt_tbs[2].credit_to_be_sent + s2m_ndr_outstanding_credits) <= 'd64)) begin
+        s2m_ndr_crdt_tbs[0].pending <= 'h1;
+        s2m_ndr_crdt_tbs[1].pending <= 'h1;
+        s2m_ndr_crdt_tbs[2].pending <= 'h1;
+        s2m_ndr_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        s2m_ndr_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((d2h_rsp_crdt_send > 0) && (lru == 1)) || (d2h_rsp_crdt_send == 0))) begin
+          s2m_ndr_crdt_tbs[0].credit_to_be_sent <= s2m_ndr_crdt_tbs[0].credit_to_be_sent + s2m_ndr_outstanding_credits - ((s2m_ndr_crdt_send == 'h7)? 'd64: (s2m_ndr_crdt_send == 'h6)? 'h32: (s2m_ndr_crdt_send == 'h5)? 'h16: (s2m_ndr_crdt_send == 'h4)? 'h8: (s2m_ndr_crdt_send == 'h3)? 'h4: s2m_ndr_crdt_send);
+          if(d2h_rsp_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          s2m_ndr_crdt_tbs[2].credit_to_be_sent <= s2m_ndr_crdt_tbs[2].credit_to_be_sent + s2m_ndr_outstanding_credits;
+        end
+      end else if(((s2m_ndr_crdt_tbs[2].credit_to_be_sent + s2m_ndr_outstanding_credits) > 'd64) && ((s2m_ndr_crdt_tbs[3].credit_to_be_sent + s2m_ndr_outstanding_credits) <= 'd64)) begin
+        s2m_ndr_crdt_tbs[0].pending <= 'h1;
+        s2m_ndr_crdt_tbs[1].pending <= 'h1;
+        s2m_ndr_crdt_tbs[2].pending <= 'h1;
+        s2m_ndr_crdt_tbs[3].pending <= 'h1;
+        s2m_ndr_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        s2m_ndr_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        s2m_ndr_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((d2h_rsp_crdt_send > 0) && (lru == 1)) || (d2h_rsp_crdt_send == 0))) begin
+          s2m_ndr_crdt_tbs[0].credit_to_be_sent <= s2m_ndr_crdt_tbs[0].credit_to_be_sent + s2m_ndr_outstanding_credits - ((s2m_ndr_crdt_send == 'h7)? 'd64: (s2m_ndr_crdt_send == 'h6)? 'h32: (s2m_ndr_crdt_send == 'h5)? 'h16: (s2m_ndr_crdt_send == 'h4)? 'h8: (s2m_ndr_crdt_send == 'h3)? 'h4: s2m_ndr_crdt_send);
+          if(d2h_rsp_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          s2m_ndr_crdt_tbs[3].credit_to_be_sent <= s2m_ndr_crdt_tbs[3].credit_to_be_sent + s2m_ndr_outstanding_credits;
+        end
+      end
+      if((s2m_drs_crdt_tbs[0].credit_to_be_sent + s2m_drs_outstanding_credits) <= 'd64) begin
+        s2m_drs_crdt_tbs[0].pending <= 'h1;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((d2h_data_crdt_send > 0) && (lru == 1)) || (d2h_data_crdt_send == 0))) begin
+          s2m_drs_crdt_tbs[0].credit_to_be_sent <= s2m_drs_crdt_tbs[0].credit_to_be_sent + s2m_drs_outstanding_credits - ((s2m_drs_crdt_send == 'h7)? 'd64: (s2m_drs_crdt_send == 'h6)? 'h32: (s2m_drs_crdt_send == 'h5)? 'h16: (s2m_drs_crdt_send == 'h4)? 'h8: (s2m_drs_crdt_send == 'h3)? 'h4: s2m_drs_crdt_send);
+          if(d2h_data_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          s2m_drs_crdt_tbs[0].credit_to_be_sent <= s2m_drs_crdt_tbs[0].credit_to_be_sent + s2m_drs_outstanding_credits;
+        end
+      end else if(((s2m_drs_crdt_tbs[0].credit_to_be_sent + s2m_drs_outstanding_credits) > 'd64) && ((s2m_drs_crdt_tbs[1].credit_to_be_sent + s2m_drs_outstanding_credits) <= 'd64)) begin
+        s2m_drs_crdt_tbs[0].pending <= 'h1;
+        s2m_drs_crdt_tbs[1].pending <= 'h1;
+        s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((d2h_data_crdt_send > 0) && (lru == 1)) || (d2h_data_crdt_send == 0))) begin
+          s2m_drs_crdt_tbs[0].credit_to_be_sent <= s2m_drs_crdt_tbs[0].credit_to_be_sent + s2m_drs_outstanding_credits - ((s2m_drs_crdt_send == 'h7)? 'd64: (s2m_drs_crdt_send == 'h6)? 'h32: (s2m_drs_crdt_send == 'h5)? 'h16: (s2m_drs_crdt_send == 'h4)? 'h8: (s2m_drs_crdt_send == 'h3)? 'h4: s2m_drs_crdt_send);
+          if(d2h_data_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          s2m_drs_crdt_tbs[1].credit_to_be_sent <= s2m_drs_crdt_tbs[1].credit_to_be_sent + s2m_drs_outstanding_credits;
+        end
+      end else if(((s2m_drs_crdt_tbs[1].credit_to_be_sent + s2m_drs_outstanding_credits) > 'd64) && ((s2m_drs_crdt_tbs[2].credit_to_be_sent + s2m_drs_outstanding_credits) <= 'd64)) begin
+        s2m_drs_crdt_tbs[0].pending <= 'h1;
+        s2m_drs_crdt_tbs[1].pending <= 'h1;
+        s2m_drs_crdt_tbs[2].pending <= 'h1;
+        s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((d2h_data_crdt_send > 0) && (lru == 1)) || (d2h_data_crdt_send == 0))) begin
+          s2m_drs_crdt_tbs[0].credit_to_be_sent <= s2m_drs_crdt_tbs[0].credit_to_be_sent + s2m_drs_outstanding_credits - ((s2m_drs_crdt_send == 'h7)? 'd64: (s2m_drs_crdt_send == 'h6)? 'h32: (s2m_drs_crdt_send == 'h5)? 'h16: (s2m_drs_crdt_send == 'h4)? 'h8: (s2m_drs_crdt_send == 'h3)? 'h4: s2m_drs_crdt_send);
+          if(d2h_data_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          s2m_drs_crdt_tbs[2].credit_to_be_sent <= s2m_drs_crdt_tbs[2].credit_to_be_sent + s2m_drs_outstanding_credits;
+        end
+      end else if(((s2m_drs_crdt_tbs[2].credit_to_be_sent + s2m_drs_outstanding_credits) > 'd64) && ((s2m_drs_crdt_tbs[3].credit_to_be_sent + s2m_drs_outstanding_credits) <= 'd64)) begin
+        s2m_drs_crdt_tbs[0].pending <= 'h1;
+        s2m_drs_crdt_tbs[1].pending <= 'h1;
+        s2m_drs_crdt_tbs[2].pending <= 'h1;
+        s2m_drs_crdt_tbs[3].pending <= 'h1;
+        s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        s2m_drs_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((d2h_data_crdt_send > 0) && (lru == 1)) || (d2h_data_crdt_send == 0))) begin
+          s2m_drs_crdt_tbs[0].credit_to_be_sent <= s2m_drs_crdt_tbs[0].credit_to_be_sent + s2m_drs_outstanding_credits - ((s2m_drs_crdt_send == 'h7)? 'd64: (s2m_drs_crdt_send == 'h6)? 'h32: (s2m_drs_crdt_send == 'h5)? 'h16: (s2m_drs_crdt_send == 'h4)? 'h8: (s2m_drs_crdt_send == 'h3)? 'h4: s2m_drs_crdt_send);
+          if(d2h_data_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          s2m_drs_crdt_tbs[3].credit_to_be_sent <= s2m_drs_crdt_tbs[3].credit_to_be_sent + s2m_drs_outstanding_credits;
+        end
+      end
+    end
+  end
+
   //TODO: serious missing piece is if roll over cnt exceeds then packing of further data should be avoided
   //ll pkt buffer
   always@(posedge clk) begin
@@ -849,9 +1220,9 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? s2m_ndr_crdt_send: ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? d2h_rsp_crdt_send: (s2m_ndr_crdt_send > 0)? s2m_ndr_crdt_send: (d2h_rsp_crdt_send > 0)? d2h_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? s2m_drs_crdt_send: ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? d2h_data_crdt_send: (s2m_drs_crdt_send > 0)? s2m_drs_crdt_send: (d2h_data_crdt_send > 0)? d2h_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= h2d_req_dataout.valid;
                 holding_q[holding_wrptr].data[35:33]    <= h2d_req_dataout.opcode;
                 holding_q[holding_wrptr].data[81:36]    <= h2d_req_dataout.address[51:6];
@@ -876,9 +1247,9 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? s2m_ndr_crdt_send: ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? d2h_rsp_crdt_send: (s2m_ndr_crdt_send > 0)? s2m_ndr_crdt_send: (d2h_rsp_crdt_send > 0)? d2h_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? s2m_drs_crdt_send: ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? d2h_data_crdt_send: (s2m_drs_crdt_send > 0)? s2m_drs_crdt_send: (d2h_data_crdt_send > 0)? d2h_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= h2d_data_dataout.valid;
                 holding_q[holding_wrptr].data[44:33]    <= h2d_data_dataout.cqid;
                 holding_q[holding_wrptr].data[45]       <= h2d_data_dataout.chunkvalid;
@@ -916,9 +1287,9 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? s2m_ndr_crdt_send: ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? d2h_rsp_crdt_send: (s2m_ndr_crdt_send > 0)? s2m_ndr_crdt_send: (d2h_rsp_crdt_send > 0)? d2h_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? s2m_drs_crdt_send: ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? d2h_data_crdt_send: (s2m_drs_crdt_send > 0)? s2m_drs_crdt_send: (d2h_data_crdt_send > 0)? d2h_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= h2d_req_dataout.valid;
                 holding_q[holding_wrptr].data[35:33]    <= h2d_req_dataout.opcode;
                 holding_q[holding_wrptr].data[81:36]    <= h2d_req_dataout.address[51:6];
@@ -949,9 +1320,9 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[13:11]     <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]     <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]     <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]     <= 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]     <= 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]     <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]     <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? s2m_ndr_crdt_send: ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? d2h_rsp_crdt_send: (s2m_ndr_crdt_send > 0)? s2m_ndr_crdt_send: (d2h_rsp_crdt_send > 0)? d2h_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]     <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]     <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? s2m_drs_crdt_send: ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? d2h_data_crdt_send: (s2m_drs_crdt_send > 0)? s2m_drs_crdt_send: (d2h_data_crdt_send > 0)? d2h_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]        <= h2d_data_dataout.valid;
                 holding_q[holding_wrptr].data[44:33]     <= h2d_data_dataout.cqid;
                 holding_q[holding_wrptr].data[45]        <= h2d_data_dataout.chunkvalid;
@@ -1006,9 +1377,9 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? s2m_ndr_crdt_send: ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? d2h_rsp_crdt_send: (s2m_ndr_crdt_send > 0)? s2m_ndr_crdt_send: (d2h_rsp_crdt_send > 0)? d2h_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? s2m_drs_crdt_send: ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? d2h_data_crdt_send: (s2m_drs_crdt_send > 0)? s2m_drs_crdt_send: (d2h_data_crdt_send > 0)? d2h_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= m2s_rwd_dataout.valid;
                 holding_q[holding_wrptr].data[36:33]    <= m2s_rwd_dataout.memopcode;
                 holding_q[holding_wrptr].data[39:37]    <= m2s_rwd_dataout.snptype;
@@ -1037,9 +1408,9 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? s2m_ndr_crdt_send: ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? d2h_rsp_crdt_send: (s2m_ndr_crdt_send > 0)? s2m_ndr_crdt_send: (d2h_rsp_crdt_send > 0)? d2h_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? s2m_drs_crdt_send: ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? d2h_data_crdt_send: (s2m_drs_crdt_send > 0)? s2m_drs_crdt_send: (d2h_data_crdt_send > 0)? d2h_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= m2s_req_dataout.valid;
                 holding_q[holding_wrptr].data[36:33]    <= m2s_req_dataout.memopcode;
                 holding_q[holding_wrptr].data[39:37]    <= m2s_req_dataout.snptype;
@@ -1587,6 +1958,16 @@ module device_tx_path#(
   input int d2h_data_occ,
   input int s2m_ndr_occ,
   input int s2m_drs_occ,
+  input int h2d_req_occ,
+  input int h2d_rsp_occ,
+  input int h2d_data_occ,
+  input int m2s_req_occ,
+  input int m2s_rwd_occ,
+  input int h2d_req_wptr,
+  input int h2d_rsp_wptr,
+  input int h2d_data_wptr,
+  input int m2s_req_wptr,
+  input int m2s_rwd_wptr,
   output logic d2h_req_rval,
   output logic d2h_req_drval,
   output logic d2h_req_trval,
@@ -1654,6 +2035,32 @@ module device_tx_path#(
     logic [511:0] data;
   } holding_q_t;
   holding_q_t holding_q[6];
+  logic lru;
+  int h2d_req_outstanding_credits;
+  int h2d_req_consumed_credits;
+  int h2d_req_occ_d;
+  int h2d_rsp_outstanding_credits;
+  int h2d_rsp_consumed_credits;
+  int h2d_rsp_occ_d;
+  int h2d_data_outstanding_credits;
+  int h2d_data_consumed_credits;
+  int h2d_data_occ_d;
+  int m2s_req_outstanding_credits;
+  int m2s_req_consumed_credits;
+  int m2s_req_occ_d;
+  int m2s_rwd_outstanding_credits;
+  int m2s_rwd_consumed_credits;
+  int m2s_rwd_occ_d;
+  typedef struct{
+    bit pending;
+    int credit_to_be_sent[4];
+  } crdt_tbs_t;
+  crdt_tbs_t h2d_req_crdt_tbs;
+  crdt_tbs_t h2d_rsp_crdt_tbs;
+  crdt_tbs_t h2d_data_crdt_tbs;
+  crdt_tbs_t m2s_req_crdt_tbs;
+  crdt_tbs_t m2s_rwd_crdt_tbs;
+  logic [2:0] h2d_req_crdt_send;
 
   assign h_val[0] = (d2h_data_occ > 0) && (d2h_rsp_occ > 1);
   assign h_val[1] = (d2h_req_occ >0) && (d2h_data_occ > 0);
@@ -1672,6 +2079,339 @@ module device_tx_path#(
   
   assign h_req = (slot_sel>1)? 'h0: h_val;
   assign g_req = (slot_sel[0])? 'h0: g_val;
+ 
+  always_comb begin
+    h2d_req_outstanding_credits   = (h2d_req_occ_d  > h2d_req_occ ) ? (h2d_req_occ_d  - h2d_req_occ   ) : 'h0;
+    h2d_rsp_outstanding_credits   = (h2d_rsp_occ_d  > h2d_rsp_occ ) ? (h2d_rsp_occ_d  - h2d_rsp_occ   ) : 'h0;
+    h2d_data_outstanding_credits  = (h2d_data_occ_d > h2d_data_occ) ? (h2d_data_occ_d - h2d_data_occ  ) : 'h0;
+    m2s_req_outstanding_credits   = (m2s_req_occ_d  > m2s_req_occ ) ? (m2s_req_occ_d  - m2s_req_occ   ) : 'h0;
+    m2s_rwd_outstanding_credits   = (m2s_rwd_occ_d  > m2s_rwd_occ ) ? (m2s_rwd_occ_d  - m2s_rwd_occ   ) : 'h0;
+    h2d_req_consumed_credits      = (h2d_req_occ_d  < h2d_req_occ ) ? (h2d_req_occ    - h2d_req_occ_d ) : 'h0;
+    h2d_rsp_consumed_credits      = (h2d_rsp_occ_d  < h2d_rsp_occ ) ? (h2d_rsp_occ    - h2d_rsp_occ_d ) : 'h0;
+    h2d_data_consumed_credits     = (h2d_data_occ_d < h2d_data_occ) ? (h2d_data_occ   - h2d_data_occ_d) : 'h0;
+    m2s_req_consumed_credits      = (m2s_req_occ_d  < m2s_req_occ ) ? (m2s_req_occ    - m2s_req_occ_d ) : 'h0;
+    m2s_rwd_consumed_credits      = (m2s_rwd_occ_d  < m2s_rwd_occ ) ? (m2s_rwd_occ    - m2s_rwd_occ_d ) : 'h0;
+    h2d_req_crdt_send             = (h2d_req_crdt_tbs[3].pending)? (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_req_crdt_tbs[2].pending)? (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_req_crdt_tbs[1].pending)? (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (h2d_req_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (h2d_req_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (h2d_req_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_req_crdt_tbs[0].pending)? (h2d_req_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (h2d_req_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (h2d_req_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (h2d_req_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (h2d_req_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+                                  : 'h0;
+    h2d_rsp_crdt_send             = (h2d_rsp_crdt_tbs[3].pending)? (h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (h2d_rsp_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (h2d_rsp_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (h2d_rsp_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_rsp_crdt_tbs[2].pending)? (h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (h2d_rsp_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (h2d_rsp_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (h2d_rsp_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_rsp_crdt_tbs[1].pending)? (h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (h2d_rsp_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (h2d_rsp_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (h2d_rsp_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_rsp_crdt_tbs[0].pending)? (h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (h2d_rsp_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (h2d_rsp_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (h2d_rsp_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+                                  : 'h0;
+    h2d_data_crdt_send             = (h2d_data_crdt_tbs[3].pending)? (h2d_data_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (h2d_data_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (h2d_data_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (h2d_data_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (h2d_data_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_data_crdt_tbs[2].pending)? (h2d_data_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (h2d_data_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (h2d_data_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (h2d_data_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (h2d_data_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_data_crdt_tbs[1].pending)? (h2d_data_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (h2d_data_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (h2d_data_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (h2d_data_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (h2d_data_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_data_crdt_tbs[0].pending)? (h2d_data_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (h2d_data_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (h2d_data_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (h2d_data_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (h2d_data_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+                                  : 'h0;
+    m2s_req_crdt_send             = (m2s_req_crdt_tbs[3].pending)? (m2s_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (m2s_req_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (m2s_req_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (m2s_req_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (m2s_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (m2s_req_crdt_tbs[2].pending)? (m2s_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (m2s_req_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (m2s_req_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (m2s_req_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (m2s_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (m2s_req_crdt_tbs[1].pending)? (m2s_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (m2s_req_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (m2s_req_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (m2s_req_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (m2s_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (m2s_req_crdt_tbs[0].pending)? (m2s_req_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (m2s_req_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (m2s_req_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (m2s_req_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (m2s_req_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+                                  : 'h0;
+    m2s_rwd_crdt_send             = (m2s_rwd_crdt_tbs[3].pending)? (m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (m2s_rwd_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (m2s_rwd_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (m2s_rwd_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (m2s_rwd_crdt_tbs[2].pending)? (m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (m2s_rwd_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (m2s_rwd_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (m2s_rwd_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (m2s_rwd_crdt_tbs[1].pending)? (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (m2s_rwd_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (m2s_rwd_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (m2s_rwd_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (m2s_rwd_crdt_tbs[0].pending)? (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (m2s_rwd_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (m2s_rwd_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (m2s_rwd_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+                                  : 'h0;
+  end
+
+  always@(posedge clk) begin
+    if(!rstn) begin
+      lru <= 'h0;
+      h2d_req_occ   <= 'd0;
+      h2d_rsp_occ   <= 'd0;
+      h2d_data_occ  <= 'd0;
+      m2s_req_occ   <= 'd0;
+      m2s_rwd_occ   <= 'd0;
+      h2d_req_occ_d   <= 'd0;
+      h2d_rsp_occ_d   <= 'd0;
+      h2d_data_occ_d  <= 'd0;
+      m2s_req_occ_d   <= 'd0;
+      m2s_rwd_occ_d   <= 'd0;
+      h2d_req_crdt_send <= 'h0;
+      h2d_req_consumed_credits  <= 'h0;
+      h2d_rsp_consumed_credits  <= 'h0;
+      h2d_data_consumed_credits <= 'h0;
+      m2s_req_consumed_credits  <= 'h0;
+      m2s_rwd_consumed_credits  <= 'h0;
+      h2d_req_outstanding_credits <= 'd0;
+      h2d_rsp_outstanding_credits <= 'd0;
+      h2d_data_outstanding_credits<= 'd0;
+      m2s_req_outstanding_credits <= 'd0;
+      m2s_rwd_outstanding_credits <= 'd0;
+      h2d_req_crdt_tbs[0].pending <= 'h1;
+      h2d_req_crdt_tbs[1].pending <= 'h1;
+      h2d_req_crdt_tbs[2].pending <= 'h1;
+      h2d_req_crdt_tbs[3].pending <= 'h1;
+      h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
+      h2d_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
+      h2d_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
+      h2d_req_crdt_tbs[3].credit_to_be_sent <= 'd64;
+    end else begin 
+      h2d_req_occ_d   <= h2d_req_occ;
+      h2d_rsp_occ_d   <= h2d_rsp_occ;
+      h2d_data_occ_d  <= h2d_data_occ;
+      m2s_req_occ_d   <= m2s_req_occ;
+      m2s_rwd_occ_d   <= m2s_rwd_occ;
+      if((h2d_req_crdt_tbs[0].credit_to_be_sent + h2d_req_outstanding_credits) <= 'd64) begin
+        h2d_req_crdt_tbs[0].pending <= 'h1;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0)) begin
+          h2d_req_crdt_tbs[0].credit_to_be_sent <= h2d_req_crdt_tbs[0].credit_to_be_sent + h2d_req_outstanding_credits - ((h2d_req_crdt_send == 'h7)? 'd64: (h2d_req_crdt_send == 'h6)? 'h32: (h2d_req_crdt_send == 'h5)? 'h16: (h2d_req_crdt_send == 'h4)? 'h8: (h2d_req_crdt_send == 'h3)? 'h4: h2d_req_crdt_send);
+        end else begin
+          h2d_req_crdt_tbs[0].credit_to_be_sent <= h2d_req_crdt_tbs[0].credit_to_be_sent + h2d_req_outstanding_credits;
+        end
+      end else if(((h2d_req_crdt_tbs[0].credit_to_be_sent + h2d_req_outstanding_credits) > 'd64) && ((h2d_req_crdt_tbs[1].credit_to_be_sent + h2d_req_outstanding_credits) <= 'd64)) begin
+        h2d_req_crdt_tbs[0].pending <= 'h1;
+        h2d_req_crdt_tbs[1].pending <= 'h1;
+        h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0)) begin
+          h2d_req_crdt_tbs[0].credit_to_be_sent <= h2d_req_crdt_tbs[0].credit_to_be_sent + h2d_req_outstanding_credits - ((h2d_req_crdt_send == 'h7)? 'd64: (h2d_req_crdt_send == 'h6)? 'h32: (h2d_req_crdt_send == 'h5)? 'h16: (h2d_req_crdt_send == 'h4)? 'h8: (h2d_req_crdt_send == 'h3)? 'h4: h2d_req_crdt_send);
+        end else begin
+          h2d_req_crdt_tbs[1].credit_to_be_sent <= h2d_req_crdt_tbs[1].credit_to_be_sent + h2d_req_outstanding_credits;
+        end
+      end else if(((h2d_req_crdt_tbs[1].credit_to_be_sent + h2d_req_outstanding_credits) > 'd64) && ((h2d_req_crdt_tbs[2].credit_to_be_sent + h2d_req_outstanding_credits) <= 'd64)) begin
+        h2d_req_crdt_tbs[0].pending <= 'h1;
+        h2d_req_crdt_tbs[1].pending <= 'h1;
+        h2d_req_crdt_tbs[2].pending <= 'h1;
+        h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        h2d_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0)) begin
+          h2d_req_crdt_tbs[0].credit_to_be_sent <= h2d_req_crdt_tbs[0].credit_to_be_sent + h2d_req_outstanding_credits - ((h2d_req_crdt_send == 'h7)? 'd64: (h2d_req_crdt_send == 'h6)? 'h32: (h2d_req_crdt_send == 'h5)? 'h16: (h2d_req_crdt_send == 'h4)? 'h8: (h2d_req_crdt_send == 'h3)? 'h4: h2d_req_crdt_send);
+        end else begin
+          h2d_req_crdt_tbs[2].credit_to_be_sent <= h2d_req_crdt_tbs[2].credit_to_be_sent + h2d_req_outstanding_credits;
+        end
+      end else if(((h2d_req_crdt_tbs[2].credit_to_be_sent + h2d_req_outstanding_credits) > 'd64) && ((h2d_req_crdt_tbs[3].credit_to_be_sent + h2d_req_outstanding_credits) <= 'd64)) begin
+        h2d_req_crdt_tbs[0].pending <= 'h1;
+        h2d_req_crdt_tbs[1].pending <= 'h1;
+        h2d_req_crdt_tbs[2].pending <= 'h1;
+        h2d_req_crdt_tbs[3].pending <= 'h1;
+        h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        h2d_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        h2d_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0)) begin
+          h2d_req_crdt_tbs[0].credit_to_be_sent <= h2d_req_crdt_tbs[0].credit_to_be_sent + h2d_req_outstanding_credits - ((h2d_req_crdt_send == 'h7)? 'd64: (h2d_req_crdt_send == 'h6)? 'h32: (h2d_req_crdt_send == 'h5)? 'h16: (h2d_req_crdt_send == 'h4)? 'h8: (h2d_req_crdt_send == 'h3)? 'h4: h2d_req_crdt_send);
+        end else begin
+          h2d_req_crdt_tbs[3].credit_to_be_sent <= h2d_req_crdt_tbs[3].credit_to_be_sent + h2d_req_outstanding_credits;
+        end
+      end
+      if((h2d_rsp_crdt_tbs[0].credit_to_be_sent + h2d_rsp_outstanding_credits) <= 'd64) begin
+        h2d_rsp_crdt_tbs[0].pending <= 'h1;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((m2s_req_crdt_send > 0) && (lru == 0)) || (m2s_req_crdt_send == 0))) begin
+          h2d_rsp_crdt_tbs[0].credit_to_be_sent <= h2d_rsp_crdt_tbs[0].credit_to_be_sent + h2d_rsp_outstanding_credits - ((h2d_rsp_crdt_send == 'h7)? 'd64: (h2d_rsp_crdt_send == 'h6)? 'h32: (h2d_rsp_crdt_send == 'h5)? 'h16: (h2d_rsp_crdt_send == 'h4)? 'h8: (h2d_rsp_crdt_send == 'h3)? 'h4: h2d_rsp_crdt_send);
+          if(m2s_req_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          h2d_rsp_crdt_tbs[0].credit_to_be_sent <= h2d_rsp_crdt_tbs[0].credit_to_be_sent + h2d_rsp_outstanding_credits;
+        end
+      end else if(((h2d_rsp_crdt_tbs[0].credit_to_be_sent + h2d_rsp_outstanding_credits) > 'd64) && ((h2d_rsp_crdt_tbs[1].credit_to_be_sent + h2d_rsp_outstanding_credits) <= 'd64)) begin
+        h2d_rsp_crdt_tbs[0].pending <= 'h1;
+        h2d_rsp_crdt_tbs[1].pending <= 'h1;
+        h2d_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((m2s_req_crdt_send > 0) && (lru == 0)) || (m2s_req_crdt_send == 0))) begin
+          h2d_rsp_crdt_tbs[0].credit_to_be_sent <= h2d_rsp_crdt_tbs[0].credit_to_be_sent + h2d_rsp_outstanding_credits - ((h2d_rsp_crdt_send == 'h7)? 'd64: (h2d_rsp_crdt_send == 'h6)? 'h32: (h2d_rsp_crdt_send == 'h5)? 'h16: (h2d_rsp_crdt_send == 'h4)? 'h8: (h2d_rsp_crdt_send == 'h3)? 'h4: h2d_rsp_crdt_send);
+          if(m2s_req_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          h2d_rsp_crdt_tbs[1].credit_to_be_sent <= h2d_rsp_crdt_tbs[1].credit_to_be_sent + h2d_rsp_outstanding_credits;
+        end
+      end else if(((h2d_rsp_crdt_tbs[1].credit_to_be_sent + h2d_rsp_outstanding_credits) > 'd64) && ((h2d_rsp_crdt_tbs[2].credit_to_be_sent + h2d_rsp_outstanding_credits) <= 'd64)) begin
+        h2d_rsp_crdt_tbs[0].pending <= 'h1;
+        h2d_rsp_crdt_tbs[1].pending <= 'h1;
+        h2d_rsp_crdt_tbs[2].pending <= 'h1;
+        h2d_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        h2d_rsp_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((m2s_req_crdt_send > 0) && (lru == 0)) || (m2s_req_crdt_send == 0))) begin
+          h2d_rsp_crdt_tbs[0].credit_to_be_sent <= h2d_rsp_crdt_tbs[0].credit_to_be_sent + h2d_rsp_outstanding_credits - ((h2d_rsp_crdt_send == 'h7)? 'd64: (h2d_rsp_crdt_send == 'h6)? 'h32: (h2d_rsp_crdt_send == 'h5)? 'h16: (h2d_rsp_crdt_send == 'h4)? 'h8: (h2d_rsp_crdt_send == 'h3)? 'h4: h2d_rsp_crdt_send);
+          if(m2s_req_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          h2d_rsp_crdt_tbs[2].credit_to_be_sent <= h2d_rsp_crdt_tbs[2].credit_to_be_sent + h2d_rsp_outstanding_credits;
+        end
+      end else if(((h2d_rsp_crdt_tbs[2].credit_to_be_sent + h2d_rsp_outstanding_credits) > 'd64) && ((h2d_rsp_crdt_tbs[3].credit_to_be_sent + h2d_rsp_outstanding_credits) <= 'd64)) begin
+        h2d_rsp_crdt_tbs[0].pending <= 'h1;
+        h2d_rsp_crdt_tbs[1].pending <= 'h1;
+        h2d_rsp_crdt_tbs[2].pending <= 'h1;
+        h2d_rsp_crdt_tbs[3].pending <= 'h1;
+        h2d_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        h2d_rsp_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        h2d_rsp_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((m2s_req_crdt_send > 0) && (lru == 0)) || (m2s_req_crdt_send == 0))) begin
+          h2d_rsp_crdt_tbs[0].credit_to_be_sent <= h2d_rsp_crdt_tbs[0].credit_to_be_sent + h2d_rsp_outstanding_credits - ((h2d_rsp_crdt_send == 'h7)? 'd64: (h2d_rsp_crdt_send == 'h6)? 'h32: (h2d_rsp_crdt_send == 'h5)? 'h16: (h2d_rsp_crdt_send == 'h4)? 'h8: (h2d_rsp_crdt_send == 'h3)? 'h4: h2d_rsp_crdt_send);
+          if(m2s_req_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          h2d_rsp_crdt_tbs[3].credit_to_be_sent <= h2d_rsp_crdt_tbs[3].credit_to_be_sent + h2d_rsp_outstanding_credits;
+        end
+      end
+      if((h2d_data_crdt_tbs[0].credit_to_be_sent + h2d_data_outstanding_credits) <= 'd64) begin
+        h2d_data_crdt_tbs[0].pending <= 'h1;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((m2s_rwd_crdt_send > 0) && (lru == 0)) || (m2s_rwd_crdt_send == 0))) begin
+          h2d_data_crdt_tbs[0].credit_to_be_sent <= h2d_data_crdt_tbs[0].credit_to_be_sent + h2d_data_outstanding_credits - ((h2d_data_crdt_send == 'h7)? 'd64: (h2d_data_crdt_send == 'h6)? 'h32: (h2d_data_crdt_send == 'h5)? 'h16: (h2d_data_crdt_send == 'h4)? 'h8: (h2d_data_crdt_send == 'h3)? 'h4: h2d_data_crdt_send);
+          if(m2s_rwd_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          h2d_data_crdt_tbs[0].credit_to_be_sent <= h2d_data_crdt_tbs[0].credit_to_be_sent + h2d_data_outstanding_credits;
+        end
+      end else if(((h2d_data_crdt_tbs[0].credit_to_be_sent + h2d_data_outstanding_credits) > 'd64) && ((h2d_data_crdt_tbs[1].credit_to_be_sent + h2d_data_outstanding_credits) <= 'd64)) begin
+        h2d_data_crdt_tbs[0].pending <= 'h1;
+        h2d_data_crdt_tbs[1].pending <= 'h1;
+        h2d_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((m2s_rwd_crdt_send > 0) && (lru == 0)) || (m2s_rwd_crdt_send == 0))) begin
+          h2d_data_crdt_tbs[0].credit_to_be_sent <= h2d_data_crdt_tbs[0].credit_to_be_sent + h2d_data_outstanding_credits - ((h2d_data_crdt_send == 'h7)? 'd64: (h2d_data_crdt_send == 'h6)? 'h32: (h2d_data_crdt_send == 'h5)? 'h16: (h2d_data_crdt_send == 'h4)? 'h8: (h2d_data_crdt_send == 'h3)? 'h4: h2d_data_crdt_send);
+          if(m2s_rwd_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          h2d_data_crdt_tbs[1].credit_to_be_sent <= h2d_data_crdt_tbs[1].credit_to_be_sent + h2d_data_outstanding_credits;
+        end
+      end else if(((h2d_data_crdt_tbs[1].credit_to_be_sent + h2d_data_outstanding_credits) > 'd64) && ((h2d_data_crdt_tbs[2].credit_to_be_sent + h2d_data_outstanding_credits) <= 'd64)) begin
+        h2d_data_crdt_tbs[0].pending <= 'h1;
+        h2d_data_crdt_tbs[1].pending <= 'h1;
+        h2d_data_crdt_tbs[2].pending <= 'h1;
+        h2d_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        h2d_data_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((m2s_rwd_crdt_send > 0) && (lru == 0)) || (m2s_rwd_crdt_send == 0))) begin
+          h2d_data_crdt_tbs[0].credit_to_be_sent <= h2d_data_crdt_tbs[0].credit_to_be_sent + h2d_data_outstanding_credits - ((h2d_data_crdt_send == 'h7)? 'd64: (h2d_data_crdt_send == 'h6)? 'h32: (h2d_data_crdt_send == 'h5)? 'h16: (h2d_data_crdt_send == 'h4)? 'h8: (h2d_data_crdt_send == 'h3)? 'h4: h2d_data_crdt_send);
+          if(m2s_rwd_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          h2d_data_crdt_tbs[2].credit_to_be_sent <= h2d_data_crdt_tbs[2].credit_to_be_sent + h2d_data_outstanding_credits;
+        end
+      end else if(((h2d_data_crdt_tbs[2].credit_to_be_sent + h2d_data_outstanding_credits) > 'd64) && ((h2d_data_crdt_tbs[3].credit_to_be_sent + h2d_data_outstanding_credits) <= 'd64)) begin
+        h2d_data_crdt_tbs[0].pending <= 'h1;
+        h2d_data_crdt_tbs[1].pending <= 'h1;
+        h2d_data_crdt_tbs[2].pending <= 'h1;
+        h2d_data_crdt_tbs[3].pending <= 'h1;
+        h2d_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        h2d_data_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        h2d_data_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((m2s_rwd_crdt_send > 0) && (lru == 0)) || (m2s_rwd_crdt_send == 0))) begin
+          h2d_data_crdt_tbs[0].credit_to_be_sent <= h2d_data_crdt_tbs[0].credit_to_be_sent + h2d_data_outstanding_credits - ((h2d_data_crdt_send == 'h7)? 'd64: (h2d_data_crdt_send == 'h6)? 'h32: (h2d_data_crdt_send == 'h5)? 'h16: (h2d_data_crdt_send == 'h4)? 'h8: (h2d_data_crdt_send == 'h3)? 'h4: h2d_data_crdt_send);
+          if(m2s_rwd_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          h2d_data_crdt_tbs[3].credit_to_be_sent <= h2d_data_crdt_tbs[3].credit_to_be_sent + h2d_data_outstanding_credits;
+        end
+      end
+      if((m2s_req_crdt_tbs[0].credit_to_be_sent + m2s_req_outstanding_credits) <= 'd64) begin
+        m2s_req_crdt_tbs[0].pending <= 'h1;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((h2d_rsp_crdt_send > 0) && (lru == 1)) || (h2d_rsp_crdt_send == 0))) begin
+          m2s_req_crdt_tbs[0].credit_to_be_sent <= m2s_req_crdt_tbs[0].credit_to_be_sent + m2s_req_outstanding_credits - ((m2s_req_crdt_send == 'h7)? 'd64: (m2s_req_crdt_send == 'h6)? 'h32: (m2s_req_crdt_send == 'h5)? 'h16: (m2s_req_crdt_send == 'h4)? 'h8: (m2s_req_crdt_send == 'h3)? 'h4: m2s_req_crdt_send);
+          if(h2d_rsp_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          m2s_req_crdt_tbs[0].credit_to_be_sent <= m2s_req_crdt_tbs[0].credit_to_be_sent + m2s_req_outstanding_credits;
+        end
+      end else if(((m2s_req_crdt_tbs[0].credit_to_be_sent + m2s_req_outstanding_credits) > 'd64) && ((m2s_req_crdt_tbs[1].credit_to_be_sent + m2s_req_outstanding_credits) <= 'd64)) begin
+        m2s_req_crdt_tbs[0].pending <= 'h1;
+        m2s_req_crdt_tbs[1].pending <= 'h1;
+        m2s_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((h2d_rsp_crdt_send > 0) && (lru == 1)) || (h2d_rsp_crdt_send == 0))) begin
+          m2s_req_crdt_tbs[0].credit_to_be_sent <= m2s_req_crdt_tbs[0].credit_to_be_sent + m2s_req_outstanding_credits - ((m2s_req_crdt_send == 'h7)? 'd64: (m2s_req_crdt_send == 'h6)? 'h32: (m2s_req_crdt_send == 'h5)? 'h16: (m2s_req_crdt_send == 'h4)? 'h8: (m2s_req_crdt_send == 'h3)? 'h4: m2s_req_crdt_send);
+          if(h2d_rsp_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          m2s_req_crdt_tbs[1].credit_to_be_sent <= m2s_req_crdt_tbs[1].credit_to_be_sent + m2s_req_outstanding_credits;
+        end
+      end else if(((m2s_req_crdt_tbs[1].credit_to_be_sent + m2s_req_outstanding_credits) > 'd64) && ((m2s_req_crdt_tbs[2].credit_to_be_sent + m2s_req_outstanding_credits) <= 'd64)) begin
+        m2s_req_crdt_tbs[0].pending <= 'h1;
+        m2s_req_crdt_tbs[1].pending <= 'h1;
+        m2s_req_crdt_tbs[2].pending <= 'h1;
+        m2s_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        m2s_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((h2d_rsp_crdt_send > 0) && (lru == 1)) || (h2d_rsp_crdt_send == 0))) begin
+          m2s_req_crdt_tbs[0].credit_to_be_sent <= m2s_req_crdt_tbs[0].credit_to_be_sent + m2s_req_outstanding_credits - ((m2s_req_crdt_send == 'h7)? 'd64: (m2s_req_crdt_send == 'h6)? 'h32: (m2s_req_crdt_send == 'h5)? 'h16: (m2s_req_crdt_send == 'h4)? 'h8: (m2s_req_crdt_send == 'h3)? 'h4: m2s_req_crdt_send);
+          if(h2d_rsp_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          m2s_req_crdt_tbs[2].credit_to_be_sent <= m2s_req_crdt_tbs[2].credit_to_be_sent + m2s_req_outstanding_credits;
+        end
+      end else if(((m2s_req_crdt_tbs[2].credit_to_be_sent + m2s_req_outstanding_credits) > 'd64) && ((m2s_req_crdt_tbs[3].credit_to_be_sent + m2s_req_outstanding_credits) <= 'd64)) begin
+        m2s_req_crdt_tbs[0].pending <= 'h1;
+        m2s_req_crdt_tbs[1].pending <= 'h1;
+        m2s_req_crdt_tbs[2].pending <= 'h1;
+        m2s_req_crdt_tbs[3].pending <= 'h1;
+        m2s_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        m2s_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        m2s_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((h2d_rsp_crdt_send > 0) && (lru == 1)) || (h2d_rsp_crdt_send == 0))) begin
+          m2s_req_crdt_tbs[0].credit_to_be_sent <= m2s_req_crdt_tbs[0].credit_to_be_sent + m2s_req_outstanding_credits - ((m2s_req_crdt_send == 'h7)? 'd64: (m2s_req_crdt_send == 'h6)? 'h32: (m2s_req_crdt_send == 'h5)? 'h16: (m2s_req_crdt_send == 'h4)? 'h8: (m2s_req_crdt_send == 'h3)? 'h4: m2s_req_crdt_send);
+          if(h2d_rsp_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          m2s_req_crdt_tbs[3].credit_to_be_sent <= m2s_req_crdt_tbs[3].credit_to_be_sent + m2s_req_outstanding_credits;
+        end
+      end
+      if((m2s_rwd_crdt_tbs[0].credit_to_be_sent + m2s_rwd_outstanding_credits) <= 'd64) begin
+        m2s_rwd_crdt_tbs[0].pending <= 'h1;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((h2d_data_crdt_send > 0) && (lru == 1)) || (h2d_data_crdt_send == 0))) begin
+          m2s_rwd_crdt_tbs[0].credit_to_be_sent <= m2s_rwd_crdt_tbs[0].credit_to_be_sent + m2s_rwd_outstanding_credits - ((m2s_rwd_crdt_send == 'h7)? 'd64: (m2s_rwd_crdt_send == 'h6)? 'h32: (m2s_rwd_crdt_send == 'h5)? 'h16: (m2s_rwd_crdt_send == 'h4)? 'h8: (m2s_rwd_crdt_send == 'h3)? 'h4: m2s_rwd_crdt_send);
+          if(h2d_data_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          m2s_rwd_crdt_tbs[0].credit_to_be_sent <= m2s_rwd_crdt_tbs[0].credit_to_be_sent + m2s_rwd_outstanding_credits;
+        end
+      end else if(((m2s_rwd_crdt_tbs[0].credit_to_be_sent + m2s_rwd_outstanding_credits) > 'd64) && ((m2s_rwd_crdt_tbs[1].credit_to_be_sent + m2s_rwd_outstanding_credits) <= 'd64)) begin
+        m2s_rwd_crdt_tbs[0].pending <= 'h1;
+        m2s_rwd_crdt_tbs[1].pending <= 'h1;
+        m2s_rwd_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((h2d_data_crdt_send > 0) && (lru == 1)) || (h2d_data_crdt_send == 0))) begin
+          m2s_rwd_crdt_tbs[0].credit_to_be_sent <= m2s_rwd_crdt_tbs[0].credit_to_be_sent + m2s_rwd_outstanding_credits - ((m2s_rwd_crdt_send == 'h7)? 'd64: (m2s_rwd_crdt_send == 'h6)? 'h32: (m2s_rwd_crdt_send == 'h5)? 'h16: (m2s_rwd_crdt_send == 'h4)? 'h8: (m2s_rwd_crdt_send == 'h3)? 'h4: m2s_rwd_crdt_send);
+          if(h2d_data_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          m2s_rwd_crdt_tbs[1].credit_to_be_sent <= m2s_rwd_crdt_tbs[1].credit_to_be_sent + m2s_rwd_outstanding_credits;
+        end
+      end else if(((m2s_rwd_crdt_tbs[1].credit_to_be_sent + m2s_rwd_outstanding_credits) > 'd64) && ((m2s_rwd_crdt_tbs[2].credit_to_be_sent + m2s_rwd_outstanding_credits) <= 'd64)) begin
+        m2s_rwd_crdt_tbs[0].pending <= 'h1;
+        m2s_rwd_crdt_tbs[1].pending <= 'h1;
+        m2s_rwd_crdt_tbs[2].pending <= 'h1;
+        m2s_rwd_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        m2s_rwd_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((h2d_data_crdt_send > 0) && (lru == 1)) || (h2d_data_crdt_send == 0))) begin
+          m2s_rwd_crdt_tbs[0].credit_to_be_sent <= m2s_rwd_crdt_tbs[0].credit_to_be_sent + m2s_rwd_outstanding_credits - ((m2s_rwd_crdt_send == 'h7)? 'd64: (m2s_rwd_crdt_send == 'h6)? 'h32: (m2s_rwd_crdt_send == 'h5)? 'h16: (m2s_rwd_crdt_send == 'h4)? 'h8: (m2s_rwd_crdt_send == 'h3)? 'h4: m2s_rwd_crdt_send);
+          if(h2d_data_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          m2s_rwd_crdt_tbs[2].credit_to_be_sent <= m2s_rwd_crdt_tbs[2].credit_to_be_sent + m2s_rwd_outstanding_credits;
+        end
+      end else if(((m2s_rwd_crdt_tbs[2].credit_to_be_sent + m2s_rwd_outstanding_credits) > 'd64) && ((m2s_rwd_crdt_tbs[3].credit_to_be_sent + m2s_rwd_outstanding_credits) <= 'd64)) begin
+        m2s_rwd_crdt_tbs[0].pending <= 'h1;
+        m2s_rwd_crdt_tbs[1].pending <= 'h1;
+        m2s_rwd_crdt_tbs[2].pending <= 'h1;
+        m2s_rwd_crdt_tbs[3].pending <= 'h1;
+        m2s_rwd_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        m2s_rwd_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        m2s_rwd_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((h2d_data_crdt_send > 0) && (lru == 1)) || (h2d_data_crdt_send == 0))) begin
+          m2s_rwd_crdt_tbs[0].credit_to_be_sent <= m2s_rwd_crdt_tbs[0].credit_to_be_sent + m2s_rwd_outstanding_credits - ((m2s_rwd_crdt_send == 'h7)? 'd64: (m2s_rwd_crdt_send == 'h6)? 'h32: (m2s_rwd_crdt_send == 'h5)? 'h16: (m2s_rwd_crdt_send == 'h4)? 'h8: (m2s_rwd_crdt_send == 'h3)? 'h4: m2s_rwd_crdt_send);
+          if(h2d_data_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          m2s_rwd_crdt_tbs[3].credit_to_be_sent <= m2s_rwd_crdt_tbs[3].credit_to_be_sent + m2s_rwd_outstanding_credits;
+        end
+      end
+    end
+  end
+
   //TODO: assignment of slot number is missing in the header of pkt after generic slot is selected 
   //TODO: serious missing piece is if roll over cnt exceeds then packing of further data should be avoided
   //ll pkt buffer
@@ -1739,9 +2479,9 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? m2s_req_crdt_send: ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? h2d_rsp_crdt_send: (m2s_req_crdt_send > 0)? m2s_req_crdt_send: (h2d_rsp_crdt_send > 0)? h2d_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? m2s_rwd_crdt_send: ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? h2d_data_crdt_send: (m2s_rwd_crdt_send > 0)? m2s_rwd_crdt_send: (h2d_data_crdt_send > 0)? h2d_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= d2h_data_dataout.valid;
                 holding_q[holding_wrptr].data[44:33]    <= d2h_data_dataout.uqid;
                 holding_q[holding_wrptr].data[45]       <= d2h_data_dataout.chunkvalid;
@@ -1780,9 +2520,9 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? m2s_req_crdt_send: ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? h2d_rsp_crdt_send: (m2s_req_crdt_send > 0)? m2s_req_crdt_send: (h2d_rsp_crdt_send > 0)? h2d_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? m2s_rwd_crdt_send: ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? h2d_data_crdt_send: (m2s_rwd_crdt_send > 0)? m2s_rwd_crdt_send: (h2d_data_crdt_send > 0)? h2d_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= d2h_req_dataout.valid;
                 holding_q[holding_wrptr].data[37:33]    <= d2h_req_dataout.opcode;
                 holding_q[holding_wrptr].data[49:38]    <= d2h_req_dataout.cqid;
@@ -1813,9 +2553,9 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? m2s_req_crdt_send: ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? h2d_rsp_crdt_send: (m2s_req_crdt_send > 0)? m2s_req_crdt_send: (h2d_rsp_crdt_send > 0)? h2d_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? m2s_rwd_crdt_send: ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? h2d_data_crdt_send: (m2s_rwd_crdt_send > 0)? m2s_rwd_crdt_send: (h2d_data_crdt_send > 0)? h2d_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= d2h_data_dataout.valid;
                 holding_q[holding_wrptr].data[44:33]    <= d2h_data_dataout.uqid;
                 holding_q[holding_wrptr].data[45]       <= d2h_data_dataout.chunkvalid;
@@ -1871,9 +2611,9 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? m2s_req_crdt_send: ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? h2d_rsp_crdt_send: (m2s_req_crdt_send > 0)? m2s_req_crdt_send: (h2d_rsp_crdt_send > 0)? h2d_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? m2s_rwd_crdt_send: ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? h2d_data_crdt_send: (m2s_rwd_crdt_send > 0)? m2s_rwd_crdt_send: (h2d_data_crdt_send > 0)? h2d_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= s2m_drs_dataout.valid;
                 holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.memopcode;
                 holding_q[holding_wrptr].data[37:36]    <= s2m_drs_dataout.metafield;
@@ -1905,9 +2645,9 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? m2s_req_crdt_send: ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? h2d_rsp_crdt_send: (m2s_req_crdt_send > 0)? m2s_req_crdt_send: (h2d_rsp_crdt_send > 0)? h2d_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? m2s_rwd_crdt_send: ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? h2d_data_crdt_send: (m2s_rwd_crdt_send > 0)? m2s_rwd_crdt_send: (h2d_data_crdt_send > 0)? h2d_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= s2m_ndr_dataout.valid;
                 holding_q[holding_wrptr].data[35:33]    <= s2m_ndr_dataout.memopcode;
                 holding_q[holding_wrptr].data[37:36]    <= s2m_ndr_dataout.metafield;
@@ -1934,9 +2674,9 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? m2s_req_crdt_send: ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? h2d_rsp_crdt_send: (m2s_req_crdt_send > 0)? m2s_req_crdt_send: (h2d_rsp_crdt_send > 0)? h2d_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? m2s_rwd_crdt_send: ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? h2d_data_crdt_send: (m2s_rwd_crdt_send > 0)? m2s_rwd_crdt_send: (h2d_data_crdt_send > 0)? h2d_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= s2m_drs_dataout.valid;
                 holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.memopcode;
                 holding_q[holding_wrptr].data[37:36]    <= s2m_drs_dataout.metafield;
@@ -2809,19 +3549,19 @@ module host_rx_path #(
     d2h_data_pkt[0].d2h_data_txn.chunkvalid  = data[45];
     d2h_data_pkt[0].d2h_data_txn.bogus       = data[46];
     d2h_data_pkt[0].d2h_data_txn.poison      = data[47];
-    d2h_data_pkt[1].pending_data_slot        = 'hf
+    d2h_data_pkt[1].pending_data_slot        = 'hf;
     d2h_data_pkt[1].d2h_data_txn.valid       = data[49];
     d2h_data_pkt[1].d2h_data_txn.uqid        = data[61:50];
     d2h_data_pkt[1].d2h_data_txn.chunkvalid  = data[62];
     d2h_data_pkt[1].d2h_data_txn.bogus       = data[63];
     d2h_data_pkt[1].d2h_data_txn.poison      = data[64];
-    d2h_data_pkt[2].pending_data_slot        = 'hf
+    d2h_data_pkt[2].pending_data_slot        = 'hf;
     d2h_data_pkt[2].d2h_data_txn.valid       = data[66];
     d2h_data_pkt[2].d2h_data_txn.uqid        = data[78:67];
     d2h_data_pkt[2].d2h_data_txn.chunkvalid  = data[79];
     d2h_data_pkt[2].d2h_data_txn.bogus       = data[80];
     d2h_data_pkt[2].d2h_data_txn.poison      = data[81];
-    d2h_data_pkt[3].pending_data_slot        = 'hf
+    d2h_data_pkt[3].pending_data_slot        = 'hf;
     d2h_data_pkt[3].d2h_data_txn.valid       = data[83];
     d2h_data_pkt[3].d2h_data_txn.uqid        = data[95:84];
     d2h_data_pkt[3].d2h_data_txn.chunkvalid  = data[96];
@@ -3990,39 +4730,39 @@ module device_rx_path #(
     inout h2d_data_pkt_t h2d_data_pkt[4],
     inout m2s_rwd_pkt_t m2s_rwd_pkt
   );
-    if(m2s_rwd_pkt[0].pending_data_slot == 'hf) begin
+    if(m2s_rwd_pkt.pending_data_slot == 'hf) begin
       if(slot_sel == 1) begin
-        m2s_rwd_pkt[0].m2s_rwd_txn.data[SLOT3_OFFSET-1:0] = data[SLOT3_OFFSET-1:0]; 
-        m2s_rwd_pkt[0].pending_data_slot = 'h8;
+        m2s_rwd_pkt.m2s_rwd_txn.data[SLOT3_OFFSET-1:0] = data[SLOT3_OFFSET-1:0]; 
+        m2s_rwd_pkt.pending_data_slot = 'h8;
       end else if(slot_sel == 2) begin
-        m2s_rwd_pkt[0].m2s_rwd_txn.data[SLOT2_OFFSET-1:0] = data[SLOT2_OFFSET-1:0]; 
-        m2s_rwd_pkt[0].pending_data_slot = 'hc;
+        m2s_rwd_pkt.m2s_rwd_txn.data[SLOT2_OFFSET-1:0] = data[SLOT2_OFFSET-1:0]; 
+        m2s_rwd_pkt.pending_data_slot = 'hc;
       end else if(slot_sel == 3) begin
-        m2s_rwd_pkt[0].m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0]; 
-        m2s_rwd_pkt[0].pending_data_slot = 'he;
+        m2s_rwd_pkt.m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0]; 
+        m2s_rwd_pkt.pending_data_slot = 'he;
       end else if(slot_sel == 0) begin
-        m2s_rwd_pkt[0].m2s_rwd_txn.data = data; 
-        m2s_rwd_pkt[0].pending_data_slot = 'h0;
+        m2s_rwd_pkt.m2s_rwd_txn.data = data; 
+        m2s_rwd_pkt.pending_data_slot = 'h0;
       end 
-    end else if(m2s_rwd_pkt[0].pending_data_slot == 'he) begin
-      m2s_rwd_pkt[0].m2s_rwd_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0]; 
-      m2s_rwd_pkt[0].pending_data_slot = 'h0;
+    end else if(m2s_rwd_pkt.pending_data_slot == 'he) begin
+      m2s_rwd_pkt.m2s_rwd_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0]; 
+      m2s_rwd_pkt.pending_data_slot = 'h0;
       /*TODO: next gen upgrade logic
       if(m2s_rwd_pkt[1].pending_data_slot != 0) begin
         m2s_rwd_pkt[1].m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
         m2s_rwd_pkt[1].pending_data_slot = 'he;
       end*/
-    end else if(m2s_rwd_pkt[0].pending_data_slot == 'hc) begin
-      m2s_rwd_pkt[0].m2s_rwd_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0]; 
-      m2s_rwd_pkt[0].pending_data_slot = 'h0;
+    end else if(m2s_rwd_pkt.pending_data_slot == 'hc) begin
+      m2s_rwd_pkt.m2s_rwd_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0]; 
+      m2s_rwd_pkt.pending_data_slot = 'h0;
       //TODO:maybe for future gen where size of rwd is > 1
       /*if(m2s_rwd_pkt[1].pending_data_slot != 0) begin
         m2s_rwd_pkt[1].m2s_rwd_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
         m2s_rwd_pkt[1].pending_data_slot = 'hc;
       end*/
-    end else if(m2s_rwd_pkt[0].pending_data_slot == 'h8) begin
-      m2s_rwd_pkt[0].m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0]; 
-      m2s_rwd_pkt[0].pending_data_slot = 'h0;
+    end else if(m2s_rwd_pkt.pending_data_slot == 'h8) begin
+      m2s_rwd_pkt.m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0]; 
+      m2s_rwd_pkt.pending_data_slot = 'h0;
       //TODO:maybe for future gen where size of rwd is > 1
       /*if(m2s_rwd_pkt[1].pending_data_slot != 0) begin
         m2s_rwd_pkt[1].m2s_rwd_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
@@ -5125,12 +5865,40 @@ module buffer#(
      	eseq <= 'h0;
     end else begin
      	if(rval || wval) begin
-        if(wval && !full) begin
-         	fifo_h[wrptr] <= datain;
-         	wrptr <= wrptr + 1;
-         	eseq <= eseq + 1;
+        if((wval && !full) || (dwval && (occupancy < (DEPTH-3))) || (twval && (occupancy < (DEPTH-4))) || (qwval && (occupancy < (DEPTH-5)))) begin
+         	casez({qwval,twval,dwval,wval})
+            4'b0001: begin
+              fifo_h[wrptr] <= datain;
+         	    wrptr <= wrptr + 1;
+         	    eseq <= eseq + 1;
+            end
+            //TODO: potential bug: look at how you are filling in the parallel writes because for 4 writes there could be 3 ready and this could trigger 3 writes and 4th will be ignored which will be a bug
+            4'b001?: begin
+              fifo_h[wrptr] <= datain;
+              fifo_h[wrptr+1] <= ddatain;
+         	    wrptr <= wrptr + 2;
+         	    eseq <= eseq + 2;
+            end
+            4'b01??: begin
+              fifo_h[wrptr] <= datain;
+              fifo_h[wrptr+1] <= ddatain;
+              fifo_h[wrptr+2] <= tdatain;
+         	    wrptr <= wrptr + 3;
+         	    eseq <= eseq + 3;
+            end
+            4'b1???: begin
+              fifo_h[wrptr] <= datain;
+              fifo_h[wrptr+1] <= ddatain;
+              fifo_h[wrptr+2] <= tdatain;
+              fifo_h[wrptr+3] <= qdatain;
+         	    wrptr <= wrptr + 4;
+         	    eseq <= eseq + 4;
+            end
+            default: begin
+            end
+          endcase
         end else if(((rval && (!empty)) || (drval && (occupancy>1)) || (trval && (occupancy>2)) || (qrval && (occupancy>3)))) begin
-          case({qrval,trval,drval,rval})
+          casez({qrval,trval,drval,rval})
             4'b0001: begin
               rdptr <= rdptr + 1;
          	    dataout <= fifo_h[rdptr];
@@ -5186,9 +5954,9 @@ module buffer#(
 endmodule
 
 module cxl_host
-   #(
+  #(
   
-   ) (
+  ) (
     cxl_cache_d2h_req_if.host_if_mp host_d2h_req_if,
     cxl_cache_d2h_rsp_if.host_if_mp host_d2h_rsp_if,
     cxl_cache_d2h_data_if.host_if_mp host_d2h_data_if,
@@ -5201,13 +5969,23 @@ module cxl_host
     cxl_mem_s2m_drs_if.host_if_mp host_s2m_drs_if,
     cxl_host_tx_dl_if.tx_mp host_tx_dl_if,
     cxl_host_rx_dl_if.rx_mp host_rx_dl_if
-);
+  );
 
-  logic h2d_req_occ;
-  logic h2d_rsp_occ;
-  logic h2d_data_occ;
-  logic m2s_req_occ;
-  logic m2s_rwd_occ;
+  int d2h_req_occ;
+  int d2h_rsp_occ;
+  int d2h_data_occ;
+  int s2m_ndr_occ;
+  int s2m_drs_occ;
+  int d2h_req_wptr;
+  int d2h_rsp_wptr;
+  int d2h_data_wptr;
+  int s2m_ndr_wptr;
+  int s2m_drs_wptr;
+  int h2d_req_occ;
+  int h2d_rsp_occ;
+  int h2d_data_occ;
+  int m2s_req_occ;
+  int m2s_rwd_occ;
   logic h2d_req_rval;
   logic h2d_req_drval;
   logic h2d_req_qrval;
@@ -5263,13 +6041,13 @@ module cxl_host
     .qdatain(d2h_req_txn[3]),
     .dataout(host_d2h_req_if.d2h_req_txn),
   	.eseq,
-  	.wptr,
+  	.wptr(d2h_req_wptr),
   	.empty(!host_d2h_req_if.d2h_req_txn.valid),
   	.full,
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(d2h_req_occ)
   );
 
   buffer d2h_rsp_fifo_inst#(
@@ -5286,13 +6064,13 @@ module cxl_host
     .ddatain(d2h_rsp_pkt[1]),
     .dataout(host_d2h_rsp_if.d2h_rsp_txn),
   	.eseq,
-  	.wptr,
+  	.wptr(d2h_rsp_wptr),
   	.empty(!host_d2h_rsp_if.d2h_rsp_txn.valid),
   	.full,
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(d2h_rsp_occ)
   );
 
   buffer d2h_data_fifo_inst#(
@@ -5311,13 +6089,13 @@ module cxl_host
     .qdatain(d2h_data_pkt[3].d2h_data_txn),
     .dataout(host_d2h_data_if.d2h_data_txn),
   	.eseq,
-  	.wptr,
+  	.wptr(d2h_data_wptr),
   	.empty(!host_d2h_data_if.d2h_data_txn.valid),
   	.full,
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(d2h_data_occ)
   );
 
   buffer s2m_ndr_fifo_inst#(
@@ -5336,13 +6114,13 @@ module cxl_host
     .tdatain(s2m_ndr_txn[2]),
     .dataout(host_s2m_ndr_if.s2m_ndr_txn),
   	.eseq,
-  	.wptr,
+  	.wptr(s2m_ndr_wptr),
   	.empty(!host_s2m_ndr_if.s2m_ndr_txn.valid),
   	.full,
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(s2m_ndr_occ)
   );
 
   buffer s2m_drs_fifo_inst#(
@@ -5361,13 +6139,13 @@ module cxl_host
     .tdatain(s2m_drs_pkt[2].s2m_drs_txn),
     .dataout(host_s2m_drs_if.s2m_drs_txn),
   	.eseq,
-  	.wptr,
+  	.wptr(s2m_drs_wptr),
   	.empty(!host_s2m_drs_if.s2m_drs_txn.valid),
   	.full,
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(s2m_drs_occ)
   );
 
   buffer m2s_req_fifo_inst#(
@@ -5533,11 +6311,21 @@ module cxl_device
     cxl_dev_rx_dl_if.rx_mp dev_rx_dl_if
 );
 
-  logic d2h_req_occ;
-  logic d2h_rsp_occ;
-  logic d2h_data_occ;
-  logic s2m_req_occ;
-  logic s2m_rwd_occ;
+  int h2d_req_occ;
+  int h2d_rsp_occ;
+  int h2d_data_occ;
+  int m2s_req_occ;
+  int m2s_rwd_occ;
+  int h2d_req_wptr;
+  int h2d_rsp_wptr;
+  int h2d_data_wptr;
+  int m2s_req_wptr;
+  int m2s_rwd_wptr;
+  int d2h_req_occ;
+  int d2h_rsp_occ;
+  int d2h_data_occ;
+  int s2m_ndr_occ;
+  int s2m_drs_occ;
   logic d2h_req_rval;
   logic d2h_req_drval;
   logic d2h_req_trval;
@@ -5636,7 +6424,7 @@ module cxl_device
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(d2h_rsp_occ)
   );
 
   buffer d2h_data_fifo_inst#(
@@ -5734,13 +6522,13 @@ module cxl_device
     .ddatain(m2s_req_txn[1]),
     .dataout(dev_m2s_req_if.m2s_req_txn),
   	.eseq,
-  	.wptr,
+  	.wptr(m2s_req_wptr),
   	.empty(!dev_m2s_req_if.m2s_req_txn.valid),
   	.full,
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(m2s_req_occ)
   );
 
   buffer m2s_rwd_fifo_inst#(
@@ -5755,13 +6543,13 @@ module cxl_device
     .datain(m2s_rwd_pkt.m2s_rwd_txn),
     .dataout(dev_m2s_rwd_if.m2s_rwd_txn),
   	.eseq,
-  	.wptr,
+  	.wptr(m2s_rwd_wptr),
   	.empty(!dev_m2s_rwd_if.m2s_rwd_txn.valid),
   	.full,
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(m2s_rwd_occ)
   );
 
   buffer h2d_req_fifo_inst#(
@@ -5778,13 +6566,13 @@ module cxl_device
     .ddatain(h2d_req_txn[1]),
     .dataout(dev_h2d_req_if.h2d_req_txn),
   	.eseq,
-  	.wptr,
+  	.wptr(h2d_req_wptr),
   	.empty(!dev_h2d_req_if.h2d_req_txn.valid),
   	.full,
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(h2d_req_occ)
   );
 
   buffer h2d_rsp_fifo_inst#(
@@ -5805,13 +6593,13 @@ module cxl_device
     .qdatain(h2d_rsp_txn[3]),
     .dataout(dev_h2d_rsp_if.h2d_rsp_txn),
   	.eseq,
-  	.wptr,
+  	.wptr(h2d_rsp_wptr),
   	.empty(!dev_h2d_rsp_if.h2d_rsp_txn.valid),
   	.full,
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(h2d_rsp_occ)
   );
 
   buffer h2d_data_fifo_inst#(
@@ -5830,13 +6618,13 @@ module cxl_device
   	.qdatain(h2d_data_pkt[3].h2d_data_txn),
     .dataout(dev_h2d_data_if.h2d_data_txn),
   	.eseq,
-  	.wptr,
+  	.wptr(h2d_data_wptr),
   	.empty(!dev_h2d_data_if.h2d_data_txn.valid),
   	.full,
   	.undrflw,
   	.ovrflw,
   	.near_full,
-  	.occupancy
+  	.occupancy(h2d_data_occ)
   );
 
   device_tx_path device_tx_path_inst#(
