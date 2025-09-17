@@ -1,7 +1,12 @@
-//TODO: first add credit logic for explicit control pkt for llctrl credit pkts
-//TODO: (normal traffic ack insertion done) next add logic for sending back ack this is both explicit and along protocol normal traffic flow  
-//TODO: next look into the initialization init pkt exchange
-//TODO: next focus on 32B size pkt logic
+//TODO: first add credit logic for explicit control pkt for llctrl credit pkts 
+//TODO: (normal traffic ack insertion done) next add logic for sending back ack this is both explicit and along protocol normal traffic flow 
+//TODO: next look into the initialization init pkt exchange 
+//TODO: next focus on 32B size pkt logic 
+//TODO: finish the generic slot number assignment in the header pkt, also fix the extra generic slots appended to finish the pkt, if the slot is not mentioned in the header no other gslots should be generated, so currently after data slots dummy generic slots are being filled 
+//TODO: serious bug - roll over count is missing, you are just going to keep generating data slot again and again if roll over limit is not added 
+//TODO: crc computation logic missing, define the module it is currently just blank module
+//TODO: missing rra logic module is currently blank please refer to the paper
+//TODO: connection of ack to retry buffer and entry of tx pkt and lrsmrrsm integration to be done
 
 package cxl_uvm_pkg;
 
@@ -794,6 +799,7 @@ module host_tx_path#(
   logic [2:0] d2h_req_crdt_send;
   int ack_cnt_tbs;//ack count to be sent 
   int ack_cnt_snt;//current ack count sent 
+  logic insert_ack;
   //IMP INFO:consider s2m ndr as rsp credits and s2m drs as data credits
 
   ASSERT_ONEHOT_SLOT_SEL:assert property @(posedge clk) disable iff (!rstn) $onehot(slot_sel);
@@ -828,6 +834,8 @@ module host_tx_path#(
 
   assign h_req = (slot_sel>1) ? 'h0: h_val;
   assign g_req = (slot_sel[0])? 'h0: g_val;
+
+  assign insert_ack = ((ack_cnt_tbs - ack_cnt_snt) > 16)? 1'h1: 1'h0;
 
   always_comb begin
     d2h_req_outstanding_credits   = (d2h_req_occ_d  > d2h_req_occ ) ? (d2h_req_occ_d  - d2h_req_occ   ) : 'h0;
@@ -1212,7 +1220,7 @@ module host_tx_path#(
         end 
       endcase
      //TODO: bug/major flaw in packing logic after data slot ends in slot0/1/2 then slots123/23/3 should not be packed currently you are just sending available pkts into these slots without header slot entry so receiver cannot decode these generic slots  
-      if(!($stable(slot_sel))) begin
+      if(slot_sel_d != slot_sel) begin
         case(slot_sel_d)
           H_SLOT0: begin
             case(h_gnt_d)
@@ -1944,6 +1952,28 @@ module host_tx_path#(
         end else begin
           holding_rdptr <= holding_rdptr + 1;
         end
+      end else begin
+        if(ack_insert) begin
+          host_tx_dl_if.valid          <= 'h1;
+          host_tx_dl_if.data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
+          host_tx_dl_if.data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+          host_tx_dl_if.data[2]        <= 'h1;//TBD: logic for crdt ack to be added later
+          host_tx_dl_if.data[3]        <= 'h0;//non data header so 0
+          host_tx_dl_if.data[4]        <= 'h0;//non data header so 0
+          host_tx_dl_if.data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
+          host_tx_dl_if.data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+          host_tx_dl_if.data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+          host_tx_dl_if.data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+          host_tx_dl_if.data[19:17]    <= 'h0;//reserved must be 0
+          host_tx_dl_if.data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
+          host_tx_dl_if.data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+          host_tx_dl_if.data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+          host_tx_dl_if.data[35:32]    <= 4'b0000;
+          host_tx_dl_if.data[39:36]    <= 4'b0001;
+          host_tx_dl_if.data[63:40]    <= 'h0;
+          host_tx_dl_if.data[71:64]    <= ({ack_cnt_tbs[7:4], 1'b0, ack_cnt_tbs[2:0]});
+          ack_cnt_snt                  <= ack_cnt_tbs;
+        end
       end
    end
   end
@@ -2485,7 +2515,7 @@ module device_tx_path#(
         end 
       endcase
       
-      if(!($stable(slot_sel))) begin
+      if(slot_sel_d != slot_sel) begin
         case(slot_sel_d)
           H_SLOT0: begin
             case(h_gnt_d)
@@ -3283,6 +3313,28 @@ module device_tx_path#(
           holding_rdptr <= 'h0;
         end else begin
           holding_rdptr <= holding_rdptr + 1;
+        end
+      end else begin
+        if(ack_insert) begin
+          dev_tx_dl_if.valid          <= 'h1;
+          dev_tx_dl_if.data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
+          dev_tx_dl_if.data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+          dev_tx_dl_if.data[2]        <= ack_cnt_tbs[3];//TBD: logic for crdt ack to be added later
+          dev_tx_dl_if.data[3]        <= 'h0;//non data header so 0
+          dev_tx_dl_if.data[4]        <= 'h0;//non data header so 0
+          dev_tx_dl_if.data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
+          dev_tx_dl_if.data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+          dev_tx_dl_if.data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+          dev_tx_dl_if.data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+          dev_tx_dl_if.data[19:17]    <= 'h0;//reserved must be 0
+          dev_tx_dl_if.data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
+          dev_tx_dl_if.data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+          dev_tx_dl_if.data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+          dev_tx_dl_if.data[35:32]    <= 4'b0000;
+          dev_tx_dl_if.data[39:36]    <= 4'b0001;
+          dev_tx_dl_if.data[63:40]    <= 'h0;
+          dev_tx_dl_if.data[71:64]    <= ({ack_cnt_tbs[7:4], 1'b0, ack_cnt_tbs[2:0]});
+          ack_cnt_snt                 <= ack_cnt_tbs;
         end
       end
     end
