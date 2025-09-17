@@ -1,3 +1,7 @@
+//TODO: first add credit logic for explicit control pkt for llctrl credit pkts
+//TODO: (normal traffic ack insertion done) next add logic for sending back ack this is both explicit and along protocol normal traffic flow  
+//TODO: next look into the initialization init pkt exchange
+//TODO: next focus on 32B size pkt logic
 
 package cxl_uvm_pkg;
 
@@ -685,6 +689,7 @@ endmodule
 module host_tx_path#(
 
 )(
+  input logic ack,
   input int d2h_req_occ,
   input int d2h_rsp_occ,
   input int d2h_data_occ,
@@ -787,6 +792,8 @@ module host_tx_path#(
   crdt_tbs_t s2m_ndr_crdt_tbs;
   crdt_tbs_t s2m_drs_crdt_tbs;
   logic [2:0] d2h_req_crdt_send;
+  int ack_cnt_tbs;//ack count to be sent 
+  int ack_cnt_snt;//current ack count sent 
   //IMP INFO:consider s2m ndr as rsp credits and s2m drs as data credits
 
   ASSERT_ONEHOT_SLOT_SEL:assert property @(posedge clk) disable iff (!rstn) $onehot(slot_sel);
@@ -1212,7 +1219,8 @@ module host_tx_path#(
               'h1: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[2]        <= ((ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0);//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
                 holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
@@ -1220,9 +1228,9 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? s2m_ndr_crdt_send: ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? d2h_rsp_crdt_send: (s2m_ndr_crdt_send > 0)? s2m_ndr_crdt_send: (d2h_rsp_crdt_send > 0)? d2h_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? s2m_drs_crdt_send: ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? d2h_data_crdt_send: (s2m_drs_crdt_send > 0)? s2m_drs_crdt_send: (d2h_data_crdt_send > 0)? d2h_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= h2d_req_dataout.valid;
                 holding_q[holding_wrptr].data[35:33]    <= h2d_req_dataout.opcode;
                 holding_q[holding_wrptr].data[81:36]    <= h2d_req_dataout.address[51:6];
@@ -1239,7 +1247,8 @@ module host_tx_path#(
               'h2: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[2]        <= ((ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0);//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
                 holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[7:5]      <= 'h1;//slot0 fmt is H0 so 0
@@ -1247,9 +1256,9 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? s2m_ndr_crdt_send: ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? d2h_rsp_crdt_send: (s2m_ndr_crdt_send > 0)? s2m_ndr_crdt_send: (d2h_rsp_crdt_send > 0)? d2h_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? s2m_drs_crdt_send: ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? d2h_data_crdt_send: (s2m_drs_crdt_send > 0)? s2m_drs_crdt_send: (d2h_data_crdt_send > 0)? d2h_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? {1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= h2d_data_dataout.valid;
                 holding_q[holding_wrptr].data[44:33]    <= h2d_data_dataout.cqid;
                 holding_q[holding_wrptr].data[45]       <= h2d_data_dataout.chunkvalid;
@@ -1279,7 +1288,8 @@ module host_tx_path#(
               'h4: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[2]        <= ((ack_cnt_snt)? 'h1: 'h0);//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
                 holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[7:5]      <= 'h2;//slot0 fmt is H0 so 0
@@ -1287,9 +1297,9 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? s2m_ndr_crdt_send: ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? d2h_rsp_crdt_send: (s2m_ndr_crdt_send > 0)? s2m_ndr_crdt_send: (d2h_rsp_crdt_send > 0)? d2h_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? s2m_drs_crdt_send: ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? d2h_data_crdt_send: (s2m_drs_crdt_send > 0)? s2m_drs_crdt_send: (d2h_data_crdt_send > 0)? d2h_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= h2d_req_dataout.valid;
                 holding_q[holding_wrptr].data[35:33]    <= h2d_req_dataout.opcode;
                 holding_q[holding_wrptr].data[81:36]    <= h2d_req_dataout.address[51:6];
@@ -1312,7 +1322,8 @@ module host_tx_path#(
               'h8: begin
                 holding_q[holding_wrptr].data[0]         <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]         <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]         <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[2]         <= ((ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0);//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                              <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
                 holding_q[holding_wrptr].data[3]         <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[4]         <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[7:5]       <= 'h3;//slot0 fmt is H0 so 0
@@ -1320,9 +1331,9 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[13:11]     <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]     <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]     <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]     <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? s2m_ndr_crdt_send: ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? d2h_rsp_crdt_send: (s2m_ndr_crdt_send > 0)? s2m_ndr_crdt_send: (d2h_rsp_crdt_send > 0)? d2h_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]     <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[27:24]     <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]     <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? s2m_drs_crdt_send: ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? d2h_data_crdt_send: (s2m_drs_crdt_send > 0)? s2m_drs_crdt_send: (d2h_data_crdt_send > 0)? d2h_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]     <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]        <= h2d_data_dataout.valid;
                 holding_q[holding_wrptr].data[44:33]     <= h2d_data_dataout.cqid;
                 holding_q[holding_wrptr].data[45]        <= h2d_data_dataout.chunkvalid;
@@ -1369,7 +1380,8 @@ module host_tx_path#(
               'h16: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
                 holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[7:5]      <= 'h4;//slot0 fmt is H0 so 0
@@ -1377,9 +1389,9 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? s2m_ndr_crdt_send: ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? d2h_rsp_crdt_send: (s2m_ndr_crdt_send > 0)? s2m_ndr_crdt_send: (d2h_rsp_crdt_send > 0)? d2h_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? s2m_drs_crdt_send: ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? d2h_data_crdt_send: (s2m_drs_crdt_send > 0)? s2m_drs_crdt_send: (d2h_data_crdt_send > 0)? d2h_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= m2s_rwd_dataout.valid;
                 holding_q[holding_wrptr].data[36:33]    <= m2s_rwd_dataout.memopcode;
                 holding_q[holding_wrptr].data[39:37]    <= m2s_rwd_dataout.snptype;
@@ -1400,7 +1412,8 @@ module host_tx_path#(
               'h32: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
                 holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[7:5]      <= 'h5;//slot0 fmt is H0 so 0
@@ -1408,9 +1421,9 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? s2m_ndr_crdt_send: ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? d2h_rsp_crdt_send: (s2m_ndr_crdt_send > 0)? s2m_ndr_crdt_send: (d2h_rsp_crdt_send > 0)? d2h_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? s2m_drs_crdt_send: ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? d2h_data_crdt_send: (s2m_drs_crdt_send > 0)? s2m_drs_crdt_send: (d2h_data_crdt_send > 0)? d2h_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= m2s_req_dataout.valid;
                 holding_q[holding_wrptr].data[36:33]    <= m2s_req_dataout.memopcode;
                 holding_q[holding_wrptr].data[39:37]    <= m2s_req_dataout.snptype;
@@ -1917,7 +1930,12 @@ module host_tx_path#(
       host_tx_dl_if.valid <= 'h0;
       host_tx_dl_if.data <= 'h0;
       holding_rdptr <= 'h0;
+      ack_cnt_tbs <= 'h0;
+      ack_cnt_snt <= 'h0;
     end else begin
+      if(ack) begin
+        ack_cnt_tbs <= ack_cnt_tbs + 1;
+      end
       if(holding_q.valid[holding_rdptr]) begin
         host_tx_dl_if.valid <= holding_q.valid[holding_rdptr];
         host_tx_dl_if.data <= holding_q.data[holding_rdptr];
@@ -1953,6 +1971,7 @@ endmodule
 module device_tx_path#(
 
 )(
+  input logic ack,
   input int d2h_req_occ,
   input int d2h_rsp_occ,
   input int d2h_data_occ,
@@ -2061,6 +2080,8 @@ module device_tx_path#(
   crdt_tbs_t m2s_req_crdt_tbs;
   crdt_tbs_t m2s_rwd_crdt_tbs;
   logic [2:0] h2d_req_crdt_send;
+  int ack_cnt_tbs;//ack count to be sent
+  int ack_cnt_snt;//current ack count sent
 
   assign h_val[0] = (d2h_data_occ > 0) && (d2h_rsp_occ > 1);
   assign h_val[1] = (d2h_req_occ >0) && (d2h_data_occ > 0);
@@ -2471,7 +2492,8 @@ module device_tx_path#(
               'h1: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
                 holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
@@ -2479,9 +2501,9 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? m2s_req_crdt_send: ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? h2d_rsp_crdt_send: (m2s_req_crdt_send > 0)? m2s_req_crdt_send: (h2d_rsp_crdt_send > 0)? h2d_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_rsp_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_rsp_crdt_send > 0)? ({1'h0, h2d_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? m2s_rwd_crdt_send: ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? h2d_data_crdt_send: (m2s_rwd_crdt_send > 0)? m2s_rwd_crdt_send: (h2d_data_crdt_send > 0)? h2d_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= d2h_data_dataout.valid;
                 holding_q[holding_wrptr].data[44:33]    <= d2h_data_dataout.uqid;
                 holding_q[holding_wrptr].data[45]       <= d2h_data_dataout.chunkvalid;
@@ -2512,7 +2534,8 @@ module device_tx_path#(
               'h2: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1 : 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
                 holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[7:5]      <= 'h1;//slot0 fmt is H0 so 0
@@ -2520,9 +2543,9 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? m2s_req_crdt_send: ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? h2d_rsp_crdt_send: (m2s_req_crdt_send > 0)? m2s_req_crdt_send: (h2d_rsp_crdt_send > 0)? h2d_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_rsp_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_rsp_crdt_send > 0)? ({1'h0, h2d_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? m2s_rwd_crdt_send: ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? h2d_data_crdt_send: (m2s_rwd_crdt_send > 0)? m2s_rwd_crdt_send: (h2d_data_crdt_send > 0)? h2d_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= d2h_req_dataout.valid;
                 holding_q[holding_wrptr].data[37:33]    <= d2h_req_dataout.opcode;
                 holding_q[holding_wrptr].data[49:38]    <= d2h_req_dataout.cqid;
@@ -2545,7 +2568,8 @@ module device_tx_path#(
               'h4: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
                 holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[7:5]      <= 'h2;//slot0 fmt is H0 so 0
@@ -2553,9 +2577,9 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? m2s_req_crdt_send: ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? h2d_rsp_crdt_send: (m2s_req_crdt_send > 0)? m2s_req_crdt_send: (h2d_rsp_crdt_send > 0)? h2d_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_rsp_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_rsp_crdt_send > 0)? ({1'h0, h2d_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? m2s_rwd_crdt_send: ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? h2d_data_crdt_send: (m2s_rwd_crdt_send > 0)? m2s_rwd_crdt_send: (h2d_data_crdt_send > 0)? h2d_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
                 holding_q[holding_wrptr].data[32]       <= d2h_data_dataout.valid;
                 holding_q[holding_wrptr].data[44:33]    <= d2h_data_dataout.uqid;
                 holding_q[holding_wrptr].data[45]       <= d2h_data_dataout.chunkvalid;
@@ -2603,7 +2627,8 @@ module device_tx_path#(
               'h8: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
                 holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[7:5]      <= 'h3;//slot0 fmt is H0 so 0
@@ -2611,9 +2636,9 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? m2s_req_crdt_send: ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? h2d_rsp_crdt_send: (m2s_req_crdt_send > 0)? m2s_req_crdt_send: (h2d_rsp_crdt_send > 0)? h2d_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_rsp_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_rsp_crdt_send > 0)? ({1'h0, h2d_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? m2s_rwd_crdt_send: ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? h2d_data_crdt_send: (m2s_rwd_crdt_send > 0)? m2s_rwd_crdt_send: (h2d_data_crdt_send > 0)? h2d_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
                 holding_q[holding_wrptr].data[32]       <= s2m_drs_dataout.valid;
                 holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.memopcode;
                 holding_q[holding_wrptr].data[37:36]    <= s2m_drs_dataout.metafield;
@@ -2637,7 +2662,8 @@ module device_tx_path#(
               'h16: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
                 holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[7:5]      <= 'h4;//slot0 fmt is H0 so 0
@@ -2645,9 +2671,9 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? m2s_req_crdt_send: ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? h2d_rsp_crdt_send: (m2s_req_crdt_send > 0)? m2s_req_crdt_send: (h2d_rsp_crdt_send > 0)? h2d_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_rsp_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_rsp_crdt_send > 0)? ({1'h0, h2d_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? m2s_rwd_crdt_send: ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? h2d_data_crdt_send: (m2s_rwd_crdt_send > 0)? m2s_rwd_crdt_send: (h2d_data_crdt_send > 0)? h2d_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
                 holding_q[holding_wrptr].data[32]       <= s2m_ndr_dataout.valid;
                 holding_q[holding_wrptr].data[35:33]    <= s2m_ndr_dataout.memopcode;
                 holding_q[holding_wrptr].data[37:36]    <= s2m_ndr_dataout.metafield;
@@ -2666,7 +2692,8 @@ module device_tx_path#(
               'h32: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= 'h0;//TBD: logic for crdt ack to be added later
+                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
                 holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
                 holding_q[holding_wrptr].data[7:5]      <= 'h5;//slot0 fmt is H0 so 0
@@ -2674,9 +2701,9 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? m2s_req_crdt_send: ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? h2d_rsp_crdt_send: (m2s_req_crdt_send > 0)? m2s_req_crdt_send: (h2d_rsp_crdt_send > 0)? h2d_rsp_crdt_send: 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_rsp_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_rsp_crdt_send > 0)? ({1'h0, h2d_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? m2s_rwd_crdt_send: ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? h2d_data_crdt_send: (m2s_rwd_crdt_send > 0)? m2s_rwd_crdt_send: (h2d_data_crdt_send > 0)? h2d_data_crdt_send: 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
                 holding_q[holding_wrptr].data[32]       <= s2m_drs_dataout.valid;
                 holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.memopcode;
                 holding_q[holding_wrptr].data[37:36]    <= s2m_drs_dataout.metafield;
@@ -3243,7 +3270,12 @@ module device_tx_path#(
       dev_tx_dl_if.valid <= 'h0;
       dev_tx_dl_if.data <= 'h0;
       holding_rdptr <= 'h0;
+      ack_cnt_tbs <= 'h0;
+      ack_cnt_snt <= 'h0;
     end else begin
+      if(ack) begin
+        ack_cnt_tbs <= ack_cnt_tbs + 1;
+      end
       if(holding_q.valid[holding_rdptr]) begin
         dev_tx_dl_if.valid <= holding_q.valid[holding_rdptr];
         dev_tx_dl_if.data <= holding_q.data[holding_rdptr];
@@ -3458,7 +3490,8 @@ module host_rx_path #(
   output d2h_rsp_txn_t d2h_rsp_pkt[2],
   output d2h_data_pkt_t d2h_data_pkt[4],
   output s2m_ndr_txn_t s2m_ndr_pkt[3],
-  output s2m_drs_pkt_t s2m_drs_pkt[3]
+  output s2m_drs_pkt_t s2m_drs_pkt[3],
+  output logic ack
 );
 
   typedef enum {
@@ -3489,6 +3522,8 @@ module host_rx_path #(
   logic data_slot_d[5];
   d2h_data_pkt_t d2h_data_pkt_d[4];
   s2m_drs_pkt_t s2m_drs_pkt_d[3];
+  logic [2:0] ack_count;
+  logic [2:0] ack_count_d;
 
   function void header0(
     input logic [511:0] data, 
@@ -4273,7 +4308,16 @@ module host_rx_path #(
       //TODO: not sure if this foreach will initialize for all indeces
       foreach(data_slot[i]) data_slot[i] <= 'h0;
       foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
+      ack <= 'h0;
+      ack_count <= 'h0;
+      ack_count_d <= 'h0;
     end else begin
+      ack_count_d <= ack_count;
+      if((ack_count_d == 'h7) && (ack_count == 'h0)) begin
+        ack <= 'h1;
+      end else begin
+        ack <= 'h0;
+      end
       if(host_rx_dl_if_d.valid && retryable_flit) begin
         data_slot[0] <= data_slot[1]; 
         data_slot[1] <= data_slot[2]; 
@@ -4350,6 +4394,7 @@ module host_rx_path #(
     end
   
     if(host_rx_dl_if_d.valid && retryable_flit) begin
+      ack_count = ack_count + 1;
       if(!data_slot[0][0]) begin
         case(host_rx_dl_if_d.data[7:5])
           'h0: begin
@@ -4568,7 +4613,8 @@ module device_rx_path #(
   output h2d_rsp_txn_t h2d_rsp_pkt[4],
   output h2d_data_txn_t h2d_data_pkt[4],
   output m2s_req_txn_t m2s_req_pkt[2],
-  output m2s_rwd_txn_t m2s_rwd_pkt
+  output m2s_rwd_txn_t m2s_rwd_pkt,
+  output logic ack
 );
 
   typedef enum {
@@ -4604,6 +4650,9 @@ module device_rx_path #(
   logic [1:0] h2d_data_ptr;
   logic [1:0] m2s_req_ptr;
   logic [1:0] m2s_rwd_ptr;
+  logic [2:0] ack_count;
+  logic [2:0] ack_count_d;
+
 
   function void header0(
     input logic [511:0] data,
@@ -5457,7 +5506,16 @@ module device_rx_path #(
       //TODO: not sure if this foreach will initialize for all indeces
       foreach(data_slot[i]) data_slot[i] <= 'h0;
       foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
+      ack <= 'h0;
+      ack_count <= 'h0;
+      ack_count_d <= 'h0;
     end else begin
+      ack_count_d <= ack_count;
+      if((ack_count_d == 'h7) && (ack_count == 'h0)) begin
+        ack <= 'h1;
+      end else begin
+        ack <= 'h0;
+      end
       if(dev_rx_dl_if_d.valid && retryable_flit) begin
         data_slot[0] <= data_slot[1];
         data_slot[1] <= data_slot[2];
@@ -5535,6 +5593,7 @@ module device_rx_path #(
     end
     
     if(dev_rx_dl_if_d.valid && retryable_flit) begin
+      ack_count = ack_count + 1;
       if(!data_slot[0][0]) begin
         h2d_req_ptr = 'h0;
         h2d_rsp_ptr = 'h0;
@@ -5575,13 +5634,13 @@ module device_rx_path #(
             generic1('h1, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
           end
           'h2: begin
-            generic2('h1, dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_req_ptr, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic2('h1, dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_req_ptr, h2d_data_pkt[4], h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           'h3: begin
-            generic3('h1, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic3('h1, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           'h4: begin
-            generic4('h1, dev_rx_dl_if_d.data, m2s_req_pkt[2], m2s_req_ptr, h2d_data_pkt[4], h2d_data_ptr);
+            generic4('h1, dev_rx_dl_if_d.data, m2s_req_pkt[2], m2s_req_ptr, h2d_data_pkt[4]);
           end
           'h5: begin
             generic5('h1, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt[4], h2d_rsp_ptr);
@@ -5598,13 +5657,13 @@ module device_rx_path #(
             generic1('h2, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
           end
           'h2: begin
-            generic2('h2, dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_req_ptr, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic2('h2, dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_req_ptr, h2d_data_pkt[4], h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           'h3: begin
-            generic3('h2, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic3('h2, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           'h4: begin
-            generic4('h2, dev_rx_dl_if_d.data, m2s_req_pkt[2], m2s_req_ptr, h2d_data_pkt[4], h2d_data_ptr);
+            generic4('h2, dev_rx_dl_if_d.data, m2s_req_pkt[2], m2s_req_ptr, h2d_data_pkt[4]);
           end
           'h5: begin
             generic5('h2, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt[4], h2d_rsp_ptr);
@@ -5621,13 +5680,13 @@ module device_rx_path #(
             generic1('h3, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
           end
           'h2: begin
-            generic2('h3, dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_req_ptr, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic2('h3, dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_req_ptr, h2d_data_pkt[4], h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           'h3: begin
-            generic3('h3, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_data_ptr, h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic3('h3, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt[4], h2d_rsp_ptr);
           end
           'h4: begin
-            generic4('h3, dev_rx_dl_if_d.data, m2s_req_pkt, m2s_req_ptr[2], h2d_data_pkt[4], h2d_data_ptr);
+            generic4('h3, dev_rx_dl_if_d.data, m2s_req_pkt, m2s_req_ptr[2], h2d_data_pkt[4]);
           end
           'h5: begin
             generic5('h3, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt[4], h2d_rsp_ptr);
@@ -6016,12 +6075,12 @@ module cxl_host
   m2s_rwd_txn_t m2s_rwd_dataout;
   m2s_rwd_txn_t m2s_rwd_ddataout;
   m2s_rwd_txn_t m2s_rwd_qdataout;
-
   d2h_req_txn_t d2h_req_pkt[4];
   d2h_rsp_txn_t d2h_rsp_pkt[2];
   d2h_data_pkt_t d2h_data_pkt[4];
   s2m_ndr_txn_t s2m_ndr_pkt[3];
   s2m_drs_pkt_t s2m_drs_pkt[3];
+  logic ack;
 
   buffer d2h_req_fifo_inst#(
     DEPTH = 32,
@@ -6366,12 +6425,12 @@ module cxl_device
   s2m_drs_txn_t s2m_drs_ddataout;
   s2m_drs_txn_t s2m_drs_tdataout;
   s2m_drs_txn_t s2m_drs_qdataout;
-
   h2d_req_txn_t h2d_req_txn[2];
   h2d_rsp_txn_t h2d_rsp_txn[4];
   h2d_data_pkt_t h2d_data_pkt[4];
   m2s_req_txn_t m2s_req_pkt[2];
   m2s_rwd_pkt_t m2s_rwd_pkt;
+  logic ack;
 
   buffer d2h_req_fifo_inst#(
     DEPTH = 32,
