@@ -1,5 +1,5 @@
-//TODO: first add credit logic for explicit control pkt for llctrl credit pkts 
-//TODO: (normal traffic ack insertion done) next add logic for sending back ack this is both explicit and along protocol normal traffic flow 
+//TODO: (done-I beleive ack forcing forces the credits as well)first add credit logic for explicit control pkt for llctrl credit pkts 
+//TODO: (normal traffic ack insertion done and forced ack is also done) next add logic for sending back ack this is both explicit and along protocol normal traffic flow 
 //TODO: next look into the initialization init pkt exchange 
 //TODO: next focus on 32B size pkt logic 
 //TODO: finish the generic slot number assignment in the header pkt, also fix the extra generic slots appended to finish the pkt, if the slot is not mentioned in the header no other gslots should be generated, so currently after data slots dummy generic slots are being filled 
@@ -695,6 +695,8 @@ module host_tx_path#(
 
 )(
   input logic ack,
+  input logic ack_ret_val,
+  input logic [7:0] ack_ret,
   input int d2h_req_occ,
   input int d2h_rsp_occ,
   input int d2h_data_occ,
@@ -1978,6 +1980,21 @@ module host_tx_path#(
    end
   end
 
+  buffer llrb#(
+    DEPTH = 256,
+    ADDR_WIDTH = 8,
+    type FIFO_DATA_TYPE = holding_q_t
+  )(
+	  .clk(host_tx_dl_if.clk.clk),
+  	.rstn(host_tx_dl_if.rstn),
+  	.rval(ack_ret_val),
+    .ack_cnt(ack_ret),
+  	.wval(host_tx_dl_if.valid),
+    .datain(host_tx_dl_if.data),
+  	.eseq,
+  	.wptr(),
+  );
+
   rra h_slot_rra_inst#(
 
   )(
@@ -2002,6 +2019,8 @@ module device_tx_path#(
 
 )(
   input logic ack,
+  input logic ack_ret_val,
+  input logic [7:0] ack_ret,
   input int d2h_req_occ,
   input int d2h_rsp_occ,
   input int d2h_data_occ,
@@ -3340,6 +3359,21 @@ module device_tx_path#(
     end
   end
 
+  buffer llrb#(
+    DEPTH = 256,
+    ADDR_WIDTH = 8,
+    type FIFO_DATA_TYPE = holding_q_t
+  )(
+	  .clk(dev_tx_dl_if.clk.clk),
+  	.rstn(dev_tx_dl_if.rstn),
+  	.rval(ack_ret_val),
+  	.ack_cnt(ack_ret),
+    .wval(dev_tx_dl_if.valid),
+    .datain(dev_tx_dl_if.data),
+  	.eseq,
+  	.wptr(),
+  );
+
   rra h_slot_rra_inst#(
 
   )(
@@ -3543,7 +3577,9 @@ module host_rx_path #(
   output d2h_data_pkt_t d2h_data_pkt[4],
   output s2m_ndr_txn_t s2m_ndr_pkt[3],
   output s2m_drs_pkt_t s2m_drs_pkt[3],
-  output logic ack
+  output logic ack,
+  output logic ack_ret_val,
+  output logic [7:0] ack_ret
 );
 
   typedef enum {
@@ -3576,7 +3612,16 @@ module host_rx_path #(
   s2m_drs_pkt_t s2m_drs_pkt_d[3];
   logic [2:0] ack_count;
   logic [2:0] ack_count_d;
+  logic llcrd_flit;
 
+  assign retry_frame_detect = (host_rx_dl_if_d.data[39:36] == 'h3) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retry_idle_detect =  (host_rx_dl_if_d.data[39:36] == 'h0) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retry_req_detect =   (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retry_ack_detect =   (host_rx_dl_if_d.data[39:36] == 'h2) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign llcrd_flit =         (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] == 'h0) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign non_retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
+  assign retryable_flit =     (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
+  
   function void header0(
     input logic [511:0] data, 
     output d2h_data_pkt_t d2h_data_pkt[4], 
@@ -4363,6 +4408,7 @@ module host_rx_path #(
       ack <= 'h0;
       ack_count <= 'h0;
       ack_count_d <= 'h0;
+      ack_ret_val <= 'h0;
     end else begin
       ack_count_d <= ack_count;
       if((ack_count_d == 'h7) && (ack_count == 'h0)) begin
@@ -4370,7 +4416,12 @@ module host_rx_path #(
       end else begin
         ack <= 'h0;
       end
-      if(host_rx_dl_if_d.valid && retryable_flit) begin
+      if(host_rx_dl_if_d.valid && retryable_flit && llcrd_flit) begin
+        ack_ret_val <= 'h1;
+      end else begin
+        ack_ret_val <= 'h0;
+      end
+      if(host_rx_dl_if_d.valid && retryable_flit && (!llcrd_flit)) begin
         data_slot[0] <= data_slot[1]; 
         data_slot[1] <= data_slot[2]; 
         data_slot[2] <= data_slot[3]; 
@@ -4395,7 +4446,7 @@ module host_rx_path #(
   //TODO: put the packing logic restrictions in the arbiter logic itself so here I do not need to worry why I am getting illegal pkts we can have assertions to catch the max sub pkts that can be packed
   //TODO: put asserts to catch if there any illegal values on Hslots or Gslots otherwise bellow logic will be very hard to debug
   always_comb begin
-    if(host_rx_dl_if_d.valid && retryable_flit &&
+    if(host_rx_dl_if_d.valid && retryable_flit && (!llcrd_flit) &&
         (!data_slot_d[0][3] || 
           ((data_slot_d[0] == 'hf) && 
             ((d2h_data_pkt_d[0].pending_data_slot == 0) && (s2m_drs_pkt_d[0].pending_data_slot == 0)) &&
@@ -4445,7 +4496,7 @@ module host_rx_path #(
       //data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
     end
   
-    if(host_rx_dl_if_d.valid && retryable_flit) begin
+    if(host_rx_dl_if_d.valid && retryable_flit && (!llcrd_flit)) begin
       ack_count = ack_count + 1;
       if(!data_slot[0][0]) begin
         case(host_rx_dl_if_d.data[7:5])
@@ -4553,6 +4604,11 @@ module host_rx_path #(
         generic0('h0, host_rx_dl_if_d.data, d2h_data_pkt[4], s2m_drs_pkt[3]);
       end
     end
+    
+    if(host_rx_dl_if_d.valid && llcrd_flit) begin
+      ack_count = ack_count + 1;
+      ack_ret = {host_rx_dl_if_d.data[71:68], host_rx_dl_if_d.data[2], host_rx_dl_if_d.data[66:64]};
+    end
   end
 
   cxl_lrsm_rrsm cxl_lrsm_rrsm_inst#(
@@ -4569,12 +4625,6 @@ module host_rx_path #(
     .*
   );
 
-  assign retry_frame_detect = (host_rx_dl_if_d.data[39:36] == 'h3) && (host_rx_dl_if_d.data[35:32] = 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retry_idle_detect = (host_rx_dl_if_d.data[39:36] == 'h0) && (host_rx_dl_if_d.data[35:32] = 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retry_req_detect = (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] = 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retry_ack_detect = (host_rx_dl_if_d.data[39:36] == 'h2) && (host_rx_dl_if_d.data[35:32] = 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign non_retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
-  assign retryable_flit = (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
   //TODO: serious mistake I am assuming only one side of the link can have error at a time
 
   always@(posedge host_rx_dl_if.clk) begin
@@ -4666,7 +4716,9 @@ module device_rx_path #(
   output h2d_data_txn_t h2d_data_pkt[4],
   output m2s_req_txn_t m2s_req_pkt[2],
   output m2s_rwd_txn_t m2s_rwd_pkt,
-  output logic ack
+  output logic ack,
+  output logic ack_ret_val,
+  output logic [7:0] ack_ret
 );
 
   typedef enum {
@@ -4704,8 +4756,16 @@ module device_rx_path #(
   logic [1:0] m2s_rwd_ptr;
   logic [2:0] ack_count;
   logic [2:0] ack_count_d;
+  logic llcrd_flit;
 
-
+  assign retry_frame_detect = (dev_rx_dl_if_d.data[39:36] == 'h3) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retry_idle_detect  = (dev_rx_dl_if_d.data[39:36] == 'h0) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retry_req_detect   = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign retry_ack_detect   = (dev_rx_dl_if_d.data[39:36] == 'h2) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign llcrd_flit         = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] = 'h0) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign non_retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
+  assign retryable_flit     = (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
+  
   function void header0(
     input logic [511:0] data,
     output h2d_req_txn_t h2d_req_txn[2],
@@ -5381,23 +5441,23 @@ module device_rx_path #(
 
     if(slot_sel == 'h1) begin
       if(m2s_req_ptr > 0) begin
-        m2s_req_txn[1].valid                = data[(SLOT1_OFFSET+0)];
-        m2s_req_txn[1].memopcode            = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
-        m2s_req_txn[1].snptype              = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)];
-        m2s_req_txn[1].metafield            = data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)];
-        m2s_req_txn[1].metavalue            = data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)];
-        m2s_req_txn[1].tag                  = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
-        m2s_req_txn[1].address              = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
-        m2s_req_txn[1].tc                   = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
+        m2s_req_txn[1].valid                   = data[(SLOT1_OFFSET+0)];
+        m2s_req_txn[1].memopcode               = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
+        m2s_req_txn[1].snptype                 = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)];
+        m2s_req_txn[1].metafield               = data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)];
+        m2s_req_txn[1].metavalue               = data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)];
+        m2s_req_txn[1].tag                     = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
+        m2s_req_txn[1].address                 = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
+        m2s_req_txn[1].tc                      = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
       end else begin
-        m2s_req_txn[0].valid                = data[(SLOT1_OFFSET+0)];
-        m2s_req_txn[0].memopcode            = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
-        m2s_req_txn[0].snptype              = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)];
-        m2s_req_txn[0].metafield            = data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)];
-        m2s_req_txn[0].metavalue            = data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)];
-        m2s_req_txn[0].tag                  = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
-        m2s_req_txn[0].address              = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
-        m2s_req_txn[0].tc                   = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
+        m2s_req_txn[0].valid                   = data[(SLOT1_OFFSET+0)];
+        m2s_req_txn[0].memopcode               = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
+        m2s_req_txn[0].snptype                 = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)];
+        m2s_req_txn[0].metafield               = data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)];
+        m2s_req_txn[0].metavalue               = data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)];
+        m2s_req_txn[0].tag                     = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
+        m2s_req_txn[0].address                 = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
+        m2s_req_txn[0].tc                      = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
       end
       h2d_data_pkt[0].pending_data_slot        = 'hf;
       h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT1_OFFSET+88)];
@@ -5407,23 +5467,23 @@ module device_rx_path #(
       h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+103)];
     end else if(slot_sel == 'h2) begin
       if(m2s_req_ptr > 0) begin
-        m2s_req_txn[1].valid                = data[(SLOT2_OFFSET+0)];
-        m2s_req_txn[1].memopcode            = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
-        m2s_req_txn[1].snptype              = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)];
-        m2s_req_txn[1].metafield            = data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)];
-        m2s_req_txn[1].metavalue            = data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)];
-        m2s_req_txn[1].tag                  = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
-        m2s_req_txn[1].address              = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
-        m2s_req_txn[1].tc                   = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
+        m2s_req_txn[1].valid                   = data[(SLOT2_OFFSET+0)];
+        m2s_req_txn[1].memopcode               = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
+        m2s_req_txn[1].snptype                 = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)];
+        m2s_req_txn[1].metafield               = data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)];
+        m2s_req_txn[1].metavalue               = data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)];
+        m2s_req_txn[1].tag                     = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
+        m2s_req_txn[1].address                 = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
+        m2s_req_txn[1].tc                      = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
       end else begin
-        m2s_req_txn[0].valid                = data[(SLOT2_OFFSET+0)];
-        m2s_req_txn[0].memopcode            = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
-        m2s_req_txn[0].snptype              = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)];
-        m2s_req_txn[0].metafield            = data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)];
-        m2s_req_txn[0].metavalue            = data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)];
-        m2s_req_txn[0].tag                  = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
-        m2s_req_txn[0].address              = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
-        m2s_req_txn[0].tc                   = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
+        m2s_req_txn[0].valid                   = data[(SLOT2_OFFSET+0)];
+        m2s_req_txn[0].memopcode               = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
+        m2s_req_txn[0].snptype                 = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)];
+        m2s_req_txn[0].metafield               = data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)];
+        m2s_req_txn[0].metavalue               = data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)];
+        m2s_req_txn[0].tag                     = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
+        m2s_req_txn[0].address                 = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
+        m2s_req_txn[0].tc                      = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
       end
       h2d_data_pkt[0].pending_data_slot        = 'hf;
       h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT2_OFFSET+88)];
@@ -5433,23 +5493,23 @@ module device_rx_path #(
       h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+103)];
     end else if(slot_sel == 'h3) begin
       if(m2s_req_ptr > 0) begin
-        m2s_req_txn[1].valid                = data[(SLOT3_OFFSET+0)];
-        m2s_req_txn[1].memopcode            = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
-        m2s_req_txn[1].snptype              = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)];
-        m2s_req_txn[1].metafield            = data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)];
-        m2s_req_txn[1].metavalue            = data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)];
-        m2s_req_txn[1].tag                  = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
-        m2s_req_txn[1].address              = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
-        m2s_req_txn[1].tc                   = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
+        m2s_req_txn[1].valid                   = data[(SLOT3_OFFSET+0)];
+        m2s_req_txn[1].memopcode               = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
+        m2s_req_txn[1].snptype                 = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)];
+        m2s_req_txn[1].metafield               = data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)];
+        m2s_req_txn[1].metavalue               = data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)];
+        m2s_req_txn[1].tag                     = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
+        m2s_req_txn[1].address                 = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
+        m2s_req_txn[1].tc                      = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
       end else begin
-        m2s_req_txn[0].valid                = data[(SLOT3_OFFSET+0)];
-        m2s_req_txn[0].memopcode            = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
-        m2s_req_txn[0].snptype              = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)];
-        m2s_req_txn[0].metafield            = data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)];
-        m2s_req_txn[0].metavalue            = data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)];
-        m2s_req_txn[0].tag                  = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
-        m2s_req_txn[0].address              = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
-        m2s_req_txn[0].tc                   = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
+        m2s_req_txn[0].valid                   = data[(SLOT3_OFFSET+0)];
+        m2s_req_txn[0].memopcode               = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
+        m2s_req_txn[0].snptype                 = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)];
+        m2s_req_txn[0].metafield               = data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)];
+        m2s_req_txn[0].metavalue               = data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)];
+        m2s_req_txn[0].tag                     = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
+        m2s_req_txn[0].address                 = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
+        m2s_req_txn[0].tc                      = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
       end
       h2d_data_pkt[0].pending_data_slot        = 'hf;
       h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT3_OFFSET+88)];
@@ -5561,6 +5621,7 @@ module device_rx_path #(
       ack <= 'h0;
       ack_count <= 'h0;
       ack_count_d <= 'h0;
+      ack_ret_val <= 'h0;
     end else begin
       ack_count_d <= ack_count;
       if((ack_count_d == 'h7) && (ack_count == 'h0)) begin
@@ -5568,7 +5629,12 @@ module device_rx_path #(
       end else begin
         ack <= 'h0;
       end
-      if(dev_rx_dl_if_d.valid && retryable_flit) begin
+      if(dev_rx_dl_if_d.valid && retryable_flit && llcrd_flit) begin
+        ack_ret_val <= 'h1;
+      end else begin
+        ack_ret_val <= 'h0;
+      end
+      if(dev_rx_dl_if_d.valid && retryable_flit && (!llcrd_flit)) begin
         data_slot[0] <= data_slot[1];
         data_slot[1] <= data_slot[2];
         data_slot[2] <= data_slot[3];
@@ -5591,7 +5657,7 @@ module device_rx_path #(
   //TODO: put the packing logic restrictions in the arbiter logic itself so here I do not need to worry why I am getting illegal pkts we can have assertions to catch the max sub pkts that can be packed
   //TODO: put asserts to catch if there any illegal values on Hslots or Gslots otherwise bellow logic will be very hard to debug
   always_comb begin
-    if(dev_rx_dl_if_d.valid && retryable_flit && 
+    if(dev_rx_dl_if_d.valid && retryable_flit && (!llcrd_flit) && 
         (!data_slot_d[0][3] || 
           ((data_slot_d[0] == 'hf) && 
             (
@@ -5644,7 +5710,7 @@ module device_rx_path #(
       //data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
     end
     
-    if(dev_rx_dl_if_d.valid && retryable_flit) begin
+    if(dev_rx_dl_if_d.valid && retryable_flit && (!llcrd_flit)) begin
       ack_count = ack_count + 1;
       if(!data_slot[0][0]) begin
         h2d_req_ptr = 'h0;
@@ -5751,6 +5817,11 @@ module device_rx_path #(
           generic0('h0, dev_rx_dl_if_d.data, h2d_data_pkt[4], m2s_rwd_pkt);
       end
     end
+
+    if(dev_rx_dl_if_d.valid && retryable_flit && llcrd_flit) begin
+      ack_count = ack_count + 1;
+      ack_ret = {dev_rx_dl_if_d.data[71:68], dev_rx_dl_if_d.data[2], dev_rx_dl_if_d.data[66:64]};
+    end
   end 
 
   cxl_lrsm_rrsm cxl_lrsm_rrsm_inst#(
@@ -5767,12 +5838,6 @@ module device_rx_path #(
     .*
   );
 
-  assign retry_frame_detect = (dev_rx_dl_if_d.data[39:36] == 'h3) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retry_idle_detect = (dev_rx_dl_if_d.data[39:36] == 'h0) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retry_req_detect = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retry_ack_detect = (dev_rx_dl_if_d.data[39:36] == 'h2) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign non_retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
-  assign retryable_flit = (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
   //TODO: serious mistake I am assuming only one side of the link can have error at a time
   
   always@(posedge dev_rx_dl_if.clk) begin
@@ -5940,6 +6005,7 @@ module buffer#(
   	input logic dwval,
   	input logic twval,
   	input logic qwval,
+    input logic [ADDR_WIDTH-1:0] ack_cnt,
     input FIFO_DATA_TYPE datain,
     input FIFO_DATA_TYPE ddatain,
     input FIFO_DATA_TYPE tdatain,
@@ -6011,8 +6077,12 @@ module buffer#(
         end else if(((rval && (!empty)) || (drval && (occupancy>1)) || (trval && (occupancy>2)) || (qrval && (occupancy>3)))) begin
           casez({qrval,trval,drval,rval})
             4'b0001: begin
-              rdptr <= rdptr + 1;
-         	    dataout <= fifo_h[rdptr];
+              if(ack_cnt == 0) begin
+                rdptr <= rdptr + 1;
+         	      dataout <= fifo_h[rdptr];
+              end else begin
+                rdptr <= rdptr + ack_cnt;
+              end
             end
             4'b0010: begin
               rdptr <= rdptr + 2;
@@ -6133,6 +6203,8 @@ module cxl_host
   s2m_ndr_txn_t s2m_ndr_pkt[3];
   s2m_drs_pkt_t s2m_drs_pkt[3];
   logic ack;
+  logic ack_ret_val;
+  logic [7:0] ack_ret;
 
   buffer d2h_req_fifo_inst#(
     DEPTH = 32,
@@ -6483,6 +6555,8 @@ module cxl_device
   m2s_req_txn_t m2s_req_pkt[2];
   m2s_rwd_pkt_t m2s_rwd_pkt;
   logic ack;
+  logic ack_ret_val;
+  logic [7:0] ack_ret;
 
   buffer d2h_req_fifo_inst#(
     DEPTH = 32,
