@@ -802,6 +802,8 @@ module host_tx_path#(
   int ack_cnt_tbs;//ack count to be sent 
   int ack_cnt_snt;//current ack count sent 
   logic insert_ack;
+  logic [3:0] data_slot[5];
+  logic [3:0] data_slot_d[5];
   //IMP INFO:consider s2m ndr as rsp credits and s2m drs as data credits
 
   ASSERT_ONEHOT_SLOT_SEL:assert property @(posedge clk) disable iff (!rstn) $onehot(slot_sel);
@@ -834,8 +836,8 @@ module host_tx_path#(
   assign m2s_req_rval   = (g_gnt[4])? 'h1: 'h0;
   assign m2s_rwd_rval   = (g_gnt[5])? 'h1: 'h0;
 
-  assign h_req = (slot_sel>1) ? 'h0: h_val;
-  assign g_req = (slot_sel[0])? 'h0: g_val;
+  assign h_req = ((slot_sel>1) || (data_slot[0] == 'hf)) ? 'h0: h_val;
+  assign g_req = ((slot_sel[0]) || ((data_slot[0] == 'hf) || (data_slot[0] == 'he)))? 'h0: g_val;
 
   assign insert_ack = ((ack_cnt_tbs - ack_cnt_snt) > 16)? 1'h1: 1'h0;
 
@@ -1178,16 +1180,76 @@ module host_tx_path#(
       slot_sel <= H_SLOT0;
       slot_sel_d <= H_SLOT0;
       holding_wrptr <= 'h0;
+      data_slot[0] <= 'h0;
+      data_slot[1] <= 'h0;
+      data_slot[2] <= 'h0;
+      data_slot[3] <= 'h0;
+      data_slot[4] <= 'h0;
+      data_slot_d[0] <= 'h0;
+      data_slot_d[1] <= 'h0;
+      data_slot_d[2] <= 'h0;
+      data_slot_d[3] <= 'h0;
+      data_slot_d[4] <= 'h0;
     end else begin
       h_gnt_d <= h_gnt;
       g_gnt_d <= g_gnt;
       slot_sel_d <= slot_sel;
+      data_slot_d[0] <= data_slot[0];
+      data_slot_d[1] <= data_slot[1];
+      data_slot_d[2] <= data_slot[2];
+      data_slot_d[3] <= data_slot[3];
+      data_slot_d[4] <= data_slot[4];
+      if(data_slot[1] == 'hf) begin
+        data_slot[0] <= data_slot[1];
+        data_slot[1] <= data_slot[2];
+        data_slot[2] <= data_slot[3];
+        data_slot[3] <= data_slot[4];
+        data_slot[4] <= 'h0;
+      end
       case(slot_sel)
         H_SLOT0: begin
           if(h_gnt == 0) begin
             slot_sel <= H_SLOT0;
           end else begin
-            slot_sel <= G_SLOT1;
+            if((h_gnt[0]) || (h_gnt[5])) begin
+              if((data_slot[0] == 'h0) /*|| (data_slot[0] == 'hf)*/) begin //TODO: I doubt you would get data_slot as 'hf
+                slot_sel <= G_SLOT1;
+              end else if(data_slot[0] == 'h2) begin
+                slot_sel <= G_SLOT2;
+              end else if(data_slot[0] == 'h6) begin
+                slot_sel <= G_SLOT3;
+              end else if(data_slot[0] == 'he) begin
+                slot_sel <= H_SLOT0;
+              end else begin
+                slot_sel <= 'hX;
+              end
+            end else if(h_gnt[1] || h_gnt[2] || h_gnt[4]) begin
+              slot_sel <= H_SLOT0;
+              if((data_slot[0] == 'h0) /*|| (data_slot[0] == 'hf)*/) begin //TODO: I doubt you would get data_slot as 'hf
+                data_slot[0] <= 'he; data_slot[1] <= 'h2; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              end else if(data_slot[0] == 'h2) begin
+                data_slot[0] <= 'he; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              end else if(data_slot[0] == 'h6) begin
+                data_slot[0] <= 'he; data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              end else if(data_slot[0] == 'he) begin
+                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              end else begin
+                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
+              end
+            end else if(h_gnt[3]) begin
+              slot_sel <= H_SLOT0;
+              if((data_slot[0] == 'h0) /*|| (data_slot[0] == 'hf)*/) begin //TODO: I doubt you would get data_slot as 'hf
+                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h2;
+              end else if(data_slot[0] == 'h2) begin
+                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
+              end else if(data_slot[0] == 'h6) begin
+                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
+              end else if(data_slot[0] == 'he) begin
+                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
+              end else begin
+                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
+              end
+            end
           end
         end
         G_SLOT1: begin
@@ -1196,7 +1258,27 @@ module host_tx_path#(
           end else if(g_gnt[0]) begin
             slot_sel <= 'hX;
           end else begin
-            slot_sel <= G_SLOT2;
+            if((g_gnt[1])) begin
+              if(data_slot[0] == 'h0) begin
+                slot_sel <= G_SLOT2;
+              end else begin
+                slot_sel <= 'hX;
+              end
+            end else if((g_gnt[2]) || (g_gnt[4]) || (g_gnt[5])) begin
+              if(data_slot[0] == 'h0) begin
+                slot_sel <= H_SLOT0;
+                data_slot[0] <= 'hc; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              end else begin
+                slot_sel <= 'hX;
+              end
+            end else if(g_gnt[3]) begin
+              if(data_slot[0] == 'h0) begin
+                slot_sel <= H_SLOT0;
+                data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
+              end else begin
+                slot_sel <= 'hX;
+              end
+            end
           end
         end
         G_SLOT2: begin
@@ -1205,7 +1287,27 @@ module host_tx_path#(
           end else if(g_gnt[0]) begin
             slot_sel <= 'hX;
           end else begin
-            slot_sel <= G_SLOT3;
+            if((g_gnt[1])) begin
+              if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
+                slot_sel <= G_SLOT3;
+              end else begin
+                slot_sel <= 'hX;
+              end
+            end else if((g_gnt[2]) || (g_gnt[4]) || (g_gnt[5])) begin
+              if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
+                slot_sel <= H_SLOT0;
+                data_slot[0] <= ((data_slot[0] == 'h2)? 'ha: 'h8); data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              end else begin
+                slot_sel <= 'hX;
+              end
+            end else if(g_gnt[3]) begin
+              if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
+                slot_sel <= H_SLOT0;
+                data_slot[0] <=  ((data_slot[0] == 'h2)? 'ha: 'h8); data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
+              end else begin
+                slot_sel <= 'hX;
+              end
+            end
           end
         end
         G_SLOT3: begin
@@ -1214,7 +1316,27 @@ module host_tx_path#(
           end else if(g_gnt[0]) begin
             slot_sel <= 'hX;
           end else begin
-            slot_sel <= H_SLOT0;
+            if((g_gnt[1])) begin
+              if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
+                slot_sel <= H_SLOT0;
+              end else begin
+                slot_sel <= 'hX;
+              end
+            end else if((g_gnt[2]) || (g_gnt[4]) || (g_gnt[5])) begin
+              if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
+                slot_sel <= H_SLOT0;
+            /*data_slot[0] <= 'h6;*/ data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              end else begin
+                slot_sel <= 'hX;
+              end
+            end else if(g_gnt[3]) begin
+              if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
+                slot_sel <= H_SLOT0;
+            /*data_slot[0] <= 'h6;*/ data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
+              end else begin
+                slot_sel <= 'hX;
+              end
+            end
           end
         end
         default: begin
@@ -1223,9 +1345,9 @@ module host_tx_path#(
       endcase
      //TODO: bug/major flaw in packing logic after data slot ends in slot0/1/2 then slots123/23/3 should not be packed currently you are just sending available pkts into these slots without header slot entry so receiver cannot decode these generic slots  
       if(slot_sel_d != slot_sel) begin
-        case(slot_sel_d)
+        case(slot_sel)
           H_SLOT0: begin
-            case(h_gnt_d)
+            case(h_gnt)
               'h1: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
@@ -1252,7 +1374,12 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[114:113]  <= h2d_rsp_dataout.rsppre;
                 holding_q[holding_wrptr].data[126:115]  <= h2d_rsp_dataout.cqid;
                 holding_q[holding_wrptr].data[127]      <= 'h0;//TBD: says sp not sure what it is must be spare 
-                holding_q[holding_wrptr].valid          <= 'h0;
+                if(data_slot[0] == 'he) begin
+                  holding_q[holding_wrptr].valid        <= 'h1;
+                  holding_wrptr                         <= holding_wrptr + 1;
+                end else begin
+                  holding_q[holding_wrptr].valid        <= 'h0;
+                end
               end
               'h2: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
@@ -1289,11 +1416,31 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[118:107]  <= h2d_rsp_ddataout.cqid;
                 holding_q[holding_wrptr].data[119]      <= 'h0;
                 holding_q[holding_wrptr].data[127:120]  <= 'h0;//rsvd always to 0
-                holding_q[holding_wrptr].data[511:128]  <= h2d_data_dataout.data[383:0];
-                holding_q[holding_wrptr].valid          <= 'h1;
-                holding_q[holding_wrptr+1].data[127:0]  <= h2d_data_dataout.data[511:384];
-                holding_q[holding_wrptr+1].valid        <= 'h0;
-                holding_wrptr                           <= holding_wrptr + 1;
+                if(data_slot[0] == 'h0) begin
+                  holding_q[holding_wrptr].data[511:128]  <= h2d_data_dataout.data[383:0];
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_q[holding_wrptr+1].data[255:128]<= h2d_data_dataout.data[511:384];
+                  holding_q[holding_wrptr+1].valid        <= 'h0;
+                  holding_wrptr                           <= holding_wrptr + 1;
+                end else if(data_slot[0] == 'h2) begin
+                  holding_q[holding_wrptr].data[511:256]  <= h2d_data_dataout.data[255:0];
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_q[holding_wrptr+1].data[383:128]<= h2d_data_dataout.data[511:256];
+                  holding_q[holding_wrptr+1].valid        <= 'h0;
+                  holding_wrptr                           <= holding_wrptr + 1;
+                end else if(data_slot[0] == 'h6) begin
+                  holding_q[holding_wrptr].data[511:384]  <= h2d_data_dataout.data[127:0];
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_q[holding_wrptr+1].data[511:128]<= h2d_data_dataout.data[511:128];
+                  holding_q[holding_wrptr+1].valid        <= 'h0;
+                  holding_wrptr                           <= holding_wrptr + 1;
+                end else if(data_slot[0] == 'he) begin
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_q[holding_wrptr+1].data[511:0]  <= h2d_data_dataout.data[511:0];
+                  holding_q[holding_wrptr+1].valid        <= 'h1;
+                  holding_wrptr                           <= holding_wrptr + 2;
+                  holding_q[holding_wrptr+2].valid        <= 'h0;
+                end
               end
               'h4: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
@@ -1323,11 +1470,31 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[118:112]  <= 'h0;//TBD: think it is typo there is no pre in d2h_data
                 holding_q[holding_wrptr].data[119]      <= 'h0;// spare always 0
                 holding_q[holding_wrptr].data[127:120]  <= 'h0;//rsvd always 0
-                holding_q[holding_wrptr].data[511:128]  <= h2d_data_dataout.data[383:0];
-                holding_q[holding_wrptr].valid          <= 'h1;
-                holding_q[holding_wrptr+1].data[127:0]  <= h2d_data_dataout.data[511:384];
-                holding_q[holding_wrptr+1].valid        <= 'h0;
-                holding_wrptr                           <= holding_wrptr + 1;
+                if(data_slot[0] == 'h0) begin
+                  holding_q[holding_wrptr].data[511:128]  <= h2d_data_dataout.data[383:0];
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_q[holding_wrptr+1].data[255:128]<= h2d_data_dataout.data[511:384];
+                  holding_q[holding_wrptr+1].valid        <= 'h0;
+                  holding_wrptr                           <= holding_wrptr + 1;
+                end else if(data_slot[0] == 'h2) begin
+                  holding_q[holding_wrptr].data[511:256]  <= h2d_data_dataout.data[255:0];
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_q[holding_wrptr+1].data[383:128]<= h2d_data_dataout.data[511:256];
+                  holding_q[holding_wrptr+1].valid        <= 'h0;
+                  holding_wrptr                           <= holding_wrptr + 1;
+                end else if(data_slot[0] == 'h6) begin
+                  holding_q[holding_wrptr].data[511:384]  <= h2d_data_dataout.data[127:0];
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_q[holding_wrptr+1].data[511:128]<= h2d_data_dataout.data[511:128];
+                  holding_q[holding_wrptr+1].valid        <= 'h0;
+                  holding_wrptr                           <= holding_wrptr + 1;
+                end else if(data_slot[0] == 'he) begin
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_q[holding_wrptr+1].data[511:0]  <= h2d_data_dataout.data[511:0];
+                  holding_q[holding_wrptr+1].valid        <= 'h1;
+                  holding_wrptr                           <= holding_wrptr + 2;
+                  holding_q[holding_wrptr+2].valid        <= 'h0;
+                end
               end
               'h8: begin
                 holding_q[holding_wrptr].data[0]         <= 'h0;//protocol flit encoding is 0 & for control type is 1
@@ -1372,20 +1539,64 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[119]       <= h2d_data_qdataout.goerr;
                 holding_q[holding_wrptr].data[126:120]   <= 'h0;//TBD: says pre but there is no pre in h2d_data
                 holding_q[holding_wrptr].data[127]       <= 'h0;
-                holding_q[holding_wrptr].data[511:128]   <= h2d_data_dataout.data[383:0];
-                holding_q[holding_wrptr].valid           <= 'h1;
-                holding_q[holding_wrptr+1].data[127:0]   <= h2d_data_dataout.data[511:384];
-                holding_q[holding_wrptr+1].data[511:384] <= h2d_data_ddataout.data[127:0];
-                holding_q[holding_wrptr+1].valid         <= 'h1;
-                holding_q[holding_wrptr+2].data[127:0]   <= h2d_data_ddataout.data[511:384];
-                holding_q[holding_wrptr+2].data[511:384] <= h2d_data_tdataout.data[127:0];
-                holding_q[holding_wrptr+2].valid         <= 'h1;
-                holding_q[holding_wrptr+3].data[127:0]   <= h2d_data_tdataout.data[511:384];
-                holding_q[holding_wrptr+3].data[511:384] <= h2d_data_qdataout.data[127:0];
-                holding_q[holding_wrptr+3].valid         <= 'h1;
-                holding_q[holding_wrptr+4].data[127:0]   <= h2d_data_qdataout.data[511:384];
-                holding_q[holding_wrptr+4].valid         <= 'h0;
-                holding_wrptr                            <= holding_wrptr + 4;
+                if(data_slot[0] == 'h0) begin
+                  holding_q[holding_wrptr].data[511:128]   <= h2d_data_dataout.data[383:0];
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[127:0]   <= h2d_data_dataout.data[511:384];
+                  holding_q[holding_wrptr+1].data[511:384] <= h2d_data_ddataout.data[127:0];
+                  holding_q[holding_wrptr+1].valid         <= 'h1;
+                  holding_q[holding_wrptr+2].data[127:0]   <= h2d_data_ddataout.data[511:384];
+                  holding_q[holding_wrptr+2].data[511:384] <= h2d_data_tdataout.data[127:0];
+                  holding_q[holding_wrptr+2].valid         <= 'h1;
+                  holding_q[holding_wrptr+3].data[127:0]   <= h2d_data_tdataout.data[511:384];
+                  holding_q[holding_wrptr+3].data[511:384] <= h2d_data_qdataout.data[127:0];
+                  holding_q[holding_wrptr+3].valid         <= 'h1;
+                  holding_q[holding_wrptr+4].data[127:0]   <= h2d_data_qdataout.data[511:384];
+                  holding_q[holding_wrptr+4].valid         <= 'h0;
+                  holding_wrptr                            <= holding_wrptr + 4;
+                end else if(data_slot[0] == 'h2) begin
+                  holding_q[holding_wrptr].data[511:256]   <= h2d_data_dataout.data[255:0];
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[255:0]   <= h2d_data_dataout.data[511:256];
+                  holding_q[holding_wrptr+1].data[511:256] <= h2d_data_ddataout.data[255:0];
+                  holding_q[holding_wrptr+1].valid         <= 'h1;
+                  holding_q[holding_wrptr+2].data[255:0]   <= h2d_data_ddataout.data[511:256];
+                  holding_q[holding_wrptr+2].data[511:256] <= h2d_data_tdataout.data[255:0];
+                  holding_q[holding_wrptr+2].valid         <= 'h1;
+                  holding_q[holding_wrptr+3].data[255:0]   <= h2d_data_tdataout.data[511:256];
+                  holding_q[holding_wrptr+3].data[511:256] <= h2d_data_qdataout.data[255:0];
+                  holding_q[holding_wrptr+3].valid         <= 'h1;
+                  holding_q[holding_wrptr+4].data[255:128]   <= h2d_data_qdataout.data[511:256];
+                  holding_q[holding_wrptr+4].valid         <= 'h0;
+                  holding_wrptr                            <= holding_wrptr + 4;
+                end else if(data_slot[0] == 'h6) begin
+                  holding_q[holding_wrptr].data[511:384]   <= h2d_data_dataout.data[127:0];
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[383:0]   <= h2d_data_dataout.data[511:128];
+                  holding_q[holding_wrptr+1].data[511:384] <= h2d_data_ddataout.data[127:0];
+                  holding_q[holding_wrptr+1].valid         <= 'h1;
+                  holding_q[holding_wrptr+2].data[383:0]   <= h2d_data_ddataout.data[511:128];
+                  holding_q[holding_wrptr+2].data[511:384] <= h2d_data_tdataout.data[127:0];
+                  holding_q[holding_wrptr+2].valid         <= 'h1;
+                  holding_q[holding_wrptr+3].data[383:0]   <= h2d_data_tdataout.data[511:128];
+                  holding_q[holding_wrptr+3].data[511:384] <= h2d_data_qdataout.data[127:0];
+                  holding_q[holding_wrptr+3].valid         <= 'h1;
+                  holding_q[holding_wrptr+4].data[511:128]   <= h2d_data_qdataout.data[511:128];
+                  holding_q[holding_wrptr+4].valid         <= 'h0;
+                  holding_wrptr                            <= holding_wrptr + 4;
+                end else if(data_slot[0] == 'he) begin
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[511:0]   <= h2d_data_dataout.data[511:0];
+                  holding_q[holding_wrptr+1].valid         <= 'h1;
+                  holding_q[holding_wrptr+2].data[511:0]   <= h2d_data_ddataout.data[511:0];
+                  holding_q[holding_wrptr+2].valid         <= 'h1;
+                  holding_q[holding_wrptr+3].data[511:0]   <= h2d_data_tdataout.data[511:0];
+                  holding_q[holding_wrptr+3].valid         <= 'h1;
+                  holding_q[holding_wrptr+4].data[511:0]   <= h2d_data_qdataout.data[511:0];
+                  holding_q[holding_wrptr+4].valid         <= 'h1;
+                  holding_wrptr                            <= holding_wrptr + 5;
+                  holding_q[holding_wrptr+5].valid         <= 'h0;
+                end
               end
               'h16: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
@@ -1413,11 +1624,31 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[108:107]  <= m2s_rwd_dataout.tc;
                 holding_q[holding_wrptr].data[118:109]  <= 'h0; //spare bit set to 0
                 holding_q[holding_wrptr].data[127:119]  <= 'h0; // rsvd bits set tp 0
-                holding_q[holding_wrptr].data[511:128]  <= m2s_rwd_dataout.data[383:0];
-                holding_q[holding_wrptr].valid          <= 'h1;
-                holding_q[holding_wrptr+1].data[127:0]  <= m2s_rwd_dataout.data[511:384];
-                holding_q[holding_wrptr+1].valid        <= 'h0;
-                holding_wrptr                           <= holding_wrptr + 1;
+                if(data_slot[0] == 'h0) begin
+                  holding_q[holding_wrptr].data[511:128]  <= m2s_rwd_dataout.data[383:0];
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_q[holding_wrptr+1].data[127:0]  <= m2s_rwd_dataout.data[511:384];
+                  holding_q[holding_wrptr+1].valid        <= 'h0;
+                  holding_wrptr                           <= holding_wrptr + 1;
+                end else if(data_slot[0] == 'h2) begin
+                  holding_q[holding_wrptr].data[511:256]  <= m2s_rwd_dataout.data[255:0];
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_q[holding_wrptr+1].data[255:0]  <= m2s_rwd_dataout.data[511:256];
+                  holding_q[holding_wrptr+1].valid        <= 'h0;
+                  holding_wrptr                           <= holding_wrptr + 1;
+                end else if(data_slot[0] == 'h6) begin
+                  holding_q[holding_wrptr].data[511:384]  <= m2s_rwd_dataout.data[127:0];
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_q[holding_wrptr+1].data[511:128]<= m2s_rwd_dataout.data[511:128];
+                  holding_q[holding_wrptr+1].valid        <= 'h0;
+                  holding_wrptr                           <= holding_wrptr + 1;
+                end else if(data_slot[0] =='he) begin
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_q[holding_wrptr+1].data[511:0]  <= m2s_rwd_dataout.data[511:0];
+                  holding_q[holding_wrptr+1].valid        <= 'h1;
+                  holding_wrptr                           <= holding_wrptr + 2;
+                  holding_q[holding_wrptr+2].valid        <= 'h0;
+                end
               end
               'h32: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
@@ -1444,7 +1675,13 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[108:107]  <= m2s_req_dataout.tc;
                 holding_q[holding_wrptr].data[118:109]  <= 'h0; //spare bit set to 0
                 holding_q[holding_wrptr].data[127:119]  <= 'h0; // rsvd bits set tp 0
-                holding_q[holding_wrptr].valid          <= 'h0;
+                if(data_slot[0] == 'he) begin
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_wrptr                           <= holding_wrptr + 1;
+                  holding_q[holding_wrptr+1].valid        <= 'h0;
+                end else begin
+                  holding_q[holding_wrptr].valid          <= 'h0;
+                end
               end
               default: begin //TBD: do you want to keeep default to assign data pkt or want some other value
                 holding_q[holding_wrptr].valid          <= 'h0;
@@ -1452,7 +1689,7 @@ module host_tx_path#(
             endcase
           end
           G_SLOT1: begin
-            case(g_gnt_d)
+            case(g_gnt)
               'h2: begin
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= h2d_rsp_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]      <= h2d_rsp_dataout.opcode;
@@ -1502,7 +1739,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+120)]  <= 'h0;//rsvd is 0
                 holding_q[holding_wrptr].data[511:256]                                <= h2d_data_dataout.data[255:0];
                 holding_q[holding_wrptr].valid                                        <= 'h1;
-                holding_q[holding_wrptr+1].data[255:0]                                <= h2d_data_dataout.data[511:256];
+                holding_q[holding_wrptr+1].data[383:128]                              <= h2d_data_dataout.data[511:256];
                 holding_q[holding_wrptr+1].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
@@ -1552,7 +1789,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+3].data[255:0]                                <= h2d_data_tdataout.data[511:256];
                 holding_q[holding_wrptr+3].data[511:256]                              <= h2d_data_qdataout.data[255:0];
                 holding_q[holding_wrptr+3].valid                                      <= 'h1;
-                holding_q[holding_wrptr+4].data[255:0]                                <= h2d_data_qataout.data[511:256];
+                holding_q[holding_wrptr+4].data[383:128]                              <= h2d_data_qataout.data[511:256];
                 holding_q[holding_wrptr+4].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 4;
               end
@@ -1577,7 +1814,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+112)]  <= 'h0;//rsvd bits are always 0
                 holding_q[holding_wrptr].data[511:256]                                <= h2d_data_dataout.data[255:0];
                 holding_q[holding_wrptr].valid                                        <= 'h1;
-                holding_q[holding_wrptr+1].data[255:0]                                <= h2d_data_dataout.data[511:256];
+                holding_q[holding_wrptr+1].data[383:128]                              <= h2d_data_dataout.data[511:256];
                 holding_q[holding_wrptr+1].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
@@ -1602,7 +1839,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+120)]  <= 'h0;//rsvd is always 0
                 holding_q[holding_wrptr].data[511:256]                                <= m2s_rwd_dataout.data[255:0];
                 holding_q[holding_wrptr].valid                                        <= 'h1;
-                holding_q[holding_wrptr+1].data[255:0]                                <= m2s_rwd_dataout.data[511:256];
+                holding_q[holding_wrptr+1].data[383:128]                              <= m2s_rwd_dataout.data[511:256];
                 holding_q[holding_wrptr+1].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
@@ -1612,7 +1849,7 @@ module host_tx_path#(
             endcase
           end
           G_SLOT2: begin
-            case(g_gnt_d)
+            case(g_gnt)
               'h2: begin
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= h2d_rsp_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]      <= h2d_rsp_dataout.opcode;
@@ -1662,7 +1899,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+120)]  <= 'h0;//rsvd is 0
                 holding_q[holding_wrptr].data[511:384]                                <= h2d_data_dataout.data[127:0];
                 holding_q[holding_wrptr].valid                                        <= 'h1;
-                holding_q[holding_wrptr+1].data[383:0]                                <= h2d_data_dataout.data[511:128];
+                holding_q[holding_wrptr+1].data[511:128]                              <= h2d_data_dataout.data[511:128];
                 holding_q[holding_wrptr+1].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
@@ -1712,7 +1949,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+3].data[383:0]                                <= h2d_data_tdataout.data[511:128];
                 holding_q[holding_wrptr+3].data[511:384]                              <= h2d_data_qdataout.data[127:0];
                 holding_q[holding_wrptr+3].valid                                      <= 'h1;
-                holding_q[holding_wrptr+4].data[383:0]                                <= h2d_data_qataout.data[511:128];
+                holding_q[holding_wrptr+4].data[511:128]                              <= h2d_data_qataout.data[511:128];
                 holding_q[holding_wrptr+4].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 4;
               end
@@ -1737,7 +1974,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+112)]  <= 'h0;//rsvd bits are always 0
                 holding_q[holding_wrptr].data[511:384]                                <= h2d_data_dataout.data[127:0];
                 holding_q[holding_wrptr].valid                                        <= 'h1;
-                holding_q[holding_wrptr+1].data[383:0]                                <= h2d_data_dataout.data[511:128];
+                holding_q[holding_wrptr+1].data[511:128]                              <= h2d_data_dataout.data[511:128];
                 holding_q[holding_wrptr+1].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
@@ -1762,7 +1999,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+120)]  <= 'h0;//rsvd is always 0
                 holding_q[holding_wrptr].data[511:384]                                <= m2s_rwd_dataout.data[127:0];
                 holding_q[holding_wrptr].valid                                        <= 'h1;
-                holding_q[holding_wrptr+1].data[383:0]                                <= m2s_rwd_dataout.data[511:128];
+                holding_q[holding_wrptr+1].data[511:128]                              <= m2s_rwd_dataout.data[511:128];
                 holding_q[holding_wrptr+1].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
@@ -1772,7 +2009,7 @@ module host_tx_path#(
             endcase
           end
           G_SLOT3: begin
-            case(g_gnt_d)
+            case(g_gnt)
               'h2: begin
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= h2d_rsp_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]      <= h2d_rsp_dataout.opcode;
@@ -1954,7 +2191,7 @@ module host_tx_path#(
         end else begin
           holding_rdptr <= holding_rdptr + 1;
         end
-      end else begin
+      end else begin//TODO: this is wrong this is operating on a different clock and I am unsure need to analyze more if there is any cdc issues
         if(ack_insert) begin
           host_tx_dl_if.valid          <= 'h1;
           host_tx_dl_if.data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
