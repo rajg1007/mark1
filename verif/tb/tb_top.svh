@@ -1,12 +1,12 @@
-//TODO: (done-I beleive ack forcing forces the credits as well)first add credit logic for explicit control pkt for llctrl credit pkts 
-//TODO: (normal traffic ack insertion done and forced ack is also done) next add logic for sending back ack this is both explicit and along protocol normal traffic flow 
-//TODO: next look into the initialization init pkt exchange 
-//TODO: next focus on 32B size pkt logic 
-//TODO: finish the generic slot number assignment in the header pkt, also fix the extra generic slots appended to finish the pkt, if the slot is not mentioned in the header no other gslots should be generated, so currently after data slots dummy generic slots are being filled 
-//TODO: serious bug - roll over count is missing, you are just going to keep generating data slot again and again if roll over limit is not added 
-//TODO: crc computation logic missing, define the module it is currently just blank module
-//TODO: missing rra logic module is currently blank please refer to the paper
-//TODO: connection of ack to retry buffer and entry of tx pkt and lrsmrrsm integration to be done
+//TODO: (done - I beleive ack forcing forces the credits as well)first add credit logic for explicit control pkt for llctrl credit pkts 
+//TODO: (done - normal traffic ack insertion done and forced ack is also done) next add logic for sending back ack this is both explicit and along protocol normal traffic flow 
+//TODO: (TBD) - next look into the initialization init pkt exchange 
+//TODO: (TBD) next focus on 32B size pkt logic 
+//TODO: (done) finish the generic slot number assignment in the header pkt, also fix the extra generic slots appended to finish the pkt, if the slot is not mentioned in the header no other gslots should be generated, so currently after data slots dummy generic slots are being filled 
+//TODO: (done) serious bug - roll over count is missing, you are just going to keep generating data slot again and again if roll over limit is not added 
+//TODO: (TBD) crc computation logic missing, define the module it is currently just blank module
+//TODO: (TBD) missing rra logic module is currently blank please refer to the paper
+//TODO: (done/pending/lowpri - lrsm/rrssm integration pending - low priority for now) connection of ack to retry buffer and entry of tx pkt and lrsmrrsm integration to be done
 
 package cxl_uvm_pkg;
 
@@ -1684,6 +1684,7 @@ module host_tx_path#(
           G_SLOT1: begin
             case(g_gnt)
               'h2: begin
+                holding_q[holding_wrptr].data[10:8]     <= 'h1;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= h2d_rsp_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]      <= h2d_rsp_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+16):(SLOT1_OFFSET+5)]     <= h2d_rsp_dataout.rspdata;
@@ -1711,6 +1712,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].valid                                        <= 'h0;
               end
               'h4: begin
+                holding_q[holding_wrptr].data[10:8]     <= 'h2;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= h2d_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= h2d_req_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)]     <= h2d_req_dataout.address[51:6];
@@ -1737,6 +1739,7 @@ module host_tx_path#(
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h8: begin
+                holding_q[holding_wrptr].data[10:8]     <= 'h3;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= h2d_data_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)]     <= h2d_data_dataout.cqid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+13)]                      <= h2d_data_dataout.chunkvalid;
@@ -1787,6 +1790,7 @@ module host_tx_path#(
                 holding_wrptr                                                         <= holding_wrptr + 4;
               end
               'h16: begin
+                holding_q[holding_wrptr].data[10:8]     <= 'h4;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= m2s_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]      <= m2s_req_dataout.memopcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]      <= m2s_req_dataout.snptype;
@@ -1812,6 +1816,7 @@ module host_tx_path#(
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h32: begin
+                holding_q[holding_wrptr].data[10:8]     <= 'h5;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= m2s_rwd_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]      <= m2s_rwd_dataout.memopcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]      <= m2s_rwd_dataout.snptype;
@@ -1844,6 +1849,7 @@ module host_tx_path#(
           G_SLOT2: begin
             case(g_gnt)
               'h2: begin
+                holding_q[holding_wrptr].data[13:11]    <= 'h1;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= h2d_rsp_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]      <= h2d_rsp_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+16):(SLOT2_OFFSET+5)]     <= h2d_rsp_dataout.rspdata;
@@ -1871,6 +1877,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].valid                                        <= 'h0;
               end
               'h4: begin
+                holding_q[holding_wrptr].data[13:11]    <= 'h2;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= h2d_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      <= h2d_req_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)]     <= h2d_req_dataout.address[51:6];
@@ -1897,6 +1904,7 @@ module host_tx_path#(
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h8: begin
+                holding_q[holding_wrptr].data[13:11]    <= 'h3;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= h2d_data_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)]     <= h2d_data_dataout.cqid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+13)]                      <= h2d_data_dataout.chunkvalid;
@@ -1947,6 +1955,7 @@ module host_tx_path#(
                 holding_wrptr                                                         <= holding_wrptr + 4;
               end
               'h16: begin
+                holding_q[holding_wrptr].data[13:11]    <= 'h4;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= m2s_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]      <= m2s_req_dataout.memopcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]      <= m2s_req_dataout.snptype;
@@ -1972,6 +1981,7 @@ module host_tx_path#(
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h32: begin
+                holding_q[holding_wrptr].data[13:11]    <= 'h5;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= m2s_rwd_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]      <= m2s_rwd_dataout.memopcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]      <= m2s_rwd_dataout.snptype;
@@ -2004,6 +2014,7 @@ module host_tx_path#(
           G_SLOT3: begin
             case(g_gnt)
               'h2: begin
+                holding_q[holding_wrptr].data[16:14]    <= 'h1;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= h2d_rsp_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]      <= h2d_rsp_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+16):(SLOT3_OFFSET+5)]     <= h2d_rsp_dataout.rspdata;
@@ -2033,6 +2044,7 @@ module host_tx_path#(
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h4: begin
+                holding_q[holding_wrptr].data[16:14]    <= 'h2;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= h2d_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      <= h2d_req_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)]     <= h2d_req_dataout.address[51:6];
@@ -2059,6 +2071,7 @@ module host_tx_path#(
                 holding_wrptr                                                         <= holding_wrptr + 2;
               end
               'h8: begin
+                holding_q[holding_wrptr].data[16:14]    <= 'h3;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= h2d_data_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+12):(SLOT3_OFFSET+1)]     <= h2d_data_dataout.cqid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+13)]                      <= h2d_data_dataout.chunkvalid;
@@ -2106,6 +2119,7 @@ module host_tx_path#(
                 holding_wrptr                                                         <= holding_wrptr + 5;
               end
               'h16: begin
+                holding_q[holding_wrptr].data[16:14]    <= 'h4;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= m2s_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]      <= m2s_req_dataout.memopcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]      <= m2s_req_dataout.snptype;
@@ -2131,6 +2145,7 @@ module host_tx_path#(
                 holding_wrptr                                                         <= holding_wrptr + 2;
               end
               'h32: begin
+                holding_q[holding_wrptr].data[16:14]    <= 'h5;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= m2s_rwd_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]      <= m2s_rwd_dataout.memopcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]      <= m2s_rwd_dataout.snptype;
@@ -4058,7 +4073,7 @@ module cxl_lrsm_rrsm(
       retry_req_snt <= 'h0;
     end else begin
       case(l_states)
-		RETRY_LOCAL_NORMAL: begin
+		    RETRY_LOCAL_NORMAL: begin
           if(crc_pass && retryable_flit) begin 
         	l_states <= RETRY_LOCAL_NORMAL;
             local_num_free_buf <= local_num_free_buf + 1;
