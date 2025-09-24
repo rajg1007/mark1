@@ -1,5 +1,4 @@
-//TODO: (TBD) next look into the initialization init pkt exchange 
-//TODO: (done) crc computation logic missing, define the module it is currently just blank module
+//TODO: (done) next look into the initialization init pkt exchange 
 //TODO: (TBD) missing rra logic module is currently blank please refer to the paper
 //TODO: (done/pending/lowpri - lrsm/rrssm integration pending - low priority for now) connection of ack to retry buffer and entry of tx pkt and lrsmrrsm integration to be done
 //TODO: (TBD/lowpri) next focus on 32B size pkt logic 
@@ -690,6 +689,7 @@ endmodule
 module host_tx_path#(
 
 )(
+  input logic init_done,
   input logic ack,
   input logic ack_ret_val,
   input logic [7:0] ack_ret,
@@ -802,6 +802,7 @@ module host_tx_path#(
   logic host_tx_dl_if_pre_valid;
   logic [15:0] host_tx_dl_if_pre_crc;
   logic [511:0] host_tx_dl_if_pre_data;
+  cxl_host_tx_dl_if.tx_mp host_tx_dl_if_d;
   //IMP INFO:consider s2m ndr as rsp credits and s2m drs as data credits
 
   ASSERT_ONEHOT_SLOT_SEL:assert property @(posedge clk) disable iff (!rstn) $onehot(slot_sel);
@@ -831,7 +832,7 @@ module host_tx_path#(
   assign h_req = ((slot_sel>1) || (data_slot[0] == 'hf)) ? 'h0: h_val;
   assign g_req = ((slot_sel[0]) || ((data_slot[0] == 'hf) || (data_slot[0] == 'he)))? 'h0: g_val;
 
-  assign insert_ack = ((ack_cnt_tbs - ack_cnt_snt) > 16)? 1'h1: 1'h0;
+  assign insert_ack = (((ack_cnt_tbs - ack_cnt_snt) > 16) || init_done)? 1'h1: 1'h0;
 
   always_comb begin
     d2h_req_outstanding_credits   = (d2h_req_occ_d  > d2h_req_occ ) ? (d2h_req_occ_d  - d2h_req_occ   ) : 'h0;
@@ -2185,11 +2186,14 @@ module host_tx_path#(
       host_tx_dl_if_pre_data <= 'h0;
       host_tx_dl_if_pre_crc <= 'h0;
       host_tx_dl_if.valid <= 'h0;
+      host_tx_dl_if_d.valid <= 'h0;
       host_tx_dl_if.data <= 'h0;
+      host_tx_dl_if_d.data <= 'h0;
       holding_rdptr <= 'h0;
       ack_cnt_tbs <= 'h0;
       ack_cnt_snt <= 'h0;
     end else begin
+      host_tx_dl_if_d <= host_tx_dl_if;
       host_tx_dl_if.valid <= host_tx_dl_if_pre_valid;
       host_tx_dl_if.data <= {host_tx_dl_if_pre_data[511:0], host_tx_dl_if_pre_crc[15:0]};
       if(ack) begin
@@ -2200,7 +2204,13 @@ module host_tx_path#(
         host_tx_dl_if_pre_data <= holding_q.data[holding_rdptr];
         holding_rdptr <= holding_rdptr + 1;
       end else begin//TODO: this is wrong this is operating on a different clock and I am unsure need to analyze more if there is any cdc issues
-        if(ack_insert) begin
+        if((host_tx_dl_if_d.rstn == 'h1) && (host_tx_dl_if.rstn == 'h0)) begin
+          host_tx_dl_if_pre_valid          <= 'h1;
+          host_tx_dl_if_pre_data[35:32]    <= 'b1100;
+          host_tx_dl_if_pre_data[39:36]    <= 'b1000;
+          host_tx_dl_if_pre_data[67:64]    <= 'h1;
+        end
+        if(insert_ack) begin
           host_tx_dl_if_pre_valid          <= 'h1;
           host_tx_dl_if_pre_data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
           host_tx_dl_if_pre_data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
@@ -2270,6 +2280,7 @@ endmodule
 module device_tx_path#(
 
 )(
+  input logic init_done,
   input logic ack,
   input logic ack_ret_val,
   input logic [7:0] ack_ret,
@@ -2391,6 +2402,7 @@ module device_tx_path#(
   logic dev_tx_dl_if_pre_valid;
   logic [15:0] dev_tx_dl_if_pre_crc;
   logic [511:0] dev_tx_dl_if_pre_data;
+  cxl_dev_tx_dl_if.tx_mp dev_tx_dl_if_d;
 //IMP INFO: consider m2s req as rsp credits and m2s rwd as data credits
 
   ASSERT_DEVSIDE_ONEHOT_SLOT_SEL: assert property @(posedge clk) disable iff (!rstn) $onehot(slot_sel);
@@ -2424,6 +2436,8 @@ module device_tx_path#(
   assign h_req = ((slot_sel>1) || (data_slot[0] == 'hf))? 'h0: h_val;
   assign g_req = ((slot_sel[0]) || (data_slot[0] == 'hf))? 'h0: g_val;
  
+  assign insert_ack = (((ack_cnt_tbs - ack_cnt_snt) > 16) || init_done)? 1'h1: 1'h0;
+  
   always_comb begin
     h2d_req_outstanding_credits   = (h2d_req_occ_d  > h2d_req_occ ) ? (h2d_req_occ_d  - h2d_req_occ   ) : 'h0;
     h2d_rsp_outstanding_credits   = (h2d_rsp_occ_d  > h2d_rsp_occ ) ? (h2d_rsp_occ_d  - h2d_rsp_occ   ) : 'h0;
@@ -3963,11 +3977,14 @@ module device_tx_path#(
       dev_tx_dl_if_pre_data <= 'h0;
       dev_tx_dl_if_pre_crc <= 'h0;
       dev_tx_dl_if.valid <= 'h0;
+      dev_tx_dl_if_d.valid <= 'h0;
       dev_tx_dl_if.data <= 'h0;
+      dev_tx_dl_if_d.data <= 'h0;
       holding_rdptr <= 'h0;
       ack_cnt_tbs <= 'h0;
       ack_cnt_snt <= 'h0;
     end else begin
+      dev_tx_dl_if_d <= dev_tx_dl_if;
       dev_tx_dl_if.valid <= dev_tx_dl_if_pre_valid;
       dev_tx_dl_if.data <= {dev_tx_dl_if_pre_data[511:0], dev_tx_dl_if_pre_crc[15:0]};
       if(ack) begin
@@ -3978,7 +3995,7 @@ module device_tx_path#(
         dev_tx_dl_if_pre_data <= holding_q.data[holding_rdptr];
         holding_rdptr <= holding_rdptr + 1;
       end else begin
-        if(ack_insert) begin
+        if(insert_ack) begin
           dev_tx_dl_if_pre_valid          <= 'h1;
           dev_tx_dl_if_pre_data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
           dev_tx_dl_if_pre_data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
@@ -3998,6 +4015,8 @@ module device_tx_path#(
           dev_tx_dl_if_pre_data[63:40]    <= 'h0;
           dev_tx_dl_if_pre_data[71:64]    <= ({ack_cnt_tbs[7:4], 1'b0, ack_cnt_tbs[2:0]});
           ack_cnt_snt                     <= ack_cnt_tbs;
+        end else begin
+          dev_tx_dl_if_pre_valid          <= 'h0;
         end
       end
     end
@@ -4311,7 +4330,8 @@ module host_rx_path #(
   output s2m_drs_pkt_t s2m_drs_pkt[3],
   output logic ack,
   output logic ack_ret_val,
-  output logic [7:0] ack_ret
+  output logic [7:0] ack_ret,
+  output logic init_done
 );
 
   typedef enum {
@@ -4325,6 +4345,8 @@ module host_rx_path #(
   retry_frame_states_t retry_frame_states;
   logic crc_pass;
   logic crc_fail;
+  logic crc_pass_d;
+  logic crc_fail_d;
   logic retryable_flit;
   logic non_retryable_flit;
   logic retry_req_rcvd;
@@ -4346,13 +4368,14 @@ module host_rx_path #(
   logic [2:0] ack_count_d;
   logic llcrd_flit;
 
-  assign retry_frame_detect = (host_rx_dl_if_d.data[39:36] == 'h3) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retry_idle_detect =  (host_rx_dl_if_d.data[39:36] == 'h0) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retry_req_detect =   (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retry_ack_detect =   (host_rx_dl_if_d.data[39:36] == 'h2) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign llcrd_flit =         (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] == 'h0) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign init_done          = (host_rx_dl_if_d.data[39:36] == 'h8) && (host_rx_dl_if_d.data[35:32] == 'hc) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_frame_detect = (host_rx_dl_if_d.data[39:36] == 'h3) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_idle_detect  = (host_rx_dl_if_d.data[39:36] == 'h0) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_req_detect   = (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_ack_detect   = (host_rx_dl_if_d.data[39:36] == 'h2) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
+  assign llcrd_flit         = (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] == 'h0) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
   assign non_retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
-  assign retryable_flit =     (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
+  assign retryable_flit     = (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
   
   function void header0(
     input logic [511:0] data, 
@@ -5135,8 +5158,18 @@ module host_rx_path #(
   always@(posedge host_rx_dl_if.clk) begin
     if(!host_rx_dl_if.rstn) begin
       //TODO: not sure if this foreach will initialize for all indeces
-      foreach(data_slot[i]) data_slot[i] <= 'h0;
-      foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
+      //foreach(data_slot[i]) data_slot[i] <= 'h0;
+      //foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
+      data_slot[0] = 'h0;
+      data_slot[1] = 'h0;
+      data_slot[2] = 'h0;
+      data_slot[3] = 'h0;
+      data_slot[4] = 'h0;
+      data_slot_d[0] = 'h0;
+      data_slot_d[1] = 'h0;
+      data_slot_d[2] = 'h0;
+      data_slot_d[3] = 'h0;
+      data_slot_d[4] = 'h0;
       ack <= 'h0;
       ack_count <= 'h0;
       ack_count_d <= 'h0;
@@ -5362,9 +5395,13 @@ module host_rx_path #(
 
   always@(posedge host_rx_dl_if.clk) begin
     if(!host_rx_dl_if.rstn) begin
+      crc_pass_d <= 'h0;
+      crc_fail_d <= 'h0;
       host_rx_dl_if_d.valid <= 'h0;
       host_rx_dl_if_d.data <= 'h0;
     end else begin
+      crc_pass_d <= crc_pass;
+      crc_fail_d <= crc_fail;
       host_rx_dl_if_d.valid <= host_rx_dl_if.valid;
       host_rx_dl_if_d.data <= host_rx_dl_if.data;
       if(host_rx_dl_if_d.valid) begin
@@ -5451,7 +5488,8 @@ module device_rx_path #(
   output m2s_rwd_txn_t m2s_rwd_pkt,
   output logic ack,
   output logic ack_ret_val,
-  output logic [7:0] ack_ret
+  output logic [7:0] ack_ret,
+  output logic init_done
 );
 
   typedef enum {
@@ -5465,6 +5503,8 @@ module device_rx_path #(
   retry_frame_states_t retry_frame_states;
   logic crc_pass;
   logic crc_fail;
+  logic crc_pass_d;
+  logic crc_fail_d;
   logic retryable_flit;
   logic non_retryable_flit;
   logic retry_req_rcvd;
@@ -5491,11 +5531,12 @@ module device_rx_path #(
   logic [2:0] ack_count_d;
   logic llcrd_flit;
 
-  assign retry_frame_detect = (dev_rx_dl_if_d.data[39:36] == 'h3) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retry_idle_detect  = (dev_rx_dl_if_d.data[39:36] == 'h0) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retry_req_detect   = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign retry_ack_detect   = (dev_rx_dl_if_d.data[39:36] == 'h2) && (dev_rx_dl_if_d.data[35:32] = 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
-  assign llcrd_flit         = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] = 'h0) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass) && (!crc_fail);
+  assign init_done          = (dev_rx_dl_if_d.data[39:36] == 'h8) && (dev_rx_dl_if_d.data[35:32] == 'hc) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_frame_detect = (dev_rx_dl_if_d.data[39:36] == 'h3) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_idle_detect  = (dev_rx_dl_if_d.data[39:36] == 'h0) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_req_detect   = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_ack_detect   = (dev_rx_dl_if_d.data[39:36] == 'h2) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
+  assign llcrd_flit         = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] == 'h0) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
   assign non_retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
   assign retryable_flit     = (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
   
@@ -6349,8 +6390,18 @@ module device_rx_path #(
   always@(posedge dev_rx_dl_if.clk) begin
     if(!dev_rx_dl_if.rstn) begin
       //TODO: not sure if this foreach will initialize for all indeces
-      foreach(data_slot[i]) data_slot[i] <= 'h0;
-      foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
+      //foreach(data_slot[i]) data_slot[i] <= 'h0;
+      //foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
+      data_slot[0] <= 'h0;
+      data_slot[1] <= 'h0;
+      data_slot[2] <= 'h0;
+      data_slot[3] <= 'h0;
+      data_slot[4] <= 'h0;
+      data_slot_d[0] <= 'h0;
+      data_slot_d[1] <= 'h0;
+      data_slot_d[2] <= 'h0;
+      data_slot_d[3] <= 'h0;
+      data_slot_d[4] <= 'h0;
       ack <= 'h0;
       ack_count <= 'h0;
       ack_count_d <= 'h0;
@@ -6576,9 +6627,13 @@ module device_rx_path #(
   
   always@(posedge dev_rx_dl_if.clk) begin
     if(!dev_rx_dl_if.rstn) begin
+      crc_pass_d <= 'h0;
+      crc_fail_d <= 'h0;
       dev_rx_dl_if_d.valid <= 'h0;
       dev_rx_dl_if_d.data <= 'h0;
     end else begin
+      crc_pass_d <= crc_pass;
+      crc_fail_d <= crc_fail;
       dev_rx_dl_if_d.valid <= dev_rx_dl_if.valid;
       dev_rx_dl_if_d.data <= dev_rx_dl_if.data;
       if(dev_rx_dl_if_d.valid) begin
@@ -6939,6 +6994,7 @@ module cxl_host
   logic ack;
   logic ack_ret_val;
   logic [7:0] ack_ret;
+  logic init_done;
 
   buffer d2h_req_fifo_inst#(
     DEPTH = 32,
@@ -7291,6 +7347,7 @@ module cxl_device
   logic ack;
   logic ack_ret_val;
   logic [7:0] ack_ret;
+  logic init_done;
 
   buffer d2h_req_fifo_inst#(
     DEPTH = 32,
