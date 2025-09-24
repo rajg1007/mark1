@@ -1,12 +1,8 @@
-//TODO: (done - I beleive ack forcing forces the credits as well)first add credit logic for explicit control pkt for llctrl credit pkts 
-//TODO: (done - normal traffic ack insertion done and forced ack is also done) next add logic for sending back ack this is both explicit and along protocol normal traffic flow 
-//TODO: (TBD) - next look into the initialization init pkt exchange 
-//TODO: (TBD) next focus on 32B size pkt logic 
-//TODO: (done) finish the generic slot number assignment in the header pkt, also fix the extra generic slots appended to finish the pkt, if the slot is not mentioned in the header no other gslots should be generated, so currently after data slots dummy generic slots are being filled 
-//TODO: (done) serious bug - roll over count is missing, you are just going to keep generating data slot again and again if roll over limit is not added 
-//TODO: (TBD) crc computation logic missing, define the module it is currently just blank module
+//TODO: (TBD) next look into the initialization init pkt exchange 
+//TODO: (done) crc computation logic missing, define the module it is currently just blank module
 //TODO: (TBD) missing rra logic module is currently blank please refer to the paper
 //TODO: (done/pending/lowpri - lrsm/rrssm integration pending - low priority for now) connection of ack to retry buffer and entry of tx pkt and lrsmrrsm integration to be done
+//TODO: (TBD/lowpri) next focus on 32B size pkt logic 
 
 package cxl_uvm_pkg;
 
@@ -803,6 +799,9 @@ module host_tx_path#(
   logic insert_ack;
   logic [3:0] data_slot[5];
   logic [3:0] data_slot_d[5];
+  logic host_tx_dl_if_pre_valid;
+  logic [15:0] host_tx_dl_if_pre_crc;
+  logic [511:0] host_tx_dl_if_pre_data;
   //IMP INFO:consider s2m ndr as rsp credits and s2m drs as data credits
 
   ASSERT_ONEHOT_SLOT_SEL:assert property @(posedge clk) disable iff (!rstn) $onehot(slot_sel);
@@ -2182,44 +2181,56 @@ module host_tx_path#(
 
   always@(host_tx_dl_if.clk) begin
     if(!host_tx_dl_if.rstn) begin
+      host_tx_dl_if_pre_valid <= 'h0;
+      host_tx_dl_if_pre_data <= 'h0;
+      host_tx_dl_if_pre_crc <= 'h0;
       host_tx_dl_if.valid <= 'h0;
       host_tx_dl_if.data <= 'h0;
       holding_rdptr <= 'h0;
       ack_cnt_tbs <= 'h0;
       ack_cnt_snt <= 'h0;
     end else begin
+      host_tx_dl_if.valid <= host_tx_dl_if_pre_valid;
+      host_tx_dl_if.data <= {host_tx_dl_if_pre_data[511:0], host_tx_dl_if_pre_crc[15:0]};
       if(ack) begin
         ack_cnt_tbs <= ack_cnt_tbs + 1;
       end
       if(holding_q.valid[holding_rdptr]) begin
-        host_tx_dl_if.valid <= holding_q.valid[holding_rdptr];
-        host_tx_dl_if.data <= holding_q.data[holding_rdptr];
+        host_tx_dl_if_pre_valid <= holding_q.valid[holding_rdptr];
+        host_tx_dl_if_pre_data <= holding_q.data[holding_rdptr];
         holding_rdptr <= holding_rdptr + 1;
       end else begin//TODO: this is wrong this is operating on a different clock and I am unsure need to analyze more if there is any cdc issues
         if(ack_insert) begin
-          host_tx_dl_if.valid          <= 'h1;
-          host_tx_dl_if.data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
-          host_tx_dl_if.data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-          host_tx_dl_if.data[2]        <= 'h1;//TBD: logic for crdt ack to be added later
-          host_tx_dl_if.data[3]        <= 'h0;//non data header so 0
-          host_tx_dl_if.data[4]        <= 'h0;//non data header so 0
-          host_tx_dl_if.data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
-          host_tx_dl_if.data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-          host_tx_dl_if.data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-          host_tx_dl_if.data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-          host_tx_dl_if.data[19:17]    <= 'h0;//reserved must be 0
-          host_tx_dl_if.data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-          host_tx_dl_if.data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-          host_tx_dl_if.data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
-          host_tx_dl_if.data[35:32]    <= 4'b0000;
-          host_tx_dl_if.data[39:36]    <= 4'b0001;
-          host_tx_dl_if.data[63:40]    <= 'h0;
-          host_tx_dl_if.data[71:64]    <= ({ack_cnt_tbs[7:4], 1'b0, ack_cnt_tbs[2:0]});
-          ack_cnt_snt                  <= ack_cnt_tbs;
+          host_tx_dl_if_pre_valid          <= 'h1;
+          host_tx_dl_if_pre_data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
+          host_tx_dl_if_pre_data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+          host_tx_dl_if_pre_data[2]        <= 'h1;//TBD: logic for crdt ack to be added later
+          host_tx_dl_if_pre_data[3]        <= 'h0;//non data header so 0
+          host_tx_dl_if_pre_data[4]        <= 'h0;//non data header so 0
+          host_tx_dl_if_pre_data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
+          host_tx_dl_if_pre_data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+          host_tx_dl_if_pre_data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+          host_tx_dl_if_pre_data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+          host_tx_dl_if_pre_data[19:17]    <= 'h0;//reserved must be 0
+          host_tx_dl_if_pre_data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
+          host_tx_dl_if_pre_data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+          host_tx_dl_if_pre_data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+          host_tx_dl_if_pre_data[35:32]    <= 4'b0000;
+          host_tx_dl_if_pre_data[39:36]    <= 4'b0001;
+          host_tx_dl_if_pre_data[63:40]    <= 'h0;
+          host_tx_dl_if_pre_data[71:64]    <= ({ack_cnt_tbs[7:4], 1'b0, ack_cnt_tbs[2:0]});
+          ack_cnt_snt                      <= ack_cnt_tbs;
+        end else begin
+          host_tx_dl_if_pre_valid          <= 'h0;
         end
       end
    end
   end
+
+  crc_gen(
+    .data(host_tx_dl_if_pre_data),
+    .crc(host_tx_dl_if_pre_crc)
+  );
 
   buffer llrb#(
     DEPTH = 256,
@@ -2377,6 +2388,9 @@ module device_tx_path#(
   logic insert_ack;
   logic [3:0] data_slot[5];
   logic [3:0] data_slot_d[5];
+  logic dev_tx_dl_if_pre_valid;
+  logic [15:0] dev_tx_dl_if_pre_crc;
+  logic [511:0] dev_tx_dl_if_pre_data;
 //IMP INFO: consider m2s req as rsp credits and m2s rwd as data credits
 
   ASSERT_DEVSIDE_ONEHOT_SLOT_SEL: assert property @(posedge clk) disable iff (!rstn) $onehot(slot_sel);
@@ -3945,44 +3959,54 @@ module device_tx_path#(
 
   always@(dev_tx_dl_if.clk) begin
     if(!dev_tx_dl_if.rstn) begin
+      dev_tx_dl_if_pre_valid <= 'h0;
+      dev_tx_dl_if_pre_data <= 'h0;
+      dev_tx_dl_if_pre_crc <= 'h0;
       dev_tx_dl_if.valid <= 'h0;
       dev_tx_dl_if.data <= 'h0;
       holding_rdptr <= 'h0;
       ack_cnt_tbs <= 'h0;
       ack_cnt_snt <= 'h0;
     end else begin
+      dev_tx_dl_if.valid <= dev_tx_dl_if_pre_valid;
+      dev_tx_dl_if.data <= {dev_tx_dl_if_pre_data[511:0], dev_tx_dl_if_pre_crc[15:0]};
       if(ack) begin
         ack_cnt_tbs <= ack_cnt_tbs + 1;
       end
       if(holding_q.valid[holding_rdptr]) begin
-        dev_tx_dl_if.valid <= holding_q.valid[holding_rdptr];
-        dev_tx_dl_if.data <= holding_q.data[holding_rdptr];
+        dev_tx_dl_if_pre_valid <= holding_q.valid[holding_rdptr];
+        dev_tx_dl_if_pre_data <= holding_q.data[holding_rdptr];
         holding_rdptr <= holding_rdptr + 1;
       end else begin
         if(ack_insert) begin
-          dev_tx_dl_if.valid          <= 'h1;
-          dev_tx_dl_if.data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
-          dev_tx_dl_if.data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-          dev_tx_dl_if.data[2]        <= ack_cnt_tbs[3];//TBD: logic for crdt ack to be added later
-          dev_tx_dl_if.data[3]        <= 'h0;//non data header so 0
-          dev_tx_dl_if.data[4]        <= 'h0;//non data header so 0
-          dev_tx_dl_if.data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
-          dev_tx_dl_if.data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-          dev_tx_dl_if.data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-          dev_tx_dl_if.data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-          dev_tx_dl_if.data[19:17]    <= 'h0;//reserved must be 0
-          dev_tx_dl_if.data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-          dev_tx_dl_if.data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-          dev_tx_dl_if.data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
-          dev_tx_dl_if.data[35:32]    <= 4'b0000;
-          dev_tx_dl_if.data[39:36]    <= 4'b0001;
-          dev_tx_dl_if.data[63:40]    <= 'h0;
-          dev_tx_dl_if.data[71:64]    <= ({ack_cnt_tbs[7:4], 1'b0, ack_cnt_tbs[2:0]});
-          ack_cnt_snt                 <= ack_cnt_tbs;
+          dev_tx_dl_if_pre_valid          <= 'h1;
+          dev_tx_dl_if_pre_data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
+          dev_tx_dl_if_pre_data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+          dev_tx_dl_if_pre_data[2]        <= ack_cnt_tbs[3];//TBD: logic for crdt ack to be added later
+          dev_tx_dl_if_pre_data[3]        <= 'h0;//non data header so 0
+          dev_tx_dl_if_pre_data[4]        <= 'h0;//non data header so 0
+          dev_tx_dl_if_pre_data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
+          dev_tx_dl_if_pre_data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+          dev_tx_dl_if_pre_data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+          dev_tx_dl_if_pre_data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+          dev_tx_dl_if_pre_data[19:17]    <= 'h0;//reserved must be 0
+          dev_tx_dl_if_pre_data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
+          dev_tx_dl_if_pre_data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+          dev_tx_dl_if_pre_data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+          dev_tx_dl_if_pre_data[35:32]    <= 4'b0000;
+          dev_tx_dl_if_pre_data[39:36]    <= 4'b0001;
+          dev_tx_dl_if_pre_data[63:40]    <= 'h0;
+          dev_tx_dl_if_pre_data[71:64]    <= ({ack_cnt_tbs[7:4], 1'b0, ack_cnt_tbs[2:0]});
+          ack_cnt_snt                     <= ack_cnt_tbs;
         end
       end
     end
   end
+
+  crc_gen crc_gen_inst(
+    .data(dev_tx_dl_if_pre_data),
+    .crc(dev_tx_dl_if_pre_crc)
+  );
 
   buffer llrb#(
     DEPTH = 256,
@@ -4175,15 +4199,98 @@ module cxl_lrsm_rrsm(
   
 endmodule
 
-module c2c_checker#(
+module c2c_gen#(
+
+)(
+  input logic [511:0] data,
+  output logic [15:0] crc
+);
+
+  localparam [511:0] DM[16] = {
+    512'hEF9C_D9F9_C4BB_B83A_3E84_A97C_D7AE_DA13_FAEB_01B8_5B20_4A4C_AE1E_79D9_7753_5D21_DC7F_DD6A_38F0_3E77_F5F5_2A2C_636D_B05C_3978_EA30_CD50_E0D9_9B06_93D4_746B_2431,
+    512'h9852_B505_26E6_6427_21C6_FDC2_BC79_B71A_079E_8164_76B0_6F6A_F911_4535_CCFA_F3B1_3240_33DF_2488_214C_0F0F_BF3A_52DB_6872_25C4_9F28_ABF8_90B5_5685_DA3E_4E5E_B629,
+    512'h23B5_837B_57C8_8A29_AE67_D79D_8992_019E_F924_410A_6078_7DF9_D296_DB43_912E_24F9_455F_C485_AAB4_2ED1_F272_F5B1_4A00_0465_2B9A_A5A4_98AC_A883_3044_7ECB_5344_7F25,
+    512'h7E46_1844_6F5F_FD2E_E9B7_42B2_1367_DADC_8679_213D_6B1C_74B0_4755_1478_BFC4_4F5D_7ED0_3F28_EDAA_291F_0CCC_50F4_C66D_B26E_ACB5_B8E2_8106_B498_0324_ACB1_DDC9_1BA3,
+    512'h50BF_D5DB_F314_46AD_4A5F_0825_DE1D_377D_B9D7_9126_EEAE_7014_8DB4_F3E5_28B1_7A8F_6317_C2FE_4E25_2AF8_7393_0256_005B_696B_6F22_3641_8DD3_BA95_9A94_C58C_9A8F_A9E0,
+    512'hA85F_EAED_F98A_2356_A52F_8412_EF0E_9BBE_DCEB_C893_7757_380A_46DA_79F2_9458_BD47_B18B_E17F_2712_957C_39C9_812B_002D_B4B5_B791_1B20_C6E9_DD4A_CD4A_62C6_4D47_D4F0,
+    512'h542F_F576_FCC5_11AB_5297_C209_7787_4DDF_6E75_E449_BBAB_9C05_236D_3CF9_4A2C_5EA3_D8C5_F0BF_9389_4ABE_1CE4_C095_8016_DA5A_DBC8_8D90_6374_EEA5_66A5_3163_26A3_EA78,
+    512'h2A17_FABB_7E62_88D5_A94B_E104_BBC3_A6EF_B73A_F224_DDD5_CE02_91B6_9E7C_A516_2F51_EC62_F85F_C9C4_A55F_0E72_604A_C00B_6D2D_6DE4_46C8_31BA_7752_B352_98B1_9351_F53C,
+    512'h150B_FD5D_BF31_446A_D4A5_F082_5DE1_D377_DB9D_7912_6EEA_E701_48DB_4F3E_528B_17A8_F631_7C2F_E4E2_52AF_8739_3025_6005_B696_B6F2_2364_18DD_3BA9_59A9_4C58_C9A8_FA9E,
+    512'h8A85_FEAE_DF98_A235_6A52_F841_2EF0_E9BB_EDCE_BC89_3775_7380_A46D_A79F_2945_8BD4_7B18_BE17_F271_2957_C39C_9812_B002_DB4B_5B79_11B2_0C6E_9DD4_ACD4_A62C_64D4_7D4F,
+    512'hAADE_26AE_AB77_E920_8BAD_D55C_40D6_AECE_0C0C_5FFC_C09A_F38C_FC28_AA16_E3F1_98CB_E1F3_8261_C1C8_AADC_143B_6625_3B6C_DDF9_94C4_62E9_CB67_AE33_CD6C_C0C2_4601_1A96,
+    512'hD56F_1357_55BB_F490_45D6_EAAE_206B_5767_0606_2FFE_604D_79C6_7E14_550B_71F8_CC65_F0F9_C130_E0E4_556E_0A1D_B312_9DB6_6EFC_CA62_3174_E5B3_D719_E6B6_6061_2300_8D4B,
+    512'h852B_5052_6E66_4272_1C6F_DC2B_C79B_71A0_79E8_1647_6B06_F6AF_9114_535C_CFAF_3B13_2403_3DF2_4882_14C0_F0FB_F3A5_2DB6_8722_5C49_F28A_BF89_0B55_685D_A3E4_E5EB_6294,
+    512'hC295_A829_3733_2139_0E37_EE15_E3CD_B8D0_3CF4_0B23_B583_7B57_C88A_29AE_67D7_9D89_9201_9EF9_2441_0A60_787D_F9D2_96DB_4391_2E24_F945_5FC4_85AA_B42E_D1F2_72F5_B14A,
+    512'h614A_D414_9B99_909C_871B_F70A_F1E6_DC68_1E7A_0591_DAC1_BDAB_E445_14D7_33EB_CEC4_C900_CF7C_9220_8530_3C3E_FCE9_4B6D_A1C8_9712_7CA2_AFE2_42D5_5A17_68F9_397A_D8A5,
+    512'hDF39_B3F3_8977_7074_7D09_52F9_AF5D_B427_F5D6_0370_B640_9499_5C3C_F3B2_EEA6_BA43_B8FF_BAD4_71E0_7CEF_EBEA_5458_C6DB_60B8_72F1_D461_9AA1_C1B3_360D_27A8_E8D6_4863
+  };
+
+  assign crc[15] = ^(DM[15] & data[511:0]);
+  assign crc[14] = ^(DM[14] & data[511:0]);
+  assign crc[13] = ^(DM[13] & data[511:0]);
+  assign crc[12] = ^(DM[12] & data[511:0]);
+  assign crc[11] = ^(DM[11] & data[511:0]);
+  assign crc[10] = ^(DM[10] & data[511:0]);
+  assign crc[9] = ^(DM[9] & data[511:0]);
+  assign crc[8] = ^(DM[8] & data[511:0]);
+  assign crc[7] = ^(DM[7] & data[511:0]);
+  assign crc[6] = ^(DM[6] & data[511:0]);
+  assign crc[5] = ^(DM[5] & data[511:0]);
+  assign crc[4] = ^(DM[4] & data[511:0]);
+  assign crc[3] = ^(DM[3] & data[511:0]);
+  assign crc[2] = ^(DM[2] & data[511:0]);
+  assign crc[1] = ^(DM[1] & data[511:0]);
+  assign crc[0] = ^(DM[0] & data[511:0]);
+
+endmodule
+
+module crc_check#(
 
 )(
   output logic crc_pass,
   output logic c2c_fail,
-  cxl_host_rx_dl_if.rx_mp host_rx_dl_if
+  input logic [527:0] data
 );
 
+  logic [15:0] crc;
+  localparam [511:0] DM[16] = {
+    512'hEF9C_D9F9_C4BB_B83A_3E84_A97C_D7AE_DA13_FAEB_01B8_5B20_4A4C_AE1E_79D9_7753_5D21_DC7F_DD6A_38F0_3E77_F5F5_2A2C_636D_B05C_3978_EA30_CD50_E0D9_9B06_93D4_746B_2431,
+    512'h9852_B505_26E6_6427_21C6_FDC2_BC79_B71A_079E_8164_76B0_6F6A_F911_4535_CCFA_F3B1_3240_33DF_2488_214C_0F0F_BF3A_52DB_6872_25C4_9F28_ABF8_90B5_5685_DA3E_4E5E_B629,
+    512'h23B5_837B_57C8_8A29_AE67_D79D_8992_019E_F924_410A_6078_7DF9_D296_DB43_912E_24F9_455F_C485_AAB4_2ED1_F272_F5B1_4A00_0465_2B9A_A5A4_98AC_A883_3044_7ECB_5344_7F25,
+    512'h7E46_1844_6F5F_FD2E_E9B7_42B2_1367_DADC_8679_213D_6B1C_74B0_4755_1478_BFC4_4F5D_7ED0_3F28_EDAA_291F_0CCC_50F4_C66D_B26E_ACB5_B8E2_8106_B498_0324_ACB1_DDC9_1BA3,
+    512'h50BF_D5DB_F314_46AD_4A5F_0825_DE1D_377D_B9D7_9126_EEAE_7014_8DB4_F3E5_28B1_7A8F_6317_C2FE_4E25_2AF8_7393_0256_005B_696B_6F22_3641_8DD3_BA95_9A94_C58C_9A8F_A9E0,
+    512'hA85F_EAED_F98A_2356_A52F_8412_EF0E_9BBE_DCEB_C893_7757_380A_46DA_79F2_9458_BD47_B18B_E17F_2712_957C_39C9_812B_002D_B4B5_B791_1B20_C6E9_DD4A_CD4A_62C6_4D47_D4F0,
+    512'h542F_F576_FCC5_11AB_5297_C209_7787_4DDF_6E75_E449_BBAB_9C05_236D_3CF9_4A2C_5EA3_D8C5_F0BF_9389_4ABE_1CE4_C095_8016_DA5A_DBC8_8D90_6374_EEA5_66A5_3163_26A3_EA78,
+    512'h2A17_FABB_7E62_88D5_A94B_E104_BBC3_A6EF_B73A_F224_DDD5_CE02_91B6_9E7C_A516_2F51_EC62_F85F_C9C4_A55F_0E72_604A_C00B_6D2D_6DE4_46C8_31BA_7752_B352_98B1_9351_F53C,
+    512'h150B_FD5D_BF31_446A_D4A5_F082_5DE1_D377_DB9D_7912_6EEA_E701_48DB_4F3E_528B_17A8_F631_7C2F_E4E2_52AF_8739_3025_6005_B696_B6F2_2364_18DD_3BA9_59A9_4C58_C9A8_FA9E,
+    512'h8A85_FEAE_DF98_A235_6A52_F841_2EF0_E9BB_EDCE_BC89_3775_7380_A46D_A79F_2945_8BD4_7B18_BE17_F271_2957_C39C_9812_B002_DB4B_5B79_11B2_0C6E_9DD4_ACD4_A62C_64D4_7D4F,
+    512'hAADE_26AE_AB77_E920_8BAD_D55C_40D6_AECE_0C0C_5FFC_C09A_F38C_FC28_AA16_E3F1_98CB_E1F3_8261_C1C8_AADC_143B_6625_3B6C_DDF9_94C4_62E9_CB67_AE33_CD6C_C0C2_4601_1A96,
+    512'hD56F_1357_55BB_F490_45D6_EAAE_206B_5767_0606_2FFE_604D_79C6_7E14_550B_71F8_CC65_F0F9_C130_E0E4_556E_0A1D_B312_9DB6_6EFC_CA62_3174_E5B3_D719_E6B6_6061_2300_8D4B,
+    512'h852B_5052_6E66_4272_1C6F_DC2B_C79B_71A0_79E8_1647_6B06_F6AF_9114_535C_CFAF_3B13_2403_3DF2_4882_14C0_F0FB_F3A5_2DB6_8722_5C49_F28A_BF89_0B55_685D_A3E4_E5EB_6294,
+    512'hC295_A829_3733_2139_0E37_EE15_E3CD_B8D0_3CF4_0B23_B583_7B57_C88A_29AE_67D7_9D89_9201_9EF9_2441_0A60_787D_F9D2_96DB_4391_2E24_F945_5FC4_85AA_B42E_D1F2_72F5_B14A,
+    512'h614A_D414_9B99_909C_871B_F70A_F1E6_DC68_1E7A_0591_DAC1_BDAB_E445_14D7_33EB_CEC4_C900_CF7C_9220_8530_3C3E_FCE9_4B6D_A1C8_9712_7CA2_AFE2_42D5_5A17_68F9_397A_D8A5,
+    512'hDF39_B3F3_8977_7074_7D09_52F9_AF5D_B427_F5D6_0370_B640_9499_5C3C_F3B2_EEA6_BA43_B8FF_BAD4_71E0_7CEF_EBEA_5458_C6DB_60B8_72F1_D461_9AA1_C1B3_360D_27A8_E8D6_4863
+  };
 
+  assign crc[15] = ^(DM[15] & data[511:0]);
+  assign crc[14] = ^(DM[14] & data[511:0]);
+  assign crc[13] = ^(DM[13] & data[511:0]);
+  assign crc[12] = ^(DM[12] & data[511:0]);
+  assign crc[11] = ^(DM[11] & data[511:0]);
+  assign crc[10] = ^(DM[10] & data[511:0]);
+  assign crc[9] = ^(DM[9] & data[511:0]);
+  assign crc[8] = ^(DM[8] & data[511:0]);
+  assign crc[7] = ^(DM[7] & data[511:0]);
+  assign crc[6] = ^(DM[6] & data[511:0]);
+  assign crc[5] = ^(DM[5] & data[511:0]);
+  assign crc[4] = ^(DM[4] & data[511:0]);
+  assign crc[3] = ^(DM[3] & data[511:0]);
+  assign crc[2] = ^(DM[2] & data[511:0]);
+  assign crc[1] = ^(DM[1] & data[511:0]);
+  assign crc[0] = ^(DM[0] & data[511:0]);
+
+  assign crc_pass = (crc == data[15:0])? 'h1: 'h0;
+  assign crc_fail = (crc != data[15:0])? 'h1: 'h0;
 
 endmodule
 
@@ -5244,9 +5351,10 @@ module host_rx_path #(
     .*
   );
 
-  crc_checker c2c_checker_inst#(
+  crc_check c2c_check_inst#(
 
   )(
+    .data(host_rx_dl_if.data),
     .*
   );
 
@@ -6457,9 +6565,10 @@ module device_rx_path #(
     .*
   );
 
-  crc_checker c2c_checker_inst#(
+  crc_check c2c_check_inst#(
 
   )(
+    .data(dev_rx_dl_if.data),
     .*
   );
 
