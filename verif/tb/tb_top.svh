@@ -1,4 +1,3 @@
-//TODO: (done) next look into the initialization init pkt exchange 
 //TODO: (TBD) missing rra logic module is currently blank please refer to the paper
 //TODO: (done/pending/lowpri - lrsm/rrssm integration pending - low priority for now) connection of ack to retry buffer and entry of tx pkt and lrsmrrsm integration to be done
 //TODO: (TBD/lowpri) next focus on 32B size pkt logic 
@@ -15,103 +14,103 @@ parameter GEET_CXL_MEM_TAG_WIDTH = 16;
 parameter GEET_CXL_MEM_TC_WIDTH = 16;
 
 typedef enum {
-    RDCURR, 
-    RDOWN,
-    RDSHARED,
-    RDANY,
-    RDOWNNODATA,
-    ITOMWR,
-    MEMWRI,
-    CLFLUSH,
-    CLEANEVICT,
-    DIRTYEVICT,
-    CLEANEVICTNODATA,
-    WOWRINV,
-    WOWRINVF,
-    WRINV,
-    CACHEFLUSHED
+    GEET_CXL_CACHE_OPCODE_RDCURR, 
+    GEET_CXL_CACHE_OPCODE_RDOWN,
+    GEET_CXL_CACHE_OPCODE_RDSHARED,
+    GEET_CXL_CACHE_OPCODE_RDANY,
+    GEET_CXL_CACHE_OPCODE_RDOWNNODATA,
+    GEET_CXL_CACHE_OPCODE_ITOMWR,
+    GEET_CXL_CACHE_OPCODE_MEMWRI,
+    GEET_CXL_CACHE_OPCODE_CLFLUSH,
+    GEET_CXL_CACHE_OPCODE_CLEANEVICT,
+    GEET_CXL_CACHE_OPCODE_DIRTYEVICT,
+    GEET_CXL_CACHE_OPCODE_CLEANEVICTNODATA,
+    GEET_CXL_CACHE_OPCODE_WOWRINV,
+    GEET_CXL_CACHE_OPCODE_WOWRINVF,
+    GEET_CXL_CACHE_OPCODE_WRINV,
+    GEET_CXL_CACHE_OPCODE_CACHEFLUSHED
     
 } d2h_req_opcode_t; 
 
 typedef enum {
-    RSPIHITI,
-    RSPVHITV,
-    RSPIHITSE,
-    RSPSHITSE,
-    RSPSFWDM,
-    RSPIFWDM,
-    RSPVFWDV
+    GEET_CXL_CACHE_OPCODE_RSPIHITI,
+    GEET_CXL_CACHE_OPCODE_RSPVHITV,
+    GEET_CXL_CACHE_OPCODE_RSPIHITSE,
+    GEET_CXL_CACHE_OPCODE_RSPSHITSE,
+    GEET_CXL_CACHE_OPCODE_RSPSFWDM,
+    GEET_CXL_CACHE_OPCODE_RSPIFWDM,
+    GEET_CXL_CACHE_OPCODE_RSPVFWDV
 
 } d2h_rsp_opcode_t; 
 
 typedef enum {
-    SNPDATA,
-    SNPINV,
-    SNPCURR
+    GEET_CXL_MEM_OPCODE_SNPDATA,
+    GEET_CXL_MEM_OPCODE_SNPINV,
+    GEET_CXL_MEM_OPCODE_SNPCURR
 
 } h2d_req_opcode_t; 
 
 typedef enum {
-    WRITEPULL,
-    GO,
-    GOWRITEPULL,
-    EXTCMP,
-    GOWRITEPULLDROP,
-    FASTGO,
-    FASTGOWRITEPULL,
-    GOERRWRITEPULL
+    GEET_CXL_CACHE_OPCODE_WRITEPULL,
+    GEET_CXL_CACHE_OPCODE_GO,
+    GEET_CXL_CACHE_OPCODE_GOWRITEPULL,
+    GEET_CXL_CACHE_OPCODE_EXTCMP,
+    GEET_CXL_CACHE_OPCODE_GOWRPULLDROP,
+    GEET_CXL_CACHE_OPCODE_FASTGO,
+    GEET_CXL_CACHE_OPCODE_FASTGOWRPULL,
+    GEET_CXL_CACHE_OPCODE_GOERRWRPULL
 
 } h2d_rsp_opcode_t; 
 
 typedef enum {
-    MEMINV,
-    MEMRD,
-    MEMRDDATA,
-    MEMRDFWD,
-    MEMWRFWD,
-    MEMINVNT
+    GEET_CXL_MEM_OPCODE_MEMINV,
+    GEET_CXL_MEM_OPCODE_MEMRD,
+    GEET_CXL_MEM_OPCODE_MEMRDDATA,
+    GEET_CXL_MEM_OPCODE_MEMRDFWD,
+    GEET_CXL_MEM_OPCODE_MEMWRFWD,
+    GEET_CXL_MEM_OPCODE_MEMINVNT
 } m2s_req_opcode_t;
 
 typedef enum {
-    MEMWR,
-    MEMWRPTL
+    GEET_CXL_MEM_OPCODE_MEMWR,
+    GEET_CXL_MEM_OPCODE_MEMWRPTL
 } m2s_rwd_opcode_t;
 
 typedef enum {
-    CMP,
-    CMPS,
-    CMPE
+    GEET_CXL_MEM_OPCODE_CMP,
+    GEET_CXL_MEM_OPCODE_CMPS,
+    GEET_CXL_MEM_OPCODE_CMPE
 } s2m_ndr_opcode_t;
 
 typedef enum {
-    MEMDATA
+    GEET_CXL_MEM_OPCODE_MEMDATA
 } s2m_drs_opcode_t;
 
 typedef enum {
-    METAFIELD_META0STATE,
-    METAFIELD_RSVD1,
-    METAFIELD_RSVD2,
-    METAFIELD_NOOP
+    GEET_CXL_MEM_MF_METAFIELD_META0STATE,
+    GEET_CXL_MEM_MF_METAFIELD_RSVD1,
+    GEET_CXL_MEM_MF_METAFIELD_RSVD2,
+    GEET_CXL_MEM_MF_METAFIELD_NOOP
 } metafield_t;
 
 typedef enum {
-    METAVALUE_INVALID,
-    METAVALUE_RSVD,
-    METAVALUE_ANY,
-    METAVALUE_SHARED
+    GEET_CXL_MEM_MV_METAVALUE_INVALID,
+    GEET_CXL_MEM_MV_METAVALUE_RSVD,
+    GEET_CXL_MEM_MV_METAVALUE_ANY,
+    GEET_CXL_MEM_MV_METAVALUE_SHARED
 } metavalue_t;
 
 typedef enum {
-    MEMSNP_NOOP,
-    MEMSNP_SNPDATA,
-    MEMSNP_SNPCUR,
-    MEMSNP_SNPINV
+    GEET_CXL_MEM_SNPTYP_MEMSNPNOOP,
+    GEET_CXL_MEM_SNPTYP_MEMSNPDATA,
+    GEET_CXL_MEM_SNPTYP_MEMSNPCUR,
+    GEET_CXL_MEM_SNPTYP_MEMSNPINV
 } snptype_t;
 
 typedef enum {
-  SHORT_DLY;
-  MED_DLY;
-  LONG_DLY;
+  GEET_CXL_SHORT_DLY;
+  GEET_CXL_MED_DLY;
+  GEET_CXL_LONG_DLY;
 } delay_type_t;
 
 typedef struct {
@@ -3995,6 +3994,12 @@ module device_tx_path#(
         dev_tx_dl_if_pre_data <= holding_q.data[holding_rdptr];
         holding_rdptr <= holding_rdptr + 1;
       end else begin
+        if((dev_tx_dl_if_d.rstn == 'h1) && (dev_tx_dl_if.rstn == 'h0)) begin
+          dev_tx_dl_if_pre_valid          <= 'h1;
+          dev_tx_dl_if_pre_data[35:32]    <= 'b1100;
+          dev_tx_dl_if_pre_data[39:36]    <= 'b1000;
+          dev_tx_dl_if_pre_data[67:64]    <= 'h1;
+        end
         if(insert_ack) begin
           dev_tx_dl_if_pre_valid          <= 'h1;
           dev_tx_dl_if_pre_data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
@@ -7724,9 +7729,9 @@ module tb_top;
     constraint delay_c{
       soft delay_set inside {'h0};
       if(delay_set){
-        (delay_type_t == SHORT_DLY) -> delay_value inside {[1:10]};
-        (delay_type_t == MED_DLY)   -> delay_value inside {[10:100]};
-        (delay_type_t == LONG_DLY)  -> delay_value inside {[100:1000]};
+        (delay_type_t == GEET_CXL_SHORT_DLY) -> delay_value inside {[1:10]};
+        (delay_type_t == GEET_CXL_MED_DLY)   -> delay_value inside {[10:100]};
+        (delay_type_t == GEET_CXL_LONG_DLY)  -> delay_value inside {[100:1000]};
       } else {
         delay_value inside {'h0};
       }
@@ -7963,11 +7968,11 @@ module tb_top;
     }
 
     constraint metafield_rsvd_illegal_c{
-      !metafield inside {METAFIELD_RSVD1,METAFIELD_RSVD2}
+      !metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1,GEET_CXL_MEM_MF_METAFIELD_RSVD2}
     }
 
     constraint metavalue_rsvd_illegal_c{
-      !metavalue inside {METAVALUE_RSVD};
+      !metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
     }
 
     constraint tc_0_c{
@@ -8016,11 +8021,11 @@ module tb_top;
     }
 
     constraint metafield_rsvd_illegal_c{
-      !metafield inside {METAFIELD_RSVD1,METAFIELD_RSVD2}
+      !metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1,GEET_CXL_MEM_MF_METAFIELD_RSVD2}
     }
 
     constraint metavalue_rsvd_illegal_c{
-      !metavalue inside {METAVALUE_RSVD};
+      !metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
     }
 
     constraint tc_0_c{
@@ -8063,11 +8068,11 @@ module tb_top;
     }
 
     constraint metafield_rsvd_illegal_c{
-      !metafield inside {METAFIELD_RSVD1,METAFIELD_RSVD2}
+      !metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1,GEET_CXL_MEM_MF_METAFIELD_RSVD2}
     }
 
     constraint metavalue_rsvd_illegal_c{
-      !metavalue inside {METAVALUE_RSVD};
+      !metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
     }
 
     function new(string name = "s2m_ndr_seq_item");
@@ -8106,11 +8111,11 @@ module tb_top;
     }
 
     constraint metafield_rsvd_illegal_c{
-      !metafield inside {METAFIELD_RSVD1,METAFIELD_RSVD2}
+      !metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1,GEET_CXL_MEM_MF_METAFIELD_RSVD2}
     }
 
     constraint metavalue_rsvd_illegal_c{
-      !metavalue inside {METAVALUE_RSVD};
+      !metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
     }
 
     constraint skip_err_c{
@@ -11161,6 +11166,124 @@ module tb_top;
 
   endclass
 
+  //cache/mem responder seq as per appendix C
+  class cxl_cm_responder_seq extends uvm_sequence;
+    `uvm_object_utils(cxl_cm_responder_seq)
+    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    h2d_req_seq_item h2d_req_seq_item_h;
+    h2d_req_seq_item h2d_rsp_seq_item_h;
+    h2d_req_seq_item h2d_data_seq_item_h;
+    d2h_req_seq_item d2h_req_seq_item_h;
+    d2h_req_seq_item d2h_rsp_seq_item_h;
+    d2h_req_seq_item d2h_data_seq_item_h;
+    h2d_req_seq_item h2d_req_seq_item_rcvd;
+    h2d_req_seq_item h2d_rsp_seq_item_rcvd;
+    h2d_req_seq_item h2d_data_seq_item_rcvd;
+    d2h_req_seq_item d2h_req_seq_item_rcvd;
+    d2h_req_seq_item d2h_rsp_seq_item_rcvd;
+    d2h_req_seq_item d2h_data_seq_item_rcvd;
+
+    function new(string name = "cxl_cm_responder_seq");
+      super.new(name)
+    endfunction
+    
+    task body();
+      fork 
+        begin
+          forever begin
+            d2h_req_responder_h2d_req();
+          end
+        end
+        begin
+          forever begin
+            h2d_req_responder_d2h_rsp_data();
+          end
+        end
+        begin
+          forever begin
+            d2h_rsp_data_responder_h2d_rsp_data();
+          end
+        end
+      join_none
+    endtask
+
+    task d2h_req_responder_h2d_req();
+      d2h_req_seq_item_rcvd = p_sequncer.host_d2h_req_seqr.host_d2h_req_fifo.get(); 
+      if(d2h_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_RDCURR) begin
+        `uvm_do_on_with(
+          h2d_req_seq_item_h,
+          p_sequencer.h2d_req_seqr,
+          {
+            valid == 'h1;
+            opcode == GEET_CXL_MEM_OPCODE_SNPCURR;
+            address == d2h_req_seq_item_rcvd.address;
+            uqid == d2h_req_seq_item_rcvd.cqid;
+          }
+        );
+      end
+    endtask
+
+    task h2d_req_responder_d2h_rsp_data();
+      h2d_req_seq_item_rcvd = p_sequncer.dev_h2d_req_seqr.dev_h2d_req_fifo.get();
+      if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_SNPCURR) begin
+        fork 
+          begin
+            `uvm_do_on_with(
+              d2h_rsp_seq_item_h,
+              p_sequencer.dev_d2h_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode == ;
+                uqid == h2d_req_seq_item_rcvd.uqid;
+              }
+            );
+          end
+          begin
+            `uvm_do_on_with(
+              d2h_data_seq_item_h,
+              p_sequencer.dev_d2h_data_seqr,
+              {
+                valid == 'h1;
+                uqid == h2d_req_seq_item_rcvd.uqid;
+              }
+            );
+          end
+        join
+      end
+    endtask
+
+    task d2h_rsp_data_responder_h2d_rsp_data();
+      d2h_rsp_seq_item_rcvd = p_sequncer.host_d2h_rsp_seqr.host_d2h_rsp_fifo.get();
+      if(d2h_rsp_seq_item_rcvd.opcode == ) begin
+        fork 
+          begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode == ;
+                rspdata == d2h_rsp_seq_item_rcvd.uqid;
+                cqid == d2h_rsp_seq_item_rcvd.uqid;
+              }
+            );
+          end
+          begin
+            `uvm_do_on_with(
+              h2d_data_seq_item_h,
+              p_sequencer.host_h2d_data_seqr,
+              {
+                valid == 'h1;
+                cqid == d2h_rsp_seq_item_rcvd.uqid;
+              }
+            );
+          end
+        join
+      end
+    endtask
+
+  endclass
+
   class cxl_vseq extends uvm_sequence;
     `uvm_object_utils(cxl_vseq)
     `uvm_declare_p_sequencer(cxl_cm_vsequencer)
@@ -11184,6 +11307,7 @@ module tb_top;
     cxl_base_txn_seq  dev_m2s_rwd_txn_seq_h;
     cxl_base_txn_seq  dev_s2m_ndr_txn_seq_h;
     cxl_base_txn_seq  dev_s2m_drs_txn_seq_h;
+    cxl_cm_responder_seq cxl_cm_responder_seq_h;
 
     function new(string name = "cxl_vseq");
       super.new(name);
@@ -11192,7 +11316,7 @@ module tb_top;
     task body();
       fork 
         begin
-          `uvm_do_on(dev_d2h_req_seq_h, p_sequencer.dev_d2h_req_seqr);
+          `uvm_do_on(dev_d2h_req_seq_h, p_sequencer.dev_d2h_req_seqr);//requestor seq
         end
         begin
           `uvm_do_on(dev_d2h_rsp_seq_h, p_sequencer.dev_d2h_rsp_seqr);
@@ -11250,6 +11374,9 @@ module tb_top;
         end
         begin
           `uvm_do_on(host_s2m_ndr_seq_h, p_sequencer.host_s2m_ndr_seqr);
+        end
+        begin
+          `uvm_do_on(cxl_cm_responder_seq_h, p_sequencer);
         end
       join;
     endtask
