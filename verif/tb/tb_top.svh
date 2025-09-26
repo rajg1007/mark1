@@ -44,11 +44,19 @@ typedef enum {
 } d2h_rsp_opcode_t; 
 
 typedef enum {
-    GEET_CXL_MEM_OPCODE_SNPDATA,
-    GEET_CXL_MEM_OPCODE_SNPINV,
-    GEET_CXL_MEM_OPCODE_SNPCURR
+    GEET_CXL_CACHE_OPCODE_SNPDATA,
+    GEET_CXL_CACHE_OPCODE_SNPINV,
+    GEET_CXL_CACHE_OPCODE_SNPCURR
 
 } h2d_req_opcode_t; 
+
+typedef enum {
+    GEET_CXL_CACHE_MESI_I   = 'h3,
+    GEET_CXL_CACHE_MESI_S   = 'h1,
+    GEET_CXL_CACHE_MESI_E   = 'h2,
+    GEET_CXL_CACHE_MESI_M   = 'h6,
+    GEET_CXL_CACHE_MESI_ERR = 'h4
+} h2d_rsp_data_opcode_t; 
 
 typedef enum {
     GEET_CXL_CACHE_OPCODE_WRITEPULL,
@@ -108,9 +116,9 @@ typedef enum {
 } snptype_t;
 
 typedef enum {
-  GEET_CXL_SHORT_DLY;
-  GEET_CXL_MED_DLY;
-  GEET_CXL_LONG_DLY;
+  GEET_CXL_SHORT_DLY,
+  GEET_CXL_MED_DLY,
+  GEET_CXL_LONG_DLY
 } delay_type_t;
 
 typedef struct {
@@ -151,7 +159,7 @@ typedef struct {
 typedef struct {
   logic valid;
   h2d_rsp_opcode_t opcode;
-  logic [11:0] rspdata;
+  h2d_rsp_data_opcode_t rspdata;
   logic [1:0] rsppre;
   logic [GEET_CXL_CACHE_CQID_WIDTH-1:0] cqid;
 } h2d_rsp_txn_t;
@@ -11171,17 +11179,20 @@ module tb_top;
     `uvm_object_utils(cxl_cm_responder_seq)
     `uvm_declare_p_sequencer(cxl_cm_vsequencer)
     h2d_req_seq_item h2d_req_seq_item_h;
-    h2d_req_seq_item h2d_rsp_seq_item_h;
-    h2d_req_seq_item h2d_data_seq_item_h;
+    h2d_rsp_seq_item h2d_rsp_seq_item_h;
+    h2d_data_seq_item h2d_data_seq_item_h;
     d2h_req_seq_item d2h_req_seq_item_h;
-    d2h_req_seq_item d2h_rsp_seq_item_h;
-    d2h_req_seq_item d2h_data_seq_item_h;
+    d2h_rsp_seq_item d2h_rsp_seq_item_h;
+    d2h_data_seq_item d2h_data_seq_item_h;
     h2d_req_seq_item h2d_req_seq_item_rcvd;
-    h2d_req_seq_item h2d_rsp_seq_item_rcvd;
-    h2d_req_seq_item h2d_data_seq_item_rcvd;
+    h2d_rsp_seq_item h2d_rsp_seq_item_rcvd;
+    h2d_data_seq_item h2d_data_seq_item_rcvd;
     d2h_req_seq_item d2h_req_seq_item_rcvd;
-    d2h_req_seq_item d2h_rsp_seq_item_rcvd;
-    d2h_req_seq_item d2h_data_seq_item_rcvd;
+    d2h_rsp_seq_item d2h_rsp_seq_item_rcvd;
+    d2h_data_seq_item d2h_data_seq_item_rcvd;
+    m2s_req_seq_item m2s_req_seq_item_h;
+    h2d_req_opcode_t h2d_req_id_aa[int];// this will be useful in future gen
+    bit unset_set;
 
     function new(string name = "cxl_cm_responder_seq");
       super.new(name)
@@ -11191,24 +11202,29 @@ module tb_top;
       fork 
         begin
           forever begin
-            d2h_req_responder_h2d_req();
+            //d2h_req_responder_h2d_req(); understand why this is not possible in CXLv1.1 we can rearchitect for multiple devices in next version but v1.1 is 1 to one connection
           end
         end
         begin
           forever begin
-            h2d_req_responder_d2h_rsp_data();
+            h2d_req_responder_d2h_rsp_data();//understand this is applicable to both v1.1 and future gen for multidevice
           end
         end
         begin
           forever begin
-            d2h_rsp_data_responder_h2d_rsp_data();
+            //d2h_rsp_data_responder_h2d_rsp_data(); understand this is going to be useful in multidevice not in CXL v1.1
+          end
+        end
+        begin
+          forever begin
+            d2h_req_responder_h2d_rsp_data();//understand this is only applicable to CXLv1.1
           end
         end
       join_none
     endtask
 
     task d2h_req_responder_h2d_req();
-      d2h_req_seq_item_rcvd = p_sequncer.host_d2h_req_seqr.host_d2h_req_fifo.get(); 
+/*      d2h_req_seq_item_rcvd = p_sequncer.host_d2h_req_seqr.host_d2h_req_fifo.get(); 
       if(d2h_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_RDCURR) begin
         `uvm_do_on_with(
           h2d_req_seq_item_h,
@@ -11220,8 +11236,9 @@ module tb_top;
             uqid == d2h_req_seq_item_rcvd.cqid;
           }
         );
+        h2d_req_id_aa[d2h_req_seq_item_rcvd.cqid] = h2d_req_seq_item_h.opcode;
       end
-    endtask
+*/    endtask
 
     task h2d_req_responder_d2h_rsp_data();
       h2d_req_seq_item_rcvd = p_sequncer.dev_h2d_req_seqr.dev_h2d_req_fifo.get();
@@ -11233,7 +11250,7 @@ module tb_top;
               p_sequencer.dev_d2h_rsp_seqr,
               {
                 valid == 'h1;
-                opcode == ;
+                opcode inside {GEET_CXL_CACHE_OPCODE_RSPVHITV, GEET_CXL_CACHE_OPCODE_RSPIHITI} ;
                 uqid == h2d_req_seq_item_rcvd.uqid;
               }
             );
@@ -11252,11 +11269,15 @@ module tb_top;
       end
     endtask
 
-    task d2h_rsp_data_responder_h2d_rsp_data();
-      d2h_rsp_seq_item_rcvd = p_sequncer.host_d2h_rsp_seqr.host_d2h_rsp_fifo.get();
-      if(d2h_rsp_seq_item_rcvd.opcode == ) begin
-        fork 
+    task d2h_req_responder_h2d_rsp_data();
+      //TODO: HDM-D needs to be defined in cfg like address map partitions
+      d2h_req_seq_item_rcvd = p_sequencer.host_d2h_req_seqr.host_d2h_req_fifo.get();
+      if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDCURR}) begin
+//remember rdcurr doesnt give any response only data
+        if(HDM_H) begin
+          fork 
           begin
+/*        
             `uvm_do_on_with(
               h2d_rsp_seq_item_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -11267,20 +11288,466 @@ module tb_top;
                 cqid == d2h_rsp_seq_item_rcvd.uqid;
               }
             );
+*/      
           end
+//remember this maybe sent or may not be sent so it is good to randomize weather to give a data or not to give a data
           begin
+            std::randomize(unset_set);
+            if(unset_set) begin
+              `uvm_do_on_with(
+                h2d_data_seq_item_h,
+                p_sequencer.host_h2d_data_seqr,
+                {
+                  valid == 'h1;
+                  cqid == d2h_req_seq_item_rcvd.cqid;
+                }
+              );
+            end
+          end
+          join
+        end else if(HDM_D) begin
+          `uvm_do_on_with(
+            m2s_req_seq_item_h,
+            p_sequencer.host_m2s_req_seqr,
+            {
+              valid == 'h1;
+              address == d2h_req_seq_item_h.address;
+              memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
+              tag == d2h_req_seq_item_rcvd.cqid;
+              snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+              metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
+            }
+          );
+        end
+      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDOWN}) begin
+        if(HDM_H) begin
+          fork 
+          begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                rspdata inside {GEET_CXL_CACHE_MESI_ERR, GEET_CXL_CACHE_MESI_I, GEET_CXL_CACHE_MESI_E, GEET_CXL_CACHE_MESI_M};
+                cqid == d2h_req_seq_item_rcvd.cqid;
+              }
+            );
+            //both are not forked togather because there is a dependency of MESIERR making the data as all 1s
             `uvm_do_on_with(
               h2d_data_seq_item_h,
               p_sequencer.host_h2d_data_seqr,
               {
                 valid == 'h1;
-                cqid == d2h_rsp_seq_item_rcvd.uqid;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+                ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> {data == {512{1'b1}}; goerr == 'h1;};
+              }
+            );
+          end
+          join
+        end else if(HDM_D) begin
+          `uvm_do_on_with(
+            m2s_req_seq_item_h,
+            p_sequencer.host_m2s_req_seqr,
+            {
+              valid == 'h1;
+              address == d2h_req_seq_item_h.address;
+              memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
+              tag == d2h_req_seq_item_rcvd.cqid;
+              snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+              metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
+              //metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID};//TODO:dont know if this is true
+            }
+          );
+        end
+      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDSHARED}) begin
+        if(HDM_H) begin
+          fork 
+          begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                rspdata inside {GEET_CXL_CACHE_MESI_ERR, GEET_CXL_CACHE_MESI_I, GEET_CXL_CACHE_MESI_S};
+                cqid == d2h_req_seq_item_rcvd.cqid;
+              }
+            );
+            //both are not forked togather because there is a dependency of MESIERR making the data as all 1s
+            `uvm_do_on_with(
+              h2d_data_seq_item_h,
+              p_sequencer.host_h2d_data_seqr,
+              {
+                valid == 'h1;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+                ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> {data == {512{1'b1}}; goerr == 'h1;};
+              }
+            );
+          end
+          join
+        end else if(HDM_D) begin
+          `uvm_do_on_with(
+            m2s_req_seq_item_h,
+            p_sequencer.host_m2s_req_seqr,
+            {
+              valid == 'h1;
+              address == d2h_req_seq_item_h.address;
+              memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
+              tag == d2h_req_seq_item_rcvd.cqid;
+              snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+              metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
+              metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED};
+            }
+          );
+        end
+       end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDANY}) begin
+        if(HDM_H) begin
+          fork 
+          begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                rspdata inside {
+                                  GEET_CXL_CACHE_MESI_ERR, 
+                                  GEET_CXL_CACHE_MESI_I, 
+                                  GEET_CXL_CACHE_MESI_S,
+                                  GEET_CXL_CACHE_MESI_E,
+                                  GEET_CXL_CACHE_MESI_M
+                                };
+                cqid == d2h_req_seq_item_rcvd.cqid;
+              }
+            );
+            //both are not forked togather because there is a dependency of MESIERR making the data as all 1s
+            `uvm_do_on_with(
+              h2d_data_seq_item_h,
+              p_sequencer.host_h2d_data_seqr,
+              {
+                valid == 'h1;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+                ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> {data == {512{1'b1}}; goerr == 'h1;};
+              }
+            );
+          end
+          join
+        end else if(HDM_D) begin
+          `uvm_do_on_with(
+            m2s_req_seq_item_h,
+            p_sequencer.host_m2s_req_seqr,
+            {
+              valid == 'h1;
+              address == d2h_req_seq_item_h.address;
+              memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
+              tag == d2h_req_seq_item_rcvd.cqid;
+              snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+              metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
+              metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY};
+            }
+          );
+        end
+      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDOWNNODATA}) begin
+        if(HDM_H) begin
+          fork 
+          begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                rspdata inside {
+                                  GEET_CXL_CACHE_MESI_ERR, 
+                                  GEET_CXL_CACHE_MESI_E
+                                };
+                cqid == d2h_req_seq_item_rcvd.cqid;
+              }
+            );
+            //here it does not return any data even if it is goerr
+            /*`uvm_do_on_with(
+              h2d_data_seq_item_h,
+              p_sequencer.host_h2d_data_seqr,
+              {
+                valid == 'h1;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+                ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> (data == {512{1'b1}});
+              }
+            );*/
+          end
+          join
+        end else if(HDM_D) begin
+          `uvm_do_on_with(
+            m2s_req_seq_item_h,
+            p_sequencer.host_m2s_req_seqr,
+            {
+              valid == 'h1;
+              address == d2h_req_seq_item_h.address;
+              memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
+              tag == d2h_req_seq_item_rcvd.cqid;
+              snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+              metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
+              //metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID};//TODO:dont know if this is true
+            }
+          );
+        end
+      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CLFLUSH}) begin
+        if(HDM_H) begin
+          fork 
+          begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                rspdata inside {
+                                  GEET_CXL_CACHE_MESI_ERR, 
+                                  GEET_CXL_CACHE_MESI_I
+                                };
+                cqid == d2h_req_seq_item_rcvd.cqid;
+              }
+            );
+            //here it does not return any data even if it is goerr
+            /*`uvm_do_on_with(
+              h2d_data_seq_item_h,
+              p_sequencer.host_h2d_data_seqr,
+              {
+                valid == 'h1;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+                ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> (data == {512{1'b1}});
+              }
+            );*/
+          end
+          join
+        end else if(HDM_D) begin
+          `uvm_do_on_with(
+            m2s_req_seq_item_h,
+            p_sequencer.host_m2s_req_seqr,
+            {
+              valid == 'h1;
+              address == d2h_req_seq_item_h.address;
+              memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
+              tag == d2h_req_seq_item_rcvd.cqid;
+              snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+              metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
+              //metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID};//TODO:dont know if this is true
+            }
+          );
+        end
+      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CACHEFLUSHED}) begin
+        fork 
+          begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                rspdata inside {
+                                  GEET_CXL_CACHE_MESI_I
+                                };
+                cqid == d2h_req_seq_item_rcvd.cqid;
+              }
+            );
+            //here it does not return any data even if it is goerr
+            /*`uvm_do_on_with(
+              h2d_data_seq_item_h,
+              p_sequencer.host_h2d_data_seqr,
+              {
+                valid == 'h1;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+                ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> (data == {512{1'b1}});
+              }
+            );*/
+          end
+        join
+       end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CLEANEVICTNODATA}) begin
+        if(HDM_H) begin
+          fork 
+          begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                rspdata inside {
+                                  GEET_CXL_CACHE_MESI_I
+                                };
+                cqid == d2h_req_seq_item_rcvd.cqid;
+              }
+            );
+            //here it does not return any data even if it is goerr
+            /*`uvm_do_on_with(
+              h2d_data_seq_item_h,
+              p_sequencer.host_h2d_data_seqr,
+              {
+                valid == 'h1;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+                ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> (data == {512{1'b1}});
+              }
+            );*/
+          end
+          join
+        end
+      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CLEANEVICT}) begin
+        if(HDM_H) begin
+          fork 
+          begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode inside {GEET_CXL_CACHE_OPCODE_GOWRITEPULL, GEET_CXL_CACHE_OPCODE_GOWRPULLDROP} ;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+              }
+            );
+            //here it does not return any data even if it is pull drop
+            if(h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_GOWRITEPULL}) begin
+              `uvm_do_on_with(
+                h2d_data_seq_item_h,
+                p_sequencer.host_h2d_data_seqr,
+                {
+                  valid == 'h1;
+                  cqid == d2h_req_seq_item_rcvd.cqid;
+                }
+              );
+            end
+          end
+          join
+        end
+      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_DIRTYEVICT, GEET_CXL_CACHE_OPCODE_ITOMWR, GEET_CXL_CACHE_OPCODE_MEMWRI}) begin
+        if(HDM_D && d2h_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_DIRTYEVICT) begin
+        end else begin
+          fork 
+          begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode inside {GEET_CXL_CACHE_OPCODE_GOWRITEPULL, GEET_CXL_CACHE_OPCODE_GOERRWRPULL} ;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+              }
+            );
+            //here it does not return any data even if it is pull drop
+            `uvm_do_on_with(
+              h2d_data_seq_item_h,
+              p_sequencer.host_h2d_data_seqr,
+              {
+                valid == 'h1;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+                (h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GOERRWRPULL) -> {data == {512{1'b1}}; goerr == 'h1;};
+              }
+            );
+            
+          end
+          join
+        end
+      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WOWRINV, GEET_CXL_CACHE_OPCODE_WOWRINVF}) begin
+        if(HDM_H) begin
+          fork 
+          begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode inside {GEET_CXL_CACHE_OPCODE_EXTCMP, GEET_CXL_CACHE_OPCODE_FASTGOWRPULL, GEET_CXL_CACHE_OPCODE_GOERRWRPULL} ;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+              }
+            );
+            `uvm_do_on_with(
+              h2d_data_seq_item_h,
+              p_sequencer.host_h2d_data_seqr,
+              {
+                valid == 'h1;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+                (h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GOERRWRPULL) -> {data == {512{1'b1}}; goerr == 'h1;};
+              }
+            );
+          end
+          join
+        end else if(HDM_D) begin
+          `uvm_do_on_with(
+            m2s_req_seq_item_h,
+            p_sequencer.host_m2s_req_seqr,
+            {
+              valid == 'h1;
+              address == d2h_req_seq_item_h.address;
+              memopcode inside {GEET_CXL_MEM_OPCODE_MEMWRFWD};
+              tag == d2h_req_seq_item_rcvd.cqid;
+              snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+              metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
+              //metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID};//TODO:dont know if this is true
+            }
+          );
+        end
+      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WRINV}) begin
+        fork 
+          begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode inside {GEET_CXL_CACHE_OPCODE_EXTCMP, GEET_CXL_CACHE_OPCODE_FASTGOWRPULL, GEET_CXL_CACHE_OPCODE_GOERRWRPULL} ;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+              }
+            );
+            `uvm_do_on_with(
+              h2d_data_seq_item_h,
+              p_sequencer.host_h2d_data_seqr,
+              {
+                valid == 'h1;
+                cqid == d2h_req_seq_item_rcvd.cqid;
+                (h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GOERRWRPULL) -> {data == {512{1'b1}}; goerr == 'h1;};
               }
             );
           end
         join
       end
     endtask
+
+//understand this this too shall be useful in next gen but not in CXLv1.1
+    task d2h_rsp_data_responder_h2d_rsp_data();
+/*      d2h_rsp_seq_item_rcvd = p_sequncer.host_d2h_rsp_seqr.host_d2h_rsp_fifo.get();
+      d2h_data_seq_item_rcvd = p_sequncer.host_d2h_data_seqr.host_d2h_data_fifo.get();
+      if(d2h_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RSPVHITV, GEET_CXL_CACHE_OPCODE_RSPIHITI}) begin
+        fork 
+          begin
+            if(h2d_req_id_aa.exists(d2h_rsp_seq_item_rcvd.uqid) && (h2d_req_id_aa[d2h_rsp_seq_item_rcvd.uqid] != GEET_CXL_CACHE_OPCODE_RDCURR)) begin
+              `uvm_do_on_with(
+                h2d_rsp_seq_item_h,
+                p_sequencer.host_h2d_rsp_seqr,
+                {
+                  valid == 'h1;
+                  opcode == ;
+                  rspdata == d2h_rsp_seq_item_rcvd.uqid;
+                  cqid == d2h_rsp_seq_item_rcvd.uqid;
+                }
+              );
+            end
+          end
+          begin
+            if(h2d_req_id_aa.exists(d2h_rsp_seq_item_rcvd.uqid) && (h2d_req_id_aa[d2h_rsp_seq_item_rcvd.uqid] != GEET_CXL_CACHE_OPCODE_RDCURR)) begin
+              `uvm_do_on_with(
+                h2d_data_seq_item_h,
+                p_sequencer.host_h2d_data_seqr,
+                {
+                  valid == 'h1;
+                  cqid == d2h_rsp_seq_item_rcvd.uqid;
+                  data == d2h_data_seq_item_rcvd.data;
+                }
+              );
+            end
+          end
+        join
+      end
+ */   endtask
 
   endclass
 
