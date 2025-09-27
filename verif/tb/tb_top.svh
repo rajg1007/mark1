@@ -192,7 +192,7 @@ typedef struct {
 typedef struct {
   logic valid;
   m2s_rwd_opcode_t memopcode;
-  metafield_tmetafield;
+  metafield_t metafield;
   metavalue_t metavalue;
   snptype_t snptype;
   logic [GEET_CXL_ADDR_WIDTH-1:0] address;
@@ -11191,6 +11191,11 @@ module tb_top;
     d2h_rsp_seq_item d2h_rsp_seq_item_rcvd;
     d2h_data_seq_item d2h_data_seq_item_rcvd;
     m2s_req_seq_item m2s_req_seq_item_h;
+    m2s_req_seq_item m2s_req_seq_item_rcvd;
+    m2s_rwd_seq_item m2s_rwd_seq_item_rcvd;
+    s2m_ndr_seq_item s2m_req_ndr_seq_item_h;
+    s2m_drs_seq_item s2m_req_drs_seq_item_h;
+    s2m_ndr_seq_item s2m_rwd_ndr_seq_item_h;
     h2d_req_opcode_t h2d_req_id_aa[int];// this will be useful in future gen
     bit unset_set;
 
@@ -11220,7 +11225,142 @@ module tb_top;
             d2h_req_responder_h2d_rsp_data();//understand this is only applicable to CXLv1.1
           end
         end
+        begin
+          //TODO: define the TYPE2 and TYPE3 macros in the uvm_config_db or somewhere else based on the env configuration
+          if(TYPE2) begin
+            forever begin
+              type2_m2s_req_rwd_responder_s2m_ndr_drs();
+            end
+          end else begin
+            forever begin
+              type3_m2s_req_rwd_responder_s2m_ndr_drs();
+            end
+          end
+        end
       join_none
+    endtask    
+    
+    //you must be careful here because req and rwd both send ndr so some might get overriden when both are tried to be called 
+    task type2_m2s_req_rwd_responder_s2m_ndr_drs();
+      m2s_req_seq_item_rcvd = null; 
+      m2s_rwd_seq_item_rcvd = null;
+      fork 
+        begin
+          m2s_req_seq_item_rcvd = p_sequncer.dev_m2s_req_seqr.dev_m2s_req_fifo.get(); 
+        end
+        begin
+          m2s_rwd_seq_item_rcvd = p_sequncer.dev_m2s_rwd_seqr.dev_m2s_rwd_fifo.get(); 
+        end
+      join_any
+      fork 
+        begin
+          if(m2s_req_seq_item_rcvd != null) begin
+            `uvm_do_on_with(
+              s2m_req_ndr_seq_item_h,
+              p_sequencer.dev_s2m_ndr_seqr,
+              {
+                valid == 'h1;
+                //TODO: just check if below covers all the possible conditions for opcode in the appendix in CXLv2
+                opcode == ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP))? GEET_CXL_MEM_OPCODE_CMP: 
+                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA))? (!GEET_CXL_MEM_OPCODE_CMP): 
+                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV))? GEET_CXL_MEM_OPCODE_CMPE: 
+                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA))? (!GEET_CXL_MEM_OPCODE_CMP): 
+                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV, GEET_CXL_MEM_SNPTYP_MEMSNPCUR}))? (GEET_CXL_MEM_OPCODE_CMP): 
+                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV))? GEET_CXL_MEM_OPCODE_CMPE: 
+                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA))? (GEET_CXL_MEM_OPCODE_CMPS): 
+                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV}))? (GEET_CXL_MEM_OPCODE_CMP): 
+                          'hX;
+                tag == m2s_req_seq_item_rcvd.tag;
+                metafield == m2s_req_seq_item_rcvd.metafield;
+                metavalue == ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode == GEET_CXL_MEM_OPCODE_CMPE) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE))? (!GEET_CXL_MEM_MV_METAVALUE_SHARED):
+                metavalue == ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode == GEET_CXL_MEM_OPCODE_CMPS) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE))? (GEET_CXL_MEM_MV_METAVALUE_SHARED):
+                metavalue == ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode != GEET_CXL_MEM_OPCODE_CMPE) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP))? (GEET_CXL_MEM_MV_METAVALUE_INVALID):
+                metavalue == ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode != GEET_CXL_MEM_OPCODE_CMPS) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP))? (!GEET_CXL_MEM_MV_METAVALUE_SHARED):
+                m2s_req_seq_item_rcvd.metavalue;
+              }
+            );
+          end
+        end
+        begin
+          if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA})) begin
+            `uvm_do_on_with(
+              s2m_req_drs_seq_item_h,
+              p_sequencer.dev_s2m_ndr_seqr,
+              {
+                valid == 'h1;
+                opcode == GEET_CXL_MEM_OPCODE_MEMDATA;
+                tag == m2s_req_seq_item_rcvd.tag;
+              }
+            );
+          end
+        end
+      join
+      if(m2s_rwd_seq_item_rcvd != null) begin;
+        `uvm_do_on_with(
+          s2m_rwd_ndr_seq_item_h,
+          p_sequencer.dev_s2m_ndr_seqr,
+          {
+            valid == 'h1;
+            opcode == GEET_CXL_MEM_OPCODE_CMP;
+            tag == m2s_rwd_seq_item_rcvd.tag;
+            metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP
+          }
+        );
+      end
+    endtask
+
+    //you must be careful here because req and rwd both send ndr so some might get overriden when both are tried to be called 
+    task type3_m2s_req_rwd_responder_s2m_ndr_drs();
+      m2s_req_seq_item_rcvd = null; 
+      m2s_rwd_seq_item_rcvd = null;
+      fork 
+        begin
+          m2s_req_seq_item_rcvd = p_sequncer.dev_m2s_req_seqr.dev_m2s_req_fifo.get(); 
+        end
+        begin
+          m2s_rwd_seq_item_rcvd = p_sequncer.dev_m2s_rwd_seqr.dev_m2s_rwd_fifo.get(); 
+        end
+      join_any
+      fork 
+        begin
+          if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT})) begin
+            `uvm_do_on_with(
+              s2m_req_ndr_seq_item_h,
+              p_sequencer.dev_s2m_ndr_seqr,
+              {
+                valid == 'h1;
+                opcode == GEET_CXL_MEM_OPCODE_CMP;
+                tag == m2s_req_seq_item_rcvd.tag;
+              }
+            );
+          end
+        end
+        begin
+          if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA})) begin
+            `uvm_do_on_with(
+              s2m_req_drs_seq_item_h,
+              p_sequencer.dev_s2m_ndr_seqr,
+              {
+                valid == 'h1;
+                opcode == GEET_CXL_MEM_OPCODE_MEMDATA;
+                tag == m2s_req_seq_item_rcvd.tag;
+              }
+            );
+          end
+        end
+      join
+      if(m2s_rwd_seq_item_rcvd != null) begin;
+        `uvm_do_on_with(
+          s2m_rwd_ndr_seq_item_h,
+          p_sequencer.dev_s2m_ndr_seqr,
+          {
+            valid == 'h1;
+            opcode == GEET_CXL_MEM_OPCODE_CMP;
+            tag == m2s_rwd_seq_item_rcvd.tag;
+            metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP;
+          }
+        );
+      end
     endtask
 
     task d2h_req_responder_h2d_req();
@@ -11241,8 +11381,9 @@ module tb_top;
 */    endtask
 
     task h2d_req_responder_d2h_rsp_data();
+    //TODO: spec says only return modified data using data channel but for other conditions it is not specified now you are returning data for any of the held state modified or otherwise you need to confirm this operation
       h2d_req_seq_item_rcvd = p_sequncer.dev_h2d_req_seqr.dev_h2d_req_fifo.get();
-      if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_SNPCURR) begin
+      if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_SNPCURR) begin
         fork 
           begin
             `uvm_do_on_with(
@@ -11250,7 +11391,71 @@ module tb_top;
               p_sequencer.dev_d2h_rsp_seqr,
               {
                 valid == 'h1;
-                opcode inside {GEET_CXL_CACHE_OPCODE_RSPVHITV, GEET_CXL_CACHE_OPCODE_RSPIHITI} ;
+                opcode inside {
+                  GEET_CXL_CACHE_OPCODE_RSPIHITI, 
+                  GEET_CXL_CACHE_OPCODE_RSPVHITV, 
+                  GEET_CXL_CACHE_OPCODE_RSPSHITSE, 
+                  GEET_CXL_CACHE_OPCODE_RSPSFWDM,
+                  GEET_CXL_CACHE_OPCODE_RSPIFWDM,
+                  GEET_CXL_CACHE_OPCODE_RSPVFWDV
+                } ;
+                uqid == h2d_req_seq_item_rcvd.uqid;
+              }
+            );
+          end
+          begin
+            `uvm_do_on_with(
+              d2h_data_seq_item_h,
+              p_sequencer.dev_d2h_data_seqr,
+              {
+                valid == 'h1;
+                uqid == h2d_req_seq_item_rcvd.uqid;
+              }
+            );
+          end
+        join
+      end else if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_SNPINV) begin        fork 
+        fork
+          begin
+            `uvm_do_on_with(
+              d2h_rsp_seq_item_h,
+              p_sequencer.dev_d2h_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode inside {
+                  GEET_CXL_CACHE_OPCODE_RSPIHITI,
+                  GEET_CXL_CACHE_OPCODE_RSPIHITSE,
+                  GEET_CXL_CACHE_OPCODE_RSPIFWDM
+                };
+                uqid == h2d_req_seq_item_rcvd.uqid;
+              }
+            );
+          end
+          begin
+            `uvm_do_on_with(
+              d2h_data_seq_item_h,
+              p_sequencer.dev_d2h_data_seqr,
+              {
+                valid == 'h1;
+                uqid == h2d_req_seq_item_rcvd.uqid;
+              }
+            );
+          end
+        join
+      end else if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_SNPDATA) begin
+        fork 
+          begin
+            `uvm_do_on_with(
+              d2h_rsp_seq_item_h,
+              p_sequencer.dev_d2h_rsp_seqr,
+              {
+                valid == 'h1;
+                opcode inside {
+                  GEET_CXL_CACHE_OPCODE_RSPIHITI,
+                  GEET_CXL_CACHE_OPCODE_RSPSHITSE,
+                  GEET_CXL_CACHE_OPCODE_RSPSFWDM,
+                  GEET_CXL_CACHE_OPCODE_RSPIFWDM
+                };
                 uqid == h2d_req_seq_item_rcvd.uqid;
               }
             );
