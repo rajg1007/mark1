@@ -8083,6 +8083,12 @@ module tb_top;
       !metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
     }
 
+    constraint solve_ordrer_c{
+      solve opcode before metafield;
+      solve opcode before metavalue;
+      solve metafield before metavalue;
+    }
+
     function new(string name = "s2m_ndr_seq_item");
       super.new(name);
     endfunction
@@ -10967,52 +10973,6 @@ module tb_top;
 
   endclass
 
-  class dev_d2h_rsp_seq extends uvm_sequence;
-    `uvm_object_utils(dev_d2h_rsp_seq)
-    rand int num_trans;
-    rand d2h_rsp_seq_item d2h_rsp_seq_item_h[];
-
-    constraint num_of_trans_c{
-      soft num_trans inside {[10:100]};
-      d2h_rsp_seq_item_h.size == num_trans;
-      solve num_trans before d2h_rsp_seq_item_h;
-    }
-
-    function new(string name = "dev_d2h_rsp_seq");
-      super.new(name);
-    endfunction
-
-    task body();
-      foreach(d2h_rsp_seq_item_h[i]) begin
-        `uvm_do(d2h_rsp_seq_item_h[i]);
-      end
-    endtask
-
-  endclass
-
-  class dev_d2h_data_seq extends uvm_sequence;
-    `uvm_object_utils(dev_d2h_data_seq)
-    rand int num_trans;
-    rand d2h_data_seq_item d2h_data_seq_item_h[];
-
-    constraint num_of_trans_c{
-      soft num_trans inside {[10:100]};
-      d2h_data_seq_item_h.size == num_trans;
-      solve num_trans before d2h_data_seq_item_h;
-    }
-
-    function new(string name = "dev_d2h_data_seq");
-      super.new(name);
-    endfunction
-
-    task body();
-      foreach(d2h_data_seq_item_h[i]) begin
-        `uvm_do(d2h_data_seq_item_h[i]);
-      end
-    endtask
-
-  endclass
-
   class host_h2d_req_seq extends uvm_sequence;
     `uvm_object_utils(host_h2d_req_seq)
     rand int num_trans;
@@ -11031,52 +10991,6 @@ module tb_top;
     task body();
       foreach(h2d_req_seq_item_h[i]) begin
         `uvm_do(h2d_req_seq_item_h[i]);
-      end
-    endtask
-
-  endclass
-
-  class host_h2d_rsp_seq extends uvm_sequence;
-    `uvm_object_utils(host_h2d_rsp_seq)
-    rand int num_trans;
-    rand h2d_rsp_seq_item h2d_rsp_seq_item_h[];
-
-    constraint num_of_trans_c{
-      soft num_trans inside {[10:100]};
-      h2d_rsp_seq_item_h.size == num_trans;
-      solve num_trans before h2d_rsp_seq_item_h;
-    }
-
-    function new(string name = "host_h2d_rsp_seq");
-      super.new(name);
-    endfunction
-
-    task body();
-      foreach(h2d_rsp_seq_item_h[i]) begin
-        `uvm_do(h2d_rsp_seq_item_h[i]);
-      end
-    endtask
-
-  endclass
-
-  class host_h2d_data_seq extends uvm_sequence;
-    `uvm_object_utils(host_h2d_data_seq)
-    rand int num_trans;
-    rand h2d_data_seq_item h2d_data_seq_item_h[];
-
-    constraint num_of_trans_c{
-      soft num_trans inside {[10:100]};
-      h2d_data_seq_item_h.size == num_trans;
-      solve num_trans before h2d_data_seq_item_h;
-    }
-
-    function new(string name = "host_h2d_data_seq");
-      super.new(name);
-    endfunction
-
-    task body();
-      foreach(h2d_data_seq_item_h[i]) begin
-        `uvm_do(h2d_data_seq_item_h[i]);
       end
     endtask
 
@@ -11123,52 +11037,6 @@ module tb_top;
     task body();
       foreach(m2s_rwd_seq_item_h[i]) begin
         `uvm_do(m2s_rwd_seq_item_h[i]);
-      end
-    endtask
-
-  endclass
-
-  class dev_s2m_ndr_seq extends uvm_sequence;
-    `uvm_object_utils(dev_s2m_ndr_seq)
-    rand int num_trans;
-    rand s2m_ndr_seq_item s2m_ndr_seq_item_h[];
-
-    constraint num_of_trans_c{
-      soft num_trans inside {[10:100]};
-      s2m_ndr_seq_item_h.size == num_trans;
-      solve num_trans before s2m_ndr_seq_item_h;
-    }
-
-    function new(string name = "dev_s2m_ndr_seq");
-      super.new(name);
-    endfunction
-
-    task body();
-      foreach(s2m_ndr_seq_item_h[i]) begin
-        `uvm_do(s2m_ndr_seq_item_h[i]);
-      end
-    endtask
-
-  endclass
-
-  class dev_s2m_drs_seq extends uvm_sequence;
-    `uvm_object_utils(dev_s2m_drs_seq)
-    rand int num_trans;
-    rand s2m_drs_seq_item s2m_drs_seq_item_h[];
-
-    constraint num_of_trans_c{
-      soft num_trans inside {[10:100]};
-      s2m_drs_seq_item_h.size == num_trans;
-      solve num_trans before s2m_drs_seq_item_h;
-    }
-
-    function new(string name = "dev_s2m_drs_seq");
-      super.new(name);
-    endfunction
-
-    task body();
-      foreach(s2m_drs_seq_item_h[i]) begin
-        `uvm_do(s2m_drs_seq_item_h[i]);
       end
     endtask
 
@@ -11261,22 +11129,21 @@ module tb_top;
               {
                 valid == 'h1;
                 //TODO: just check if below covers all the possible conditions for opcode in the appendix in CXLv2
-                opcode == ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP))? GEET_CXL_MEM_OPCODE_CMP: 
-                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA))? (!GEET_CXL_MEM_OPCODE_CMP): 
-                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV))? GEET_CXL_MEM_OPCODE_CMPE: 
-                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA))? (!GEET_CXL_MEM_OPCODE_CMP): 
-                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV, GEET_CXL_MEM_SNPTYP_MEMSNPCUR}))? (GEET_CXL_MEM_OPCODE_CMP): 
-                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV))? GEET_CXL_MEM_OPCODE_CMPE: 
-                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA))? (GEET_CXL_MEM_OPCODE_CMPS): 
-                          ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV}))? (GEET_CXL_MEM_OPCODE_CMP): 
+                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (opcode == GEET_CXL_MEM_OPCODE_CMP);
+                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (opcode inside {GEET_CXL_MEM_OPCODE_CMPE, GEET_CXL_MEM_OPCODE_CMPS});
+                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV)) -> (opcode == GEET_CXL_MEM_OPCODE_CMPE);
+                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA))? (opcode inside {GEET_CXL_MEM_OPCODE_CMPE, GEET_CXL_MEM_OPCODE_CMPS});
+                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV, GEET_CXL_MEM_SNPTYP_MEMSNPCUR})) -> (opcode == GEET_CXL_MEM_OPCODE_CMP);
+                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV)) -> (opcode == GEET_CXL_MEM_OPCODE_CMPE);
+                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (opcode == GEET_CXL_MEM_OPCODE_CMPS);
+                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV})) -> (opcode == GEET_CXL_MEM_OPCODE_CMP);
                           'hX;
                 tag == m2s_req_seq_item_rcvd.tag;
                 metafield == m2s_req_seq_item_rcvd.metafield;
-                metavalue == ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode == GEET_CXL_MEM_OPCODE_CMPE) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE))? (!GEET_CXL_MEM_MV_METAVALUE_SHARED):
-                metavalue == ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode == GEET_CXL_MEM_OPCODE_CMPS) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE))? (GEET_CXL_MEM_MV_METAVALUE_SHARED):
-                metavalue == ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode != GEET_CXL_MEM_OPCODE_CMPE) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP))? (GEET_CXL_MEM_MV_METAVALUE_INVALID):
-                metavalue == ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode != GEET_CXL_MEM_OPCODE_CMPS) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP))? (!GEET_CXL_MEM_MV_METAVALUE_SHARED):
-                m2s_req_seq_item_rcvd.metavalue;
+                ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode == GEET_CXL_MEM_OPCODE_CMPE) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE)) -> (metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY, GEET_CXL_MEM_MV_METAVALUE_INVALID});
+                ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode == GEET_CXL_MEM_OPCODE_CMPS) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE)) -> (metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED});
+                ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode != GEET_CXL_MEM_OPCODE_CMPE) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID});
+                ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode != GEET_CXL_MEM_OPCODE_CMPS) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY, GEET_CXL_MEM_MV_METAVALUE_INVALID});
               }
             );
           end
@@ -11414,7 +11281,7 @@ module tb_top;
             );
           end
         join
-      end else if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_SNPINV) begin        fork 
+      end else if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_SNPINV) begin         
         fork
           begin
             `uvm_do_on_with(
@@ -11960,25 +11827,9 @@ module tb_top;
     `uvm_object_utils(cxl_vseq)
     `uvm_declare_p_sequencer(cxl_cm_vsequencer)
     dev_d2h_req_seq   dev_d2h_req_seq_h;
-    dev_d2h_rsp_seq   dev_d2h_rsp_seq_h;
-    dev_d2h_data_seq  dev_d2h_data_seq_h;
     host_h2d_req_seq  host_h2d_req_seq_h;
-    host_h2d_rsp_seq  host_h2d_rsp_seq_h;
-    host_h2d_data_seq host_h2d_data_seq_h;
     host_m2s_req_seq  host_m2s_req_seq_h;
     host_m2s_rwd_seq  host_m2s_rwd_seq_h;
-    dev_s2m_ndr_seq   dev_s2m_ndr_seq_h;
-    dev_s2m_drs_seq   dev_s2m_drs_seq_h;
-    cxl_base_txn_seq  host_d2h_req_txn_seq_h;
-    cxl_base_txn_seq  host_d2h_rsp_txn_seq_h;
-    cxl_base_txn_seq  host_d2h_data_txn_seq_h;
-    cxl_base_txn_seq  dev_h2d_req_txn_seq_h;
-    cxl_base_txn_seq  dev_h2d_rsp_txn_seq_h;
-    cxl_base_txn_seq  dev_h2d_data_txn_seq_h;
-    cxl_base_txn_seq  dev_m2s_req_txn_seq_h;
-    cxl_base_txn_seq  dev_m2s_rwd_txn_seq_h;
-    cxl_base_txn_seq  dev_s2m_ndr_txn_seq_h;
-    cxl_base_txn_seq  dev_s2m_drs_txn_seq_h;
     cxl_cm_responder_seq cxl_cm_responder_seq_h;
 
     function new(string name = "cxl_vseq");
@@ -11991,31 +11842,13 @@ module tb_top;
           `uvm_do_on(dev_d2h_req_seq_h, p_sequencer.dev_d2h_req_seqr);//requestor seq
         end
         begin
-          `uvm_do_on(dev_d2h_rsp_seq_h, p_sequencer.dev_d2h_rsp_seqr);
-        end
-        begin
-          `uvm_do_on(dev_d2h_data_seq_h, p_sequencer.dev_d2h_data_seqr);
-        end
-        begin
           `uvm_do_on(host_h2d_req_seq_h, p_sequencer.host_h2d_req_seqr);
-        end
-        begin
-          `uvm_do_on(host_h2d_rsp_seq_h, p_sequencer.host_h2d_rsp_seqr);
-        end
-        begin
-          `uvm_do_on(host_h2d_data_seq_h, p_sequencer.host_h2d_data_seqr);
         end
         begin
           `uvm_do_on(host_m2s_req_seq_h, p_sequencer.host_m2s_req_seqr);
         end
         begin
           `uvm_do_on(host_m2s_rwd_seq_h, p_sequencer.host_m2s_rwd_seqr);
-        end
-        begin
-          `uvm_do_on(dev_s2m_ndr_seq_h, p_sequencer.dev_s2m_ndr_seqr);
-        end
-        begin
-          `uvm_do_on(dev_s2m_drs_seq_h, p_sequencer.dev_s2m_drs_seqr);
         end
         begin
           `uvm_do_on(host_d2h_req_seq_h, p_sequencer.host_d2h_req_seqr);
