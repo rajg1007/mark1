@@ -1,3 +1,5 @@
+//TODO: (TBD) credits decoding is pending, but the transmission is done
+//TODO: (TBD) connect credit info from ll to txn layer and wait for credits in driver until you receive credits
 //TODO: (TBD) missing rra logic module is currently blank please refer to the paper
 //TODO: (done/pending/lowpri - lrsm/rrssm integration pending - low priority for now) connection of ack to retry buffer and entry of tx pkt and lrsmrrsm integration to be done
 //TODO: (TBD/lowpri) next focus on 32B size pkt logic 
@@ -4344,7 +4346,14 @@ module host_rx_path #(
   output logic ack,
   output logic ack_ret_val,
   output logic [7:0] ack_ret,
-  output logic init_done
+  output logic init_done,
+  output logic crdt_val,
+  output logic crdt_rsp_cm,
+  output logic crdt_req_cm,
+  output logic crdt_data_cm,
+  output logic [2:0] crdt_rsp,
+  output logic [2:0] crdt_req,
+  output logic [2:0] crdt_data
 );
 
   typedef enum {
@@ -4381,14 +4390,21 @@ module host_rx_path #(
   logic [2:0] ack_count_d;
   logic llcrd_flit;
 
-  assign init_done          = (host_rx_dl_if_d.data[39:36] == 'h8) && (host_rx_dl_if_d.data[35:32] == 'hc) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_frame_detect = (host_rx_dl_if_d.data[39:36] == 'h3) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_idle_detect  = (host_rx_dl_if_d.data[39:36] == 'h0) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_req_detect   = (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_ack_detect   = (host_rx_dl_if_d.data[39:36] == 'h2) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
-  assign llcrd_flit         = (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] == 'h0) && (host_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
-  assign non_retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
-  assign retryable_flit     = (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
+  assign init_done          = (host_rx_dl_if_d.data[39:36] == 'h8) && (host_rx_dl_if_d.data[35:32] == 'hc) && (host_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_frame_detect = (host_rx_dl_if_d.data[39:36] == 'h3) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_idle_detect  = (host_rx_dl_if_d.data[39:36] == 'h0) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_req_detect   = (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_ack_detect   = (host_rx_dl_if_d.data[39:36] == 'h2) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign llcrd_flit         = (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] == 'h0) && (host_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign non_retryable_flit = (retry_idle_detect) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
+  assign retryable_flit     = (!retry_idle_detect) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
+  assign crdt_val           = (llcrd_flit || (host_rx_dl_if_d.data[0] == 'h0)) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign crdt_data_cm       = crdt_val && host_rx_dl_if_d.data[31];
+  assign crdt_data          = crdt_val && host_rx_dl_if_d.data[30:28];
+  assign crdt_req_cm        = crdt_val && host_rx_dl_if_d.data[27];
+  assign crdt_req           = crdt_val && host_rx_dl_if_d.data[26:24];
+  assign crdt_rsp_cm        = crdt_val && host_rx_dl_if_d.data[23];
+  assign crdt_rsp           = crdt_val && host_rx_dl_if_d.data[22:20];
   
   function void header0(
     input logic [511:0] data, 
@@ -5173,16 +5189,16 @@ module host_rx_path #(
       //TODO: not sure if this foreach will initialize for all indeces
       //foreach(data_slot[i]) data_slot[i] <= 'h0;
       //foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
-      data_slot[0] = 'h0;
-      data_slot[1] = 'h0;
-      data_slot[2] = 'h0;
-      data_slot[3] = 'h0;
-      data_slot[4] = 'h0;
-      data_slot_d[0] = 'h0;
-      data_slot_d[1] = 'h0;
-      data_slot_d[2] = 'h0;
-      data_slot_d[3] = 'h0;
-      data_slot_d[4] = 'h0;
+      data_slot[0] <= 'h0;
+      data_slot[1] <= 'h0;
+      data_slot[2] <= 'h0;
+      data_slot[3] <= 'h0;
+      data_slot[4] <= 'h0;
+      data_slot_d[0] <= 'h0;
+      data_slot_d[1] <= 'h0;
+      data_slot_d[2] <= 'h0;
+      data_slot_d[3] <= 'h0;
+      data_slot_d[4] <= 'h0;
       ack <= 'h0;
       ack_count <= 'h0;
       ack_count_d <= 'h0;
@@ -5502,7 +5518,14 @@ module device_rx_path #(
   output logic ack,
   output logic ack_ret_val,
   output logic [7:0] ack_ret,
-  output logic init_done
+  output logic init_done,
+  output logic crdt_val,
+  output logic crdt_rsp_cm,
+  output logic crdt_req_cm,
+  output logic crdt_data_cm,
+  output logic [2:0] crdt_rsp,
+  output logic [2:0] crdt_req,
+  output logic [2:0] crdt_data
 );
 
   typedef enum {
@@ -5544,14 +5567,21 @@ module device_rx_path #(
   logic [2:0] ack_count_d;
   logic llcrd_flit;
 
-  assign init_done          = (dev_rx_dl_if_d.data[39:36] == 'h8) && (dev_rx_dl_if_d.data[35:32] == 'hc) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_frame_detect = (dev_rx_dl_if_d.data[39:36] == 'h3) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_idle_detect  = (dev_rx_dl_if_d.data[39:36] == 'h0) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_req_detect   = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_ack_detect   = (dev_rx_dl_if_d.data[39:36] == 'h2) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
-  assign llcrd_flit         = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] == 'h0) && (dev_rx_dl_if_d.data[0] == 'h1) && (crc_pass_d) && (!crc_fail_d);
-  assign non_retryable_flit = (retry_frame_idle) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
-  assign retryable_flit     = (!retry_frame_idle) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
+  assign init_done          = (dev_rx_dl_if_d.data[39:36] == 'h8) && (dev_rx_dl_if_d.data[35:32] == 'hc) && (dev_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_frame_detect = (dev_rx_dl_if_d.data[39:36] == 'h3) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_idle_detect  = (dev_rx_dl_if_d.data[39:36] == 'h0) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_req_detect   = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_ack_detect   = (dev_rx_dl_if_d.data[39:36] == 'h2) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign llcrd_flit         = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] == 'h0) && (dev_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign non_retryable_flit = (retry_idle_detect) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
+  assign retryable_flit     = (!retry_idle_detect) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
+  assign crdt_val           = (llcrd_flit || (host_rx_dl_if_d.data[0] == 'h0)) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign crdt_data_cm       = crdt_val && host_rx_dl_if_d.data[31];
+  assign crdt_data          = crdt_val && host_rx_dl_if_d.data[30:28];
+  assign crdt_req_cm        = crdt_val && host_rx_dl_if_d.data[27];
+  assign crdt_req           = crdt_val && host_rx_dl_if_d.data[26:24];
+  assign crdt_rsp_cm        = crdt_val && host_rx_dl_if_d.data[23];
+  assign crdt_rsp           = crdt_val && host_rx_dl_if_d.data[22:20];
   
   function void header0(
     input logic [511:0] data,
@@ -6954,6 +6984,13 @@ module cxl_host
     cxl_host_rx_dl_if.rx_mp host_rx_dl_if
   );
 
+  logic crdt_val;
+  logic crdt_rsp_cm;
+  logic crdt_req_cm;
+  logic crdt_data_cm;
+  logic [2:0] crdt_rsp;
+  logic [2:0] crdt_req;
+  logic [2:0] crdt_dat;
   int d2h_req_occ;
   int d2h_rsp_occ;
   int d2h_data_occ;
@@ -7008,6 +7045,93 @@ module cxl_host
   logic ack_ret_val;
   logic [7:0] ack_ret;
   logic init_done;
+  logic m2s_req_full;
+  logic m2s_rwd_full;
+  logic h2d_req_full;
+  logic h2d_rsp_full;
+  logic h2d_data_full;
+  int curr_c_crdt_rsp_cnt;
+  int curr_m_crdt_rsp_cnt;
+  int curr_c_crdt_req_cnt;
+  int curr_m_crdt_req_cnt;
+  int curr_c_crdt_data_cnt;
+  int curr_m_crdt_data_cnt;
+
+  always@(posedge host_m2s_req_if.clk) begin
+    if(!host_m2s_req_if.rstn) begin
+      curr_c_crdt_req_cnt <= 'h0;
+    end else begin
+      if(host_m2s_req_if.m2s_req_txn.valid && ((!crdt_val) || (crdt_val && crdt_req_cm) || (crdt_val && crdt_req_cm && (crdt_req == 0)))) begin
+        curr_c_crdt_req_cnt <= curr_c_crdt_req_cnt - host_m2s_req_if.m2s_req_txn.valid;
+      end else if(!host_m2s_req_if.m2s_req_txn.valid && (crdt_val && !crdt_req_cm && (crdt_req != 0))) begin
+        curr_c_crdt_req_cnt <= curr_c_crdt_req_cnt + ((crdt_req == 'd1)? 'd1: (crdt_req == 'd2)? 'd2: (crdt_req == 'd3)? 'd4: (crdt_req == 'd4)? 'd8: (crdt_req == 'd5)? 'd16: (crdt_req == 'd6)? 'd32: (crdt_req == 'd7)? 'd64: 'hX);
+      end else if(host_m2s_req_if.m2s_req_txn.valid && (crdt_val && !crdt_req_cm && (crdt_req != 0))) begin
+        curr_c_crdt_req_cnt <= curr_c_crdt_req_cnt - host_m2s_req_if.m2s_req_txn.valid + ((crdt_req == 'd1)? 'd1: (crdt_req == 'd2)? 'd2: (crdt_req == 'd3)? 'd4: (crdt_req == 'd4)? 'd8: (crdt_req == 'd5)? 'd16: (crdt_req == 'd6)? 'd32: (crdt_req == 'd7)? 'd64: 'hX);
+      end
+    end
+  end
+  
+  always@(posedge host_m2s_rwd_if.clk) begin
+    if(!host_m2s_rwd_if.rstn) begin
+      curr_c_crdt_data_cnt <= 'h0;
+    end else begin
+      if(host_m2s_rwd_if.m2s_rwd_txn.valid && ((!crdt_val) || (crdt_val && crdt_data_cm) || (crdt_val && crdt_data_cm && (crdt_data == 0)))) begin
+        curr_c_crdt_data_cnt <= curr_c_crdt_data_cnt - host_m2s_rwd_if.m2s_rwd_txn.valid;
+      end else if(!host_m2s_rwd_if.m2s_rwd_txn.valid && (crdt_val && !crdt_data_cm && (crdt_data != 0))) begin
+        curr_c_crdt_data_cnt <= curr_c_crdt_data_cnt + ((crdt_data == 'd1)? 'd1: (crdt_data == 'd2)? 'd2: (crdt_data == 'd3)? 'd4: (crdt_data == 'd4)? 'd8: (crdt_data == 'd5)? 'd16: (crdt_data == 'd6)? 'd32: (crdt_data == 'd7)? 'd64: 'hX);
+      end else if(host_m2s_rwd_if.m2s_rwd_txn.valid && (crdt_val && !crdt_data_cm && (crdt_data != 0))) begin
+        curr_c_crdt_data_cnt <= curr_c_crdt_data_cnt - host_m2s_rwd_if.m2s_rwd_txn.valid + ((crdt_data == 'd1)? 'd1: (crdt_data == 'd2)? 'd2: (crdt_data == 'd3)? 'd4: (crdt_data == 'd4)? 'd8: (crdt_data == 'd5)? 'd16: (crdt_data == 'd6)? 'd32: (crdt_data == 'd7)? 'd64: 'hX);
+      end
+    end
+  end
+
+  always@(posedge host_h2d_rsp_if.clk) begin
+    if(!host_h2d_rsp_if.rstn) begin
+      curr_c_crdt_rsp_cnt <= 'h0;
+    end else begin
+      if(host_h2d_rsp_if.h2d_rsp_txn.valid && ((!crdt_val) || (crdt_val && crdt_rsp_cm) || (crdt_val && crdt_rsp_cm && (crdt_rsp == 0)))) begin
+        curr_c_crdt_rsp_cnt <= curr_c_crdt_rsp_cnt - host_h2d_rsp_if.h2d_rsp_txn.valid;
+      end else if(!host_h2d_rsp_if.h2d_rsp_txn.valid && (crdt_val && !crdt_rsp_cm && (crdt_rsp != 0))) begin
+        curr_c_crdt_rsp_cnt <= curr_c_crdt_rsp_cnt + ((crdt_rsp == 'd1)? 'd1: (crdt_rsp == 'd2)? 'd2: (crdt_rsp == 'd3)? 'd4: (crdt_rsp == 'd4)? 'd8: (crdt_rsp == 'd5)? 'd16: (crdt_rsp == 'd6)? 'd32: (crdt_rsp == 'd7)? 'd64: 'hX);
+      end else if(host_h2d_rsp_if.h2d_rsp_txn.valid && (crdt_val && !crdt_rsp_cm && (crdt_rsp != 0))) begin
+        curr_c_crdt_rsp_cnt <= curr_c_crdt_rsp_cnt - host_h2d_rsp_if.h2d_rsp_txn.valid + ((crdt_rsp == 'd1)? 'd1: (crdt_rsp == 'd2)? 'd2: (crdt_rsp == 'd3)? 'd4: (crdt_rsp == 'd4)? 'd8: (crdt_rsp == 'd5)? 'd16: (crdt_rsp == 'd6)? 'd32: (crdt_rsp == 'd7)? 'd64: 'hX);
+      end
+    end
+  end
+
+  always@(posedge host_h2d_req_if.clk) begin
+    if(!host_h2d_req_if.rstn) begin
+      curr_c_crdt_req_cnt <= 'h0;
+    end else begin
+      if(host_h2d_req_if.h2d_req_txn.valid && ((!crdt_val) || (crdt_val && crdt_req_cm) || (crdt_val && crdt_req_cm && (crdt_req == 0)))) begin
+        curr_c_crdt_req_cnt <= curr_c_crdt_req_cnt - host_h2d_req_if.h2d_req_txn.valid;
+      end else if(!host_h2d_req_if.h2d_req_txn.valid && (crdt_val && !crdt_req_cm && (crdt_req != 0))) begin
+        curr_c_crdt_req_cnt <= curr_c_crdt_req_cnt + ((crdt_req == 'd1)? 'd1: (crdt_req == 'd2)? 'd2: (crdt_req == 'd3)? 'd4: (crdt_req == 'd4)? 'd8: (crdt_req == 'd5)? 'd16: (crdt_req == 'd6)? 'd32: (crdt_req == 'd7)? 'd64: 'hX);
+      end else if(host_h2d_req_if.h2d_req_txn.valid && (crdt_val && !crdt_req_cm && (crdt_req != 0))) begin
+        curr_c_crdt_req_cnt <= curr_c_crdt_req_cnt - host_h2d_req_if.h2d_req_txn.valid + ((crdt_req == 'd1)? 'd1: (crdt_req == 'd2)? 'd2: (crdt_req == 'd3)? 'd4: (crdt_req == 'd4)? 'd8: (crdt_req == 'd5)? 'd16: (crdt_req == 'd6)? 'd32: (crdt_req == 'd7)? 'd64: 'hX);
+      end
+    end
+  end
+
+  always@(posedge host_h2d_data_if.clk) begin
+    if(!host_h2d_data_if.rstn) begin
+      curr_c_crdt_data_cnt <= 'h0;
+    end else begin
+      if(host_h2d_data_if.h2d_data_txn.valid && ((!crdt_val) || (crdt_val && crdt_data_cm) || (crdt_val && crdt_data_cm && (crdt_data == 0)))) begin
+        curr_c_crdt_data_cnt <= curr_c_crdt_data_cnt - host_h2d_data_if.h2d_data_txn.valid;
+      end else if(!host_h2d_data_if.h2d_data_txn.valid && (crdt_val && !crdt_data_cm && (crdt_data != 0))) begin
+        curr_c_crdt_data_cnt <= curr_c_crdt_data_cnt + ((crdt_data == 'd1)? 'd1: (crdt_data == 'd2)? 'd2: (crdt_data == 'd3)? 'd4: (crdt_data == 'd4)? 'd8: (crdt_data == 'd5)? 'd16: (crdt_data == 'd6)? 'd32: (crdt_data == 'd7)? 'd64: 'hX);
+      end else if(host_h2d_data_if.h2d_data_txn.valid && (crdt_val && !crdt_data_cm && (crdt_data != 0))) begin
+        curr_c_crdt_data_cnt <= curr_c_crdt_data_cnt - host_h2d_data_if.h2d_data_txn.valid + ((crdt_data == 'd1)? 'd1: (crdt_data == 'd2)? 'd2: (crdt_data == 'd3)? 'd4: (crdt_data == 'd4)? 'd8: (crdt_data == 'd5)? 'd16: (crdt_data == 'd6)? 'd32: (crdt_data == 'd7)? 'd64: 'hX);
+      end
+    end
+  end
+
+  assign host_m2s_req_if.ready = (!m2s_req_full) && (curr_m_crdt_req_cnt != 0);
+  assign host_m2s_rwd_if.ready = (!m2s_rwd_full) && (curr_m_crdt_data_cnt != 0);
+  assign host_h2d_req_if.ready = (!h2d_req_full) && (curr_c_crdt_req_cnt != 0);
+  assign host_h2d_rsp_if.ready = (!h2d_rsp_full) && (curr_c_crdt_rsp_cnt != 0);
+  assign host_h2d_data_if.ready = (!h2d_data_full) && (curr_c_crdt_data_cnt != 0);
 
   buffer d2h_req_fifo_inst#(
     DEPTH = 32,
@@ -7152,7 +7276,7 @@ module cxl_host
   	.eseq,
   	.wptr,
   	.empty,
-    .full(!host_m2s_req_if.ready),
+    .full(m2s_req_full),
   	.undrflw,
   	.ovrflw,
   	.near_full,
@@ -7177,7 +7301,7 @@ module cxl_host
   	.eseq,
   	.wptr,
   	.empty,
-    .full(!host_m2s_rwd_if.ready),
+    .full(m2s_rwd_full),
   	.undrflw,
   	.ovrflw,
   	.near_full,
@@ -7202,7 +7326,7 @@ module cxl_host
   	.eseq,
   	.wptr,
   	.empty,
-    .full(!host_h2d_req_if.ready),
+    .full(h2d_req_full),
   	.undrflw,
   	.ovrflw,
   	.near_full,
@@ -7227,7 +7351,7 @@ module cxl_host
   	.eseq,
   	.wptr,
   	.empty,
-    .full(!host_h2d_rsp_if.ready),
+    .full(h2d_rsp_full),
   	.undrflw,
   	.ovrflw,
   	.near_full,
@@ -7252,7 +7376,7 @@ module cxl_host
   	.eseq,
   	.wptr,
   	.empty,
-    .full(!host_h2d_data_if.ready),
+    .full(h2d_data_full),
   	.undrflw,
   	.ovrflw,
   	.near_full,
@@ -7297,6 +7421,13 @@ module cxl_device
     cxl_dev_rx_dl_if.rx_mp dev_rx_dl_if
 );
 
+  logic crdt_val;
+  logic crdt_rsp_cm;
+  logic crdt_req_cm;
+  logic crdt_data_cm;
+  logic [2:0] crdt_rsp;
+  logic [2:0] crdt_req;
+  logic [2:0] crdt_dat;
   int h2d_req_occ;
   int h2d_rsp_occ;
   int h2d_data_occ;
@@ -7361,6 +7492,93 @@ module cxl_device
   logic ack_ret_val;
   logic [7:0] ack_ret;
   logic init_done;
+  logic s2m_ndr_full;
+  logic s2m_drs_full;
+  logic d2h_req_full;
+  logic d2h_rsp_full;
+  logic d2h_data_full;
+  int curr_c_crdt_rsp_cnt;
+  int curr_m_crdt_rsp_cnt;
+  int curr_c_crdt_req_cnt;
+  int curr_m_crdt_req_cnt;
+  int curr_c_crdt_data_cnt;
+  int curr_m_crdt_data_cnt;
+
+  always@(posedge dev_s2m_ndr_if.clk) begin
+    if(!dev_s2m_ndr_if.rstn) begin
+      curr_c_crdt_rsp_cnt <= 'h0;
+    end else begin
+      if(dev_s2m_ndr_if.s2m_ndr_txn.valid && ((!crdt_val) || (crdt_val && crdt_rsp_cm) || (crdt_val && crdt_rsp_cm && (crdt_rsp == 0)))) begin
+        curr_c_crdt_rsp_cnt <= curr_c_crdt_rsp_cnt - dev_s2m_ndr_if.s2m_ndr_txn.valid;
+      end else if(!dev_s2m_ndr_if.s2m_ndr_txn.valid && (crdt_val && !crdt_rsp_cm && (crdt_rsp != 0))) begin
+        curr_c_crdt_rsp_cnt <= curr_c_crdt_rsp_cnt + ((crdt_rsp == 'd1)? 'd1: (crdt_rsp == 'd2)? 'd2: (crdt_rsp == 'd3)? 'd4: (crdt_rsp == 'd4)? 'd8: (crdt_rsp == 'd5)? 'd16: (crdt_rsp == 'd6)? 'd32: (crdt_rsp == 'd7)? 'd64: 'hX);
+      end else if(dev_s2m_ndr_if.s2m_ndr_txn.valid && (crdt_val && !crdt_rsp_cm && (crdt_rsp != 0))) begin
+        curr_c_crdt_rsp_cnt <= curr_c_crdt_rsp_cnt - dev_s2m_ndr_if.s2m_ndr_txn.valid + ((crdt_rsp == 'd1)? 'd1: (crdt_rsp == 'd2)? 'd2: (crdt_rsp == 'd3)? 'd4: (crdt_rsp == 'd4)? 'd8: (crdt_rsp == 'd5)? 'd16: (crdt_rsp == 'd6)? 'd32: (crdt_rsp == 'd7)? 'd64: 'hX);
+      end
+    end
+  end
+  
+  always@(posedge dev_s2m_drs_if.clk) begin
+    if(!dev_s2m_drs_if.rstn) begin
+      curr_c_crdt_data_cnt <= 'h0;
+    end else begin
+      if(dev_s2m_drs_if.s2m_drs_txn.valid && ((!crdt_val) || (crdt_val && crdt_data_cm) || (crdt_val && crdt_data_cm && (crdt_data == 0)))) begin
+        curr_c_crdt_data_cnt <= curr_c_crdt_data_cnt - dev_s2m_drs_if.s2m_drs_txn.valid;
+      end else if(!dev_s2m_drs_if.s2m_drs_txn.valid && (crdt_val && !crdt_data_cm && (crdt_data != 0))) begin
+        curr_c_crdt_data_cnt <= curr_c_crdt_data_cnt + ((crdt_data == 'd1)? 'd1: (crdt_data == 'd2)? 'd2: (crdt_data == 'd3)? 'd4: (crdt_data == 'd4)? 'd8: (crdt_data == 'd5)? 'd16: (crdt_data == 'd6)? 'd32: (crdt_data == 'd7)? 'd64: 'hX);
+      end else if(dev_s2m_drs_if.s2m_drs_txn.valid && (crdt_val && !crdt_data_cm && (crdt_data != 0))) begin
+        curr_c_crdt_data_cnt <= curr_c_crdt_data_cnt - dev_s2m_drs_if.s2m_drs_txn.valid + ((crdt_data == 'd1)? 'd1: (crdt_data == 'd2)? 'd2: (crdt_data == 'd3)? 'd4: (crdt_data == 'd4)? 'd8: (crdt_data == 'd5)? 'd16: (crdt_data == 'd6)? 'd32: (crdt_data == 'd7)? 'd64: 'hX);
+      end
+    end
+  end
+  
+  always@(posedge dev_d2h_rsp_if.clk) begin
+    if(!dev_d2h_rsp_if.rstn) begin
+      curr_c_crdt_rsp_cnt <= 'h0;
+    end else begin
+      if(dev_d2h_rsp_if.d2h_rsp_txn.valid && ((!crdt_val) || (crdt_val && crdt_rsp_cm) || (crdt_val && crdt_rsp_cm && (crdt_rsp == 0)))) begin
+        curr_c_crdt_rsp_cnt <= curr_c_crdt_rsp_cnt - dev_d2h_rsp_if.d2h_rsp_txn.valid;
+      end else if(!dev_d2h_rsp_if.d2h_rsp_txn.valid && (crdt_val && !crdt_rsp_cm && (crdt_rsp != 0))) begin
+        curr_c_crdt_rsp_cnt <= curr_c_crdt_rsp_cnt + ((crdt_rsp == 'd1)? 'd1: (crdt_rsp == 'd2)? 'd2: (crdt_rsp == 'd3)? 'd4: (crdt_rsp == 'd4)? 'd8: (crdt_rsp == 'd5)? 'd16: (crdt_rsp == 'd6)? 'd32: (crdt_rsp == 'd7)? 'd64: 'hX);
+      end else if(dev_d2h_rsp_if.d2h_rsp_txn.valid && (crdt_val && !crdt_rsp_cm && (crdt_rsp != 0))) begin
+        curr_c_crdt_rsp_cnt <= curr_c_crdt_rsp_cnt - dev_d2h_rsp_if.d2h_rsp_txn.valid + ((crdt_rsp == 'd1)? 'd1: (crdt_rsp == 'd2)? 'd2: (crdt_rsp == 'd3)? 'd4: (crdt_rsp == 'd4)? 'd8: (crdt_rsp == 'd5)? 'd16: (crdt_rsp == 'd6)? 'd32: (crdt_rsp == 'd7)? 'd64: 'hX);
+      end
+    end
+  end
+
+  always@(posedge dev_d2h_req_if.clk) begin
+    if(!dev_d2h_req_if.rstn) begin
+      curr_c_crdt_req_cnt <= 'h0;
+    end else begin
+      if(dev_d2h_req_if.d2h_req_txn.valid && ((!crdt_val) || (crdt_val && crdt_req_cm) || (crdt_val && crdt_req_cm && (crdt_req == 0)))) begin
+        curr_c_crdt_req_cnt <= curr_c_crdt_req_cnt - dev_d2h_req_if.d2h_req_txn.valid;
+      end else if(!dev_d2h_req_if.d2h_req_txn.valid && (crdt_val && !crdt_req_cm && (crdt_req != 0))) begin
+        curr_c_crdt_req_cnt <= curr_c_crdt_req_cnt + ((crdt_req == 'd1)? 'd1: (crdt_req == 'd2)? 'd2: (crdt_req == 'd3)? 'd4: (crdt_req == 'd4)? 'd8: (crdt_req == 'd5)? 'd16: (crdt_req == 'd6)? 'd32: (crdt_req == 'd7)? 'd64: 'hX);
+      end else if(dev_d2h_req_if.d2h_req_txn.valid && (crdt_val && !crdt_req_cm && (crdt_req != 0))) begin
+        curr_c_crdt_req_cnt <= curr_c_crdt_req_cnt - dev_d2h_req_if.d2h_req_txn.valid + ((crdt_req == 'd1)? 'd1: (crdt_req == 'd2)? 'd2: (crdt_req == 'd3)? 'd4: (crdt_req == 'd4)? 'd8: (crdt_req == 'd5)? 'd16: (crdt_req == 'd6)? 'd32: (crdt_req == 'd7)? 'd64: 'hX);
+      end
+    end
+  end
+
+  always@(posedge dev_d2h_data_if.clk) begin
+    if(!dev_d2h_data_if.rstn) begin
+      curr_c_crdt_data_cnt <= 'h0;
+    end else begin
+      if(dev_d2h_data_if.d2h_data_txn.valid && ((!crdt_val) || (crdt_val && crdt_data_cm) || (crdt_val && crdt_data_cm && (crdt_data == 0)))) begin
+        curr_c_crdt_data_cnt <= curr_c_crdt_data_cnt - dev_d2h_data_if.d2h_data_txn.valid;
+      end else if(!dev_d2h_data_if.d2h_data_txn.valid && (crdt_val && !crdt_data_cm && (crdt_data != 0))) begin
+        curr_c_crdt_data_cnt <= curr_c_crdt_data_cnt + ((crdt_data == 'd1)? 'd1: (crdt_data == 'd2)? 'd2: (crdt_data == 'd3)? 'd4: (crdt_data == 'd4)? 'd8: (crdt_data == 'd5)? 'd16: (crdt_data == 'd6)? 'd32: (crdt_data == 'd7)? 'd64: 'hX);
+      end else if(dev_d2h_data_if.d2h_data_txn.valid && (crdt_val && !crdt_data_cm && (crdt_data != 0))) begin
+        curr_c_crdt_data_cnt <= curr_c_crdt_data_cnt - dev_d2h_data_if.d2h_data_txn.valid + ((crdt_data == 'd1)? 'd1: (crdt_data == 'd2)? 'd2: (crdt_data == 'd3)? 'd4: (crdt_data == 'd4)? 'd8: (crdt_data == 'd5)? 'd16: (crdt_data == 'd6)? 'd32: (crdt_data == 'd7)? 'd64: 'hX);
+      end
+    end
+  end
+
+  assign dev_s2m_ndr_if.ready = (!s2m_ndr_full) && (curr_m_crdt_rsp_cnt != 0);
+  assign dev_s2m_drs_if.ready = (!s2m_drs_full) && (curr_m_crdt_data_cnt != 0);
+  assign dev_d2h_req_if.ready = (!d2h_req_full) && (curr_c_crdt_req_cnt != 0);
+  assign dev_d2h_rsp_if.ready = (!d2h_rsp_full) && (curr_c_crdt_rsp_cnt != 0);
+  assign dev_d2h_data_if.ready = (!d2h_data_full) && (curr_c_crdt_data_cnt != 0);
 
   buffer d2h_req_fifo_inst#(
     DEPTH = 32,
@@ -7382,7 +7600,7 @@ module cxl_device
   	.eseq,
   	.wptr,
   	.empty,
-  	.full(!dev_d2h_req_if.ready),
+  	.full(d2h_req_full),
   	.undrflw,
   	.ovrflw,
   	.near_full,
@@ -7409,7 +7627,7 @@ module cxl_device
   	.eseq,
   	.wptr,
   	.empty,
-  	.full(!dev_d2h_rsp_if.ready),
+  	.full(d2h_rsp_full),
   	.undrflw,
   	.ovrflw,
   	.near_full,
@@ -7436,7 +7654,7 @@ module cxl_device
   	.eseq,
   	.wptr,
   	.empty,
-  	.full(!dev_d2h_data_if.ready),
+  	.full(d2h_data_full),
   	.undrflw,
   	.ovrflw,
   	.near_full,
@@ -7463,7 +7681,7 @@ module cxl_device
   	.eseq,
   	.wptr,
   	.empty,
-  	.full(!dev_s2m_ndr_if.ready),
+  	.full(s2m_ndr_full),
   	.undrflw,
   	.ovrflw,
   	.near_full,
@@ -7490,7 +7708,7 @@ module cxl_device
   	.eseq,
   	.wptr,
   	.empty,
-  	.full(!dev_s2m_drs_if.ready),
+  	.full(s2m_drs_full),
   	.undrflw,
   	.ovrflw,
   	.near_full,
@@ -10929,30 +11147,22 @@ module tb_top;
 
   class cxl_base_txn_seq extends uvm_sequence;
     `uvm_object_utils(cxl_base_txn_seq)
+    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
     rand num_trans;
     rand cxl_base_txn_seq_item cxl_base_txn_seq_item_h[];
 
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
-      cxl_base_txn_seq_item.size == num_trans;
-      solve num_trans before cxl_base_txn_seq_item_h;
     }
 
     function new(string name = "cxl_base_txn_seq");
       super.new(name);
     endfunction
 
-    task body();
-      foreach(cxl_base_txn_seq_item_h[i]) begin
-        `uvm_do(cxl_base_txn_seq_item_h[i]);
-      end 
-    endtask
-
   endclass
 
-  class dev_d2h_req_seq extends uvm_sequence;
+  class dev_d2h_req_seq extends cxl_base_txn_seq;
     `uvm_object_utils(dev_d2h_req_seq)
-    rand int num_trans;
     rand d2h_req_seq_item d2h_req_seq_item_h[];
 
     constraint num_of_trans_c{
@@ -10967,15 +11177,14 @@ module tb_top;
 
     task body();
       foreach(d2h_req_seq_item_h[i]) begin
-        `uvm_do(d2h_req_seq_item_h[i]);
+        `uvm_do_on(d2h_req_seq_item_h[i], p_sequencer.dev_d2h_req_seqr);
       end
     endtask
 
   endclass
 
-  class host_h2d_req_seq extends uvm_sequence;
+  class host_h2d_req_seq extends cxl_base_txn_seq;
     `uvm_object_utils(host_h2d_req_seq)
-    rand int num_trans;
     rand h2d_req_seq_item h2d_req_seq_item_h[];
 
     constraint num_of_trans_c{
@@ -10990,15 +11199,14 @@ module tb_top;
 
     task body();
       foreach(h2d_req_seq_item_h[i]) begin
-        `uvm_do(h2d_req_seq_item_h[i]);
+        `uvm_do_on(h2d_req_seq_item_h[i], p_sequencer.host_h2d_req_seqr);
       end
     endtask
 
   endclass
 
-  class host_m2s_req_seq extends uvm_sequence;
+  class host_m2s_req_seq extends cxl_base_txn_seq;
     `uvm_object_utils(host_m2s_req_seq)
-    rand int num_trans;
     rand m2s_req_seq_item m2s_req_seq_item_h[];
 
     constraint num_of_trans_c{
@@ -11013,15 +11221,14 @@ module tb_top;
 
     task body();
       foreach(m2s_req_seq_item_h[i]) begin
-        `uvm_do(m2s_req_seq_item_h[i]);
+        `uvm_do_on(m2s_req_seq_item_h[i], p_sequencer.host_m2s_req_seqr);
       end
     endtask
 
   endclass
 
-  class host_m2s_rwd_seq extends uvm_sequence;
+  class host_m2s_rwd_seq extends cxl_base_txn_seq;
     `uvm_object_utils(host_m2s_rwd_seq)
-    rand int num_trans;
     rand m2s_rwd_seq_item m2s_rwd_seq_item_h[];
 
     constraint num_of_trans_c{
@@ -11036,7 +11243,7 @@ module tb_top;
 
     task body();
       foreach(m2s_rwd_seq_item_h[i]) begin
-        `uvm_do(m2s_rwd_seq_item_h[i]);
+        `uvm_do_on(m2s_rwd_seq_item_h[i], p_sequencer.host_m2s_rwd_seqr);
       end
     endtask
 
@@ -11343,6 +11550,7 @@ module tb_top;
 
     task d2h_req_responder_h2d_rsp_data();
       //TODO: HDM-D needs to be defined in cfg like address map partitions
+      //TODO: these FWD flows conflict with normal mem traffic and corrupt traffic look into how to get exclusive access to driver when it does uvm do
       d2h_req_seq_item_rcvd = p_sequencer.host_d2h_req_seqr.host_d2h_req_fifo.get();
       if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDCURR}) begin
 //remember rdcurr doesnt give any response only data
@@ -11839,46 +12047,16 @@ module tb_top;
     task body();
       fork 
         begin
-          `uvm_do_on(dev_d2h_req_seq_h, p_sequencer.dev_d2h_req_seqr);//requestor seq
+          `uvm_do_on(dev_d2h_req_seq_h, p_sequencer);
         end
         begin
-          `uvm_do_on(host_h2d_req_seq_h, p_sequencer.host_h2d_req_seqr);
+          `uvm_do_on(host_h2d_req_seq_h, p_sequencer);
         end
         begin
-          `uvm_do_on(host_m2s_req_seq_h, p_sequencer.host_m2s_req_seqr);
+          `uvm_do_on(host_m2s_req_seq_h, p_sequencer);
         end
         begin
-          `uvm_do_on(host_m2s_rwd_seq_h, p_sequencer.host_m2s_rwd_seqr);
-        end
-        begin
-          `uvm_do_on(host_d2h_req_seq_h, p_sequencer.host_d2h_req_seqr);
-        end
-        begin
-          `uvm_do_on(host_d2h_rsp_seq_h, p_sequencer.host_d2h_rsp_seqr);
-        end
-        begin
-          `uvm_do_on(host_d2h_data_seq_h, p_sequencer.host_d2h_data_seqr);
-        end
-        begin
-          `uvm_do_on(dev_h2d_req_seq_h, p_sequencer.dev_h2d_req_seqr);
-        end
-        begin
-          `uvm_do_on(dev_h2d_rsp_seq_h, p_sequencer.dev_h2d_rsp_seqr);
-        end
-        begin
-          `uvm_do_on(dev_h2d_data_seq_h, p_sequencer.dev_h2d_data_seqr);
-        end
-        begin
-          `uvm_do_on(dev_m2s_req_seq_h, p_sequencer.dev_m2s_req_seqr);
-        end
-        begin
-          `uvm_do_on(dev_m2s_rwd_seq_h, p_sequencer.dev_m2s_rwd_seqr);
-        end
-        begin
-          `uvm_do_on(host_s2m_drs_seq_h, p_sequencer.host_s2m_drs_seqr);
-        end
-        begin
-          `uvm_do_on(host_s2m_ndr_seq_h, p_sequencer.host_s2m_ndr_seqr);
+          `uvm_do_on(host_m2s_rwd_seq_h, p_sequencer);
         end
         begin
           `uvm_do_on(cxl_cm_responder_seq_h, p_sequencer);
