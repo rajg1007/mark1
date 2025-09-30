@@ -1,5 +1,6 @@
-//TODO: (TBD) credits decoding is pending, but the transmission is done
-//TODO: (TBD) connect credit info from ll to txn layer and wait for credits in driver until you receive credits
+//TODO: (done) create config files for diff configs like hdm d h
+//TODO: (done) credits decoding is pending, but the transmission is done
+//TODO: (done) connect credit info from ll to txn layer and wait for credits in driver until you receive credits
 //TODO: (TBD) missing rra logic module is currently blank please refer to the paper
 //TODO: (done/pending/lowpri - lrsm/rrssm integration pending - low priority for now) connection of ack to retry buffer and entry of tx pkt and lrsmrrsm integration to be done
 //TODO: (TBD/lowpri) next focus on 32B size pkt logic 
@@ -231,6 +232,11 @@ typedef struct{
   logic [3:0] pending_data_slot;
   s2m_drs_txn_t s2m_drs_txn;
 } s2m_drs_pkt_t;
+
+typedef enum {
+  GEET_CXL_HDM_H,
+  GEET_CXL_HDM_D
+} hdm_t;
 
 endpackage
 
@@ -3017,8 +3023,8 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_rsp_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_rsp_crdt_send > 0)? ({1'h0, h2d_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= h2d_rsp_crdt_send;
+                holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0//TBD: req crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= d2h_data_dataout.valid;
                 holding_q[holding_wrptr].data[44:33]    <= d2h_data_dataout.uqid;
@@ -3079,8 +3085,8 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_rsp_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_rsp_crdt_send > 0)? ({1'h0, h2d_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[32]       <= d2h_req_dataout.valid;
                 holding_q[holding_wrptr].data[37:33]    <= d2h_req_dataout.opcode;
@@ -3133,8 +3139,8 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_rsp_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_rsp_crdt_send > 0)? ({1'h0, h2d_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
                 holding_q[holding_wrptr].data[32]       <= d2h_data_dataout.valid;
                 holding_q[holding_wrptr].data[44:33]    <= d2h_data_dataout.uqid;
@@ -3235,8 +3241,8 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_rsp_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_rsp_crdt_send > 0)? ({1'h0, h2d_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
                 holding_q[holding_wrptr].data[32]       <= s2m_drs_dataout.valid;
                 holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.memopcode;
@@ -3290,8 +3296,8 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_rsp_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_rsp_crdt_send > 0)? ({1'h0, h2d_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
                 holding_q[holding_wrptr].data[32]       <= s2m_ndr_dataout.valid;
                 holding_q[holding_wrptr].data[35:33]    <= s2m_ndr_dataout.memopcode;
@@ -3326,8 +3332,8 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_rsp_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_rsp_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_rsp_crdt_send > 0)? ({1'h0, h2d_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= h2d_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[23:20]    <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;;//TBD: req crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
                 holding_q[holding_wrptr].data[32]       <= s2m_drs_dataout.valid;
                 holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.memopcode;
@@ -7930,6 +7936,16 @@ module tb_top;
     run_test("cxl_base_test");
   end
 
+  class cxl_cfg_obj extends uvm_object;
+    `uvm_object_utils(cxl_cfg_obj)
+    rand hdm_t hdm;
+
+    function new(string name = "cxl_cfg_obj");
+      super.new(name);
+    endfunction
+
+  endclass
+
   class crdt_seq_item extends uvm_sequence_item;
     `uvm_object_utils(crdt_seq_item)
     int req_crdt;
@@ -11049,6 +11065,7 @@ module tb_top;
     host_s2m_ndr_agent      host_s2m_ndr_agent_h;
     host_s2m_drs_agent      host_s2m_drs_agent_h;
     cxl_cm_vsequencer       cxl_cm_vseqr;
+    cxl_cfg_obj             cxl_cfg_obj_h;
 
     function new(string name = "cxl_cm_env", uvm_component parent = null);
       super.new(name, parent);
@@ -11056,6 +11073,9 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      cxl_cfg_obj_h         = cxl_cfg_obj::type_id::create("cxl_cfg_obj_h", this);
+      cxl_cfg_obj_h.randomize();
+      uvm_config_db#(cxl_cfg_obj)::set(this, "*", "cxl_cfg_obj_h", cxl_cfg_obj_h);
       host_d2h_req_agent_h  = host_d2h_req_agent::type_id::create("host_d2h_req_agent_h", this);
       host_d2h_rsp_agent_h  = host_d2h_rsp_agent::type_id::create("host_d2h_rsp_agent_h", this);
       host_d2h_data_agent_h = host_d2h_data_agent::type_id::create("host_d2h_data_agent_h", this);
@@ -11253,6 +11273,7 @@ module tb_top;
   class cxl_cm_responder_seq extends uvm_sequence;
     `uvm_object_utils(cxl_cm_responder_seq)
     `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    cxl_cfg_obj cxl_cfg_obj_h;
     h2d_req_seq_item h2d_req_seq_item_h;
     h2d_rsp_seq_item h2d_rsp_seq_item_h;
     h2d_data_seq_item h2d_data_seq_item_h;
@@ -11279,6 +11300,9 @@ module tb_top;
     endfunction
     
     task body();
+      if(!uvm_config_db#(cxl_cfg_obj)::get(this, "", "cxl_cfg_obj_h", cxl_cfg_obj_h)) begin
+        `uvm_fatal("CXL_CFG_OBJ", "cxl_cfg_obj not found")
+      end
       fork 
         begin
           forever begin
@@ -11554,7 +11578,7 @@ module tb_top;
       d2h_req_seq_item_rcvd = p_sequencer.host_d2h_req_seqr.host_d2h_req_fifo.get();
       if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDCURR}) begin
 //remember rdcurr doesnt give any response only data
-        if(HDM_H) begin
+        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
           fork 
           begin
 /*        
@@ -11585,7 +11609,7 @@ module tb_top;
             end
           end
           join
-        end else if(HDM_D) begin
+        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           `uvm_do_on_with(
             m2s_req_seq_item_h,
             p_sequencer.host_m2s_req_seqr,
@@ -11600,7 +11624,7 @@ module tb_top;
           );
         end
       end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDOWN}) begin
-        if(HDM_H) begin
+        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
           fork 
           begin
             `uvm_do_on_with(
@@ -11625,7 +11649,7 @@ module tb_top;
             );
           end
           join
-        end else if(HDM_D) begin
+        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           `uvm_do_on_with(
             m2s_req_seq_item_h,
             p_sequencer.host_m2s_req_seqr,
@@ -11641,7 +11665,7 @@ module tb_top;
           );
         end
       end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDSHARED}) begin
-        if(HDM_H) begin
+        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
           fork 
           begin
             `uvm_do_on_with(
@@ -11666,7 +11690,7 @@ module tb_top;
             );
           end
           join
-        end else if(HDM_D) begin
+        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           `uvm_do_on_with(
             m2s_req_seq_item_h,
             p_sequencer.host_m2s_req_seqr,
@@ -11682,7 +11706,7 @@ module tb_top;
           );
         end
        end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDANY}) begin
-        if(HDM_H) begin
+        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
           fork 
           begin
             `uvm_do_on_with(
@@ -11713,7 +11737,7 @@ module tb_top;
             );
           end
           join
-        end else if(HDM_D) begin
+        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           `uvm_do_on_with(
             m2s_req_seq_item_h,
             p_sequencer.host_m2s_req_seqr,
@@ -11729,7 +11753,7 @@ module tb_top;
           );
         end
       end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDOWNNODATA}) begin
-        if(HDM_H) begin
+        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
           fork 
           begin
             `uvm_do_on_with(
@@ -11757,7 +11781,7 @@ module tb_top;
             );*/
           end
           join
-        end else if(HDM_D) begin
+        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           `uvm_do_on_with(
             m2s_req_seq_item_h,
             p_sequencer.host_m2s_req_seqr,
@@ -11773,7 +11797,7 @@ module tb_top;
           );
         end
       end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CLFLUSH}) begin
-        if(HDM_H) begin
+        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
           fork 
           begin
             `uvm_do_on_with(
@@ -11801,7 +11825,7 @@ module tb_top;
             );*/
           end
           join
-        end else if(HDM_D) begin
+        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           `uvm_do_on_with(
             m2s_req_seq_item_h,
             p_sequencer.host_m2s_req_seqr,
@@ -11844,7 +11868,7 @@ module tb_top;
           end
         join
        end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CLEANEVICTNODATA}) begin
-        if(HDM_H) begin
+        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
           fork 
           begin
             `uvm_do_on_with(
@@ -11873,7 +11897,7 @@ module tb_top;
           join
         end
       end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CLEANEVICT}) begin
-        if(HDM_H) begin
+        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
           fork 
           begin
             `uvm_do_on_with(
@@ -11900,7 +11924,7 @@ module tb_top;
           join
         end
       end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_DIRTYEVICT, GEET_CXL_CACHE_OPCODE_ITOMWR, GEET_CXL_CACHE_OPCODE_MEMWRI}) begin
-        if(HDM_D && d2h_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_DIRTYEVICT) begin
+        if((cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) && d2h_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_DIRTYEVICT) begin
         end else begin
           fork 
           begin
@@ -11928,7 +11952,7 @@ module tb_top;
           join
         end
       end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WOWRINV, GEET_CXL_CACHE_OPCODE_WOWRINVF}) begin
-        if(HDM_H) begin
+        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
           fork 
           begin
             `uvm_do_on_with(
@@ -11951,7 +11975,7 @@ module tb_top;
             );
           end
           join
-        end else if(HDM_D) begin
+        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           `uvm_do_on_with(
             m2s_req_seq_item_h,
             p_sequencer.host_m2s_req_seqr,
