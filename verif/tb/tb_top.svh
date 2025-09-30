@@ -1,7 +1,4 @@
-//TODO: (done) create config files for diff configs like hdm d h
-//TODO: (done) credits decoding is pending, but the transmission is done
-//TODO: (done) connect credit info from ll to txn layer and wait for credits in driver until you receive credits
-//TODO: (TBD) missing rra logic module is currently blank please refer to the paper
+//TODO: (done) missing rra logic module is currently blank please refer to the paper
 //TODO: (done/pending/lowpri - lrsm/rrssm integration pending - low priority for now) connection of ack to retry buffer and entry of tx pkt and lrsmrrsm integration to be done
 //TODO: (TBD/lowpri) next focus on 32B size pkt logic 
 
@@ -697,7 +694,164 @@ module rra#(
   output [NO_OF_REQ-1:0] gnt
 );
 
+logic [NO_OF_REQ-1:0] hdr;
+typedef enum {
+  IDLE,
+  GNT0,
+  GNT1,
+  GNT2,
+  GNT3,
+  GNT4,
+  GNT5,
+  GNT6
+} rra_state_t;
+rra_state_t st;
+
 //implementation tbd
+always@(posedge clk) begin
+  if(!rstn) begin
+    gnt <= 'h0;
+    hdr <= 'h1;
+  end else begin
+    if(req == 'h0) begin
+      gnt <= 'h0;
+      hdr <= hdr;
+    end else if((req[0]) && (hdr[0])) begin
+      gnt <= 'h1;
+      casez(req)
+        7'b0000000: hdr <= hdr;
+        7'b0000001: hdr <= 'h1;
+        7'b?????11: hdr <= 'h2;
+        7'b????101: hdr <= 'h4;
+        7'b???1001: hdr <= 'h8;
+        7'b??10001: hdr <= 'h10;
+        7'b?100001: hdr <= 'h20;
+        7'b1000001: hdr <= 'h40;
+        7'b?????10: hdr <= 'h2;
+        7'b????100: hdr <= 'h4;
+        7'b???1000: hdr <= 'h8;
+        7'b??10000: hdr <= 'h10;
+        7'b?100000: hdr <= 'h20;
+        7'b1000000: hdr <= 'h40;
+        default: hdr <= 'hX;
+      endcase
+    end else if((req[1]) && (hdr[1])) begin
+      gnt <= 'h2;
+      casez({req[0], req[6:1]})
+        7'b0000000: hdr <= hdr;
+        7'b0000001: hdr <= 'h1;
+        7'b?????11: hdr <= 'h2;
+        7'b????101: hdr <= 'h4;
+        7'b???1001: hdr <= 'h8;
+        7'b??10001: hdr <= 'h10;
+        7'b?100001: hdr <= 'h20;
+        7'b1000001: hdr <= 'h40;
+        7'b?????10: hdr <= 'h2;
+        7'b????100: hdr <= 'h4;
+        7'b???1000: hdr <= 'h8;
+        7'b??10000: hdr <= 'h10;
+        7'b?100000: hdr <= 'h20;
+        7'b1000000: hdr <= 'h40;
+        default: hdr <= 'hX;
+      endcase
+    end else if((req[2]) && (hdr[2])) begin
+      gnt <= 'h4;
+      casez({req[1:0], req[6:2]})
+        7'b0000000: hdr <= hdr;
+        7'b0000001: hdr <= 'h1;
+        7'b?????11: hdr <= 'h2;
+        7'b????101: hdr <= 'h4;
+        7'b???1001: hdr <= 'h8;
+        7'b??10001: hdr <= 'h10;
+        7'b?100001: hdr <= 'h20;
+        7'b1000001: hdr <= 'h40;
+        7'b?????10: hdr <= 'h2;
+        7'b????100: hdr <= 'h4;
+        7'b???1000: hdr <= 'h8;
+        7'b??10000: hdr <= 'h10;
+        7'b?100000: hdr <= 'h20;
+        7'b1000000: hdr <= 'h40;
+        default: hdr <= 'hX;
+      endcase
+    end else if((req[3]) && (hdr[3])) begin
+      gnt <= 'h8;
+      casez({req[2:0], req[6:3]})
+        7'b0000000: hdr <= hdr;
+        7'b0000001: hdr <= 'h1;
+        7'b?????11: hdr <= 'h2;
+        7'b????101: hdr <= 'h4;
+        7'b???1001: hdr <= 'h8;
+        7'b??10001: hdr <= 'h10;
+        7'b?100001: hdr <= 'h20;
+        7'b1000001: hdr <= 'h40;
+        7'b?????10: hdr <= 'h2;
+        7'b????100: hdr <= 'h4;
+        7'b???1000: hdr <= 'h8;
+        7'b??10000: hdr <= 'h10;
+        7'b?100000: hdr <= 'h20;
+        7'b1000000: hdr <= 'h40;
+        default: hdr <= 'hX;
+      endcase
+    end else if((req[4]) && (hdr[4])) begin
+      gnt <= 'h10;
+      casez({req[3:0], req[6:4]})
+        7'b0000000: hdr <= hdr;
+        7'b0000001: hdr <= 'h1;
+        7'b?????11: hdr <= 'h2;
+        7'b????101: hdr <= 'h4;
+        7'b???1001: hdr <= 'h8;
+        7'b??10001: hdr <= 'h10;
+        7'b?100001: hdr <= 'h20;
+        7'b1000001: hdr <= 'h40;
+        7'b?????10: hdr <= 'h2;
+        7'b????100: hdr <= 'h4;
+        7'b???1000: hdr <= 'h8;
+        7'b??10000: hdr <= 'h10;
+        7'b?100000: hdr <= 'h20;
+        7'b1000000: hdr <= 'h40;
+        default: hdr <= 'hX;
+      endcase
+    end else if((req[5]) && (hdr[5])) begin
+      gnt <= 'h20;
+      casez({req[4:0], req[6:5]})
+        7'b0000000: hdr <= hdr;
+        7'b0000001: hdr <= 'h1;
+        7'b?????11: hdr <= 'h2;
+        7'b????101: hdr <= 'h4;
+        7'b???1001: hdr <= 'h8;
+        7'b??10001: hdr <= 'h10;
+        7'b?100001: hdr <= 'h20;
+        7'b1000001: hdr <= 'h40;
+        7'b?????10: hdr <= 'h2;
+        7'b????100: hdr <= 'h4;
+        7'b???1000: hdr <= 'h8;
+        7'b??10000: hdr <= 'h10;
+        7'b?100000: hdr <= 'h20;
+        7'b1000000: hdr <= 'h40;
+        default: hdr <= 'hX;
+      endcase
+    end else if((req[6]) && (hdr[6])) begin
+      gnt <= 'h40;
+      casez({req[5:0], req[6]})
+        7'b0000000: hdr <= hdr;
+        7'b0000001: hdr <= 'h1;
+        7'b?????11: hdr <= 'h2;
+        7'b????101: hdr <= 'h4;
+        7'b???1001: hdr <= 'h8;
+        7'b??10001: hdr <= 'h10;
+        7'b?100001: hdr <= 'h20;
+        7'b1000001: hdr <= 'h40;
+        7'b?????10: hdr <= 'h2;
+        7'b????100: hdr <= 'h4;
+        7'b???1000: hdr <= 'h8;
+        7'b??10000: hdr <= 'h10;
+        7'b?100000: hdr <= 'h20;
+        7'b1000000: hdr <= 'h40;
+        default: hdr <= 'hX;
+      endcase
+    end
+  end
+end
 
 endmodule
 
