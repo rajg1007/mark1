@@ -2,6 +2,9 @@
 //TODO: (done/pending/lowpri - lrsm/rrssm integration pending - low priority for now) connection of ack to retry buffer and entry of tx pkt and lrsmrrsm integration to be done
 //TODO: (TBD/lowpri) next focus on 32B size pkt logic 
 
+`include "uvm_macros.svh"
+import uvm_pkg::*;
+
 package cxl_uvm_pkg;
 
 parameter GEET_CXL_ADDR_WIDTH = 52;
@@ -1014,7 +1017,418 @@ module host_tx_path#(
     d2h_data_consumed_credits     = (d2h_data_occ_d < d2h_data_occ) ? (d2h_data_occ   - d2h_data_occ_d) : 'h0;
     s2m_ndr_consumed_credits      = (s2m_ndr_occ_d  < s2m_ndr_occ ) ? (s2m_ndr_occ    - s2m_ndr_occ_d ) : 'h0;
     s2m_drs_consumed_credits      = (s2m_drs_occ_d  < s2m_drs_occ ) ? (s2m_drs_occ    - s2m_drs_occ_d ) : 'h0;
-    d2h_req_crdt_send             = (d2h_req_crdt_tbs[3].pending)? (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+   
+    if(d2h_req_crdt_tbs[3].pending) begin
+      if(d2h_req_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+        d2h_req_crdt_send = 'h7;
+      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+        d2h_req_crdt_send = 'h6;
+      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+        d2h_req_crdt_send = 'h5;
+      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+        d2h_req_crdt_send = 'h4;
+      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+        d2h_req_crdt_send = 'h3;
+      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+        d2h_req_crdt_send = 'h2;
+      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent == 'd1) begin
+        d2h_req_crdt_send = 'h1;
+      end else begin
+        if(d2h_req_crdt_tbs[2].pending) begin
+          if(d2h_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+            d2h_req_crdt_send = 'h7;
+          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+            d2h_req_crdt_send = 'h6;
+          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+            d2h_req_crdt_send = 'h5;
+          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+            d2h_req_crdt_send = 'h4;
+          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+            d2h_req_crdt_send = 'h3;
+          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+            d2h_req_crdt_send = 'h2;
+          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+            d2h_req_crdt_send = 'h1;
+          end else begin
+            if(d2h_req_crdt_tbs[1].pending) begin
+              if(d2h_req_crdt_tbs[1].credit_to_be_sent == 'd64) begin
+                d2h_req_crdt_send = 'h7;
+              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+                d2h_req_crdt_send = 'h6;
+              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+               d2h_req_crdt_send = 'h5;
+              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+                d2h_req_crdt_send = 'h4;
+              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+                d2h_req_crdt_send = 'h3;
+              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
+                d2h_req_crdt_send = 'h2;
+              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent == 'd1) begin
+                d2h_req_crdt_send = 'h1;
+              end else begin
+                if(d2h_req_crdt_tbs[0].pending) begin
+                  if(d2h_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                    d2h_req_crdt_send = 'h7;
+                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                    d2h_req_crdt_send = 'h6;
+                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                    d2h_req_crdt_send = 'h5;
+                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                    d2h_req_crdt_send = 'h4;
+                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                    d2h_req_crdt_send = 'h3;
+                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                    d2h_req_crdt_send = 'h2;
+                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                    d2h_req_crdt_send = 'h1;
+                  end else begin
+                    d2h_req_crdt_send = 'h0;
+                  end
+                end else begin
+                  d2h_req_crdt_send = 'h0;
+                end
+              end
+            end else begin
+              d2h_req_crdt_send = 'h0;
+            end
+          end
+        end else begin
+          d2h_req_crdt_send = 'h0;
+        end
+      end 
+    end else begin
+      d2h_req_crdt_send = 'h0;
+    end
+
+    if(d2h_rsp_crdt_tbs[3].pending) begin
+      if(d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+        d2h_rsp_crdt_send = 'h7;
+      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+        d2h_rsp_crdt_send = 'h6;
+      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+        d2h_rsp_crdt_send = 'h5;
+      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+        d2h_rsp_crdt_send = 'h4;
+      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+        d2h_rsp_crdt_send = 'h3;
+      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+        d2h_rsp_crdt_send = 'h2;
+      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd1) begin
+        d2h_rsp_crdt_send = 'h1;
+      end else begin
+        if(d2h_rsp_crdt_tbs[2].pending) begin
+          if(d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+            d2h_rsp_crdt_send = 'h7;
+          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+            d2h_rsp_crdt_send = 'h6;
+          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+            d2h_rsp_crdt_send = 'h5;
+          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+            d2h_rsp_crdt_send = 'h4;
+          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+            d2h_rsp_crdt_send = 'h3;
+          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+            d2h_rsp_crdt_send = 'h2;
+          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+            d2h_rsp_crdt_send = 'h1;
+          end else begin
+            if(d2h_rsp_crdt_tbs[1].pending) begin
+              if(d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd64) begin
+                d2h_rsp_crdt_send = 'h7;
+              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+                d2h_rsp_crdt_send = 'h6;
+              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+               d2h_rsp_crdt_send = 'h5;
+              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+                d2h_rsp_crdt_send = 'h4;
+              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+                d2h_rsp_crdt_send = 'h3;
+              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
+                d2h_rsp_crdt_send = 'h2;
+              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd1) begin
+                d2h_rsp_crdt_send = 'h1;
+              end else begin
+                if(d2h_rsp_crdt_tbs[0].pending) begin
+                  if(d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                    d2h_rsp_crdt_send = 'h7;
+                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                    d2h_rsp_crdt_send = 'h6;
+                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                    d2h_rsp_crdt_send = 'h5;
+                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                    d2h_rsp_crdt_send = 'h4;
+                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                    d2h_rsp_crdt_send = 'h3;
+                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                    d2h_rsp_crdt_send = 'h2;
+                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                    d2h_rsp_crdt_send = 'h1;
+                  end else begin
+                    d2h_rsp_crdt_send = 'h0;
+                  end
+                end else begin
+                  d2h_rsp_crdt_send = 'h0;
+                end
+              end
+            end else begin
+              d2h_rsp_crdt_send = 'h0;
+            end
+          end
+        end else begin
+          d2h_rsp_crdt_send = 'h0;
+        end
+      end 
+    end else begin
+      d2h_rsp_crdt_send = 'h0;
+    end
+
+    if(d2h_data_crdt_tbs[3].pending) begin
+      if(d2h_data_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+        d2h_data_crdt_send = 'h7;
+      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+        d2h_data_crdt_send = 'h6;
+      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+        d2h_data_crdt_send = 'h5;
+      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+        d2h_data_crdt_send = 'h4;
+      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+        d2h_data_crdt_send = 'h3;
+      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+        d2h_data_crdt_send = 'h2;
+      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent == 'd1) begin
+        d2h_data_crdt_send = 'h1;
+      end else begin
+        if(d2h_data_crdt_tbs[2].pending) begin
+          if(d2h_data_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+            d2h_data_crdt_send = 'h7;
+          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+            d2h_data_crdt_send = 'h6;
+          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+            d2h_data_crdt_send = 'h5;
+          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+            d2h_data_crdt_send = 'h4;
+          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+            d2h_data_crdt_send = 'h3;
+          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+            d2h_data_crdt_send = 'h2;
+          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+            d2h_data_crdt_send = 'h1;
+          end else begin
+            if(d2h_data_crdt_tbs[1].pending) begin
+              if(d2h_data_crdt_tbs[1].credit_to_be_sent == 'd64) begin
+                d2h_data_crdt_send = 'h7;
+              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+                d2h_data_crdt_send = 'h6;
+              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+               d2h_data_crdt_send = 'h5;
+              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+                d2h_data_crdt_send = 'h4;
+              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+                d2h_data_crdt_send = 'h3;
+              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
+                d2h_data_crdt_send = 'h2;
+              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent == 'd1) begin
+                d2h_data_crdt_send = 'h1;
+              end else begin
+                if(d2h_data_crdt_tbs[0].pending) begin
+                  if(d2h_data_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                    d2h_data_crdt_send = 'h7;
+                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                    d2h_data_crdt_send = 'h6;
+                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                    d2h_data_crdt_send = 'h5;
+                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                    d2h_data_crdt_send = 'h4;
+                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                    d2h_data_crdt_send = 'h3;
+                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                    d2h_data_crdt_send = 'h2;
+                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                    d2h_data_crdt_send = 'h1;
+                  end else begin
+                    d2h_data_crdt_send = 'h0;
+                  end
+                end else begin
+                  d2h_data_crdt_send = 'h0;
+                end
+              end
+            end else begin
+              d2h_data_crdt_send = 'h0;
+            end
+          end
+        end else begin
+          d2h_data_crdt_send = 'h0;
+        end
+      end 
+    end else begin
+      d2h_data_crdt_send = 'h0;
+    end
+ 
+    if(s2m_ndr_crdt_tbs[3].pending) begin
+      if(s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+        s2m_ndr_crdt_send = 'h7;
+      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+        s2m_ndr_crdt_send = 'h6;
+      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+        s2m_ndr_crdt_send = 'h5;
+      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+        s2m_ndr_crdt_send = 'h4;
+      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+        s2m_ndr_crdt_send = 'h3;
+      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+        s2m_ndr_crdt_send = 'h2;
+      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd1) begin
+        s2m_ndr_crdt_send = 'h1;
+      end else begin
+        if(s2m_ndr_crdt_tbs[2].pending) begin
+          if(s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+            s2m_ndr_crdt_send = 'h7;
+          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+            s2m_ndr_crdt_send = 'h6;
+          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+            s2m_ndr_crdt_send = 'h5;
+          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+            s2m_ndr_crdt_send = 'h4;
+          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+            s2m_ndr_crdt_send = 'h3;
+          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+            s2m_ndr_crdt_send = 'h2;
+          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+            s2m_ndr_crdt_send = 'h1;
+          end else begin
+            if(s2m_ndr_crdt_tbs[1].pending) begin
+              if(s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd64) begin
+                s2m_ndr_crdt_send = 'h7;
+              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+                s2m_ndr_crdt_send = 'h6;
+              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+               s2m_ndr_crdt_send = 'h5;
+              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+                s2m_ndr_crdt_send = 'h4;
+              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+                s2m_ndr_crdt_send = 'h3;
+              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
+                s2m_ndr_crdt_send = 'h2;
+              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd1) begin
+                s2m_ndr_crdt_send = 'h1;
+              end else begin
+                if(s2m_ndr_crdt_tbs[0].pending) begin
+                  if(s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                    s2m_ndr_crdt_send = 'h7;
+                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                    s2m_ndr_crdt_send = 'h6;
+                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                    s2m_ndr_crdt_send = 'h5;
+                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                    s2m_ndr_crdt_send = 'h4;
+                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                    s2m_ndr_crdt_send = 'h3;
+                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                    s2m_ndr_crdt_send = 'h2;
+                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                    s2m_ndr_crdt_send = 'h1;
+                  end else begin
+                    s2m_ndr_crdt_send = 'h0;
+                  end
+                end else begin
+                  s2m_ndr_crdt_send = 'h0;
+                end
+              end
+            end else begin
+              s2m_ndr_crdt_send = 'h0;
+            end
+          end
+        end else begin
+          s2m_ndr_crdt_send = 'h0;
+        end
+      end 
+    end else begin
+      s2m_ndr_crdt_send = 'h0;
+    end
+
+    if(s2m_drs_crdt_tbs[3].pending) begin
+      if(s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+        s2m_drs_crdt_send = 'h7;
+      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+        s2m_drs_crdt_send = 'h6;
+      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+        s2m_drs_crdt_send = 'h5;
+      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+        s2m_drs_crdt_send = 'h4;
+      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+        s2m_drs_crdt_send = 'h3;
+      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+        s2m_drs_crdt_send = 'h2;
+      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd1) begin
+        s2m_drs_crdt_send = 'h1;
+      end else begin
+        if(s2m_drs_crdt_tbs[2].pending) begin
+          if(s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+            s2m_drs_crdt_send = 'h7;
+          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+            s2m_drs_crdt_send = 'h6;
+          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+            s2m_drs_crdt_send = 'h5;
+          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+            s2m_drs_crdt_send = 'h4;
+          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+            s2m_drs_crdt_send = 'h3;
+          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+            s2m_drs_crdt_send = 'h2;
+          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+            s2m_drs_crdt_send = 'h1;
+          end else begin
+            if(s2m_drs_crdt_tbs[1].pending) begin
+              if(s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd64) begin
+                s2m_drs_crdt_send = 'h7;
+              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+                s2m_drs_crdt_send = 'h6;
+              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+               s2m_drs_crdt_send = 'h5;
+              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+                s2m_drs_crdt_send = 'h4;
+              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+                s2m_drs_crdt_send = 'h3;
+              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
+                s2m_drs_crdt_send = 'h2;
+              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd1) begin
+                s2m_drs_crdt_send = 'h1;
+              end else begin
+                if(s2m_drs_crdt_tbs[0].pending) begin
+                  if(s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                    s2m_drs_crdt_send = 'h7;
+                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                    s2m_drs_crdt_send = 'h6;
+                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                    s2m_drs_crdt_send = 'h5;
+                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                    s2m_drs_crdt_send = 'h4;
+                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                    s2m_drs_crdt_send = 'h3;
+                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                    s2m_drs_crdt_send = 'h2;
+                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                    s2m_drs_crdt_send = 'h1;
+                  end else begin
+                    s2m_drs_crdt_send = 'h0;
+                  end
+                end else begin
+                  s2m_drs_crdt_send = 'h0;
+                end
+              end
+            end else begin
+              s2m_drs_crdt_send = 'h0;
+            end
+          end
+        end else begin
+          s2m_drs_crdt_send = 'h0;
+        end
+      end 
+    end else begin
+      s2m_drs_crdt_send = 'h0;
+    end
+
+/*    d2h_req_crdt_send             = (d2h_req_crdt_tbs[3].pending)? (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
                                   : (d2h_req_crdt_tbs[2].pending)? (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
                                   : (d2h_req_crdt_tbs[1].pending)? (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
                                   : (d2h_req_crdt_tbs[0].pending)? (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
@@ -1039,6 +1453,7 @@ module host_tx_path#(
                                   : (s2m_drs_crdt_tbs[1].pending)? (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
                                   : (s2m_drs_crdt_tbs[0].pending)? (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
                                   : 'h0;
+*/  
   end
 
   always@(posedge host_tx_dl_if.clk) begin
@@ -2618,6 +3033,418 @@ module device_tx_path#(
     h2d_data_consumed_credits     = (h2d_data_occ_d < h2d_data_occ) ? (h2d_data_occ   - h2d_data_occ_d) : 'h0;
     m2s_req_consumed_credits      = (m2s_req_occ_d  < m2s_req_occ ) ? (m2s_req_occ    - m2s_req_occ_d ) : 'h0;
     m2s_rwd_consumed_credits      = (m2s_rwd_occ_d  < m2s_rwd_occ ) ? (m2s_rwd_occ    - m2s_rwd_occ_d ) : 'h0;
+  
+    if(h2d_data_crdt_tbs[3].pending) begin
+      if(h2d_data_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+        h2d_data_crdt_send = 'h7;
+      end else if(h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+        h2d_data_crdt_send = 'h6;
+      end else if(h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+        h2d_data_crdt_send = 'h5;
+      end else if(h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+        h2d_data_crdt_send = 'h4;
+      end else if(h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+        h2d_data_crdt_send = 'h3;
+      end else if(h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+        h2d_data_crdt_send = 'h2;
+      end else if(h2d_data_crdt_tbs[3].credit_to_be_sent == 'd1) begin
+        h2d_data_crdt_send = 'h1;
+      end else begin
+        if(h2d_data_crdt_tbs[2].pending) begin
+          if(h2d_data_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+            h2d_data_crdt_send = 'h7;
+          end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+            h2d_data_crdt_send = 'h6;
+          end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+            h2d_data_crdt_send = 'h5;
+          end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+            h2d_data_crdt_send = 'h4;
+          end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+            h2d_data_crdt_send = 'h3;
+          end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+            h2d_data_crdt_send = 'h2;
+          end else if(h2d_data_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+            h2d_data_crdt_send = 'h1;
+          end else begin
+            if(h2d_data_crdt_tbs[1].pending) begin
+              if(h2d_data_crdt_tbs[1].credit_to_be_sent == 'd64) begin
+                h2d_data_crdt_send = 'h7;
+              end else if(h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+                h2d_data_crdt_send = 'h6;
+              end else if(h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+               h2d_data_crdt_send = 'h5;
+              end else if(h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+                h2d_data_crdt_send = 'h4;
+              end else if(h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+                h2d_data_crdt_send = 'h3;
+              end else if(h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
+                h2d_data_crdt_send = 'h2;
+              end else if(h2d_data_crdt_tbs[1].credit_to_be_sent == 'd1) begin
+                h2d_data_crdt_send = 'h1;
+              end else begin
+                if(h2d_data_crdt_tbs[0].pending) begin
+                  if(h2d_data_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                    h2d_data_crdt_send = 'h7;
+                  end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                    h2d_data_crdt_send = 'h6;
+                  end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                    h2d_data_crdt_send = 'h5;
+                  end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                    h2d_data_crdt_send = 'h4;
+                  end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                    h2d_data_crdt_send = 'h3;
+                  end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                    h2d_data_crdt_send = 'h2;
+                  end else if(h2d_data_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                    h2d_data_crdt_send = 'h1;
+                  end else begin
+                    h2d_data_crdt_send = 'h0;
+                  end
+                end else begin
+                  h2d_data_crdt_send = 'h0;
+                end
+              end
+            end else begin
+              h2d_data_crdt_send = 'h0;
+            end
+          end
+        end else begin
+          h2d_data_crdt_send = 'h0;
+        end
+      end 
+    end else begin
+      h2d_data_crdt_send = 'h0;
+    end
+
+    if(h2d_rsp_crdt_tbs[3].pending) begin
+      if(h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+        h2d_rsp_crdt_send = 'h7;
+      end else if(h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+        h2d_rsp_crdt_send = 'h6;
+      end else if(h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+        h2d_rsp_crdt_send = 'h5;
+      end else if(h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+        h2d_rsp_crdt_send = 'h4;
+      end else if(h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+        h2d_rsp_crdt_send = 'h3;
+      end else if(h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+        h2d_rsp_crdt_send = 'h2;
+      end else if(h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd1) begin
+        h2d_rsp_crdt_send = 'h1;
+      end else begin
+        if(h2d_rsp_crdt_tbs[2].pending) begin
+          if(h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+            h2d_rsp_crdt_send = 'h7;
+          end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+            h2d_rsp_crdt_send = 'h6;
+          end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+            h2d_rsp_crdt_send = 'h5;
+          end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+            h2d_rsp_crdt_send = 'h4;
+          end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+            h2d_rsp_crdt_send = 'h3;
+          end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+            h2d_rsp_crdt_send = 'h2;
+          end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+            h2d_rsp_crdt_send = 'h1;
+          end else begin
+            if(h2d_rsp_crdt_tbs[1].pending) begin
+              if(h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd64) begin
+                h2d_rsp_crdt_send = 'h7;
+              end else if(h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+                h2d_rsp_crdt_send = 'h6;
+              end else if(h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+               h2d_rsp_crdt_send = 'h5;
+              end else if(h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+                h2d_rsp_crdt_send = 'h4;
+              end else if(h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+                h2d_rsp_crdt_send = 'h3;
+              end else if(h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
+                h2d_rsp_crdt_send = 'h2;
+              end else if(h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd1) begin
+                h2d_rsp_crdt_send = 'h1;
+              end else begin
+                if(h2d_rsp_crdt_tbs[0].pending) begin
+                  if(h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                    h2d_rsp_crdt_send = 'h7;
+                  end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                    h2d_rsp_crdt_send = 'h6;
+                  end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                    h2d_rsp_crdt_send = 'h5;
+                  end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                    h2d_rsp_crdt_send = 'h4;
+                  end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                    h2d_rsp_crdt_send = 'h3;
+                  end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                    h2d_rsp_crdt_send = 'h2;
+                  end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                    h2d_rsp_crdt_send = 'h1;
+                  end else begin
+                    h2d_rsp_crdt_send = 'h0;
+                  end
+                end else begin
+                  h2d_rsp_crdt_send = 'h0;
+                end
+              end
+            end else begin
+              h2d_rsp_crdt_send = 'h0;
+            end
+          end
+        end else begin
+          h2d_rsp_crdt_send = 'h0;
+        end
+      end 
+    end else begin
+      h2d_rsp_crdt_send = 'h0;
+    end
+
+    if(h2d_req_crdt_tbs[3].pending) begin
+      if(h2d_req_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+        h2d_req_crdt_send = 'h7;
+      end else if(h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+        h2d_req_crdt_send = 'h6;
+      end else if(h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+        h2d_req_crdt_send = 'h5;
+      end else if(h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+        h2d_req_crdt_send = 'h4;
+      end else if(h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+        h2d_req_crdt_send = 'h3;
+      end else if(h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+        h2d_req_crdt_send = 'h2;
+      end else if(h2d_req_crdt_tbs[3].credit_to_be_sent == 'd1) begin
+        h2d_req_crdt_send = 'h1;
+      end else begin
+        if(h2d_req_crdt_tbs[2].pending) begin
+          if(h2d_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+            h2d_req_crdt_send = 'h7;
+          end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+            h2d_req_crdt_send = 'h6;
+          end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+            h2d_req_crdt_send = 'h5;
+          end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+            h2d_req_crdt_send = 'h4;
+          end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+            h2d_req_crdt_send = 'h3;
+          end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+            h2d_req_crdt_send = 'h2;
+          end else if(h2d_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+            h2d_req_crdt_send = 'h1;
+          end else begin
+            if(h2d_req_crdt_tbs[1].pending) begin
+              if(h2d_req_crdt_tbs[1].credit_to_be_sent == 'd64) begin
+                h2d_req_crdt_send = 'h7;
+              end else if(h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+                h2d_req_crdt_send = 'h6;
+              end else if(h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+               h2d_req_crdt_send = 'h5;
+              end else if(h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+                h2d_req_crdt_send = 'h4;
+              end else if(h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+                h2d_req_crdt_send = 'h3;
+              end else if(h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
+                h2d_req_crdt_send = 'h2;
+              end else if(h2d_req_crdt_tbs[1].credit_to_be_sent == 'd1) begin
+                h2d_req_crdt_send = 'h1;
+              end else begin
+                if(h2d_req_crdt_tbs[0].pending) begin
+                  if(h2d_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                    h2d_req_crdt_send = 'h7;
+                  end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                    h2d_req_crdt_send = 'h6;
+                  end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                    h2d_req_crdt_send = 'h5;
+                  end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                    h2d_req_crdt_send = 'h4;
+                  end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                    h2d_req_crdt_send = 'h3;
+                  end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                    h2d_req_crdt_send = 'h2;
+                  end else if(h2d_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                    h2d_req_crdt_send = 'h1;
+                  end else begin
+                    h2d_req_crdt_send = 'h0;
+                  end
+                end else begin
+                  h2d_req_crdt_send = 'h0;
+                end
+              end
+            end else begin
+              h2d_req_crdt_send = 'h0;
+            end
+          end
+        end else begin
+          h2d_req_crdt_send = 'h0;
+        end
+      end 
+    end else begin
+      h2d_req_crdt_send = 'h0;
+    end
+
+    if(m2s_req_crdt_tbs[3].pending) begin
+      if(m2s_req_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+        m2s_req_crdt_send = 'h7;
+      end else if(m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+        m2s_req_crdt_send = 'h6;
+      end else if(m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+        m2s_req_crdt_send = 'h5;
+      end else if(m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+        m2s_req_crdt_send = 'h4;
+      end else if(m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+        m2s_req_crdt_send = 'h3;
+      end else if(m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+        m2s_req_crdt_send = 'h2;
+      end else if(m2s_req_crdt_tbs[3].credit_to_be_sent == 'd1) begin
+        m2s_req_crdt_send = 'h1;
+      end else begin
+        if(m2s_req_crdt_tbs[2].pending) begin
+          if(m2s_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+            m2s_req_crdt_send = 'h7;
+          end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+            m2s_req_crdt_send = 'h6;
+          end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+            m2s_req_crdt_send = 'h5;
+          end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+            m2s_req_crdt_send = 'h4;
+          end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+            m2s_req_crdt_send = 'h3;
+          end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+            m2s_req_crdt_send = 'h2;
+          end else if(m2s_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+            m2s_req_crdt_send = 'h1;
+          end else begin
+            if(m2s_req_crdt_tbs[1].pending) begin
+              if(m2s_req_crdt_tbs[1].credit_to_be_sent == 'd64) begin
+                m2s_req_crdt_send = 'h7;
+              end else if(m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+                m2s_req_crdt_send = 'h6;
+              end else if(m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+               m2s_req_crdt_send = 'h5;
+              end else if(m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+                m2s_req_crdt_send = 'h4;
+              end else if(m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+                m2s_req_crdt_send = 'h3;
+              end else if(m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
+                m2s_req_crdt_send = 'h2;
+              end else if(m2s_req_crdt_tbs[1].credit_to_be_sent == 'd1) begin
+                m2s_req_crdt_send = 'h1;
+              end else begin
+                if(m2s_req_crdt_tbs[0].pending) begin
+                  if(m2s_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                    m2s_req_crdt_send = 'h7;
+                  end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                    m2s_req_crdt_send = 'h6;
+                  end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                    m2s_req_crdt_send = 'h5;
+                  end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                    m2s_req_crdt_send = 'h4;
+                  end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                    m2s_req_crdt_send = 'h3;
+                  end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                    m2s_req_crdt_send = 'h2;
+                  end else if(m2s_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                    m2s_req_crdt_send = 'h1;
+                  end else begin
+                    m2s_req_crdt_send = 'h0;
+                  end
+                end else begin
+                  m2s_req_crdt_send = 'h0;
+                end
+              end
+            end else begin
+              m2s_req_crdt_send = 'h0;
+            end
+          end
+        end else begin
+          m2s_req_crdt_send = 'h0;
+        end
+      end 
+    end else begin
+      m2s_req_crdt_send = 'h0;
+    end
+ 
+    if(m2s_rwd_crdt_tbs[3].pending) begin
+      if(m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+        m2s_rwd_crdt_send = 'h7;
+      end else if(m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+        m2s_rwd_crdt_send = 'h6;
+      end else if(m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+        m2s_rwd_crdt_send = 'h5;
+      end else if(m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+        m2s_rwd_crdt_send = 'h4;
+      end else if(m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+        m2s_rwd_crdt_send = 'h3;
+      end else if(m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+        m2s_rwd_crdt_send = 'h2;
+      end else if(m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd1) begin
+        m2s_rwd_crdt_send = 'h1;
+      end else begin
+        if(m2s_rwd_crdt_tbs[2].pending) begin
+          if(m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+            m2s_rwd_crdt_send = 'h7;
+          end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+            m2s_rwd_crdt_send = 'h6;
+          end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+            m2s_rwd_crdt_send = 'h5;
+          end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+            m2s_rwd_crdt_send = 'h4;
+          end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+            m2s_rwd_crdt_send = 'h3;
+          end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+            m2s_rwd_crdt_send = 'h2;
+          end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+            m2s_rwd_crdt_send = 'h1;
+          end else begin
+            if(m2s_rwd_crdt_tbs[1].pending) begin
+              if(m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd64) begin
+                m2s_rwd_crdt_send = 'h7;
+              end else if(m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+                m2s_rwd_crdt_send = 'h6;
+              end else if(m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+               m2s_rwd_crdt_send = 'h5;
+              end else if(m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+                m2s_rwd_crdt_send = 'h4;
+              end else if(m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+                m2s_rwd_crdt_send = 'h3;
+              end else if(m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
+                m2s_rwd_crdt_send = 'h2;
+              end else if(m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd1) begin
+                m2s_rwd_crdt_send = 'h1;
+              end else begin
+                if(m2s_rwd_crdt_tbs[0].pending) begin
+                  if(m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                    m2s_rwd_crdt_send = 'h7;
+                  end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                    m2s_rwd_crdt_send = 'h6;
+                  end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                    m2s_rwd_crdt_send = 'h5;
+                  end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                    m2s_rwd_crdt_send = 'h4;
+                  end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                    m2s_rwd_crdt_send = 'h3;
+                  end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                    m2s_rwd_crdt_send = 'h2;
+                  end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                    m2s_rwd_crdt_send = 'h1;
+                  end else begin
+                    m2s_rwd_crdt_send = 'h0;
+                  end
+                end else begin
+                  m2s_rwd_crdt_send = 'h0;
+                end
+              end
+            end else begin
+              m2s_rwd_crdt_send = 'h0;
+            end
+          end
+        end else begin
+          m2s_rwd_crdt_send = 'h0;
+        end
+      end 
+    end else begin
+      m2s_rwd_crdt_send = 'h0;
+    end
+
+/*
     h2d_req_crdt_send             = (h2d_req_crdt_tbs[3].pending)? (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
                                   : (h2d_req_crdt_tbs[2].pending)? (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
                                   : (h2d_req_crdt_tbs[1].pending)? (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (h2d_req_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (h2d_req_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (h2d_req_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
@@ -2643,6 +3470,7 @@ module device_tx_path#(
                                   : (m2s_rwd_crdt_tbs[1].pending)? (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (m2s_rwd_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (m2s_rwd_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (m2s_rwd_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
                                   : (m2s_rwd_crdt_tbs[0].pending)? (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (m2s_rwd_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (m2s_rwd_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (m2s_rwd_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
                                   : 'h0;
+*/
   end
 
   always@(posedge dev_tx_dl_if.clk) begin
