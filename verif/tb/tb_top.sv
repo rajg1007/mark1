@@ -1,7 +1,7 @@
 //TODO: (done) missing rra logic module is currently blank please refer to the paper
 //TODO: (done/pending/lowpri - lrsm/rrssm integration pending - low priority for now) connection of ack to retry buffer and entry of tx pkt and lrsmrrsm integration to be done
 //TODO: (TBD/lowpri) next focus on 32B size pkt logic 
-
+//TODO: bug in the design crc placement needs fix in tx and rx
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
@@ -35,7 +35,7 @@ typedef enum {
     
 } d2h_req_opcode_t; 
 
-typedef enum {
+typedef enum logic[4:0] {
     GEET_CXL_CACHE_OPCODE_RSPIHITI,
     GEET_CXL_CACHE_OPCODE_RSPVHITV,
     GEET_CXL_CACHE_OPCODE_RSPIHITSE,
@@ -220,7 +220,7 @@ typedef struct {
 
 typedef struct {
   logic valid;
-  s2m_ndr_opcode_t opcode;
+  s2m_drs_opcode_t opcode;
   metafield_t metafield;
   metavalue_t metavalue;
   logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
@@ -236,7 +236,13 @@ typedef struct{
 typedef enum {
   GEET_CXL_HDM_H,
   GEET_CXL_HDM_D
-} hdm_t;
+} cxl_hdm_t;
+
+typedef enum {
+  GEET_CXL_TYPE_1,
+  GEET_CXL_TYPE_2,
+  GEET_CXL_TYPE_3
+} cxl_type_t;
 
 endpackage
 
@@ -248,30 +254,35 @@ interface cxl_cache_d2h_req_if(input logic clk);
   d2h_req_txn_t d2h_req_txn;
 
   modport host_if_mp(
+    input clk,
     input ready,
     input rstn,
     output d2h_req_txn
   );
 
   modport dev_if_mp(
+    input clk,
     output ready,
     input rstn,
     input d2h_req_txn
   );
 
   modport dev_actv_drvr_mp(
+    input clk,
     input ready,
     output rstn,
     output d2h_req_txn
   );
 
   modport host_pasv_drvr_mp(
+    input clk,
     output ready,
     output rstn,
     input d2h_req_txn
   );
 
   modport mon(
+    input clk,
     input ready,
     input rstn,
     input d2h_req_txn
@@ -285,30 +296,35 @@ interface cxl_cache_d2h_rsp_if(input logic clk);
   d2h_rsp_txn_t d2h_rsp_txn;
 
   modport host_if_mp(
+    input clk,
     input ready,
     input rstn,
     output d2h_rsp_txn
   );
 
   modport dev_if_mp(
+    input clk,
     output ready,
     input rstn,
     input d2h_rsp_txn
   );
 
   modport dev_actv_drvr_mp(
+    input clk,
     input ready,
     output rstn,
     output d2h_rsp_txn
   );
 
   modport host_pasv_drvr_mp(
+    input clk,
     output ready,
     output rstn,
     input d2h_rsp_txn
   );
 
   modport mon(
+    input clk,
     input ready,
     input rstn,
     input d2h_rsp_txn
@@ -322,30 +338,35 @@ interface cxl_cache_d2h_data_if(input logic clk);
   d2h_data_txn_t d2h_data_txn;
 
   modport host_if_mp(
+    input clk,
     input ready,
     input rstn,
     output d2h_data_txn
   );
 
   modport dev_if_mp(
+    input clk,
     output ready,
     input rstn,
     input d2h_data_txn
   );
 
   modport dev_actv_drvr_mp(
+    input clk,
     input ready,
     output rstn,
     output d2h_data_txn
   );
 
   modport host_pasv_drvr_mp(
+    input clk,
     output ready,
     output rstn,
     input d2h_data_txn
   );
 
   modport mon(
+    input clk,
     input ready,
     input rstn,
     input d2h_data_txn
@@ -359,30 +380,35 @@ interface cxl_cache_h2d_req_if(input logic clk);
   h2d_req_txn_t h2d_req_txn;
 
   modport host_if_mp(
+    input clk,
     output ready,
     input rstn,
     input h2d_req_txn
   );
 
   modport dev_if_mp(
+    input clk,
     input ready,
     input rstn,
     output h2d_req_txn
   );
 
   modport host_actv_drvr_mp(
+    input clk,
     input ready,
     output rstn,
     output h2d_req_txn
   );
 
   modport dev_pasv_drvr_mp(
+    input clk,
     output ready,
     output rstn,
     input h2d_req_txn
   );
 
   modport mon(
+    input clk,
     input ready,
     input rstn,
     input h2d_req_txn
@@ -396,30 +422,35 @@ interface cxl_cache_h2d_rsp_if(input logic clk);
   h2d_rsp_txn_t h2d_rsp_txn;
 
   modport host_if_mp(
+    input clk,
     output ready,
     input rstn,
     input h2d_rsp_txn
   );
 
   modport dev_if_mp(
+    input clk,
     input ready,
     input rstn,
     output h2d_rsp_txn
   );
 
   modport host_actv_drvr_mp(
+    input clk,
     input ready,
     output rstn,
     output h2d_rsp_txn
   );
 
   modport dev_pasv_drvr_mp(
+    input clk,
     output ready,
     output rstn,
     input h2d_rsp_txn
   );
 
   modport mon(
+    input clk,
     input ready,
     input rstn,
     input h2d_rsp_txn
@@ -433,30 +464,35 @@ interface cxl_cache_h2d_data_if(input logic clk);
   h2d_data_txn_t h2d_data_txn;
 
   modport host_if_mp(
+    input clk,
     output ready,
     input rstn,
     input h2d_data_txn
   );
 
   modport dev_if_mp(
+    input clk,
     input ready,
     input rstn,
     output h2d_data_txn
   );
 
   modport host_actv_drvr_mp(
+    input clk,
     input ready,
     output rstn,
     output h2d_data_txn
   );
 
   modport dev_pasv_drvr_mp(
+    input clk,
     output ready,
     output rstn,
     input h2d_data_txn
   );
 
   modport mon(
+    input clk,
     input ready,
     input rstn,
     input h2d_data_txn
@@ -470,30 +506,35 @@ interface cxl_mem_m2s_req_if(input logic clk);
   m2s_req_txn_t m2s_req_txn;
 
   modport host_if_mp(
+    input clk,
     output ready,
     input rstn,
     input m2s_req_txn
   );
 
   modport dev_if_mp(
+    input clk,
     input ready,
     input rstn,
     output m2s_req_txn
   );
 
   modport host_actv_drvr_mp(
+    input clk,
     input ready,
     output rstn,
     output m2s_req_txn
   );
 
   modport dev_pasv_drvr_mp(
+    input clk,
     output ready,
     output rstn,
     input m2s_req_txn
   );
 
   modport mon(
+    input clk,
     input ready,
     input rstn,
     input m2s_req_txn
@@ -507,30 +548,35 @@ interface cxl_mem_m2s_rwd_if(input logic clk);
   m2s_rwd_txn_t m2s_rwd_txn;
 
   modport host_if_mp(
+    input clk,
     output ready,
     input rstn,
     input m2s_rwd_txn
   );
 
   modport dev_if_mp(
+    input clk,
     input ready,
     input rstn,
     output m2s_rwd_txn
   );
 
   modport host_actv_drvr_mp(
+    input clk,
     input ready,
     output rstn,
     output m2s_rwd_txn
   );
 
-  modport dev_actv_drvr_mp(
+  modport dev_pasv_drvr_mp(
+    input clk,
     output ready,
     output rstn,
     input m2s_rwd_txn
   );
 
   modport mon(
+    input clk,
     input ready,
     input rstn,
     input m2s_rwd_txn
@@ -544,30 +590,35 @@ interface cxl_mem_s2m_ndr_if(input logic clk);
   s2m_ndr_txn_t s2m_ndr_txn;
 
   modport host_if_mp(
+    input clk,
     input ready,
     input rstn,
     output s2m_ndr_txn
   );
 
   modport dev_if_mp(
+    input clk,
     output ready,
     input rstn,
     input s2m_ndr_txn
   );
 
   modport dev_actv_drvr_mp(
+    input clk,
     input ready,
     output rstn,
     output s2m_ndr_txn
   );
 
   modport host_pasv_drvr_mp(
+    input clk,
     output ready,
     output rstn,
     input s2m_ndr_txn
   );
 
   modport mon(
+    input clk,
     input ready,
     input rstn,
     input s2m_ndr_txn
@@ -581,30 +632,35 @@ interface cxl_mem_s2m_drs_if(input logic clk);
   s2m_drs_txn_t s2m_drs_txn;
 
   modport host_if_mp(
+    input clk,
     input ready,
     input rstn,
     output s2m_drs_txn
   );
 
   modport dev_if_mp(
+    input clk,
     output ready,
     input rstn,
     input s2m_drs_txn
   );
 
   modport dev_actv_drvr_mp(
+    input clk,
     input ready,
     output rstn,
     output s2m_drs_txn
   );
 
   modport host_pasv_drvr_mp(
+    input clk,
     output ready,
     output rstn,
     input s2m_drs_txn
   );
 
   modport mon(
+    input clk,
     input ready,
     input rstn,
     input s2m_drs_txn
@@ -612,78 +668,86 @@ interface cxl_mem_s2m_drs_if(input logic clk);
 
 endinterface
 
-interface cxl_host_tx_dl_if(input logic dl_clk);
-  logic dl_rstn;
+interface cxl_host_tx_dl_if(input logic clk);
+  logic rstn;
   logic valid;
-  logic [527:0] dl_data;
+  logic [527:0] data;
 
   modport tx_mp(
-    input dl_rstn,
+    input clk,
+    input rstn,
     output valid,
-    output dl_data
+    output data
   );
 
   modport mon(
-    input dl_rstn,
+    input clk,
+    input rstn,
     input valid,
-    input dl_data
+    input data
   );
 
 endinterface
 
-interface cxl_host_rx_dl_if(input logic dl_clk);
-  logic dl_rstn;
+interface cxl_host_rx_dl_if(input logic clk);
+  logic rstn;
   logic valid;
-  logic [527:0] dl_data;
+  logic [527:0] data;
 
   modport rx_mp(
-    input dl_rstn,
+    input clk,
+    input rstn,
     input valid,
-    input dl_data
+    input data
   );
 
   modport mon(
-    input dl_rstn,
+    input clk,
+    input rstn,
     input valid,
-    input dl_data
+    input data
   );
 
 endinterface
 
-interface cxl_dev_tx_dl_if(input logic dl_clk);
-  logic dl_rstn;
+interface cxl_dev_tx_dl_if(input logic clk);
+  logic rstn;
   logic valid;
-  logic [527:0] dl_data;
+  logic [527:0] data;
 
   modport tx_mp(
-    input dl_rstn,
+    input clk,
+    input rstn,
     output valid,
-    output dl_data
+    output data
   );
 
   modport mon(
-    input dl_rstn,
+    input clk,
+    input rstn,
     input valid,
-    input dl_data
+    input data
   );
 
 endinterface
 
-interface cxl_dev_rx_dl_if(input logic dl_clk);
-  logic dl_rstn;
+interface cxl_dev_rx_dl_if(input logic clk);
+  logic rstn;
   logic valid;
-  logic [527:0] dl_data;
+  logic [527:0] data;
 
   modport rx_mp(
-    input dl_rstn,
+    input clk,
+    input rstn,
     input valid,
-    input dl_data
+    input data
   );
 
   modport mon(
-    input dl_rstn,
+    input clk,
+    input rstn,
     input valid,
-    input dl_data
+    input data
   );
 
 endinterface 
@@ -897,18 +961,23 @@ module host_tx_path#(
   output logic m2s_rwd_qrval,
   input h2d_req_txn_t h2d_req_dataout,
   input h2d_req_txn_t h2d_req_ddataout,
+  input h2d_req_txn_t h2d_req_tdataout,
   input h2d_req_txn_t h2d_req_qdataout,
   input h2d_rsp_txn_t h2d_rsp_dataout,
   input h2d_rsp_txn_t h2d_rsp_ddataout,
+  input h2d_rsp_txn_t h2d_rsp_tdataout,
   input h2d_rsp_txn_t h2d_rsp_qdataout,
   input h2d_data_txn_t h2d_data_dataout,
   input h2d_data_txn_t h2d_data_ddataout,
+  input h2d_data_txn_t h2d_data_tdataout,
   input h2d_data_txn_t h2d_data_qdataout,
   input m2s_req_txn_t m2s_req_dataout,
   input m2s_req_txn_t m2s_req_ddataout,
+  input m2s_req_txn_t m2s_req_tdataout,
   input m2s_req_txn_t m2s_req_qdataout,
   input m2s_rwd_txn_t m2s_rwd_dataout,
   input m2s_rwd_txn_t m2s_rwd_ddataout,
+  input m2s_rwd_txn_t m2s_rwd_tdataout,
   input m2s_rwd_txn_t m2s_rwd_qdataout,
   cxl_host_tx_dl_if.tx_mp host_tx_dl_if,
   cxl_host_rx_dl_if.rx_mp host_rx_dl_if
@@ -926,6 +995,7 @@ module host_tx_path#(
   logic [6:0] g_gnt;
   logic [6:0] g_gnt_d;
   typedef enum {
+    XSLOT = 'h0,
     H_SLOT0 = 'h1,
     G_SLOT1 = 'h2,
     G_SLOT2 = 'h4,
@@ -958,14 +1028,18 @@ module host_tx_path#(
   int s2m_drs_occ_d;
   typedef struct{
     bit pending;
-    int credit_to_be_sent[4];
+    int credit_to_be_sent;
   } crdt_tbs_t;
-  crdt_tbs_t d2h_req_crdt_tbs;
-  crdt_tbs_t d2h_rsp_crdt_tbs;
-  crdt_tbs_t d2h_data_crdt_tbs;
-  crdt_tbs_t s2m_ndr_crdt_tbs;
-  crdt_tbs_t s2m_drs_crdt_tbs;
+  crdt_tbs_t d2h_req_crdt_tbs[4];
+  crdt_tbs_t d2h_rsp_crdt_tbs[4];
+  crdt_tbs_t d2h_data_crdt_tbs[4];
+  crdt_tbs_t s2m_ndr_crdt_tbs[4];
+  crdt_tbs_t s2m_drs_crdt_tbs[4];
   logic [2:0] d2h_req_crdt_send;
+  logic [2:0] d2h_rsp_crdt_send;
+  logic [2:0] d2h_data_crdt_send;
+  logic [2:0] s2m_ndr_crdt_send;
+  logic [2:0] s2m_drs_crdt_send;
   int ack_cnt_tbs;//ack count to be sent 
   int ack_cnt_snt;//current ack count sent 
   logic insert_ack;
@@ -974,7 +1048,7 @@ module host_tx_path#(
   logic host_tx_dl_if_pre_valid;
   logic [15:0] host_tx_dl_if_pre_crc;
   logic [511:0] host_tx_dl_if_pre_data;
-  cxl_host_tx_dl_if host_tx_dl_if_d;
+  virtual cxl_host_tx_dl_if host_tx_dl_if_d;
   //IMP INFO:consider s2m ndr as rsp credits and s2m drs as data credits
 
   ASSERT_ONEHOT_SLOT_SEL:assert property (@(posedge host_tx_dl_if.clk) disable iff (!host_tx_dl_if.rstn) $onehot(slot_sel));
@@ -1021,13 +1095,13 @@ module host_tx_path#(
     if(d2h_req_crdt_tbs[3].pending) begin
       if(d2h_req_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         d2h_req_crdt_send = 'h7;
-      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent > 'd32) begin
         d2h_req_crdt_send = 'h6;
-      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent > 'd16) begin
         d2h_req_crdt_send = 'h5;
-      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent > 'd8) begin
         d2h_req_crdt_send = 'h4;
-      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent > 'd4) begin
         d2h_req_crdt_send = 'h3;
       end else if(d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
         d2h_req_crdt_send = 'h2;
@@ -1037,13 +1111,13 @@ module host_tx_path#(
         if(d2h_req_crdt_tbs[2].pending) begin
           if(d2h_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
             d2h_req_crdt_send = 'h7;
-          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd32) begin
             d2h_req_crdt_send = 'h6;
-          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd16) begin
             d2h_req_crdt_send = 'h5;
-          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd8) begin
             d2h_req_crdt_send = 'h4;
-          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd4) begin
             d2h_req_crdt_send = 'h3;
           end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
             d2h_req_crdt_send = 'h2;
@@ -1053,13 +1127,13 @@ module host_tx_path#(
             if(d2h_req_crdt_tbs[1].pending) begin
               if(d2h_req_crdt_tbs[1].credit_to_be_sent == 'd64) begin
                 d2h_req_crdt_send = 'h7;
-              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent > 'd32) begin
                 d2h_req_crdt_send = 'h6;
-              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent > 'd16) begin
                d2h_req_crdt_send = 'h5;
-              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent > 'd8) begin
                 d2h_req_crdt_send = 'h4;
-              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent >'d4) begin
                 d2h_req_crdt_send = 'h3;
               end else if(d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
                 d2h_req_crdt_send = 'h2;
@@ -1069,13 +1143,13 @@ module host_tx_path#(
                 if(d2h_req_crdt_tbs[0].pending) begin
                   if(d2h_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
                     d2h_req_crdt_send = 'h7;
-                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd32) begin
                     d2h_req_crdt_send = 'h6;
-                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd16) begin
                     d2h_req_crdt_send = 'h5;
-                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd8) begin
                     d2h_req_crdt_send = 'h4;
-                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd4) begin
                     d2h_req_crdt_send = 'h3;
                   end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
                     d2h_req_crdt_send = 'h2;
@@ -1103,13 +1177,13 @@ module host_tx_path#(
     if(d2h_rsp_crdt_tbs[3].pending) begin
       if(d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         d2h_rsp_crdt_send = 'h7;
-      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd32) begin
         d2h_rsp_crdt_send = 'h6;
-      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd16) begin
         d2h_rsp_crdt_send = 'h5;
-      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd8) begin
         d2h_rsp_crdt_send = 'h4;
-      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd4) begin
         d2h_rsp_crdt_send = 'h3;
       end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
         d2h_rsp_crdt_send = 'h2;
@@ -1119,13 +1193,13 @@ module host_tx_path#(
         if(d2h_rsp_crdt_tbs[2].pending) begin
           if(d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd64) begin
             d2h_rsp_crdt_send = 'h7;
-          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd32) begin
             d2h_rsp_crdt_send = 'h6;
-          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd16) begin
             d2h_rsp_crdt_send = 'h5;
-          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd8) begin
             d2h_rsp_crdt_send = 'h4;
-          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd4) begin
             d2h_rsp_crdt_send = 'h3;
           end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
             d2h_rsp_crdt_send = 'h2;
@@ -1135,13 +1209,13 @@ module host_tx_path#(
             if(d2h_rsp_crdt_tbs[1].pending) begin
               if(d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd64) begin
                 d2h_rsp_crdt_send = 'h7;
-              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd32) begin
                 d2h_rsp_crdt_send = 'h6;
-              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd16) begin
                d2h_rsp_crdt_send = 'h5;
-              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd8) begin
                 d2h_rsp_crdt_send = 'h4;
-              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd4) begin
                 d2h_rsp_crdt_send = 'h3;
               end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
                 d2h_rsp_crdt_send = 'h2;
@@ -1151,13 +1225,13 @@ module host_tx_path#(
                 if(d2h_rsp_crdt_tbs[0].pending) begin
                   if(d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd64) begin
                     d2h_rsp_crdt_send = 'h7;
-                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd32) begin
                     d2h_rsp_crdt_send = 'h6;
-                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd16) begin
                     d2h_rsp_crdt_send = 'h5;
-                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd8) begin
                     d2h_rsp_crdt_send = 'h4;
-                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd4) begin
                     d2h_rsp_crdt_send = 'h3;
                   end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
                     d2h_rsp_crdt_send = 'h2;
@@ -1185,13 +1259,13 @@ module host_tx_path#(
     if(d2h_data_crdt_tbs[3].pending) begin
       if(d2h_data_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         d2h_data_crdt_send = 'h7;
-      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent > 'd32) begin
         d2h_data_crdt_send = 'h6;
-      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent > 'd16) begin
         d2h_data_crdt_send = 'h5;
-      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent > 'd8) begin
         d2h_data_crdt_send = 'h4;
-      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent > 'd4) begin
         d2h_data_crdt_send = 'h3;
       end else if(d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
         d2h_data_crdt_send = 'h2;
@@ -1201,13 +1275,13 @@ module host_tx_path#(
         if(d2h_data_crdt_tbs[2].pending) begin
           if(d2h_data_crdt_tbs[2].credit_to_be_sent == 'd64) begin
             d2h_data_crdt_send = 'h7;
-          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd32) begin
             d2h_data_crdt_send = 'h6;
-          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd16) begin
             d2h_data_crdt_send = 'h5;
-          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd8) begin
             d2h_data_crdt_send = 'h4;
-          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd4) begin
             d2h_data_crdt_send = 'h3;
           end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
             d2h_data_crdt_send = 'h2;
@@ -1217,13 +1291,13 @@ module host_tx_path#(
             if(d2h_data_crdt_tbs[1].pending) begin
               if(d2h_data_crdt_tbs[1].credit_to_be_sent == 'd64) begin
                 d2h_data_crdt_send = 'h7;
-              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent > 'd32) begin
                 d2h_data_crdt_send = 'h6;
-              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent > 'd16) begin
                d2h_data_crdt_send = 'h5;
-              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent > 'd8) begin
                 d2h_data_crdt_send = 'h4;
-              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent > 'd4) begin
                 d2h_data_crdt_send = 'h3;
               end else if(d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
                 d2h_data_crdt_send = 'h2;
@@ -1233,13 +1307,13 @@ module host_tx_path#(
                 if(d2h_data_crdt_tbs[0].pending) begin
                   if(d2h_data_crdt_tbs[2].credit_to_be_sent == 'd64) begin
                     d2h_data_crdt_send = 'h7;
-                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd32) begin
                     d2h_data_crdt_send = 'h6;
-                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd16) begin
                     d2h_data_crdt_send = 'h5;
-                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd8) begin
                     d2h_data_crdt_send = 'h4;
-                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd4) begin
                     d2h_data_crdt_send = 'h3;
                   end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
                     d2h_data_crdt_send = 'h2;
@@ -1267,13 +1341,13 @@ module host_tx_path#(
     if(s2m_ndr_crdt_tbs[3].pending) begin
       if(s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         s2m_ndr_crdt_send = 'h7;
-      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd32) begin
         s2m_ndr_crdt_send = 'h6;
-      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd16) begin
         s2m_ndr_crdt_send = 'h5;
-      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd8) begin
         s2m_ndr_crdt_send = 'h4;
-      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd4) begin
         s2m_ndr_crdt_send = 'h3;
       end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
         s2m_ndr_crdt_send = 'h2;
@@ -1283,13 +1357,13 @@ module host_tx_path#(
         if(s2m_ndr_crdt_tbs[2].pending) begin
           if(s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd64) begin
             s2m_ndr_crdt_send = 'h7;
-          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd32) begin
             s2m_ndr_crdt_send = 'h6;
-          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd16) begin
             s2m_ndr_crdt_send = 'h5;
-          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd8) begin
             s2m_ndr_crdt_send = 'h4;
-          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd4) begin
             s2m_ndr_crdt_send = 'h3;
           end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
             s2m_ndr_crdt_send = 'h2;
@@ -1299,13 +1373,13 @@ module host_tx_path#(
             if(s2m_ndr_crdt_tbs[1].pending) begin
               if(s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd64) begin
                 s2m_ndr_crdt_send = 'h7;
-              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd32) begin
                 s2m_ndr_crdt_send = 'h6;
-              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd16) begin
                s2m_ndr_crdt_send = 'h5;
-              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd8) begin
                 s2m_ndr_crdt_send = 'h4;
-              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd4) begin
                 s2m_ndr_crdt_send = 'h3;
               end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
                 s2m_ndr_crdt_send = 'h2;
@@ -1315,13 +1389,13 @@ module host_tx_path#(
                 if(s2m_ndr_crdt_tbs[0].pending) begin
                   if(s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd64) begin
                     s2m_ndr_crdt_send = 'h7;
-                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd32) begin
                     s2m_ndr_crdt_send = 'h6;
-                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd16) begin
                     s2m_ndr_crdt_send = 'h5;
-                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd8) begin
                     s2m_ndr_crdt_send = 'h4;
-                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd4) begin
                     s2m_ndr_crdt_send = 'h3;
                   end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
                     s2m_ndr_crdt_send = 'h2;
@@ -1349,13 +1423,13 @@ module host_tx_path#(
     if(s2m_drs_crdt_tbs[3].pending) begin
       if(s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         s2m_drs_crdt_send = 'h7;
-      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd32) begin
         s2m_drs_crdt_send = 'h6;
-      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd16) begin
         s2m_drs_crdt_send = 'h5;
-      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd8) begin
         s2m_drs_crdt_send = 'h4;
-      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd4) begin
         s2m_drs_crdt_send = 'h3;
       end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
         s2m_drs_crdt_send = 'h2;
@@ -1365,13 +1439,13 @@ module host_tx_path#(
         if(s2m_drs_crdt_tbs[2].pending) begin
           if(s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd64) begin
             s2m_drs_crdt_send = 'h7;
-          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd32) begin
             s2m_drs_crdt_send = 'h6;
-          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd16) begin
             s2m_drs_crdt_send = 'h5;
-          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd8) begin
             s2m_drs_crdt_send = 'h4;
-          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd4) begin
             s2m_drs_crdt_send = 'h3;
           end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
             s2m_drs_crdt_send = 'h2;
@@ -1381,13 +1455,13 @@ module host_tx_path#(
             if(s2m_drs_crdt_tbs[1].pending) begin
               if(s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd64) begin
                 s2m_drs_crdt_send = 'h7;
-              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
+              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd32) begin
                 s2m_drs_crdt_send = 'h6;
-              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
+              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd16) begin
                s2m_drs_crdt_send = 'h5;
-              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
+              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd8) begin
                 s2m_drs_crdt_send = 'h4;
-              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
+              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd4) begin
                 s2m_drs_crdt_send = 'h3;
               end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
                 s2m_drs_crdt_send = 'h2;
@@ -1395,15 +1469,15 @@ module host_tx_path#(
                 s2m_drs_crdt_send = 'h1;
               end else begin
                 if(s2m_drs_crdt_tbs[0].pending) begin
-                  if(s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                  if(s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd64) begin
                     s2m_drs_crdt_send = 'h7;
-                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd32) begin
                     s2m_drs_crdt_send = 'h6;
-                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd16) begin
                     s2m_drs_crdt_send = 'h5;
-                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd8) begin
                     s2m_drs_crdt_send = 'h4;
-                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd4) begin
                     s2m_drs_crdt_send = 'h3;
                   end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
                     s2m_drs_crdt_send = 'h2;
@@ -1798,7 +1872,7 @@ module host_tx_path#(
               end else if(data_slot[0] == 'he) begin
                 slot_sel <= H_SLOT0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
               end
             end else if(h_gnt[1] || h_gnt[2] || h_gnt[4]) begin
               slot_sel <= H_SLOT0;
@@ -1833,27 +1907,27 @@ module host_tx_path#(
           if(g_gnt == 0) begin
             slot_sel <= G_SLOT1;
           end else if(g_gnt[0]) begin
-            slot_sel <= 'hX;
+            slot_sel <= XSLOT;
           end else begin
             if((g_gnt[1])) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= G_SLOT2;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
               end
             end else if((g_gnt[2]) || (g_gnt[4]) || (g_gnt[5])) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= H_SLOT0;
                 data_slot[0] <= 'hc; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
               end
             end else if(g_gnt[3]) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= H_SLOT0;
                 data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
               end
             end
           end
@@ -1862,27 +1936,27 @@ module host_tx_path#(
           if(g_gnt == 0) begin
             slot_sel <= G_SLOT2;
           end else if(g_gnt[0]) begin
-            slot_sel <= 'hX;
+            slot_sel <= XSLOT;
           end else begin
             if((g_gnt[1])) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
                 slot_sel <= G_SLOT3;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
               end
             end else if((g_gnt[2]) || (g_gnt[4]) || (g_gnt[5])) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
                 slot_sel <= H_SLOT0;
                 data_slot[0] <= ((data_slot[0] == 'h2)? 'ha: 'h8); data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
               end
             end else if(g_gnt[3]) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
                 slot_sel <= H_SLOT0;
                 data_slot[0] <=  ((data_slot[0] == 'h2)? 'ha: 'h8); data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
               end
             end
           end
@@ -1891,33 +1965,33 @@ module host_tx_path#(
           if(g_gnt == 0) begin
             slot_sel <= G_SLOT3;
           end else if(g_gnt[0]) begin
-            slot_sel <= 'hX;
+            slot_sel <= XSLOT;
           end else begin
             if((g_gnt[1])) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
                 slot_sel <= H_SLOT0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
               end
             end else if((g_gnt[2]) || (g_gnt[4]) || (g_gnt[5])) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
                 slot_sel <= H_SLOT0;
             /*data_slot[0] <= 'h6;*/ data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
               end
             end else if(g_gnt[3]) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
                 slot_sel <= H_SLOT0;
             /*data_slot[0] <= 'h6;*/ data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
               end
             end
           end
         end
         default: begin
-            slot_sel <= 'hX;
+            slot_sel <= XSLOT;
         end 
       endcase
      //TODO: bug/major flaw in packing logic after data slot ends in slot0/1/2 then slots123/23/3 should not be packed currently you are just sending available pkts into these slots without header slot entry so receiver cannot decode these generic slots  
@@ -1978,7 +2052,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[45]       <= h2d_data_dataout.chunkvalid;
                 holding_q[holding_wrptr].data[46]       <= h2d_data_dataout.poison;
                 holding_q[holding_wrptr].data[47]       <= h2d_data_dataout.goerr;
-                holding_q[holding_wrptr].data[54:48]    <= h2d_data_dataout.
+                holding_q[holding_wrptr].data[54:48]    <= 'h0;//TBD:says pre but I do not see any pre in h2d_data
                 holding_q[holding_wrptr].data[55]       <= 'h0;//spare bit always 0
                 holding_q[holding_wrptr].data[56]       <= h2d_rsp_dataout.valid;
                 holding_q[holding_wrptr].data[60:57]    <= h2d_rsp_dataout.opcode;
@@ -2369,7 +2443,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+3].data[255:0]                                <= h2d_data_tdataout.data[511:256];
                 holding_q[holding_wrptr+3].data[511:256]                              <= h2d_data_qdataout.data[255:0];
                 holding_q[holding_wrptr+3].valid                                      <= 'h1;
-                holding_q[holding_wrptr+4].data[383:128]                              <= h2d_data_qataout.data[511:256];
+                holding_q[holding_wrptr+4].data[383:128]                              <= h2d_data_qdataout.data[511:256];
                 holding_q[holding_wrptr+4].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 4;
               end
@@ -2534,7 +2608,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+3].data[383:0]                                <= h2d_data_tdataout.data[511:128];
                 holding_q[holding_wrptr+3].data[511:384]                              <= h2d_data_qdataout.data[127:0];
                 holding_q[holding_wrptr+3].valid                                      <= 'h1;
-                holding_q[holding_wrptr+4].data[511:128]                              <= h2d_data_qataout.data[511:128];
+                holding_q[holding_wrptr+4].data[511:128]                              <= h2d_data_qdataout.data[511:128];
                 holding_q[holding_wrptr+4].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 4;
               end
@@ -2783,9 +2857,9 @@ module host_tx_path#(
       if(ack) begin
         ack_cnt_tbs <= ack_cnt_tbs + 1;
       end
-      if(holding_q.valid[holding_rdptr]) begin
-        host_tx_dl_if_pre_valid <= holding_q.valid[holding_rdptr];
-        host_tx_dl_if_pre_data <= holding_q.data[holding_rdptr];
+      if(holding_q[holding_rdptr].valid) begin
+        host_tx_dl_if_pre_valid <= holding_q[holding_rdptr].valid;
+        host_tx_dl_if_pre_data <= holding_q[holding_rdptr].data;
         holding_rdptr <= holding_rdptr + 1;
       end else begin//TODO: this is wrong this is operating on a different clock and I am unsure need to analyze more if there is any cdc issues
         if((host_tx_dl_if_d.rstn == 'h1) && (host_tx_dl_if.rstn == 'h0)) begin
@@ -2821,17 +2895,17 @@ module host_tx_path#(
    end
   end
 
-  crc_gen(
+  crc_gen crc_gen_inst(
     .data(host_tx_dl_if_pre_data),
     .crc(host_tx_dl_if_pre_crc)
   );
-
+/*
   buffer #(
     .DEPTH(256),
     .ADDR_WIDTH(8),
     .FIFO_DATA_TYPE(holding_q_t)
   ) llrb (
-	  .clk(host_tx_dl_if.clk.clk),
+	  .clk(host_tx_dl_if.clk),
   	.rstn(host_tx_dl_if.rstn),
   	.rval(ack_ret_val),
     .ack_cnt(ack_ret),
@@ -2840,7 +2914,7 @@ module host_tx_path#(
   	.eseq,
   	.wptr()
   );
-
+*/
   rra #(
     
   ) h_slot_rra_inst (
@@ -2938,6 +3012,7 @@ module device_tx_path#(
   logic [6:0] g_gnt;
   logic [6:0] g_gnt_d;
   typedef enum {
+    XSLOT = 'h0,
     H_SLOT0 = 'h1,
     G_SLOT1 = 'h2,
     G_SLOT2 = 'h4,
@@ -2970,14 +3045,18 @@ module device_tx_path#(
   int m2s_rwd_occ_d;
   typedef struct{
     bit pending;
-    int credit_to_be_sent[4];
+    int credit_to_be_sent;
   } crdt_tbs_t;
-  crdt_tbs_t h2d_req_crdt_tbs;
-  crdt_tbs_t h2d_rsp_crdt_tbs;
-  crdt_tbs_t h2d_data_crdt_tbs;
-  crdt_tbs_t m2s_req_crdt_tbs;
-  crdt_tbs_t m2s_rwd_crdt_tbs;
+  crdt_tbs_t h2d_req_crdt_tbs[4];
+  crdt_tbs_t h2d_rsp_crdt_tbs[4];
+  crdt_tbs_t h2d_data_crdt_tbs[4];
+  crdt_tbs_t m2s_req_crdt_tbs[4];
+  crdt_tbs_t m2s_rwd_crdt_tbs[4];
   logic [2:0] h2d_req_crdt_send;
+  logic [2:0] h2d_rsp_crdt_send;
+  logic [2:0] h2d_data_crdt_send;
+  logic [2:0] m2s_req_crdt_send;
+  logic [2:0] m2s_rwd_crdt_send;
   int ack_cnt_tbs;//ack count to be sent
   int ack_cnt_snt;//current ack count sent
   logic insert_ack;
@@ -2986,7 +3065,7 @@ module device_tx_path#(
   logic dev_tx_dl_if_pre_valid;
   logic [15:0] dev_tx_dl_if_pre_crc;
   logic [511:0] dev_tx_dl_if_pre_data;
-  cxl_dev_tx_dl_if dev_tx_dl_if_d;
+  virtual cxl_dev_tx_dl_if dev_tx_dl_if_d;
 //IMP INFO: consider m2s req as rsp credits and m2s rwd as data credits
 
   ASSERT_DEVSIDE_ONEHOT_SLOT_SEL: assert property (@(posedge dev_tx_dl_if.clk) disable iff (!dev_tx_dl_if.rstn) $onehot(slot_sel));
@@ -3862,13 +3941,13 @@ module device_tx_path#(
           if(g_gnt == 0) begin
             slot_sel <= G_SLOT1;
           end else if(g_gnt[0]) begin
-            slot_sel <= 'hX;
+            slot_sel <= XSLOT;
           end else begin
             if(g_gnt[1] || g_gnt[5]) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= G_SLOT2;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[2] || g_gnt[4]) begin
@@ -3876,7 +3955,7 @@ module device_tx_path#(
                 slot_sel <= G_SLOT2;
                 data_slot[0] <= 'hc; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[6]) begin
@@ -3884,7 +3963,7 @@ module device_tx_path#(
                 slot_sel <= G_SLOT2;
                 data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[3]) begin
@@ -3892,11 +3971,11 @@ module device_tx_path#(
                 slot_sel <= G_SLOT2;
                 data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else begin
-              slot_sel <= 'hX;
+              slot_sel <= XSLOT;
             end
           end
         end
@@ -3904,13 +3983,13 @@ module device_tx_path#(
           if(g_gnt == 0) begin
             slot_sel <= G_SLOT2;
           end else if(g_gnt[0]) begin
-            slot_sel <= 'hX;
+            slot_sel <= XSLOT;
           end else begin
             if(g_gnt[1] || g_gnt[5]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2)) begin
                 slot_sel <= G_SLOT3;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[2] || g_gnt[4]) begin
@@ -3918,7 +3997,7 @@ module device_tx_path#(
                 data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[6]) begin
@@ -3926,7 +4005,7 @@ module device_tx_path#(
                 data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'he; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[3]) begin
@@ -3934,11 +4013,11 @@ module device_tx_path#(
                 data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
                 slot_sel <= H_SLOT0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else begin
-              slot_sel <= 'hX;
+              slot_sel <= XSLOT;
             end
           end
         end
@@ -3946,13 +4025,13 @@ module device_tx_path#(
           if(g_gnt == 0) begin
             slot_sel <= G_SLOT3;
           end else if(g_gnt[0]) begin
-            slot_sel <= 'hX;
+            slot_sel <= XSLOT;
           end else begin
             if(g_gnt[1] || g_gnt[5]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
                 slot_sel <= H_SLOT0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[2] || g_gnt[4]) begin
@@ -3960,7 +4039,7 @@ module device_tx_path#(
               /*data_slot[0] <=  ;*/ data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[6]) begin
@@ -3968,7 +4047,7 @@ module device_tx_path#(
               /*data_slot[0] <=  ;*/ data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[3]) begin
@@ -3976,16 +4055,16 @@ module device_tx_path#(
               /*data_slot[0] <=  ;*/ data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
                 slot_sel <= H_SLOT0;
               end else begin
-                slot_sel <= 'hX;
+                slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else begin
-              slot_sel <= 'hX;
+              slot_sel <= XSLOT;
             end
           end
         end
         default: begin
-            slot_sel = 'hX;
+            slot_sel = XSLOT;
         end 
       endcase
       
@@ -4023,7 +4102,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[86:75]    <= d2h_rsp_ddataout.uqid;
                 holding_q[holding_wrptr].data[88:87]    <= 'h0;//spare bit always 0
                 holding_q[holding_wrptr].data[89]       <= s2m_ndr_dataout.valid;
-                holding_q[holding_wrptr].data[92:90]    <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[92:90]    <= s2m_ndr_dataout.opcode;
                 holding_q[holding_wrptr].data[94:93]    <= s2m_ndr_dataout.metafield;
                 holding_q[holding_wrptr].data[96:95]    <= s2m_ndr_dataout.metavalue;
                 holding_q[holding_wrptr].data[112:97]   <= s2m_ndr_dataout.tag;
@@ -4227,14 +4306,14 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
                 holding_q[holding_wrptr].data[32]       <= s2m_drs_dataout.valid;
-                holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.opcode;
                 holding_q[holding_wrptr].data[37:36]    <= s2m_drs_dataout.metafield;
                 holding_q[holding_wrptr].data[39:38]    <= s2m_drs_dataout.metavalue;
                 holding_q[holding_wrptr].data[55:40]    <= s2m_drs_dataout.tag;
                 holding_q[holding_wrptr].data[56]       <= s2m_drs_dataout.poison;
                 holding_q[holding_wrptr].data[71:57]    <= 'h0;// spare bits always 0
                 holding_q[holding_wrptr].data[72]       <= s2m_ndr_dataout.valid;
-                holding_q[holding_wrptr].data[75:73]    <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[75:73]    <= s2m_ndr_dataout.opcode;
                 holding_q[holding_wrptr].data[77:76]    <= s2m_ndr_dataout.metafield;
                 holding_q[holding_wrptr].data[79:78]    <= s2m_ndr_dataout.metavalue;
                 holding_q[holding_wrptr].data[95:80]    <= s2m_ndr_dataout.tag;
@@ -4282,13 +4361,13 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
                 holding_q[holding_wrptr].data[32]       <= s2m_ndr_dataout.valid;
-                holding_q[holding_wrptr].data[35:33]    <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[35:33]    <= s2m_ndr_dataout.opcode;
                 holding_q[holding_wrptr].data[37:36]    <= s2m_ndr_dataout.metafield;
                 holding_q[holding_wrptr].data[39:38]    <= s2m_ndr_dataout.metavalue;
                 holding_q[holding_wrptr].data[55:40]    <= s2m_ndr_dataout.tag;
                 holding_q[holding_wrptr].data[59:56]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[60]       <= s2m_ndr_ddataout.valid;
-                holding_q[holding_wrptr].data[63:61]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[63:61]    <= s2m_ndr_ddataout.opcode;
                 holding_q[holding_wrptr].data[65:64]    <= s2m_ndr_ddataout.metafield;
                 holding_q[holding_wrptr].data[67:66]    <= s2m_ndr_ddataout.metavalue;
                 holding_q[holding_wrptr].data[83:68]    <= s2m_ndr_ddataout.tag;
@@ -4318,14 +4397,14 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;;//TBD: req crdt logic for crdt to be added later
                 holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
                 holding_q[holding_wrptr].data[32]       <= s2m_drs_dataout.valid;
-                holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.opcode;
                 holding_q[holding_wrptr].data[37:36]    <= s2m_drs_dataout.metafield;
                 holding_q[holding_wrptr].data[39:38]    <= s2m_drs_dataout.metavalue;
                 holding_q[holding_wrptr].data[55:40]    <= s2m_drs_dataout.tag;
                 holding_q[holding_wrptr].data[56]       <= s2m_drs_dataout.poison;
                 holding_q[holding_wrptr].data[71:57]    <= 'h0;//spare bits always 0
                 holding_q[holding_wrptr].data[72]       <= s2m_drs_ddataout.valid;
-                holding_q[holding_wrptr].data[75:73]    <= s2m_drs_ddataout.memopcode;
+                holding_q[holding_wrptr].data[75:73]    <= s2m_drs_ddataout.opcode;
                 holding_q[holding_wrptr].data[77:76]    <= s2m_drs_ddataout.metafield;
                 holding_q[holding_wrptr].data[79:78]    <= s2m_drs_ddataout.metavalue;
                 holding_q[holding_wrptr].data[95:80]    <= s2m_drs_ddataout.tag;
@@ -4468,7 +4547,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr+3].data[255:0]                                <= d2h_data_tdataout.data[511:256];
                   holding_q[holding_wrptr+3].data[511:256]                              <= d2h_data_qdataout.data[255:0];
                   holding_q[holding_wrptr+3].valid                                      <= 'h1;
-                  holding_q[holding_wrptr+4].data[383:128]                              <= d2h_data_qataout.data[511:256];
+                  holding_q[holding_wrptr+4].data[383:128]                              <= d2h_data_qdataout.data[511:256];
                   holding_q[holding_wrptr+4].valid                                      <= 'h0;
                   holding_wrptr                                                         <= holding_wrptr + 4;
                 end else begin
@@ -4477,20 +4556,20 @@ module device_tx_path#(
               end
               'h16: begin
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= s2m_drs_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_drs_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      <= s2m_drs_dataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]     <= s2m_drs_dataout.tag;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+24)]                      <= s2m_drs_dataout.poison;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+39):(SLOT1_OFFSET+25)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+40)]                      <= s2m_ndr_dataout.valid; 
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]    <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]    <= s2m_ndr_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]    <= s2m_ndr_dataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]    <= s2m_ndr_dataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)]    <= s2m_ndr_dataout.tag;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+67):(SLOT1_OFFSET+64)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+68)]                      <= s2m_ndr_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+69)]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+69)]    <= s2m_ndr_ddataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+72)]    <= s2m_ndr_ddataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+75):(SLOT1_OFFSET+74)]    <= s2m_ndr_ddataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+76)]    <= s2m_ndr_ddataout.tag;
@@ -4508,19 +4587,19 @@ module device_tx_path#(
               end
               'h32: begin
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= s2m_ndr_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_ndr_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      <= s2m_ndr_dataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]      <= s2m_ndr_dataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]     <= s2m_ndr_dataout.tag;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+24)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+28)]                      <= s2m_ndr_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+31):(SLOT1_OFFSET+29)]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+31):(SLOT1_OFFSET+29)]    <= s2m_ndr_ddataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+33):(SLOT1_OFFSET+32)]    <= s2m_ndr_ddataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+35):(SLOT1_OFFSET+34)]    <= s2m_ndr_ddataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+51):(SLOT1_OFFSET+36)]    <= s2m_ndr_ddataout.tag;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+55):(SLOT1_OFFSET+52)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+56)]                      <= s2m_ndr_tdataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)]    <= s2m_ndr_tdataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)]    <= s2m_ndr_tdataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)]    <= s2m_ndr_tdataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]    <= s2m_ndr_tdataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+64)]    <= s2m_ndr_tdataout.tag;
@@ -4530,21 +4609,21 @@ module device_tx_path#(
               end
               'h64: begin
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= s2m_drs_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_drs_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      <=  s2m_drs_dataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]     <= s2m_drs_dataout.tag;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+24)]                      <= s2m_drs_dataout.poison;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+39):(SLOT1_OFFSET+25)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+40)]                      <= s2m_drs_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]    <= s2m_drs_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]    <= s2m_drs_ddataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]    <= s2m_drs_ddataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]    <= s2m_drs_ddataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)]    <= s2m_drs_ddataout.tag;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+64)]                      <= s2m_drs_ddataout.poison;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+65)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+80)] <= s2m_drs_tdataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+81)]    <= s2m_drs_tdataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+81)]    <= s2m_drs_tdataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+85):(SLOT1_OFFSET+84)]    <= s2m_drs_tdataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+87):(SLOT1_OFFSET+86)]    <= s2m_drs_tdataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+103):(SLOT1_OFFSET+88)]   <= s2m_drs_tdataout.tag;
@@ -4669,20 +4748,20 @@ module device_tx_path#(
               end
               'h16: begin
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= s2m_drs_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      <= s2m_drs_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]      <= s2m_drs_dataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)]     <= s2m_drs_dataout.tag;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+24)]                      <= s2m_drs_dataout.poison;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+39):(SLOT2_OFFSET+25)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+40)]                      <= s2m_ndr_dataout.valid; 
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]    <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]    <= s2m_ndr_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)]    <= s2m_ndr_dataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)]    <= s2m_ndr_dataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)]    <= s2m_ndr_dataout.tag;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+67):(SLOT2_OFFSET+64)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+68)]                      <= s2m_ndr_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+69)]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+69)]    <= s2m_ndr_ddataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+72)]    <= s2m_ndr_ddataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+75):(SLOT2_OFFSET+74)]    <= s2m_ndr_ddataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+76)]    <= s2m_ndr_ddataout.tag;
@@ -4700,19 +4779,19 @@ module device_tx_path#(
               end
               'h32: begin
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= s2m_ndr_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      <= s2m_ndr_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]      <= s2m_ndr_dataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]      <= s2m_ndr_dataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)]     <= s2m_ndr_dataout.tag;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+24)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+28)]                      <= s2m_ndr_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+31):(SLOT2_OFFSET+29)]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+31):(SLOT2_OFFSET+29)]    <= s2m_ndr_ddataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+33):(SLOT2_OFFSET+32)]    <= s2m_ndr_ddataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+35):(SLOT2_OFFSET+34)]    <= s2m_ndr_ddataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+51):(SLOT2_OFFSET+36)]    <= s2m_ndr_ddataout.tag;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+55):(SLOT2_OFFSET+52)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+56)]                      <= s2m_ndr_tdataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+59):(SLOT2_OFFSET+57)]    <= s2m_ndr_tdataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+59):(SLOT2_OFFSET+57)]    <= s2m_ndr_tdataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+60)]    <= s2m_ndr_tdataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)]    <= s2m_ndr_tdataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+79):(SLOT2_OFFSET+64)]    <= s2m_ndr_tdataout.tag;
@@ -4722,21 +4801,21 @@ module device_tx_path#(
               end
               'h64: begin
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= s2m_drs_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      <= s2m_drs_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]      <=  s2m_drs_dataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)]     <= s2m_drs_dataout.tag;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+24)]                      <= s2m_drs_dataout.poison;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+39):(SLOT2_OFFSET+25)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+40)]                      <= s2m_drs_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]    <= s2m_drs_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]    <= s2m_drs_ddataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)]    <= s2m_drs_ddataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)]    <= s2m_drs_ddataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)]    <= s2m_drs_ddataout.tag;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+64)]                      <= s2m_drs_ddataout.poison;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+79):(SLOT2_OFFSET+65)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+80)] <= s2m_drs_tdataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+83):(SLOT2_OFFSET+81)]    <= s2m_drs_tdataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+83):(SLOT2_OFFSET+81)]    <= s2m_drs_tdataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+85):(SLOT2_OFFSET+84)]    <= s2m_drs_tdataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+87):(SLOT2_OFFSET+86)]    <= s2m_drs_tdataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+103):(SLOT2_OFFSET+88)]   <= s2m_drs_tdataout.tag;
@@ -4864,20 +4943,20 @@ module device_tx_path#(
               end
               'h16: begin
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= s2m_drs_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      <= s2m_drs_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]      <= s2m_drs_dataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)]     <= s2m_drs_dataout.tag;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+24)]                      <= s2m_drs_dataout.poison;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+39):(SLOT3_OFFSET+25)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+40)]                      <= s2m_ndr_dataout.valid; 
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]    <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]    <= s2m_ndr_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)]    <= s2m_ndr_dataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)]    <= s2m_ndr_dataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)]    <= s2m_ndr_dataout.tag;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+67):(SLOT3_OFFSET+64)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+68)]                      <= s2m_ndr_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+69)]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+69)]    <= s2m_ndr_ddataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+72)]    <= s2m_ndr_ddataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+75):(SLOT3_OFFSET+74)]    <= s2m_ndr_ddataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+76)]    <= s2m_ndr_ddataout.tag;
@@ -4895,19 +4974,19 @@ module device_tx_path#(
               end
               'h32: begin
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= s2m_ndr_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      <= s2m_ndr_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      <= s2m_ndr_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]      <= s2m_ndr_dataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]      <= s2m_ndr_dataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)]     <= s2m_ndr_dataout.tag;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+24)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+28)]                      <= s2m_ndr_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+31):(SLOT3_OFFSET+29)]    <= s2m_ndr_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+31):(SLOT3_OFFSET+29)]    <= s2m_ndr_ddataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+33):(SLOT3_OFFSET+32)]    <= s2m_ndr_ddataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+35):(SLOT3_OFFSET+34)]    <= s2m_ndr_ddataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+51):(SLOT3_OFFSET+36)]    <= s2m_ndr_ddataout.tag;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+55):(SLOT3_OFFSET+52)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+56)]                      <= s2m_ndr_tdataout.valid;
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+59):(SLOT3_OFFSET+57)]    <= s2m_ndr_tdataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+59):(SLOT3_OFFSET+57)]    <= s2m_ndr_tdataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+60)]    <= s2m_ndr_tdataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)]    <= s2m_ndr_tdataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+79):(SLOT3_OFFSET+64)]    <= s2m_ndr_tdataout.tag;
@@ -4923,21 +5002,21 @@ module device_tx_path#(
               end
               'h64: begin
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= s2m_drs_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      <= s2m_drs_dataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      <= s2m_drs_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]      <=  s2m_drs_dataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)]     <= s2m_drs_dataout.tag;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+24)]                      <= s2m_drs_dataout.poison;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+39):(SLOT3_OFFSET+25)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+40)]                      <= s2m_drs_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]    <= s2m_drs_ddataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]    <= s2m_drs_ddataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)]    <= s2m_drs_ddataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)]    <= s2m_drs_ddataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)]    <= s2m_drs_ddataout.tag;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+64)]                      <= s2m_drs_ddataout.poison;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+79):(SLOT3_OFFSET+65)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+80)] <= s2m_drs_tdataout.valid;
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+83):(SLOT3_OFFSET+81)]    <= s2m_drs_tdataout.memopcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+83):(SLOT3_OFFSET+81)]    <= s2m_drs_tdataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+85):(SLOT3_OFFSET+84)]    <= s2m_drs_tdataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+87):(SLOT3_OFFSET+86)]    <= s2m_drs_tdataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+103):(SLOT3_OFFSET+88)]   <= s2m_drs_tdataout.tag;
@@ -4987,9 +5066,9 @@ module device_tx_path#(
       if(ack) begin
         ack_cnt_tbs <= ack_cnt_tbs + 1;
       end
-      if(holding_q.valid[holding_rdptr]) begin
-        dev_tx_dl_if_pre_valid <= holding_q.valid[holding_rdptr];
-        dev_tx_dl_if_pre_data <= holding_q.data[holding_rdptr];
+      if(holding_q[holding_rdptr].valid) begin
+        dev_tx_dl_if_pre_valid <= holding_q[holding_rdptr].valid;
+        dev_tx_dl_if_pre_data <= holding_q[holding_rdptr].data;
         holding_rdptr <= holding_rdptr + 1;
       end else begin
         if((dev_tx_dl_if_d.rstn == 'h1) && (dev_tx_dl_if.rstn == 'h0)) begin
@@ -5010,9 +5089,9 @@ module device_tx_path#(
           dev_tx_dl_if_pre_data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
           dev_tx_dl_if_pre_data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
           dev_tx_dl_if_pre_data[19:17]    <= 'h0;//reserved must be 0
-          dev_tx_dl_if_pre_data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-          dev_tx_dl_if_pre_data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-          dev_tx_dl_if_pre_data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+          dev_tx_dl_if_pre_data[23:20]    <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
+          dev_tx_dl_if_pre_data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
+          dev_tx_dl_if_pre_data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
           dev_tx_dl_if_pre_data[35:32]    <= 4'b0000;
           dev_tx_dl_if_pre_data[39:36]    <= 4'b0001;
           dev_tx_dl_if_pre_data[63:40]    <= 'h0;
@@ -5029,13 +5108,13 @@ module device_tx_path#(
     .data(dev_tx_dl_if_pre_data),
     .crc(dev_tx_dl_if_pre_crc)
   );
-
+/*
   buffer #(
     .DEPTH(256),
     .ADDR_WIDTH(8),
     .FIFO_DATA_TYPE(holding_q_t)
   ) llrb (
-	  .clk(dev_tx_dl_if.clk.clk),
+	  .clk(dev_tx_dl_if.clk),
   	.rstn(dev_tx_dl_if.rstn),
   	.rval(ack_ret_val),
   	.ack_cnt(ack_ret),
@@ -5044,7 +5123,7 @@ module device_tx_path#(
   	.eseq,
   	.wptr()
   );
-
+*/
   rra #(
 
   ) h_slot_rra_inst(
@@ -5165,7 +5244,7 @@ module cxl_lrsm_rrsm(
             ack_timer <='h0;
             if(retry_ack_empty_bit) begin
               local_num_retry <= 'h0;
-              local_num_phy_retry <= 'h0;
+              local_num_phy_reinit <= 'h0;
             end
           end else if(retry_ack_rcvd && (retry_ack_num_retry != local_num_retry)) begin
             l_states <= RETRY_LOCAL_IDLE;
@@ -5182,9 +5261,6 @@ module cxl_lrsm_rrsm(
         end
         RETRY_ABORT: begin
           l_states <= RETRY_ABORT;
-        end
-        default: begin
-          l_states <= 'hx;
         end
       endcase	
     end
@@ -5210,9 +5286,6 @@ module cxl_lrsm_rrsm(
           r_states <= RETRY_REMOTE_NORMAL;
         end
       end
-      default: begin
-        r_states <= 'hx;
-      end
       endcase
     end
   end
@@ -5221,7 +5294,7 @@ module cxl_lrsm_rrsm(
   
 endmodule
 
-module c2c_gen#(
+module crc_gen#(
 
 )(
   input logic [511:0] data,
@@ -5326,10 +5399,10 @@ module host_rx_path #(
   input logic phy_rst,
   input logic phy_reinit,
   input logic phy_link_up,
-  output d2h_req_txn_t d2h_req_pkt[4],
-  output d2h_rsp_txn_t d2h_rsp_pkt[2],
+  output d2h_req_txn_t d2h_req_txn[4],
+  output d2h_rsp_txn_t d2h_rsp_txn[2],
   output d2h_data_pkt_t d2h_data_pkt[4],
-  output s2m_ndr_txn_t s2m_ndr_pkt[3],
+  output s2m_ndr_txn_t s2m_ndr_txn[3],
   output s2m_drs_pkt_t s2m_drs_pkt[3],
   output logic ack,
   output logic ack_ret_val,
@@ -5344,6 +5417,9 @@ module host_rx_path #(
   output logic [2:0] crdt_data
 );
 
+  localparam SLOT1_OFFSET = 128;
+  localparam SLOT2_OFFSET = 256;
+  localparam SLOT3_OFFSET = 384;
   typedef enum {
     RETRY_NOFRAME,
     RETRY_FRAME1,
@@ -5363,40 +5439,41 @@ module host_rx_path #(
   logic [7:0] retry_ack_num_retry;
   logic retry_ack_empty_bit;
   logic retry_ack_rcvd;
-  cxl_host_rx_dl_if host_rx_dl_if_d;//assuming crc checker takes 1 cycle to tell crc pass or fail
+  logic host_rx_dl_if_d_valid;//assuming crc checker takes 1 cycle to tell crc pass or fail
+  logic [511:0] host_rx_dl_if_d_data;//assuming crc checker takes 1 cycle to tell crc pass or fail
   logic retry_frame_detect;
   logic retry_req_detect;
   logic retry_ack_detect;
   logic retry_idle_detect;
-  logic data_slot[5];
-  logic data_slot_d[5];
+  logic [3:0] data_slot[5];
+  logic [3:0] data_slot_d[5];
   d2h_data_pkt_t d2h_data_pkt_d[4];
   s2m_drs_pkt_t s2m_drs_pkt_d[3];
   logic [2:0] ack_count;
   logic [2:0] ack_count_d;
   logic llcrd_flit;
 
-  assign init_done          = (host_rx_dl_if_d.data[39:36] == 'h8) && (host_rx_dl_if_d.data[35:32] == 'hc) && (host_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_frame_detect = (host_rx_dl_if_d.data[39:36] == 'h3) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_idle_detect  = (host_rx_dl_if_d.data[39:36] == 'h0) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_req_detect   = (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_ack_detect   = (host_rx_dl_if_d.data[39:36] == 'h2) && (host_rx_dl_if_d.data[35:32] == 'h1) && (host_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
-  assign llcrd_flit         = (host_rx_dl_if_d.data[39:36] == 'h1) && (host_rx_dl_if_d.data[35:32] == 'h0) && (host_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign init_done          = (host_rx_dl_if_d_data[39:36] == 'h8) && (host_rx_dl_if_d_data[35:32] == 'hc) && (host_rx_dl_if_d_data[0] == 'h1) && (host_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_frame_detect = (host_rx_dl_if_d_data[39:36] == 'h3) && (host_rx_dl_if_d_data[35:32] == 'h1) && (host_rx_dl_if_d_data[0] == 'h1) && (host_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_idle_detect  = (host_rx_dl_if_d_data[39:36] == 'h0) && (host_rx_dl_if_d_data[35:32] == 'h1) && (host_rx_dl_if_d_data[0] == 'h1) && (host_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_req_detect   = (host_rx_dl_if_d_data[39:36] == 'h1) && (host_rx_dl_if_d_data[35:32] == 'h1) && (host_rx_dl_if_d_data[0] == 'h1) && (host_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_ack_detect   = (host_rx_dl_if_d_data[39:36] == 'h2) && (host_rx_dl_if_d_data[35:32] == 'h1) && (host_rx_dl_if_d_data[0] == 'h1) && (host_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign llcrd_flit         = (host_rx_dl_if_d_data[39:36] == 'h1) && (host_rx_dl_if_d_data[35:32] == 'h0) && (host_rx_dl_if_d_data[0] == 'h1) && (host_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
   assign non_retryable_flit = (retry_idle_detect) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
   assign retryable_flit     = (!retry_idle_detect) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
-  assign crdt_val           = (llcrd_flit || (host_rx_dl_if_d.data[0] == 'h0)) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
-  assign crdt_data_cm       = crdt_val && host_rx_dl_if_d.data[31];
-  assign crdt_data          = crdt_val && host_rx_dl_if_d.data[30:28];
-  assign crdt_req_cm        = crdt_val && host_rx_dl_if_d.data[27];
-  assign crdt_req           = crdt_val && host_rx_dl_if_d.data[26:24];
-  assign crdt_rsp_cm        = crdt_val && host_rx_dl_if_d.data[23];
-  assign crdt_rsp           = crdt_val && host_rx_dl_if_d.data[22:20];
+  assign crdt_val           = (llcrd_flit || (host_rx_dl_if_d_data[0] == 'h0)) && (host_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign crdt_data_cm       = crdt_val && host_rx_dl_if_d_data[31];
+  assign crdt_data          = crdt_val && host_rx_dl_if_d_data[30:28];
+  assign crdt_req_cm        = crdt_val && host_rx_dl_if_d_data[27];
+  assign crdt_req           = crdt_val && host_rx_dl_if_d_data[26:24];
+  assign crdt_rsp_cm        = crdt_val && host_rx_dl_if_d_data[23];
+  assign crdt_rsp           = crdt_val && host_rx_dl_if_d_data[22:20];
   
-  function void header0(
+  function automatic void header0(
     input logic [511:0] data, 
-    output d2h_data_pkt_t d2h_data_pkt[4], 
-    output d2h_rsp_txn_t d2h_rsp_txn[2], 
-    output s2m_ndr_txn_t s2m_ndr_txn[3]
+    ref d2h_data_pkt_t d2h_data_pkt[4], 
+    ref d2h_rsp_txn_t d2h_rsp_txn[2], 
+    ref s2m_ndr_txn_t s2m_ndr_txn[3]
   );
 
     d2h_data_pkt[0].pending_data_slot          = 'hf;
@@ -5406,27 +5483,27 @@ module host_rx_path #(
     d2h_data_pkt[0].d2h_data_txn.bogus         = data[46];
     d2h_data_pkt[0].d2h_data_txn.poison        = data[47];
     d2h_rsp_txn[0].valid                       = data[49];
-    d2h_rsp_txn[0].opcode                      = data[54:50];
+    d2h_rsp_txn[0].opcode                      = d2h_rsp_opcode_t'(data[54:50]);//get elab error if you directly assign
     d2h_rsp_txn[0].uqid                        = data[66:55];
     d2h_rsp_txn[1].valid                       = data[69];
-    d2h_rsp_txn[1].opcode                      = data[74:70];
+    d2h_rsp_txn[1].opcode                      = d2h_rsp_opcode_t'(data[74:70]);
     d2h_rsp_txn[1].uqid                        = data[86:75];
     s2m_ndr_txn[0].valid                       = data[89];
-    s2m_ndr_txn[0].memopcode                   = data[92:90];
-    s2m_ndr_txn[0].metafield                   = data[94:93];
-    s2m_ndr_txn[0].metavalue                   = data[96:95];
+    s2m_ndr_txn[0].opcode                   = s2m_ndr_opcode_t'(data[92:90]);
+    s2m_ndr_txn[0].metafield                   = metafield_t'(data[94:93]);
+    s2m_ndr_txn[0].metavalue                   = metavalue_t'(data[96:95]);
     s2m_ndr_txn[0].tag                         = data[112:97];
 
   endfunction
 
-  function void header1(
+  function automatic void header1(
     input logic [511:0] data, 
-    output d2h_req_txn_t d2h_req_txn[4], 
-    output d2h_data_pkt_t d2h_data_pkt[4]
+    ref d2h_req_txn_t d2h_req_txn[4], 
+    ref d2h_data_pkt_t d2h_data_pkt[4]
   );
 
     d2h_req_txn[0].valid                     = data[32];
-    d2h_req_txn[0].opcode                    = data[37:33];
+    d2h_req_txn[0].opcode                    = d2h_req_opcode_t'(data[37:33]);
     d2h_req_txn[0].cqid                      = data[49:38];
     d2h_req_txn[0].nt                        = data[50];
     d2h_req_txn[0].address                   = data[103:58];
@@ -5439,10 +5516,10 @@ module host_rx_path #(
 
   endfunction
 
-  function void header2(
+  function automatic void header2(
     input logic [511:0] data, 
-    output d2h_data_pkt_t d2h_data_pkt[4], 
-    output d2h_rsp_txn_t d2h_rsp_txn[2]
+    ref d2h_data_pkt_t d2h_data_pkt[4], 
+    ref d2h_rsp_txn_t d2h_rsp_txn[2]
   );
 
     d2h_data_pkt[0].pending_data_slot        = 'hf;
@@ -5470,77 +5547,79 @@ module host_rx_path #(
     d2h_data_pkt[3].d2h_data_txn.bogus       = data[97];
     d2h_data_pkt[3].d2h_data_txn.poison      = data[98];
     d2h_rsp_txn[0].valid                     = data[100];
-    d2h_rsp_txn[0].opcode                    = data[105:101];
+    d2h_rsp_txn[0].opcode                    = d2h_rsp_opcode_t'(data[105:101]);
     d2h_rsp_txn[0].uqid                      = data[117:106];
 
   endfunction
 
-  function void header3(
+  function automatic void header3(
     input logic [511:0] data, 
-    output s2m_drs_pkt_t s2m_drs_pkt[3], 
-    output s2m_ndr_txn_t s2m_ndr_txn[3]
+    ref s2m_drs_pkt_t s2m_drs_pkt[3], 
+    ref s2m_ndr_txn_t s2m_ndr_txn[3]
   );
 
     s2m_drs_pkt[0].pending_data_slot        = 'hf;
     s2m_drs_pkt[0].s2m_drs_txn.valid        = data[32];
-    s2m_drs_pkt[0].s2m_drs_txn.memopcode    = data[35:33];
-    s2m_drs_pkt[0].s2m_drs_txn.metafield    = data[37:36];
-    s2m_drs_pkt[0].s2m_drs_txn.metavalue    = data[39:38];
+    s2m_drs_pkt[0].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[35:33]);
+    s2m_drs_pkt[0].s2m_drs_txn.metafield    = metafield_t'(data[37:36]);
+    s2m_drs_pkt[0].s2m_drs_txn.metavalue    = metavalue_t'(data[39:38]);
     s2m_drs_pkt[0].s2m_drs_txn.tag          = data[55:40];
     s2m_drs_pkt[0].s2m_drs_txn.poison       = data[56];
     s2m_ndr_txn[0].valid                    = data[72];
-    s2m_ndr_txn[0].memopcode                = data[75:73];
-    s2m_ndr_txn[0].metafield                = data[77:76];
-    s2m_ndr_txn[0].metavalue                = data[79:78];
+    s2m_ndr_txn[0].opcode                = s2m_ndr_opcode_t'(data[75:73]);
+    s2m_ndr_txn[0].metafield                = metafield_t'(data[77:76]);
+    s2m_ndr_txn[0].metavalue                = metavalue_t'(data[79:78]);
     s2m_ndr_txn[0].tag                      = data[95:80];
 
   endfunction
 
-  function void header4(
+  function automatic void header4(
     input logic [511:0] data, 
-    output s2m_ndr_txn_t s2m_ndr_txn[3]
+    ref s2m_ndr_txn_t s2m_ndr_txn[3]
   );
 
     s2m_ndr_txn[0].valid        = data[32];
-    s2m_ndr_txn[0].memopcode    = data[35:33];
-    s2m_ndr_txn[0].metafield    = data[37:36];
-    s2m_ndr_txn[0].metavalue    = data[39:38];
+    s2m_ndr_txn[0].opcode    = s2m_ndr_opcode_t'(data[35:33]);
+    s2m_ndr_txn[0].metafield    = metafield_t'(data[37:36]);
+    s2m_ndr_txn[0].metavalue    = metavalue_t'(data[39:38]);
     s2m_ndr_txn[0].tag          = data[55:40];
     s2m_ndr_txn[1].valid        = data[60];
-    s2m_ndr_txn[1].memopcode    = data[63:61];
-    s2m_ndr_txn[1].metafield    = data[65:64];
-    s2m_ndr_txn[1].metavalue    = data[67:66];
+    s2m_ndr_txn[1].opcode    = s2m_ndr_opcode_t'(data[63:61]);
+    s2m_ndr_txn[1].metafield    = metafield_t'(data[65:64]);
+    s2m_ndr_txn[1].metavalue    = metavalue_t'(data[67:66]);
     s2m_ndr_txn[1].tag          = data[83:68];
 
   endfunction
 
-  function void header5(
+  function automatic void header5(
     input logic [511:0] data, 
-    output s2m_drs_pkt_t s2m_drs_pkt[3]
+    ref s2m_drs_pkt_t s2m_drs_pkt[3]
   );
 
     s2m_drs_pkt[0].pending_data_slot        = 'hf;
     s2m_drs_pkt[0].s2m_drs_txn.valid        = data[32];
-    s2m_drs_pkt[0].s2m_drs_txn.memopcode    = data[35:33];
-    s2m_drs_pkt[0].s2m_drs_txn.metafield    = data[37:36];
-    s2m_drs_pkt[0].s2m_drs_txn.metavalue    = data[39:38];
+    s2m_drs_pkt[0].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[35:33]);
+    s2m_drs_pkt[0].s2m_drs_txn.metafield    = metafield_t'(data[37:36]);
+    s2m_drs_pkt[0].s2m_drs_txn.metavalue    = metavalue_t'(data[39:38]);
     s2m_drs_pkt[0].s2m_drs_txn.tag          = data[55:40];
     s2m_drs_pkt[0].s2m_drs_txn.poison       = data[56];
     s2m_drs_pkt[1].pending_data_slot        = 'hf;
     s2m_drs_pkt[1].s2m_drs_txn.valid        = data[72];
-    s2m_drs_pkt[1].s2m_drs_txn.memopcode    = data[75:73];
-    s2m_drs_pkt[1].s2m_drs_txn.metafield    = data[77:76];
-    s2m_drs_pkt[1].s2m_drs_txn.metavalue    = data[79:78];
+    s2m_drs_pkt[1].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[75:73]);
+    s2m_drs_pkt[1].s2m_drs_txn.metafield    = metafield_t'(data[77:76]);
+    s2m_drs_pkt[1].s2m_drs_txn.metavalue    = metavalue_t'(data[79:78]);
     s2m_drs_pkt[1].s2m_drs_txn.tag          = data[95:80];
     s2m_drs_pkt[1].s2m_drs_txn.poison       = data[96];
 
   endfunction
 
-  function void generic0(
+  function automatic void generic0(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    inout d2h_req_txn_t d2h_data_pkt[4],
-    inout s2m_drs_pkt_t s2m_drs_pkt[3]
+    ref d2h_data_pkt_t d2h_data_pkt[4],
+    ref s2m_drs_pkt_t s2m_drs_pkt[3]
+    //inout d2h_req_txn_t d2h_data_pkt[4],
+    //inout s2m_drs_pkt_t s2m_drs_pkt[3]
   );
     
     if(s2m_drs_pkt[0].pending_data_slot == 'hf) begin
@@ -5610,17 +5689,17 @@ module host_rx_path #(
         end else if(s2m_drs_pkt[2].pending_data_slot == 'he) begin
           s2m_drs_pkt[2].s2m_drs_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0];
           s2m_drs_pkt[2].pending_data_slot = 'h0;
-          if(s2m_drs_pkt[3].pending_data_slot != 'h0) begin
+          /*if(s2m_drs_pkt[3].pending_data_slot != 'h0) begin
             s2m_drs_pkt[3].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
             s2m_drs_pkt[3].pending_data_slot = 'he;
-          end
+          end*/
         end else if(s2m_drs_pkt[2].pending_data_slot == 'hc) begin
           s2m_drs_pkt[2].s2m_drs_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0];
           s2m_drs_pkt[2].pending_data_slot = 'h0;
-          if(s2m_drs_pkt[3].pending_data_slot != 'h0) begin
+          /*if(s2m_drs_pkt[3].pending_data_slot != 'h0) begin
             s2m_drs_pkt[3].s2m_drs_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
             s2m_drs_pkt[3].pending_data_slot = 'hc;
-          end
+          end*/
         end else if(s2m_drs_pkt[2].pending_data_slot == 'h8) begin
           s2m_drs_pkt[2].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
           s2m_drs_pkt[2].pending_data_slot = 'h0;
@@ -5757,48 +5836,48 @@ module host_rx_path #(
     
   endfunction
   
-  function void generic1(
+  function automatic void generic1(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output d2h_req_txn_t d2h_req_txn[4],
-    output d2h_rsp_txn_t d2h_rsp_txn[2]
+    ref d2h_req_txn_t d2h_req_txn[4],
+    ref d2h_rsp_txn_t d2h_rsp_txn[2]
   );
 
     if(slot_sel == 'h1) begin
       d2h_req_txn[0].valid        = data[(SLOT1_OFFSET+0)];
-      d2h_req_txn[0].opcode       = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)];
+      d2h_req_txn[0].opcode       = d2h_req_opcode_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]);
       d2h_req_txn[0].cqid         = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
       d2h_req_txn[0].nt           = data[(SLOT1_OFFSET+18)];
       d2h_req_txn[0].address      = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
       d2h_rsp_txn[0].valid        = data[(SLOT1_OFFSET+79)];
-      d2h_rsp_txn[0].opcode       = data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+80)];
+      d2h_rsp_txn[0].opcode       = d2h_rsp_opcode_t'(data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+80)]);
       d2h_rsp_txn[0].uqid         = data[(SLOT1_OFFSET+96):(SLOT1_OFFSET+85)];
       d2h_rsp_txn[1].valid        = data[(SLOT1_OFFSET+99)];
-      d2h_rsp_txn[1].opcode       = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+100)];
+      d2h_rsp_txn[1].opcode       = d2h_rsp_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+100)]);
       d2h_rsp_txn[1].uqid         = data[(SLOT1_OFFSET+116):(SLOT1_OFFSET+105)];
     end else if(slot_sel == 'h2) begin
       d2h_req_txn[0].valid        = data[(SLOT2_OFFSET+0)];
-      d2h_req_txn[0].opcode       = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)];
+      d2h_req_txn[0].opcode       = d2h_req_opcode_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]);
       d2h_req_txn[0].cqid         = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
       d2h_req_txn[0].nt           = data[(SLOT2_OFFSET+18)];
       d2h_req_txn[0].address      = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
       d2h_rsp_txn[0].valid        = data[(SLOT2_OFFSET+79)];
-      d2h_rsp_txn[0].opcode       = data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+80)];
+      d2h_rsp_txn[0].opcode       = d2h_rsp_opcode_t'(data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+80)]);
       d2h_rsp_txn[0].uqid         = data[(SLOT2_OFFSET+96):(SLOT2_OFFSET+85)];
       d2h_rsp_txn[1].valid        = data[(SLOT2_OFFSET+99)];
-      d2h_rsp_txn[1].opcode       = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+100)];
+      d2h_rsp_txn[1].opcode       = d2h_rsp_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+100)]);
       d2h_rsp_txn[1].uqid         = data[(SLOT2_OFFSET+116):(SLOT2_OFFSET+105)];
     end else if(slot_sel == 'h3) begin
       d2h_req_txn[0].valid        = data[(SLOT3_OFFSET+0)];
-      d2h_req_txn[0].opcode       = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)];
+      d2h_req_txn[0].opcode       = d2h_req_opcode_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]);
       d2h_req_txn[0].cqid         = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
       d2h_req_txn[0].nt           = data[(SLOT3_OFFSET+18)];
       d2h_req_txn[0].address      = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
       d2h_rsp_txn[0].valid        = data[(SLOT3_OFFSET+79)];
-      d2h_rsp_txn[0].opcode       = data[(SLOT3_OFFSET+84):(SLOT3_OFFSET+80)];
+      d2h_rsp_txn[0].opcode       = d2h_rsp_opcode_t'(data[(SLOT3_OFFSET+84):(SLOT3_OFFSET+80)]);
       d2h_rsp_txn[0].uqid         = data[(SLOT3_OFFSET+96):(SLOT3_OFFSET+85)];
       d2h_rsp_txn[1].valid        = data[(SLOT3_OFFSET+99)];
-      d2h_rsp_txn[1].opcode       = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+100)];
+      d2h_rsp_txn[1].opcode       = d2h_rsp_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+100)]);
       d2h_rsp_txn[1].uqid         = data[(SLOT3_OFFSET+116):(SLOT3_OFFSET+105)];
     end else begin
       d2h_req_txn[0].valid = 'hX;
@@ -5808,17 +5887,17 @@ module host_rx_path #(
 
   endfunction
 
-  function void generic2(
+  function automatic void generic2(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output d2h_req_txn_t d2h_req_txn[4],
-    output d2h_data_pkt_t d2h_data_pkt[4],
-    output d2h_rsp_txn_t d2h_rsp_txn[2]
+    ref d2h_req_txn_t d2h_req_txn[4],
+    ref d2h_data_pkt_t d2h_data_pkt[4],
+    ref d2h_rsp_txn_t d2h_rsp_txn[2]
   );
 
     if(slot_sel == 'h1) begin
       d2h_req_txn[0].valid                    = data[(SLOT1_OFFSET+0)];
-      d2h_req_txn[0].opcode                   = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)];
+      d2h_req_txn[0].opcode                   = d2h_req_opcode_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]);
       d2h_req_txn[0].cqid                     = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
       d2h_req_txn[0].nt                       = data[(SLOT1_OFFSET+18)];
       d2h_req_txn[0].address                  = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
@@ -5829,11 +5908,11 @@ module host_rx_path #(
       d2h_data_pkt[0].d2h_data_txn.bogus      = data[(SLOT1_OFFSET+93)];
       d2h_data_pkt[0].d2h_data_txn.poison     = data[(SLOT1_OFFSET+94)];
       d2h_rsp_txn[0].valid                    = data[(SLOT1_OFFSET+96)];
-      d2h_rsp_txn[0].opcode                   = data[(SLOT1_OFFSET+101):(SLOT1_OFFSET+97)];
+      d2h_rsp_txn[0].opcode                   = d2h_rsp_opcode_t'(data[(SLOT1_OFFSET+101):(SLOT1_OFFSET+97)]);
       d2h_rsp_txn[0].uqid                     = data[(SLOT1_OFFSET+113):(SLOT1_OFFSET+102)];
     end else if(slot_sel == 'h2) begin
       d2h_req_txn[0].valid                    = data[(SLOT2_OFFSET+0)];
-      d2h_req_txn[0].opcode                   = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)];
+      d2h_req_txn[0].opcode                   = d2h_req_opcode_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]);
       d2h_req_txn[0].cqid                     = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
       d2h_req_txn[0].nt                       = data[(SLOT2_OFFSET+18)];
       d2h_req_txn[0].address                  = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
@@ -5844,11 +5923,11 @@ module host_rx_path #(
       d2h_data_pkt[0].d2h_data_txn.bogus      = data[(SLOT2_OFFSET+93)];
       d2h_data_pkt[0].d2h_data_txn.poison     = data[(SLOT2_OFFSET+94)];
       d2h_rsp_txn[0].valid                    = data[(SLOT2_OFFSET+96)];
-      d2h_rsp_txn[0].opcode                   = data[(SLOT2_OFFSET+101):(SLOT2_OFFSET+97)];
+      d2h_rsp_txn[0].opcode                   = d2h_rsp_opcode_t'(data[(SLOT2_OFFSET+101):(SLOT2_OFFSET+97)]);
       d2h_rsp_txn[0].uqid                     = data[(SLOT2_OFFSET+113):(SLOT2_OFFSET+102)];
     end else if(slot_sel == 'h3) begin
       d2h_req_txn[0].valid                    = data[(SLOT3_OFFSET+0)];
-      d2h_req_txn[0].opcode                   = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)];
+      d2h_req_txn[0].opcode                   = d2h_req_opcode_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]);
       d2h_req_txn[0].cqid                     = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
       d2h_req_txn[0].nt                       = data[(SLOT3_OFFSET+18)];
       d2h_req_txn[0].address                  = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
@@ -5859,7 +5938,7 @@ module host_rx_path #(
       d2h_data_pkt[0].d2h_data_txn.bogus      = data[(SLOT3_OFFSET+93)];
       d2h_data_pkt[0].d2h_data_txn.poison     = data[(SLOT3_OFFSET+94)];
       d2h_rsp_txn[0].valid                    = data[(SLOT3_OFFSET+96)];
-      d2h_rsp_txn[0].opcode                   = data[(SLOT3_OFFSET+101):(SLOT3_OFFSET+97)];
+      d2h_rsp_txn[0].opcode                   = d2h_rsp_opcode_t'(data[(SLOT3_OFFSET+101):(SLOT3_OFFSET+97)]);
       d2h_rsp_txn[0].uqid                     = data[(SLOT3_OFFSET+113):(SLOT3_OFFSET+102)];
     end else begin
       d2h_req_txn[0].valid = 'hX;
@@ -5869,10 +5948,10 @@ module host_rx_path #(
 
   endfunction
 
-  function void generic3(
+  function automatic void generic3(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output d2h_data_pkt_t d2h_data_pkt[4]
+    ref d2h_data_pkt_t d2h_data_pkt[4]
   );
 
     if(slot_sel == 'h1) begin      
@@ -5959,66 +6038,66 @@ module host_rx_path #(
 
   endfunction
 
-  function void generic4(
+  function automatic void generic4(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output s2m_drs_pkt_t s2m_drs_pkt[3],
-    output s2m_ndr_txn_t s2m_ndr_txn[3]
+    ref s2m_drs_pkt_t s2m_drs_pkt[3],
+    ref s2m_ndr_txn_t s2m_ndr_txn[3]
   );
 
     if(slot_sel == 'h1) begin
       s2m_drs_pkt[0].pending_data_slot     = 'hf;
       s2m_drs_pkt[0].s2m_drs_txn.valid     = data[(SLOT1_OFFSET+0)];
-      s2m_drs_pkt[0].s2m_drs_txn.memopcode = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
-      s2m_drs_pkt[0].s2m_drs_txn.metafield = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)];
-      s2m_drs_pkt[0].s2m_drs_txn.metavalue = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)];
+      s2m_drs_pkt[0].s2m_drs_txn.opcode = s2m_drs_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
+      s2m_drs_pkt[0].s2m_drs_txn.metafield = metafield_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]);
+      s2m_drs_pkt[0].s2m_drs_txn.metavalue = metavalue_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]);
       s2m_drs_pkt[0].s2m_drs_txn.tag       = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
       s2m_drs_pkt[0].s2m_drs_txn.poison    = data[(SLOT1_OFFSET+24)];
       s2m_ndr_txn[0].valid                 = data[(SLOT1_OFFSET+40)];
-      s2m_ndr_txn[0].memopcode             = data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)];
-      s2m_ndr_txn[0].metafield             = data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)];
-      s2m_ndr_txn[0].metavalue             = data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)];
+      s2m_ndr_txn[0].opcode             = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]);
+      s2m_ndr_txn[0].metafield             = metafield_t'(data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]);
+      s2m_ndr_txn[0].metavalue             = metavalue_t'(data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]);
       s2m_ndr_txn[0].tag                   = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)];
       s2m_ndr_txn[1].valid                 = data[(SLOT1_OFFSET+68)];
-      s2m_ndr_txn[1].memopcode             = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+69)];
-      s2m_ndr_txn[1].metafield             = data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+72)];
-      s2m_ndr_txn[1].metavalue             = data[(SLOT1_OFFSET+75):(SLOT1_OFFSET+74)];
+      s2m_ndr_txn[1].opcode             = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+69)]);
+      s2m_ndr_txn[1].metafield             = metafield_t'(data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+72)]);
+      s2m_ndr_txn[1].metavalue             = metavalue_t'(data[(SLOT1_OFFSET+75):(SLOT1_OFFSET+74)]);
       s2m_ndr_txn[1].tag                   = data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+76)];
     end else if(slot_sel == 'h2) begin
       s2m_drs_pkt[0].pending_data_slot     = 'hf;
       s2m_drs_pkt[0].s2m_drs_txn.valid     = data[(SLOT2_OFFSET+0)];
-      s2m_drs_pkt[0].s2m_drs_txn.memopcode = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
-      s2m_drs_pkt[0].s2m_drs_txn.metafield = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)];
-      s2m_drs_pkt[0].s2m_drs_txn.metavalue = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)];
+      s2m_drs_pkt[0].s2m_drs_txn.opcode = s2m_drs_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
+      s2m_drs_pkt[0].s2m_drs_txn.metafield = metafield_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]);
+      s2m_drs_pkt[0].s2m_drs_txn.metavalue = metavalue_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]);
       s2m_drs_pkt[0].s2m_drs_txn.tag       = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
       s2m_drs_pkt[0].s2m_drs_txn.poison    = data[(SLOT2_OFFSET+24)];
       s2m_ndr_txn[0].valid                 = data[(SLOT2_OFFSET+40)];
-      s2m_ndr_txn[0].memopcode             = data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)];
-      s2m_ndr_txn[0].metafield             = data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)];
-      s2m_ndr_txn[0].metavalue             = data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)];
+      s2m_ndr_txn[0].opcode             = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]);
+      s2m_ndr_txn[0].metafield             = metafield_t'(data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)]);
+      s2m_ndr_txn[0].metavalue             = metavalue_t'(data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)]);
       s2m_ndr_txn[0].tag                   = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)];
       s2m_ndr_txn[1].valid                 = data[(SLOT2_OFFSET+68)];
-      s2m_ndr_txn[1].memopcode             = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+69)];
-      s2m_ndr_txn[1].metafield             = data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+72)];
-      s2m_ndr_txn[1].metavalue             = data[(SLOT2_OFFSET+75):(SLOT2_OFFSET+74)];
+      s2m_ndr_txn[1].opcode             = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+69)]);
+      s2m_ndr_txn[1].metafield             = metafield_t'(data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+72)]);
+      s2m_ndr_txn[1].metavalue             = metavalue_t'(data[(SLOT2_OFFSET+75):(SLOT2_OFFSET+74)]);
       s2m_ndr_txn[1].tag                   = data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+76)];
     end else if(slot_sel == 'h3) begin
       s2m_drs_pkt[0].pending_data_slot     = 'hf;
       s2m_drs_pkt[0].s2m_drs_txn.valid     = data[(SLOT3_OFFSET+0)];
-      s2m_drs_pkt[0].s2m_drs_txn.memopcode = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
-      s2m_drs_pkt[0].s2m_drs_txn.metafield = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)];
-      s2m_drs_pkt[0].s2m_drs_txn.metavalue = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)];
+      s2m_drs_pkt[0].s2m_drs_txn.opcode = s2m_drs_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
+      s2m_drs_pkt[0].s2m_drs_txn.metafield = metafield_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]);
+      s2m_drs_pkt[0].s2m_drs_txn.metavalue = metavalue_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]);
       s2m_drs_pkt[0].s2m_drs_txn.tag       = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
       s2m_drs_pkt[0].s2m_drs_txn.poison    = data[(SLOT3_OFFSET+24)];
       s2m_ndr_txn[0].valid                 = data[(SLOT3_OFFSET+40)];
-      s2m_ndr_txn[0].memopcode             = data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)];
-      s2m_ndr_txn[0].metafield             = data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)];
-      s2m_ndr_txn[0].metavalue             = data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)];
+      s2m_ndr_txn[0].opcode             = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]);
+      s2m_ndr_txn[0].metafield             = metafield_t'(data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)]);
+      s2m_ndr_txn[0].metavalue             = metavalue_t'(data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)]);
       s2m_ndr_txn[0].tag                   = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)];
       s2m_ndr_txn[1].valid                 = data[(SLOT3_OFFSET+68)];
-      s2m_ndr_txn[1].memopcode             = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+69)];
-      s2m_ndr_txn[1].metafield             = data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+72)];
-      s2m_ndr_txn[1].metavalue             = data[(SLOT3_OFFSET+75):(SLOT3_OFFSET+74)];
+      s2m_ndr_txn[1].opcode             = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+69)]);
+      s2m_ndr_txn[1].metafield             = metafield_t'(data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+72)]);
+      s2m_ndr_txn[1].metavalue             = metavalue_t'(data[(SLOT3_OFFSET+75):(SLOT3_OFFSET+74)]);
       s2m_ndr_txn[1].tag                   = data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+76)];
     end else begin
       s2m_drs_pkt[0].s2m_drs_txn.valid = 'hX;
@@ -6028,59 +6107,59 @@ module host_rx_path #(
 
   endfunction
 
-  function void generic5(
+  function automatic void generic5(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output s2m_ndr_txn_t s2m_ndr_txn[3]
+    ref s2m_ndr_txn_t s2m_ndr_txn[3]
   );
 
     if(slot_sel == 'h1) begin
       s2m_ndr_txn[0].valid        = data[(SLOT1_OFFSET+0)];
-      s2m_ndr_txn[0].memopcode    = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
-      s2m_ndr_txn[0].metafield    = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)];
-      s2m_ndr_txn[0].metavalue    = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)];
+      s2m_ndr_txn[0].opcode    = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
+      s2m_ndr_txn[0].metafield    = metafield_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]);
+      s2m_ndr_txn[0].metavalue    = metavalue_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]);
       s2m_ndr_txn[0].tag          = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
       s2m_ndr_txn[1].valid        = data[(SLOT1_OFFSET+28)];
-      s2m_ndr_txn[1].memopcode    = data[(SLOT1_OFFSET+31):(SLOT1_OFFSET+29)];
-      s2m_ndr_txn[1].metafield    = data[(SLOT1_OFFSET+33):(SLOT1_OFFSET+32)];
-      s2m_ndr_txn[1].metavalue    = data[(SLOT1_OFFSET+35):(SLOT1_OFFSET+34)];
+      s2m_ndr_txn[1].opcode    = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+31):(SLOT1_OFFSET+29)]);
+      s2m_ndr_txn[1].metafield    = metafield_t'(data[(SLOT1_OFFSET+33):(SLOT1_OFFSET+32)]);
+      s2m_ndr_txn[1].metavalue    = metavalue_t'(data[(SLOT1_OFFSET+35):(SLOT1_OFFSET+34)]);
       s2m_ndr_txn[1].tag          = data[(SLOT1_OFFSET+51):(SLOT1_OFFSET+36)];
       s2m_ndr_txn[2].valid        = data[(SLOT1_OFFSET+56)];
-      s2m_ndr_txn[2].memopcode    = data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)];
-      s2m_ndr_txn[2].metafield    = data[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)];
-      s2m_ndr_txn[2].metavalue    = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)];
+      s2m_ndr_txn[2].opcode    = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)]);
+      s2m_ndr_txn[2].metafield    = metafield_t'(data[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)]);
+      s2m_ndr_txn[2].metavalue    = metavalue_t'(data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]);
       s2m_ndr_txn[2].tag          = data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+64)];
     end else if(slot_sel == 'h2) begin
       s2m_ndr_txn[0].valid        = data[(SLOT2_OFFSET+0)];
-      s2m_ndr_txn[0].memopcode    = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
-      s2m_ndr_txn[0].metafield    = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)];
-      s2m_ndr_txn[0].metavalue    = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)];
+      s2m_ndr_txn[0].opcode    = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
+      s2m_ndr_txn[0].metafield    = metafield_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]);
+      s2m_ndr_txn[0].metavalue    = metavalue_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]);
       s2m_ndr_txn[0].tag          = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
       s2m_ndr_txn[1].valid        = data[(SLOT2_OFFSET+28)];
-      s2m_ndr_txn[1].memopcode    = data[(SLOT2_OFFSET+31):(SLOT2_OFFSET+29)];
-      s2m_ndr_txn[1].metafield    = data[(SLOT2_OFFSET+33):(SLOT2_OFFSET+32)];
-      s2m_ndr_txn[1].metavalue    = data[(SLOT2_OFFSET+35):(SLOT2_OFFSET+34)];
+      s2m_ndr_txn[1].opcode    = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+31):(SLOT2_OFFSET+29)]);
+      s2m_ndr_txn[1].metafield    = metafield_t'(data[(SLOT2_OFFSET+33):(SLOT2_OFFSET+32)]);
+      s2m_ndr_txn[1].metavalue    = metavalue_t'(data[(SLOT2_OFFSET+35):(SLOT2_OFFSET+34)]);
       s2m_ndr_txn[1].tag          = data[(SLOT2_OFFSET+51):(SLOT2_OFFSET+36)];
       s2m_ndr_txn[2].valid        = data[(SLOT2_OFFSET+56)];
-      s2m_ndr_txn[2].memopcode    = data[(SLOT2_OFFSET+59):(SLOT2_OFFSET+57)];
-      s2m_ndr_txn[2].metafield    = data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+60)];
-      s2m_ndr_txn[2].metavalue    = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)];
+      s2m_ndr_txn[2].opcode    = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+59):(SLOT2_OFFSET+57)]);
+      s2m_ndr_txn[2].metafield    = metafield_t'(data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+60)]);
+      s2m_ndr_txn[2].metavalue    = metavalue_t'(data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)]);
       s2m_ndr_txn[2].tag          = data[(SLOT2_OFFSET+79):(SLOT2_OFFSET+64)];
     end else if(slot_sel == 'h3) begin
       s2m_ndr_txn[0].valid        = data[(SLOT3_OFFSET+0)];
-      s2m_ndr_txn[0].memopcode    = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
-      s2m_ndr_txn[0].metafield    = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)];
-      s2m_ndr_txn[0].metavalue    = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)];
+      s2m_ndr_txn[0].opcode    = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
+      s2m_ndr_txn[0].metafield    = metafield_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]);
+      s2m_ndr_txn[0].metavalue    = metavalue_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]);
       s2m_ndr_txn[0].tag          = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
       s2m_ndr_txn[1].valid        = data[(SLOT3_OFFSET+28)];
-      s2m_ndr_txn[1].memopcode    = data[(SLOT3_OFFSET+31):(SLOT3_OFFSET+29)];
-      s2m_ndr_txn[1].metafield    = data[(SLOT3_OFFSET+33):(SLOT3_OFFSET+32)];
-      s2m_ndr_txn[1].metavalue    = data[(SLOT3_OFFSET+35):(SLOT3_OFFSET+34)];
+      s2m_ndr_txn[1].opcode    = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+31):(SLOT3_OFFSET+29)]);
+      s2m_ndr_txn[1].metafield    = metafield_t'(data[(SLOT3_OFFSET+33):(SLOT3_OFFSET+32)]);
+      s2m_ndr_txn[1].metavalue    = metavalue_t'(data[(SLOT3_OFFSET+35):(SLOT3_OFFSET+34)]);
       s2m_ndr_txn[1].tag          = data[(SLOT3_OFFSET+51):(SLOT3_OFFSET+36)];
       s2m_ndr_txn[2].valid        = data[(SLOT3_OFFSET+56)];
-      s2m_ndr_txn[2].memopcode    = data[(SLOT3_OFFSET+59):(SLOT3_OFFSET+57)];
-      s2m_ndr_txn[2].metafield    = data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+60)];
-      s2m_ndr_txn[2].metavalue    = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)];
+      s2m_ndr_txn[2].opcode    = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+59):(SLOT3_OFFSET+57)]);
+      s2m_ndr_txn[2].metafield    = metafield_t'(data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+60)]);
+      s2m_ndr_txn[2].metavalue    = metavalue_t'(data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)]);
       s2m_ndr_txn[2].tag          = data[(SLOT3_OFFSET+79):(SLOT3_OFFSET+64)];
     end else begin
       s2m_ndr_txn[0].valid        = 'hX;
@@ -6090,76 +6169,76 @@ module host_rx_path #(
 
   endfunction
 
-  function void generic6(
+  function automatic void generic6(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output s2m_drs_pkt_t s2m_drs_pkt[3]
+    ref s2m_drs_pkt_t s2m_drs_pkt[3]
   );
 
     if(slot_sel == 'h1) begin
       s2m_drs_pkt[0].pending_data_slot        = 'hf;
       s2m_drs_pkt[0].s2m_drs_txn.valid        = data[(SLOT1_OFFSET+0)];
-      s2m_drs_pkt[0].s2m_drs_txn.memopcode    = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
-      s2m_drs_pkt[0].s2m_drs_txn.metafield    = data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)];
-      s2m_drs_pkt[0].s2m_drs_txn.metavalue    = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)];
+      s2m_drs_pkt[0].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
+      s2m_drs_pkt[0].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]);
+      s2m_drs_pkt[0].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]);
       s2m_drs_pkt[0].s2m_drs_txn.tag          = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
       s2m_drs_pkt[0].s2m_drs_txn.poison       = data[(SLOT1_OFFSET+24)];
       s2m_drs_pkt[1].pending_data_slot        = 'hf;
       s2m_drs_pkt[1].s2m_drs_txn.valid        = data[(SLOT1_OFFSET+40)];
-      s2m_drs_pkt[1].s2m_drs_txn.memopcode    = data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)];
-      s2m_drs_pkt[1].s2m_drs_txn.metafield    = data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)];
-      s2m_drs_pkt[1].s2m_drs_txn.metavalue    = data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)];
+      s2m_drs_pkt[1].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]);
+      s2m_drs_pkt[1].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]);
+      s2m_drs_pkt[1].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]);
       s2m_drs_pkt[1].s2m_drs_txn.tag          = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)];
       s2m_drs_pkt[1].s2m_drs_txn.poison       = data[(SLOT1_OFFSET+64)];
       s2m_drs_pkt[2].pending_data_slot        = 'hf;
       s2m_drs_pkt[2].s2m_drs_txn.valid        = data[(SLOT1_OFFSET+80)];
-      s2m_drs_pkt[2].s2m_drs_txn.memopcode    = data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+81)];
-      s2m_drs_pkt[2].s2m_drs_txn.metafield    = data[(SLOT1_OFFSET+85):(SLOT1_OFFSET+84)];
-      s2m_drs_pkt[2].s2m_drs_txn.metavalue    = data[(SLOT1_OFFSET+87):(SLOT1_OFFSET+86)];
+      s2m_drs_pkt[2].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+81)]);
+      s2m_drs_pkt[2].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT1_OFFSET+85):(SLOT1_OFFSET+84)]);
+      s2m_drs_pkt[2].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT1_OFFSET+87):(SLOT1_OFFSET+86)]);
       s2m_drs_pkt[2].s2m_drs_txn.tag          = data[(SLOT1_OFFSET+103):(SLOT1_OFFSET+88)];
       s2m_drs_pkt[2].s2m_drs_txn.poison       = data[(SLOT1_OFFSET+104)];
     end else if(slot_sel == 'h2) begin
       s2m_drs_pkt[0].pending_data_slot        = 'hf;
       s2m_drs_pkt[0].s2m_drs_txn.valid        = data[(SLOT2_OFFSET+0)];
-      s2m_drs_pkt[0].s2m_drs_txn.memopcode    = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
-      s2m_drs_pkt[0].s2m_drs_txn.metafield    = data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)];
-      s2m_drs_pkt[0].s2m_drs_txn.metavalue    = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)];
+      s2m_drs_pkt[0].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
+      s2m_drs_pkt[0].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]);
+      s2m_drs_pkt[0].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]);
       s2m_drs_pkt[0].s2m_drs_txn.tag          = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
       s2m_drs_pkt[0].s2m_drs_txn.poison       = data[(SLOT2_OFFSET+24)];
       s2m_drs_pkt[1].pending_data_slot        = 'hf;
       s2m_drs_pkt[1].s2m_drs_txn.valid        = data[(SLOT2_OFFSET+40)];
-      s2m_drs_pkt[1].s2m_drs_txn.memopcode    = data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)];
-      s2m_drs_pkt[1].s2m_drs_txn.metafield    = data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)];
-      s2m_drs_pkt[1].s2m_drs_txn.metavalue    = data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)];
+      s2m_drs_pkt[1].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]);
+      s2m_drs_pkt[1].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)]);
+      s2m_drs_pkt[1].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)]);
       s2m_drs_pkt[1].s2m_drs_txn.tag          = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)];
       s2m_drs_pkt[1].s2m_drs_txn.poison       = data[(SLOT2_OFFSET+64)];
       s2m_drs_pkt[2].pending_data_slot        = 'hf;
       s2m_drs_pkt[2].s2m_drs_txn.valid        = data[(SLOT2_OFFSET+80)];
-      s2m_drs_pkt[2].s2m_drs_txn.memopcode    = data[(SLOT2_OFFSET+83):(SLOT2_OFFSET+81)];
-      s2m_drs_pkt[2].s2m_drs_txn.metafield    = data[(SLOT2_OFFSET+85):(SLOT2_OFFSET+84)];
-      s2m_drs_pkt[2].s2m_drs_txn.metavalue    = data[(SLOT2_OFFSET+87):(SLOT2_OFFSET+86)];
+      s2m_drs_pkt[2].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[(SLOT2_OFFSET+83):(SLOT2_OFFSET+81)]);
+      s2m_drs_pkt[2].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT2_OFFSET+85):(SLOT2_OFFSET+84)]);
+      s2m_drs_pkt[2].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT2_OFFSET+87):(SLOT2_OFFSET+86)]);
       s2m_drs_pkt[2].s2m_drs_txn.tag          = data[(SLOT2_OFFSET+103):(SLOT2_OFFSET+88)];
       s2m_drs_pkt[2].s2m_drs_txn.poison       = data[(SLOT2_OFFSET+104)];
     end else if(slot_sel == 'h3) begin
       s2m_drs_pkt[0].pending_data_slot        = 'hf;
       s2m_drs_pkt[0].s2m_drs_txn.valid        = data[(SLOT3_OFFSET+0)];
-      s2m_drs_pkt[0].s2m_drs_txn.memopcode    = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
-      s2m_drs_pkt[0].s2m_drs_txn.metafield    = data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)];
-      s2m_drs_pkt[0].s2m_drs_txn.metavalue    = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)];
+      s2m_drs_pkt[0].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
+      s2m_drs_pkt[0].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]);
+      s2m_drs_pkt[0].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]);
       s2m_drs_pkt[0].s2m_drs_txn.tag          = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
       s2m_drs_pkt[0].s2m_drs_txn.poison       = data[(SLOT3_OFFSET+24)];
       s2m_drs_pkt[1].pending_data_slot        = 'hf;
       s2m_drs_pkt[1].s2m_drs_txn.valid        = data[(SLOT3_OFFSET+40)];
-      s2m_drs_pkt[1].s2m_drs_txn.memopcode    = data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)];
-      s2m_drs_pkt[1].s2m_drs_txn.metafield    = data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)];
-      s2m_drs_pkt[1].s2m_drs_txn.metavalue    = data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)];
+      s2m_drs_pkt[1].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]);
+      s2m_drs_pkt[1].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)]);
+      s2m_drs_pkt[1].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)]);
       s2m_drs_pkt[1].s2m_drs_txn.tag          = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)];
       s2m_drs_pkt[1].s2m_drs_txn.poison       = data[(SLOT3_OFFSET+64)];
       s2m_drs_pkt[2].pending_data_slot        = 'hf;
       s2m_drs_pkt[2].s2m_drs_txn.valid        = data[(SLOT3_OFFSET+80)];
-      s2m_drs_pkt[2].s2m_drs_txn.memopcode    = data[(SLOT3_OFFSET+83):(SLOT3_OFFSET+81)];
-      s2m_drs_pkt[2].s2m_drs_txn.metafield    = data[(SLOT3_OFFSET+85):(SLOT3_OFFSET+84)];
-      s2m_drs_pkt[2].s2m_drs_txn.metavalue    = data[(SLOT3_OFFSET+87):(SLOT3_OFFSET+86)];
+      s2m_drs_pkt[2].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[(SLOT3_OFFSET+83):(SLOT3_OFFSET+81)]);
+      s2m_drs_pkt[2].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT3_OFFSET+85):(SLOT3_OFFSET+84)]);
+      s2m_drs_pkt[2].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT3_OFFSET+87):(SLOT3_OFFSET+86)]);
       s2m_drs_pkt[2].s2m_drs_txn.tag          = data[(SLOT3_OFFSET+103):(SLOT3_OFFSET+88)];
       s2m_drs_pkt[2].s2m_drs_txn.poison       = data[(SLOT3_OFFSET+104)];
     end else begin
@@ -6196,12 +6275,12 @@ module host_rx_path #(
       end else begin
         ack <= 'h0;
       end
-      if(host_rx_dl_if_d.valid && retryable_flit && llcrd_flit) begin
+      if(host_rx_dl_if_d_valid && retryable_flit && llcrd_flit) begin
         ack_ret_val <= 'h1;
       end else begin
         ack_ret_val <= 'h0;
       end
-      if(host_rx_dl_if_d.valid && retryable_flit && (!llcrd_flit)) begin
+      if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
         data_slot[0] <= data_slot[1]; 
         data_slot[1] <= data_slot[2]; 
         data_slot[2] <= data_slot[3]; 
@@ -6226,7 +6305,7 @@ module host_rx_path #(
   //TODO: put the packing logic restrictions in the arbiter logic itself so here I do not need to worry why I am getting illegal pkts we can have assertions to catch the max sub pkts that can be packed
   //TODO: put asserts to catch if there any illegal values on Hslots or Gslots otherwise bellow logic will be very hard to debug
   always_comb begin
-    if(host_rx_dl_if_d.valid && retryable_flit && (!llcrd_flit) &&
+    if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit) &&
         (!data_slot_d[0][3] || 
           ((data_slot_d[0] == 'hf) && 
             ((d2h_data_pkt_d[0].pending_data_slot == 0) && (s2m_drs_pkt_d[0].pending_data_slot == 0)) &&
@@ -6236,158 +6315,158 @@ module host_rx_path #(
           )
         )
       ) begin 
-      if(host_rx_dl_if_d.data[7:5] == 'h4) begin
+      if(host_rx_dl_if_d_data[7:5] == 'h4) begin
         data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;//need to add what happens when slot 1 is g slot
-        if((host_rx_dl_if_d.data[10:8] == 'h1) || (host_rx_dl_if_d.data[10:8] == 'h5)) begin
+        if((host_rx_dl_if_d_data[10:8] == 'h1) || (host_rx_dl_if_d_data[10:8] == 'h5)) begin
           data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-          if((host_rx_dl_if_d.data[13:11] == 'h1) || (host_rx_dl_if_d.data[13:11] == 'h5)) begin
+          if((host_rx_dl_if_d_data[13:11] == 'h1) || (host_rx_dl_if_d_data[13:11] == 'h5)) begin
             data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-            if((host_rx_dl_if_d.data[16:14] == 'h1) || (host_rx_dl_if_d.data[16:14] == 'h5)) begin
+            if((host_rx_dl_if_d_data[16:14] == 'h1) || (host_rx_dl_if_d_data[16:14] == 'h5)) begin
               data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-            end else if((host_rx_dl_if_d.data[16:14] == 'h2) || (host_rx_dl_if_d.data[16:14] == 'h4)) begin  
+            end else if((host_rx_dl_if_d_data[16:14] == 'h2) || (host_rx_dl_if_d_data[16:14] == 'h4)) begin  
               data_slot[0] = 'h0; data_slot[1] = 'hf; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-            end else if(host_rx_dl_if_d.data[16:14] == 'h6) begin  
+            end else if(host_rx_dl_if_d_data[16:14] == 'h6) begin  
               data_slot[0] = 'h0; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h0;
             end else begin
               data_slot[0] = 'h0; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'hf;
             end
-          end else if((host_rx_dl_if_d.data[10:8] == 'h2) || (host_rx_dl_if_d.data[10:8] == 'h4)) begin  
+          end else if((host_rx_dl_if_d_data[10:8] == 'h2) || (host_rx_dl_if_d_data[10:8] == 'h4)) begin  
             data_slot[0] = 'h8; data_slot[1] = 'h7; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-          end else if(host_rx_dl_if_d.data[10:8] == 'h6) begin  
+          end else if(host_rx_dl_if_d_data[10:8] == 'h6) begin  
             data_slot[0] = 'h8; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'h7; data_slot[4] = 'h0;
           end else begin
             data_slot[0] = 'h8; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h7;
           end
-        end else if((host_rx_dl_if_d.data[10:8] == 'h2) || (host_rx_dl_if_d.data[10:8] == 'h4)) begin  
+        end else if((host_rx_dl_if_d_data[10:8] == 'h2) || (host_rx_dl_if_d_data[10:8] == 'h4)) begin  
           data_slot[0] = 'hc; data_slot[1] = 'h3; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-        end else if(host_rx_dl_if_d.data[10:8] == 'h6) begin  
+        end else if(host_rx_dl_if_d_data[10:8] == 'h6) begin  
           data_slot[0] = 'hc; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'h3; data_slot[4] = 'h0;
         end else begin
           data_slot[0] = 'hc; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h3;
         end
-      end else if((host_rx_dl_if_d.data[7:5] == 'h0) || (host_rx_dl_if_d.data[7:5] == 'h1) || (host_rx_dl_if_d.data[7:5] == 'h3)) begin
+      end else if((host_rx_dl_if_d_data[7:5] == 'h0) || (host_rx_dl_if_d_data[7:5] == 'h1) || (host_rx_dl_if_d_data[7:5] == 'h3)) begin
         data_slot[0] = 'he; data_slot[1] = 'h1; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-      end else if(host_rx_dl_if_d.data[7:5] == 'h5) begin
+      end else if(host_rx_dl_if_d_data[7:5] == 'h5) begin
         data_slot[0] = 'he; data_slot[1] = 'hf; data_slot[2] = 'h1; data_slot[3] = 'h0; data_slot[4] = 'h0;
       end else begin
         data_slot[0] = 'he; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h1;
       end
-    //end else if(host_rx_dl_if_d.valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
+    //end else if(host_rx_dl_if_d_valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
       //data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
     end
   
-    if(host_rx_dl_if_d.valid && retryable_flit && (!llcrd_flit)) begin
+    if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
       ack_count = ack_count + 1;
       if(!data_slot[0][0]) begin
-        case(host_rx_dl_if_d.data[7:5])
+        case(host_rx_dl_if_d_data[7:5])
           'h0: begin
-            header0(host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_rsp_pkt[2], s2m_ndr_pkt[3]);
+            header0(host_rx_dl_if_d_data, d2h_data_pkt, d2h_rsp_txn, s2m_ndr_txn);
           end
           'h1: begin
-            header1(host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_data_pkt[4]);
+            header1(host_rx_dl_if_d_data, d2h_req_txn, d2h_data_pkt);
           end
           'h2: begin
-            header2(host_rx_dl_if_d.data, d2h_data_pkt[4], d2h_rsp_pkt[2]);
+            header2(host_rx_dl_if_d_data, d2h_data_pkt, d2h_rsp_txn);
           end
           'h3: begin
-            header3(host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_ndr_pkt[3]);
+            header3(host_rx_dl_if_d_data, s2m_drs_pkt, s2m_ndr_txn);
           end
           'h4: begin
-            header4(host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
+            header4(host_rx_dl_if_d_data, s2m_ndr_txn);
           end
           'h5: begin
-            header5(host_rx_dl_if_d.data, s2m_drs_pkt[3]);
+            header5(host_rx_dl_if_d_data, s2m_drs_pkt);
           end
           default: begin
 
           end
         endcase
-        case(host_rx_dl_if_d.data[10:8])
+        case(host_rx_dl_if_d_data[10:8])
           'h0: begin
-            generic0('h1, host_rx_dl_if_d.data, d2h_data_pkt[4], s2m_drs_pkt[3]);
+            generic0('h1, host_rx_dl_if_d_data, d2h_data_pkt, s2m_drs_pkt);
           end
           'h1: begin
-            generic1('h1, host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_rsp_pkt[2]);
+            generic1('h1, host_rx_dl_if_d_data, d2h_req_txn, d2h_rsp_txn);
           end
           'h2: begin
-            generic2('h1, host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_data_pkt[4], d2h_rsp_pkt[2]);
+            generic2('h1, host_rx_dl_if_d_data, d2h_req_txn, d2h_data_pkt, d2h_rsp_txn);
           end
           'h3: begin
-            generic3('h1, host_rx_dl_if_d.data, d2h_data_pkt[4]);
+            generic3('h1, host_rx_dl_if_d_data, d2h_data_pkt);
           end
           'h4: begin
-            generic4('h1, host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_ndr_pkt[3]);
+            generic4('h1, host_rx_dl_if_d_data, s2m_drs_pkt, s2m_ndr_txn);
           end
           'h5: begin
-            generic5('h1, host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
+            generic5('h1, host_rx_dl_if_d_data, s2m_ndr_txn);
           end
           'h6: begin
-            generic6('h1, host_rx_dl_if_d.data, s2m_drs_pkt[3]);
+            generic6('h1, host_rx_dl_if_d_data, s2m_drs_pkt);
           end
           default: begin
           
           end
         endcase
-        case(host_rx_dl_if_d.data[13:11])
+        case(host_rx_dl_if_d_data[13:11])
           'h0: begin
-            generic0('h2, host_rx_dl_if_d.data, d2h_data_pkt[4], s2m_drs_pkt[3]);
+            generic0('h2, host_rx_dl_if_d_data, d2h_data_pkt, s2m_drs_pkt);
           end
           'h1: begin
-            generic1('h2, host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_rsp_pkt[2]);
+            generic1('h2, host_rx_dl_if_d_data, d2h_req_txn, d2h_rsp_txn);
           end
           'h2: begin
-            generic2('h2, host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_data_pkt[4], d2h_rsp_pkt[2]);
+            generic2('h2, host_rx_dl_if_d_data, d2h_req_txn, d2h_data_pkt, d2h_rsp_txn);
           end
           'h3: begin
-            generic3('h2, host_rx_dl_if_d.data, d2h_data_pkt[4]);
+            generic3('h2, host_rx_dl_if_d_data, d2h_data_pkt);
           end
           'h4: begin
-            generic4('h2, host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_ndr_pkt[3]);
+            generic4('h2, host_rx_dl_if_d_data, s2m_drs_pkt, s2m_ndr_txn);
           end
           'h5: begin
-            generic5('h2, host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
+            generic5('h2, host_rx_dl_if_d_data, s2m_ndr_txn);
           end
           'h6: begin
-            generic6('h2, host_rx_dl_if_d.data, s2m_drs_pkt[3]);
+            generic6('h2, host_rx_dl_if_d_data, s2m_drs_pkt);
           end
           default: begin
           
           end
         endcase
-        case(host_rx_dl_if_d.data[16:14])
+        case(host_rx_dl_if_d_data[16:14])
           'h0: begin
-            generic0('h3, host_rx_dl_if_d.data, d2h_data_pkt[4], s2m_drs_pkt[3]);
+            generic0('h3, host_rx_dl_if_d_data, d2h_data_pkt, s2m_drs_pkt);
           end
           'h1: begin
-            generic1('h3, host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_rsp_pkt[2]);
+            generic1('h3, host_rx_dl_if_d_data, d2h_req_txn, d2h_rsp_txn);
           end
           'h2: begin
-            generic2('h3, host_rx_dl_if_d.data, d2h_req_pkt[4], d2h_data_pkt[4], d2h_rsp_pkt[2]);
+            generic2('h3, host_rx_dl_if_d_data, d2h_req_txn, d2h_data_pkt, d2h_rsp_txn);
           end
           'h3: begin
-            generic3('h3, host_rx_dl_if_d.data, d2h_data_pkt[4]);
+            generic3('h3, host_rx_dl_if_d_data, d2h_data_pkt);
           end
           'h4: begin
-            generic4('h3, host_rx_dl_if_d.data, s2m_drs_pkt[3], s2m_ndr_pkt[3]);
+            generic4('h3, host_rx_dl_if_d_data, s2m_drs_pkt, s2m_ndr_txn);
           end
           'h5: begin
-            generic5('h3, host_rx_dl_if_d.data, s2m_ndr_pkt[3]);
+            generic5('h3, host_rx_dl_if_d_data, s2m_ndr_txn);
           end
           'h6: begin
-            generic6('h3, host_rx_dl_if_d.data, s2m_drs_pkt[3]);
+            generic6('h3, host_rx_dl_if_d_data, s2m_drs_pkt);
           end
           default: begin
           
           end
         endcase
       end else if(data_slot[0][0]) begin
-        generic0('h0, host_rx_dl_if_d.data, d2h_data_pkt[4], s2m_drs_pkt[3]);
+        generic0('h0, host_rx_dl_if_d_data, d2h_data_pkt, s2m_drs_pkt);
       end
     end
     
-    if(host_rx_dl_if_d.valid && llcrd_flit) begin
+    if(host_rx_dl_if_d_valid && llcrd_flit) begin
       ack_count = ack_count + 1;
-      ack_ret = {host_rx_dl_if_d.data[71:68], host_rx_dl_if_d.data[2], host_rx_dl_if_d.data[66:64]};
+      ack_ret = {host_rx_dl_if_d_data[71:68], host_rx_dl_if_d_data[2], host_rx_dl_if_d_data[66:64]};
     end
   end
 
@@ -6410,14 +6489,14 @@ module host_rx_path #(
     if(!host_rx_dl_if.rstn) begin
       crc_pass_d <= 'h0;
       crc_fail_d <= 'h0;
-      host_rx_dl_if_d.valid <= 'h0;
-      host_rx_dl_if_d.data <= 'h0;
+      host_rx_dl_if_d_valid <= 'h0;
+      host_rx_dl_if_d_data <= 'h0;
     end else begin
       crc_pass_d <= crc_pass;
       crc_fail_d <= crc_fail;
-      host_rx_dl_if_d.valid <= host_rx_dl_if.valid;
-      host_rx_dl_if_d.data <= host_rx_dl_if.data;
-      if(host_rx_dl_if_d.valid) begin
+      host_rx_dl_if_d_valid <= host_rx_dl_if.valid;
+      host_rx_dl_if_d_data <= host_rx_dl_if.data[527:16];
+      if(host_rx_dl_if_d_valid) begin
         case(retry_frame_states) 
         RETRY_NOFRAME: begin
           retry_req_rcvd <= 'h0;
@@ -6465,8 +6544,8 @@ module host_rx_path #(
             retry_frame_states <= RETRY_NOFRAME;
           end else if(retry_ack_detect) begin
             retry_ack_rcvd <= 'h1;
-            retry_ack_empty_bit <= host_rx_dl_if_d.data[64];
-            retry_ack_num_retry <= host_rx_dl_if_d.data[71:67];
+            retry_ack_empty_bit <= host_rx_dl_if_d_data[64];
+            retry_ack_num_retry <= host_rx_dl_if_d_data[71:67];
             retry_frame_states <= RETRY_NOFRAME;
           end else begin
             retry_req_rcvd <= 'h0;
@@ -6475,7 +6554,7 @@ module host_rx_path #(
           end
         end
         default: begin
-            retry_frame_states <= 'hX;
+            retry_frame_states <= RETRY_NOFRAME;
         end
         endcase
       end
@@ -6494,11 +6573,11 @@ module device_rx_path #(
   input logic phy_rst,
   input logic phy_reinit,
   input logic phy_link_up,
-  output h2d_req_txn_t h2d_req_pkt[2],
-  output h2d_rsp_txn_t h2d_rsp_pkt[4],
-  output h2d_data_txn_t h2d_data_pkt[4],
-  output m2s_req_txn_t m2s_req_pkt[2],
-  output m2s_rwd_txn_t m2s_rwd_pkt,
+  output h2d_req_txn_t h2d_req_txn[2],
+  output h2d_rsp_txn_t h2d_rsp_txn[4],
+  output h2d_data_pkt_t h2d_data_pkt[4],
+  output m2s_req_txn_t m2s_req_txn[2],
+  output m2s_rwd_pkt_t m2s_rwd_pkt,
   output logic ack,
   output logic ack_ret_val,
   output logic [7:0] ack_ret,
@@ -6512,6 +6591,9 @@ module device_rx_path #(
   output logic [2:0] crdt_data
 );
 
+  localparam SLOT1_OFFSET = 128;
+  localparam SLOT2_OFFSET = 256;
+  localparam SLOT3_OFFSET = 384;
   typedef enum {
     RETRY_NOFRAME,
     RETRY_FRAME1,
@@ -6531,15 +6613,16 @@ module device_rx_path #(
   logic [7:0] retry_ack_num_retry;
   logic retry_ack_empty_bit;
   logic retry_ack_rcvd;
-  cxl_dev_rx_dl_if dev_rx_dl_if_d;//assuming crc checker takes 1 cycle to tell crc pass or fail
+  logic dev_rx_dl_if_d_valid;//assuming crc checker takes 1 cycle to tell crc pass or fail
+  logic [511:0] dev_rx_dl_if_d_data;//assuming crc checker takes 1 cycle to tell crc pass or fail
   logic retry_frame_detect;
   logic retry_req_detect;
   logic retry_ack_detect;
   logic retry_idle_detect;
-  logic data_slot[5];
-  logic data_slot_d[5];
+  logic [3:0] data_slot[5];
+  logic [3:0] data_slot_d[5];
   h2d_data_pkt_t h2d_data_pkt_d[4];
-  m2s_rwd_txn_t m2s_rwd_pkt_d;
+  m2s_rwd_pkt_t m2s_rwd_pkt_d;
   logic [1:0] h2d_req_ptr;
   logic [1:0] h2d_rsp_ptr;
   logic [1:0] h2d_data_ptr;
@@ -6549,69 +6632,69 @@ module device_rx_path #(
   logic [2:0] ack_count_d;
   logic llcrd_flit;
 
-  assign init_done          = (dev_rx_dl_if_d.data[39:36] == 'h8) && (dev_rx_dl_if_d.data[35:32] == 'hc) && (dev_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_frame_detect = (dev_rx_dl_if_d.data[39:36] == 'h3) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_idle_detect  = (dev_rx_dl_if_d.data[39:36] == 'h0) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_req_detect   = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_ack_detect   = (dev_rx_dl_if_d.data[39:36] == 'h2) && (dev_rx_dl_if_d.data[35:32] == 'h1) && (dev_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
-  assign llcrd_flit         = (dev_rx_dl_if_d.data[39:36] == 'h1) && (dev_rx_dl_if_d.data[35:32] == 'h0) && (dev_rx_dl_if_d.data[0] == 'h1) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
+  assign init_done          = (dev_rx_dl_if_d_data[39:36] == 'h8) && (dev_rx_dl_if_d_data[35:32] == 'hc) && (dev_rx_dl_if_d_data[0] == 'h1) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_frame_detect = (dev_rx_dl_if_d_data[39:36] == 'h3) && (dev_rx_dl_if_d_data[35:32] == 'h1) && (dev_rx_dl_if_d_data[0] == 'h1) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_idle_detect  = (dev_rx_dl_if_d_data[39:36] == 'h0) && (dev_rx_dl_if_d_data[35:32] == 'h1) && (dev_rx_dl_if_d_data[0] == 'h1) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_req_detect   = (dev_rx_dl_if_d_data[39:36] == 'h1) && (dev_rx_dl_if_d_data[35:32] == 'h1) && (dev_rx_dl_if_d_data[0] == 'h1) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_ack_detect   = (dev_rx_dl_if_d_data[39:36] == 'h2) && (dev_rx_dl_if_d_data[35:32] == 'h1) && (dev_rx_dl_if_d_data[0] == 'h1) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign llcrd_flit         = (dev_rx_dl_if_d_data[39:36] == 'h1) && (dev_rx_dl_if_d_data[35:32] == 'h0) && (dev_rx_dl_if_d_data[0] == 'h1) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
   assign non_retryable_flit = (retry_idle_detect) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
   assign retryable_flit     = (!retry_idle_detect) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
-  assign crdt_val           = (llcrd_flit || (host_rx_dl_if_d.data[0] == 'h0)) && (host_rx_dl_if_d.valid) && (crc_pass_d) && (!crc_fail_d);
-  assign crdt_data_cm       = crdt_val && host_rx_dl_if_d.data[31];
-  assign crdt_data          = crdt_val && host_rx_dl_if_d.data[30:28];
-  assign crdt_req_cm        = crdt_val && host_rx_dl_if_d.data[27];
-  assign crdt_req           = crdt_val && host_rx_dl_if_d.data[26:24];
-  assign crdt_rsp_cm        = crdt_val && host_rx_dl_if_d.data[23];
-  assign crdt_rsp           = crdt_val && host_rx_dl_if_d.data[22:20];
+  assign crdt_val           = (llcrd_flit || (dev_rx_dl_if_d_data[0] == 'h0)) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign crdt_data_cm       = crdt_val && dev_rx_dl_if_d_data[31];
+  assign crdt_data          = crdt_val && dev_rx_dl_if_d_data[30:28];
+  assign crdt_req_cm        = crdt_val && dev_rx_dl_if_d_data[27];
+  assign crdt_req           = crdt_val && dev_rx_dl_if_d_data[26:24];
+  assign crdt_rsp_cm        = crdt_val && dev_rx_dl_if_d_data[23];
+  assign crdt_rsp           = crdt_val && dev_rx_dl_if_d_data[22:20];
   
-  function void header0(
+  function automatic void header0(
     input logic [511:0] data,
-    output h2d_req_txn_t h2d_req_txn[2],
-    output h2d_rsp_txn_t h2d_rsp_txn[4]
+    ref h2d_req_txn_t h2d_req_txn[2],
+    ref h2d_rsp_txn_t h2d_rsp_txn[4]
   );
     h2d_req_txn[0].valid        = data[32];
-    h2d_req_txn[0].opcode       = data[35:33];
+    h2d_req_txn[0].opcode       = h2d_req_opcode_t'(data[35:33]);
     h2d_req_txn[0].address      = data[81:36];
     h2d_req_txn[0].uqid         = data[93:82];
     h2d_rsp_txn[0].valid        = data[96];
-    h2d_rsp_txn[0].opcode       = data[100:97];
-    h2d_rsp_txn[0].rspdata      = data[112:101];
+    h2d_rsp_txn[0].opcode       = h2d_rsp_opcode_t'(data[100:97]);
+    h2d_rsp_txn[0].rspdata      = h2d_rsp_data_opcode_t'(data[112:101]);
     h2d_rsp_txn[0].rsppre       = data[114:113];
     h2d_rsp_txn[0].cqid         = data[126:115];
   endfunction
 
-  function void header1(
+  function automatic void header1(
     input logic [511:0] data,
-    output h2d_data_pkt_t h2d_data_pkt[4],
-    output h2d_rsp_txn_t h2d_rsp_txn[4]
+    ref h2d_data_pkt_t h2d_data_pkt[4],
+    ref h2d_rsp_txn_t h2d_rsp_txn[4]
   );
-    h2d_data_pkt[0].pending_data_slot        = 'hf;
-    h2d_data_pkt[0].h2d_data_txn.valid       = data[32];
-    h2d_data_pkt[0].h2d_data_txn.cqid        = data[44:33];
-    h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[45];
-    h2d_data_pkt[0].h2d_data_txn.poison      = data[46];
-    h2d_data_pkt[0].h2d_data_txn.goerr       = data[47];
-    h2d_rsp_txn[0].valid                  = data[56];
-    h2d_rsp_txn[0].opcode                 = data[60:57];
-    h2d_rsp_txn[0].rspdata                = data[72:61];
-    h2d_rsp_txn[0].rsppre                 = data[74:73];
-    h2d_rsp_txn[0].cqid                   = data[86:75];
-    h2d_rsp_txn[1].valid                  = data[88];
-    h2d_rsp_txn[1].opcode                 = data[92:89];
-    h2d_rsp_txn[1].rspdata                = data[104:93];
-    h2d_rsp_txn[1].rsppre                 = data[106:105];
-    h2d_rsp_txn[1].cqid                   = data[118:107];
+    h2d_data_pkt[0].pending_data_slot         = 'hf;
+    h2d_data_pkt[0].h2d_data_txn.valid        = data[32];
+    h2d_data_pkt[0].h2d_data_txn.cqid         = data[44:33];
+    h2d_data_pkt[0].h2d_data_txn.chunkvalid   = data[45];
+    h2d_data_pkt[0].h2d_data_txn.poison       = data[46];
+    h2d_data_pkt[0].h2d_data_txn.goerr        = data[47];
+    h2d_rsp_txn[0].valid                      = data[56];
+    h2d_rsp_txn[0].opcode                     = h2d_rsp_opcode_t'(data[60:57]);
+    h2d_rsp_txn[0].rspdata                    = h2d_rsp_data_opcode_t'(data[72:61]);
+    h2d_rsp_txn[0].rsppre                     = data[74:73];
+    h2d_rsp_txn[0].cqid                       = data[86:75];
+    h2d_rsp_txn[1].valid                      = data[88];
+    h2d_rsp_txn[1].opcode                     = h2d_rsp_opcode_t'(data[92:89]);
+    h2d_rsp_txn[1].rspdata                    = h2d_rsp_data_opcode_t'(data[104:93]);
+    h2d_rsp_txn[1].rsppre                     = data[106:105];
+    h2d_rsp_txn[1].cqid                       = data[118:107];
 
   endfunction
 
-  function void header2(
+  function automatic void header2(
     input logic [511:0] data,
-    output h2d_req_txn_t h2d_req_txn[2],
-    output h2d_data_pkt_t h2d_data_pkt[4]
+    ref h2d_req_txn_t h2d_req_txn[2],
+    ref h2d_data_pkt_t h2d_data_pkt[4]
   );
     h2d_req_txn[0].valid                     = data[32];
-    h2d_req_txn[0].opcode                    = data[35:33];
+    h2d_req_txn[0].opcode                    = h2d_req_opcode_t'(data[35:33]);
     h2d_req_txn[0].address                   = data[81:36];
     h2d_req_txn[0].uqid                      = data[93:82];
     h2d_data_pkt[0].h2d_data_txn.valid       = data[96];
@@ -6621,9 +6704,9 @@ module device_rx_path #(
     h2d_data_pkt[0].h2d_data_txn.goerr       = data[111];
   endfunction
 
-  function void header3(
+  function automatic void header3(
     input logic [511:0] data,
-    output h2d_data_pkt_t h2d_data_pkt[4]
+    ref h2d_data_pkt_t h2d_data_pkt[4]
   );
 
     h2d_data_pkt[0].pending_data_slot        = 'hf;
@@ -6653,16 +6736,16 @@ module device_rx_path #(
     
   endfunction
 
-  function void header4(
+  function automatic void header4(
     input logic [511:0] data,
-    output m2s_rwd_pkt_t m2s_rwd_pkt
+    ref m2s_rwd_pkt_t m2s_rwd_pkt
   );
     m2s_rwd_pkt.pending_data_slot        = 'hf;
     m2s_rwd_pkt.m2s_rwd_txn.valid        = data[32];
-    m2s_rwd_pkt.m2s_rwd_txn.memopcode    = data[36:33];
-    m2s_rwd_pkt.m2s_rwd_txn.snptype      = data[39:37];
-    m2s_rwd_pkt.m2s_rwd_txn.metafield    = data[41:40];
-    m2s_rwd_pkt.m2s_rwd_txn.metavalue    = data[43:42];
+    m2s_rwd_pkt.m2s_rwd_txn.memopcode    = m2s_rwd_opcode_t'(data[36:33]);
+    m2s_rwd_pkt.m2s_rwd_txn.snptype      = snptype_t'(data[39:37]);
+    m2s_rwd_pkt.m2s_rwd_txn.metafield    = metafield_t'(data[41:40]);
+    m2s_rwd_pkt.m2s_rwd_txn.metavalue    = metavalue_t'(data[43:42]);
     m2s_rwd_pkt.m2s_rwd_txn.tag          = data[58:44];
     m2s_rwd_pkt.m2s_rwd_txn.address      = data[105:59];
     m2s_rwd_pkt.m2s_rwd_txn.poison       = data[106];
@@ -6670,25 +6753,27 @@ module device_rx_path #(
 
   endfunction
 
-  function void header5(
+  function automatic void header5(
     input logic [511:0] data,
-    output m2s_req_txn_t m2s_req_txn[2]
+    ref m2s_req_txn_t m2s_req_txn[2]
   );
     m2s_req_txn[0].valid        = data[32];
-    m2s_req_txn[0].memopcode    = data[36:33];
-    m2s_req_txn[0].snptype      = data[39:37];
-    m2s_req_txn[0].metafield    = data[41:40];
-    m2s_req_txn[0].metavalue    = data[43:42];
+    m2s_req_txn[0].memopcode    = m2s_req_opcode_t'(data[36:33]);
+    m2s_req_txn[0].snptype      = snptype_t'(data[39:37]);
+    m2s_req_txn[0].metafield    = metafield_t'(data[41:40]);
+    m2s_req_txn[0].metavalue    = metavalue_t'(data[43:42]);
     m2s_req_txn[0].tag          = data[58:44];
     m2s_req_txn[0].address      = data[106:59];
     m2s_req_txn[0].tc           = data[108:107];
   endfunction
 
-  function void generic0(
+  function automatic void generic0(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    inout h2d_data_pkt_t h2d_data_pkt[4],
-    inout m2s_rwd_pkt_t m2s_rwd_pkt
+    ref h2d_data_pkt_t h2d_data_pkt[4],
+    ref m2s_rwd_pkt_t m2s_rwd_pkt
+    //inout h2d_data_pkt_t h2d_data_pkt[4],
+    //inout m2s_rwd_pkt_t m2s_rwd_pkt
   );
     if(m2s_rwd_pkt.pending_data_slot == 'hf) begin
       if(slot_sel == 1) begin
@@ -6906,73 +6991,73 @@ module device_rx_path #(
 
   endfunction
 
-  function void generic1(
+  function automatic void generic1(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output h2d_rsp_txn_t h2d_rsp_txn[4]
+    ref h2d_rsp_txn_t h2d_rsp_txn[4]
   );
 
     if(slot_sel == 'h1) begin
       h2d_rsp_txn[0].valid        = data[(SLOT1_OFFSET+0)];
-      h2d_rsp_txn[0].opcode       = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
-      h2d_rsp_txn[0].rspdata      = data[(SLOT1_OFFSET+16):(SLOT1_OFFSET+5)];
+      h2d_rsp_txn[0].opcode       = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]);
+      h2d_rsp_txn[0].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+16):(SLOT1_OFFSET+5)]);
       h2d_rsp_txn[0].rsppre       = data[(SLOT1_OFFSET+18):(SLOT1_OFFSET+17)];
       h2d_rsp_txn[0].cqid         = data[(SLOT1_OFFSET+30):(SLOT1_OFFSET+19)];
       h2d_rsp_txn[1].valid        = data[(SLOT1_OFFSET+32)];
-      h2d_rsp_txn[1].opcode       = data[(SLOT1_OFFSET+36):(SLOT1_OFFSET+33)];
-      h2d_rsp_txn[1].rspdata      = data[(SLOT1_OFFSET+48):(SLOT1_OFFSET+37)];
+      h2d_rsp_txn[1].opcode       = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+36):(SLOT1_OFFSET+33)]);
+      h2d_rsp_txn[1].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+48):(SLOT1_OFFSET+37)]);
       h2d_rsp_txn[1].rsppre       = data[(SLOT1_OFFSET+50):(SLOT1_OFFSET+49)];
       h2d_rsp_txn[1].cqid         = data[(SLOT1_OFFSET+62):(SLOT1_OFFSET+51)];
       h2d_rsp_txn[2].valid        = data[(SLOT1_OFFSET+64)];
-      h2d_rsp_txn[2].opcode       = data[(SLOT1_OFFSET+68):(SLOT1_OFFSET+65)];
-      h2d_rsp_txn[2].rspdata      = data[(SLOT1_OFFSET+80):(SLOT1_OFFSET+69)];
+      h2d_rsp_txn[2].opcode       = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+68):(SLOT1_OFFSET+65)]);
+      h2d_rsp_txn[2].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+80):(SLOT1_OFFSET+69)]);
       h2d_rsp_txn[2].rsppre       = data[(SLOT1_OFFSET+82):(SLOT1_OFFSET+81)];
       h2d_rsp_txn[2].cqid         = data[(SLOT1_OFFSET+94):(SLOT1_OFFSET+83)];
       h2d_rsp_txn[3].valid        = data[(SLOT1_OFFSET+96)];
-      h2d_rsp_txn[3].opcode       = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)];
-      h2d_rsp_txn[3].rspdata      = data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)];
+      h2d_rsp_txn[3].opcode       = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)]);
+      h2d_rsp_txn[3].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)]);
       h2d_rsp_txn[3].rsppre       = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
       h2d_rsp_txn[3].cqid         = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
     end else if(slot_sel == 'h2) begin
       h2d_rsp_txn[0].valid        = data[(SLOT2_OFFSET+0)];
-      h2d_rsp_txn[0].opcode       = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
-      h2d_rsp_txn[0].rspdata      = data[(SLOT2_OFFSET+16):(SLOT2_OFFSET+5)];
+      h2d_rsp_txn[0].opcode       = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]);
+      h2d_rsp_txn[0].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+16):(SLOT2_OFFSET+5)]);
       h2d_rsp_txn[0].rsppre       = data[(SLOT2_OFFSET+18):(SLOT2_OFFSET+17)];
       h2d_rsp_txn[0].cqid         = data[(SLOT2_OFFSET+30):(SLOT2_OFFSET+19)];
       h2d_rsp_txn[1].valid        = data[(SLOT2_OFFSET+32)];
-      h2d_rsp_txn[1].opcode       = data[(SLOT2_OFFSET+36):(SLOT2_OFFSET+33)];
-      h2d_rsp_txn[1].rspdata      = data[(SLOT2_OFFSET+48):(SLOT2_OFFSET+37)];
+      h2d_rsp_txn[1].opcode       = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+36):(SLOT2_OFFSET+33)]);
+      h2d_rsp_txn[1].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+48):(SLOT2_OFFSET+37)]);
       h2d_rsp_txn[1].rsppre       = data[(SLOT2_OFFSET+50):(SLOT2_OFFSET+49)];
       h2d_rsp_txn[1].cqid         = data[(SLOT2_OFFSET+62):(SLOT2_OFFSET+51)];
       h2d_rsp_txn[2].valid        = data[(SLOT2_OFFSET+64)];
-      h2d_rsp_txn[2].opcode       = data[(SLOT2_OFFSET+68):(SLOT2_OFFSET+65)];
-      h2d_rsp_txn[2].rspdata      = data[(SLOT2_OFFSET+80):(SLOT2_OFFSET+69)];
+      h2d_rsp_txn[2].opcode       = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+68):(SLOT2_OFFSET+65)]);
+      h2d_rsp_txn[2].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+80):(SLOT2_OFFSET+69)]);
       h2d_rsp_txn[2].rsppre       = data[(SLOT2_OFFSET+82):(SLOT2_OFFSET+81)];
       h2d_rsp_txn[2].cqid         = data[(SLOT2_OFFSET+94):(SLOT2_OFFSET+83)];
       h2d_rsp_txn[3].valid        = data[(SLOT2_OFFSET+96)];
-      h2d_rsp_txn[3].opcode       = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
-      h2d_rsp_txn[3].rspdata      = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+      h2d_rsp_txn[3].opcode       = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
+      h2d_rsp_txn[3].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
       h2d_rsp_txn[3].rsppre       = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
       h2d_rsp_txn[3].cqid         = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];
     end else if(slot_sel == 'h3) begin
       h2d_rsp_txn[0].valid        = data[(SLOT3_OFFSET+0)];
-      h2d_rsp_txn[0].opcode       = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
-      h2d_rsp_txn[0].rspdata      = data[(SLOT3_OFFSET+16):(SLOT3_OFFSET+5)];
+      h2d_rsp_txn[0].opcode       = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]);
+      h2d_rsp_txn[0].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+16):(SLOT3_OFFSET+5)]);
       h2d_rsp_txn[0].rsppre       = data[(SLOT3_OFFSET+18):(SLOT3_OFFSET+17)];
       h2d_rsp_txn[0].cqid         = data[(SLOT3_OFFSET+30):(SLOT3_OFFSET+19)];
       h2d_rsp_txn[1].valid        = data[(SLOT3_OFFSET+32)];
-      h2d_rsp_txn[1].opcode       = data[(SLOT3_OFFSET+36):(SLOT3_OFFSET+33)];
-      h2d_rsp_txn[1].rspdata      = data[(SLOT3_OFFSET+48):(SLOT3_OFFSET+37)];
+      h2d_rsp_txn[1].opcode       = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+36):(SLOT3_OFFSET+33)]);
+      h2d_rsp_txn[1].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+48):(SLOT3_OFFSET+37)]);
       h2d_rsp_txn[1].rsppre       = data[(SLOT3_OFFSET+50):(SLOT3_OFFSET+49)];
       h2d_rsp_txn[1].cqid         = data[(SLOT3_OFFSET+62):(SLOT3_OFFSET+51)];
       h2d_rsp_txn[2].valid        = data[(SLOT3_OFFSET+64)];
-      h2d_rsp_txn[2].opcode       = data[(SLOT3_OFFSET+68):(SLOT3_OFFSET+65)];
-      h2d_rsp_txn[2].rspdata      = data[(SLOT3_OFFSET+80):(SLOT3_OFFSET+69)];
+      h2d_rsp_txn[2].opcode       = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+68):(SLOT3_OFFSET+65)]);
+      h2d_rsp_txn[2].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+80):(SLOT3_OFFSET+69)]);
       h2d_rsp_txn[2].rsppre       = data[(SLOT3_OFFSET+82):(SLOT3_OFFSET+81)];
       h2d_rsp_txn[2].cqid         = data[(SLOT3_OFFSET+94):(SLOT3_OFFSET+83)];
       h2d_rsp_txn[3].valid        = data[(SLOT3_OFFSET+96)];
-      h2d_rsp_txn[3].opcode       = data[(SLOT3_OFFSET+100):(SLOT3_OFFSET+97)];
-      h2d_rsp_txn[3].rspdata      = data[(SLOT3_OFFSET+112):(SLOT3_OFFSET+101)];
+      h2d_rsp_txn[3].opcode       = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+100):(SLOT3_OFFSET+97)]);
+      h2d_rsp_txn[3].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+112):(SLOT3_OFFSET+101)]);
       h2d_rsp_txn[3].rsppre       = data[(SLOT3_OFFSET+114):(SLOT3_OFFSET+113)];
       h2d_rsp_txn[3].cqid         = data[(SLOT3_OFFSET+126):(SLOT3_OFFSET+115)];    
     end else begin
@@ -6984,25 +7069,25 @@ module device_rx_path #(
 
   endfunction
 
-  function void generic2(
+  function automatic void generic2(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output h2d_req_txn_t h2d_req_txn[2],
+    ref h2d_req_txn_t h2d_req_txn[2],
     input int h2d_req_ptr,
-    output h2d_data_pkt_t h2d_data_pkt[4],
-    output h2d_rsp_txn_t h2d_rsp_txn[4],
+    ref h2d_data_pkt_t h2d_data_pkt[4],
+    ref h2d_rsp_txn_t h2d_rsp_txn[4],
     input int h2d_rsp_ptr
   );
 
     if(slot_sel == 'h1) begin
       if(h2d_req_ptr > 0) begin
         h2d_req_txn[1].valid                     = data[(SLOT1_OFFSET+0)];
-        h2d_req_txn[1].opcode                    = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
+        h2d_req_txn[1].opcode                    = h2d_req_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
         h2d_req_txn[1].address                   = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
         h2d_req_txn[1].uqid                      = data[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)];
       end else begin
         h2d_req_txn[0].valid                     = data[(SLOT1_OFFSET+0)];
-        h2d_req_txn[0].opcode                    = data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)];
+        h2d_req_txn[0].opcode                    = h2d_req_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
         h2d_req_txn[0].address                   = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
         h2d_req_txn[0].uqid                      = data[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)];
       end
@@ -7014,26 +7099,26 @@ module device_rx_path #(
       h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+79)];
       if(h2d_rsp_ptr > 0) begin
         h2d_rsp_txn[1].valid                     = data[(SLOT1_OFFSET+88)];
-        h2d_rsp_txn[1].opcode                    = data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)];
-        h2d_rsp_txn[1].rspdata                   = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)];
+        h2d_rsp_txn[1].opcode                    = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]);
+        h2d_rsp_txn[1].rspdata                   = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]);
         h2d_rsp_txn[1].rsppre                    = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
         h2d_rsp_txn[1].cqid                      = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
       end else begin
         h2d_rsp_txn[0].valid                     = data[(SLOT1_OFFSET+88)];
-        h2d_rsp_txn[0].opcode                    = data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)];
-        h2d_rsp_txn[0].rspdata                   = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)];
+        h2d_rsp_txn[0].opcode                    = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]);
+        h2d_rsp_txn[0].rspdata                   = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]);
         h2d_rsp_txn[0].rsppre                    = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
         h2d_rsp_txn[0].cqid                      = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
       end
     end else if(slot_sel == 'h2) begin
       if(h2d_req_ptr > 0) begin
         h2d_req_txn[1].valid                = data[(SLOT2_OFFSET+0)];
-        h2d_req_txn[1].opcode               = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
+        h2d_req_txn[1].opcode               = h2d_req_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
         h2d_req_txn[1].address              = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
         h2d_req_txn[1].uqid                 = data[(SLOT2_OFFSET+61)+(SLOT2_OFFSET+50)];
       end else begin
         h2d_req_txn[0].valid                = data[(SLOT2_OFFSET+0)];
-        h2d_req_txn[0].opcode               = data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)];
+        h2d_req_txn[0].opcode               = h2d_req_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
         h2d_req_txn[0].address              = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
         h2d_req_txn[0].uqid                 = data[(SLOT2_OFFSET+61)+(SLOT2_OFFSET+50)];
       end
@@ -7045,26 +7130,26 @@ module device_rx_path #(
       h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+79)];
       if(h2d_rsp_ptr > 0) begin
         h2d_rsp_txn[1].valid                = data[(SLOT2_OFFSET+88)];
-        h2d_rsp_txn[1].opcode               = data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)];
-        h2d_rsp_txn[1].rspdata              = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)];
+        h2d_rsp_txn[1].opcode               = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]);
+        h2d_rsp_txn[1].rspdata              = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]);
         h2d_rsp_txn[1].rsppre               = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
         h2d_rsp_txn[1].cqid                 = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
       end else begin
         h2d_rsp_txn[0].valid                = data[(SLOT2_OFFSET+88)];
-        h2d_rsp_txn[0].opcode               = data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)];
-        h2d_rsp_txn[0].rspdata              = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)];
+        h2d_rsp_txn[0].opcode               = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]);
+        h2d_rsp_txn[0].rspdata              = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]);
         h2d_rsp_txn[0].rsppre               = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
         h2d_rsp_txn[0].cqid                 = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
       end
     end else if(slot_sel == 'h3) begin
       if(h2d_req_ptr > 0) begin
         h2d_req_txn[1].valid                = data[(SLOT3_OFFSET+0)];
-        h2d_req_txn[1].opcode               = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
+        h2d_req_txn[1].opcode               = h2d_req_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
         h2d_req_txn[1].address              = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
         h2d_req_txn[1].uqid                 = data[(SLOT3_OFFSET+61)+(SLOT3_OFFSET+50)];
       end else begin
         h2d_req_txn[0].valid                = data[(SLOT3_OFFSET+0)];
-        h2d_req_txn[0].opcode               = data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)];
+        h2d_req_txn[0].opcode               = h2d_req_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
         h2d_req_txn[0].address              = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
         h2d_req_txn[0].uqid                 = data[(SLOT3_OFFSET+61)+(SLOT3_OFFSET+50)];
       end
@@ -7076,32 +7161,32 @@ module device_rx_path #(
       h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT3_OFFSET+79)];
       if(h2d_rsp_ptr > 0) begin
         h2d_rsp_txn[1].valid                = data[(SLOT3_OFFSET+88)];
-        h2d_rsp_txn[1].opcode               = data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)];
-        h2d_rsp_txn[1].rspdata              = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)];
+        h2d_rsp_txn[1].opcode               = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]);
+        h2d_rsp_txn[1].rspdata              = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]);
         h2d_rsp_txn[1].rsppre               = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
         h2d_rsp_txn[1].cqid                 = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
       end else begin
         h2d_rsp_txn[0].valid                = data[(SLOT3_OFFSET+88)];
-        h2d_rsp_txn[0].opcode               = data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)];
-        h2d_rsp_txn[0].rspdata              = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)];
+        h2d_rsp_txn[0].opcode               = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]);
+        h2d_rsp_txn[0].rspdata              = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]);
         h2d_rsp_txn[0].rsppre               = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
         h2d_rsp_txn[0].cqid                 = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
       end
     end else begin
       h2d_req_txn[0].valid = 'hX;
       h2d_req_txn[1].valid = 'hX;
-      h2d_data_pkt.h2d_data_txn.valid = 'hX;
+      h2d_data_pkt[0].h2d_data_txn.valid = 'hX;
       h2d_rsp_txn[0].valid = 'hX;
       h2d_rsp_txn[1].valid = 'hX;
     end
 
   endfunction
 
-  function void generic3(
+  function automatic void generic3(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output h2d_data_pkt_t h2d_data_pkt[4],
-    output h2d_rsp_txn_t h2d_rsp_txn[4],
+    ref h2d_data_pkt_t h2d_data_pkt[4],
+    ref h2d_rsp_txn_t h2d_rsp_txn[4],
     input int h2d_rsp_ptr
   );
 
@@ -7132,14 +7217,14 @@ module device_rx_path #(
       h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+87)];
       if(h2d_rsp_ptr > 0) begin
         h2d_rsp_txn[1].valid                   = data[(SLOT1_OFFSET+96)];
-        h2d_rsp_txn[1].opcode                  = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)];
-        h2d_rsp_txn[1].rspdata                 = data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)];
+        h2d_rsp_txn[1].opcode                  = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)]);
+        h2d_rsp_txn[1].rspdata                 = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)]);
         h2d_rsp_txn[1].rsppre                  = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
         h2d_rsp_txn[1].cqid                    = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
       end else begin
         h2d_rsp_txn[0].valid                   = data[(SLOT1_OFFSET+96)];
-        h2d_rsp_txn[0].opcode                  = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)];
-        h2d_rsp_txn[0].rspdata                 = data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)];
+        h2d_rsp_txn[0].opcode                  = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)]);
+        h2d_rsp_txn[0].rspdata                 = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)]);
         h2d_rsp_txn[0].rsppre                  = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
         h2d_rsp_txn[0].cqid                    = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
       end
@@ -7170,14 +7255,14 @@ module device_rx_path #(
       h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+87)];
       if(h2d_rsp_ptr > 0) begin
         h2d_rsp_txn[1].valid                   = data[(SLOT2_OFFSET+96)];
-        h2d_rsp_txn[1].opcode                  = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
-        h2d_rsp_txn[1].rspdata                 = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+        h2d_rsp_txn[1].opcode                  = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
+        h2d_rsp_txn[1].rspdata                 = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
         h2d_rsp_txn[1].rsppre                  = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
         h2d_rsp_txn[1].cqid                    = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];    
       end else begin
         h2d_rsp_txn[0].valid                   = data[(SLOT2_OFFSET+96)];
-        h2d_rsp_txn[0].opcode                  = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
-        h2d_rsp_txn[0].rspdata                 = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+        h2d_rsp_txn[0].opcode                  = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
+        h2d_rsp_txn[0].rspdata                 = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
         h2d_rsp_txn[0].rsppre                  = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
         h2d_rsp_txn[0].cqid                    = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];    
       end
@@ -7208,14 +7293,14 @@ module device_rx_path #(
       h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+87)];
       if(h2d_rsp_ptr > 0) begin
         h2d_rsp_txn[1].valid                   = data[(SLOT2_OFFSET+96)];
-        h2d_rsp_txn[1].opcode                  = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
-        h2d_rsp_txn[1].rspdata                 = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+        h2d_rsp_txn[1].opcode                  = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
+        h2d_rsp_txn[1].rspdata                 = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
         h2d_rsp_txn[1].rsppre                  = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
         h2d_rsp_txn[1].cqid                    = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];   
       end else begin
         h2d_rsp_txn[0].valid                   = data[(SLOT2_OFFSET+96)];
-        h2d_rsp_txn[0].opcode                  = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)];
-        h2d_rsp_txn[0].rspdata                 = data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)];
+        h2d_rsp_txn[0].opcode                  = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
+        h2d_rsp_txn[0].rspdata                 = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
         h2d_rsp_txn[0].rsppre                  = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
         h2d_rsp_txn[0].cqid                    = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];   
       end
@@ -7230,30 +7315,30 @@ module device_rx_path #(
 
   endfunction
   
-  function void generic4(
+  function automatic void generic4(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output m2s_req_txn_t m2s_req_txn[2],
+    ref m2s_req_txn_t m2s_req_txn[2],
     input int m2s_req_ptr,
-    output h2d_data_pkt_t h2d_data_pkt[4]
+    ref h2d_data_pkt_t h2d_data_pkt[4]
   );
 
     if(slot_sel == 'h1) begin
       if(m2s_req_ptr > 0) begin
         m2s_req_txn[1].valid                   = data[(SLOT1_OFFSET+0)];
-        m2s_req_txn[1].memopcode               = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
-        m2s_req_txn[1].snptype                 = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)];
-        m2s_req_txn[1].metafield               = data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)];
-        m2s_req_txn[1].metavalue               = data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)];
+        m2s_req_txn[1].memopcode               = m2s_req_opcode_t'(data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]);
+        m2s_req_txn[1].snptype                 = snptype_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]);
+        m2s_req_txn[1].metafield               = metafield_t'(data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]);
+        m2s_req_txn[1].metavalue               = metavalue_t'(data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]);
         m2s_req_txn[1].tag                     = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
         m2s_req_txn[1].address                 = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
         m2s_req_txn[1].tc                      = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
       end else begin
         m2s_req_txn[0].valid                   = data[(SLOT1_OFFSET+0)];
-        m2s_req_txn[0].memopcode               = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
-        m2s_req_txn[0].snptype                 = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)];
-        m2s_req_txn[0].metafield               = data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)];
-        m2s_req_txn[0].metavalue               = data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)];
+        m2s_req_txn[0].memopcode               = m2s_req_opcode_t'(data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]);
+        m2s_req_txn[0].snptype                 = snptype_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]);
+        m2s_req_txn[0].metafield               = metafield_t'(data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]);
+        m2s_req_txn[0].metavalue               = metavalue_t'(data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]);
         m2s_req_txn[0].tag                     = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
         m2s_req_txn[0].address                 = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
         m2s_req_txn[0].tc                      = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
@@ -7267,19 +7352,19 @@ module device_rx_path #(
     end else if(slot_sel == 'h2) begin
       if(m2s_req_ptr > 0) begin
         m2s_req_txn[1].valid                   = data[(SLOT2_OFFSET+0)];
-        m2s_req_txn[1].memopcode               = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
-        m2s_req_txn[1].snptype                 = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)];
-        m2s_req_txn[1].metafield               = data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)];
-        m2s_req_txn[1].metavalue               = data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)];
+        m2s_req_txn[1].memopcode               = m2s_req_opcode_t'(data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]);
+        m2s_req_txn[1].snptype                 = snptype_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]);
+        m2s_req_txn[1].metafield               = metafield_t'(data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]);
+        m2s_req_txn[1].metavalue               = metavalue_t'(data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]);
         m2s_req_txn[1].tag                     = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
         m2s_req_txn[1].address                 = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
         m2s_req_txn[1].tc                      = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
       end else begin
         m2s_req_txn[0].valid                   = data[(SLOT2_OFFSET+0)];
-        m2s_req_txn[0].memopcode               = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
-        m2s_req_txn[0].snptype                 = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)];
-        m2s_req_txn[0].metafield               = data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)];
-        m2s_req_txn[0].metavalue               = data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)];
+        m2s_req_txn[0].memopcode               = m2s_req_opcode_t'(data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]);
+        m2s_req_txn[0].snptype                 = snptype_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]);
+        m2s_req_txn[0].metafield               = metafield_t'(data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]);
+        m2s_req_txn[0].metavalue               = metavalue_t'(data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]);
         m2s_req_txn[0].tag                     = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
         m2s_req_txn[0].address                 = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
         m2s_req_txn[0].tc                      = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
@@ -7293,19 +7378,19 @@ module device_rx_path #(
     end else if(slot_sel == 'h3) begin
       if(m2s_req_ptr > 0) begin
         m2s_req_txn[1].valid                   = data[(SLOT3_OFFSET+0)];
-        m2s_req_txn[1].memopcode               = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
-        m2s_req_txn[1].snptype                 = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)];
-        m2s_req_txn[1].metafield               = data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)];
-        m2s_req_txn[1].metavalue               = data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)];
+        m2s_req_txn[1].memopcode               = m2s_req_opcode_t'(data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]);
+        m2s_req_txn[1].snptype                 = snptype_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]);
+        m2s_req_txn[1].metafield               = metafield_t'(data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]);
+        m2s_req_txn[1].metavalue               = metavalue_t'(data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]);
         m2s_req_txn[1].tag                     = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
         m2s_req_txn[1].address                 = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
         m2s_req_txn[1].tc                      = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
       end else begin
         m2s_req_txn[0].valid                   = data[(SLOT3_OFFSET+0)];
-        m2s_req_txn[0].memopcode               = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
-        m2s_req_txn[0].snptype                 = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)];
-        m2s_req_txn[0].metafield               = data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)];
-        m2s_req_txn[0].metavalue               = data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)];
+        m2s_req_txn[0].memopcode               = m2s_req_opcode_t'(data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]);
+        m2s_req_txn[0].snptype                 = snptype_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]);
+        m2s_req_txn[0].metafield               = metafield_t'(data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]);
+        m2s_req_txn[0].metavalue               = metavalue_t'(data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]);
         m2s_req_txn[0].tag                     = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
         m2s_req_txn[0].address                 = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
         m2s_req_txn[0].tc                      = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
@@ -7319,88 +7404,88 @@ module device_rx_path #(
     end else begin
       m2s_req_txn[0].valid = 'hX;
       m2s_req_txn[1].valid = 'hX;
-      h2d_data_pkt.h2d_data_txn.valid = 'hX;
+      h2d_data_pkt[0].h2d_data_txn.valid = 'hX;
     end
 
   endfunction
   
-  function void generic5(
+  function automatic void generic5(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    output m2s_rwd_pkt_t m2s_rwd_pkt,
-    output h2d_rsp_txn_t h2d_rsp_txn[4],
+    ref m2s_rwd_pkt_t m2s_rwd_pkt,
+    ref h2d_rsp_txn_t h2d_rsp_txn[4],
     input int h2d_rsp_ptr
   );
 
     if(slot_sel == 'h1) begin
       m2s_rwd_pkt.pending_data_slot        = 'hf;
       m2s_rwd_pkt.m2s_rwd_txn.valid        = data[(SLOT1_OFFSET+0)];
-      m2s_rwd_pkt.m2s_rwd_txn.memopcode    = data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)];
-      m2s_rwd_pkt.m2s_rwd_txn.snptype      = data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)];
-      m2s_rwd_pkt.m2s_rwd_txn.metafield    = data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)];
-      m2s_rwd_pkt.m2s_rwd_txn.metavalue    = data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)];
+      m2s_rwd_pkt.m2s_rwd_txn.memopcode    = m2s_rwd_opcode_t'(data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]);
+      m2s_rwd_pkt.m2s_rwd_txn.snptype      = snptype_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]);
+      m2s_rwd_pkt.m2s_rwd_txn.metafield    = metafield_t'(data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]);
+      m2s_rwd_pkt.m2s_rwd_txn.metavalue    = metavalue_t'(data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]);
       m2s_rwd_pkt.m2s_rwd_txn.tag          = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
       m2s_rwd_pkt.m2s_rwd_txn.address      = data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+28)];
       m2s_rwd_pkt.m2s_rwd_txn.poison       = data[(SLOT1_OFFSET+74)];
       m2s_rwd_pkt.m2s_rwd_txn.tc           = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
       if(h2d_rsp_ptr > 0) begin
         h2d_rsp_txn[1].valid               = data[(SLOT1_OFFSET+88)];
-        h2d_rsp_txn[1].opcode              = data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)];
-        h2d_rsp_txn[1].rspdata             = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)];
+        h2d_rsp_txn[1].opcode              = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]);
+        h2d_rsp_txn[1].rspdata             = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]);
         h2d_rsp_txn[1].rsppre              = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
         h2d_rsp_txn[1].cqid                = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
       end else begin
         h2d_rsp_txn[0].valid               = data[(SLOT1_OFFSET+88)];
-        h2d_rsp_txn[0].opcode              = data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)];
-        h2d_rsp_txn[0].rspdata             = data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)];
+        h2d_rsp_txn[0].opcode              = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]);
+        h2d_rsp_txn[0].rspdata             = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]);
         h2d_rsp_txn[0].rsppre              = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
         h2d_rsp_txn[0].cqid                = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
       end
     end else if(slot_sel == 'h2) begin
       m2s_rwd_pkt.pending_data_slot        = 'hf;
       m2s_rwd_pkt.m2s_rwd_txn.valid        = data[(SLOT2_OFFSET+0)];
-      m2s_rwd_pkt.m2s_rwd_txn.memopcode    = data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)];
-      m2s_rwd_pkt.m2s_rwd_txn.snptype      = data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)];
-      m2s_rwd_pkt.m2s_rwd_txn.metafield    = data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)];
-      m2s_rwd_pkt.m2s_rwd_txn.metavalue    = data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)];
+      m2s_rwd_pkt.m2s_rwd_txn.memopcode    = m2s_rwd_opcode_t'(data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]);
+      m2s_rwd_pkt.m2s_rwd_txn.snptype      = snptype_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]);
+      m2s_rwd_pkt.m2s_rwd_txn.metafield    = metafield_t'(data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]);
+      m2s_rwd_pkt.m2s_rwd_txn.metavalue    = metavalue_t'(data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]);
       m2s_rwd_pkt.m2s_rwd_txn.tag          = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
       m2s_rwd_pkt.m2s_rwd_txn.address      = data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+28)];
       m2s_rwd_pkt.m2s_rwd_txn.poison       = data[(SLOT2_OFFSET+74)];
       m2s_rwd_pkt.m2s_rwd_txn.tc           = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
       if(h2d_rsp_ptr > 0) begin
         h2d_rsp_txn[1].valid               = data[(SLOT2_OFFSET+88)];
-        h2d_rsp_txn[1].opcode              = data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)];
-        h2d_rsp_txn[1].rspdata             = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)];
+        h2d_rsp_txn[1].opcode              = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]);
+        h2d_rsp_txn[1].rspdata             = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]);
         h2d_rsp_txn[1].rsppre              = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
         h2d_rsp_txn[1].cqid                = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
       end else begin
         h2d_rsp_txn[0].valid               = data[(SLOT2_OFFSET+88)];
-        h2d_rsp_txn[0].opcode              = data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)];
-        h2d_rsp_txn[0].rspdata             = data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)];
+        h2d_rsp_txn[0].opcode              = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]);
+        h2d_rsp_txn[0].rspdata             = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]);
         h2d_rsp_txn[0].rsppre              = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
         h2d_rsp_txn[0].cqid                = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
       end
     end else if(slot_sel == 'h3) begin
       m2s_rwd_pkt.pending_data_slot        = 'hf;
       m2s_rwd_pkt.m2s_rwd_txn.valid        = data[(SLOT3_OFFSET+0)];
-      m2s_rwd_pkt.m2s_rwd_txn.memopcode    = data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)];
-      m2s_rwd_pkt.m2s_rwd_txn.snptype      = data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)];
-      m2s_rwd_pkt.m2s_rwd_txn.metafield    = data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)];
-      m2s_rwd_pkt.m2s_rwd_txn.metavalue    = data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)];
+      m2s_rwd_pkt.m2s_rwd_txn.memopcode    = m2s_rwd_opcode_t'(data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]);
+      m2s_rwd_pkt.m2s_rwd_txn.snptype      = snptype_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]);
+      m2s_rwd_pkt.m2s_rwd_txn.metafield    = metafield_t'(data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]);
+      m2s_rwd_pkt.m2s_rwd_txn.metavalue    = metavalue_t'(data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]);
       m2s_rwd_pkt.m2s_rwd_txn.tag          = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
       m2s_rwd_pkt.m2s_rwd_txn.address      = data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+28)];
       m2s_rwd_pkt.m2s_rwd_txn.poison       = data[(SLOT3_OFFSET+74)];
       m2s_rwd_pkt.m2s_rwd_txn.tc           = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
       if(h2d_rsp_ptr > 0) begin
         h2d_rsp_txn[1].valid               = data[(SLOT3_OFFSET+88)];
-        h2d_rsp_txn[1].opcode              = data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)];
-        h2d_rsp_txn[1].rspdata             = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)];
+        h2d_rsp_txn[1].opcode              = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]);
+        h2d_rsp_txn[1].rspdata             = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]);
         h2d_rsp_txn[1].rsppre              = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
         h2d_rsp_txn[1].cqid                = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
       end else begin
         h2d_rsp_txn[0].valid               = data[(SLOT3_OFFSET+88)];
-        h2d_rsp_txn[0].opcode              = data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)];
-        h2d_rsp_txn[0].rspdata             = data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)];
+        h2d_rsp_txn[0].opcode              = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]);
+        h2d_rsp_txn[0].rspdata             = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]);
         h2d_rsp_txn[0].rsppre              = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
         h2d_rsp_txn[0].cqid                = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
       end
@@ -7438,12 +7523,12 @@ module device_rx_path #(
       end else begin
         ack <= 'h0;
       end
-      if(dev_rx_dl_if_d.valid && retryable_flit && llcrd_flit) begin
+      if(dev_rx_dl_if_d_valid && retryable_flit && llcrd_flit) begin
         ack_ret_val <= 'h1;
       end else begin
         ack_ret_val <= 'h0;
       end
-      if(dev_rx_dl_if_d.valid && retryable_flit && (!llcrd_flit)) begin
+      if(dev_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
         data_slot[0] <= data_slot[1];
         data_slot[1] <= data_slot[2];
         data_slot[2] <= data_slot[3];
@@ -7466,7 +7551,7 @@ module device_rx_path #(
   //TODO: put the packing logic restrictions in the arbiter logic itself so here I do not need to worry why I am getting illegal pkts we can have assertions to catch the max sub pkts that can be packed
   //TODO: put asserts to catch if there any illegal values on Hslots or Gslots otherwise bellow logic will be very hard to debug
   always_comb begin
-    if(dev_rx_dl_if_d.valid && retryable_flit && (!llcrd_flit) && 
+    if(dev_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit) && 
         (!data_slot_d[0][3] || 
           ((data_slot_d[0] == 'hf) && 
             (
@@ -7479,47 +7564,47 @@ module device_rx_path #(
           )
         )
       ) begin 
-      if(dev_rx_dl_if_d.data[7:5] == 'h4) begin
+      if(dev_rx_dl_if_d_data[7:5] == 'h4) begin
         data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;//need to add what happens when slot 1 is g slot
-        if((dev_rx_dl_if_d.data[10:8] == 'h1) || (dev_rx_dl_if_d.data[10:8] == 'h5)) begin
+        if((dev_rx_dl_if_d_data[10:8] == 'h1) || (dev_rx_dl_if_d_data[10:8] == 'h5)) begin
           data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-          if((dev_rx_dl_if_d.data[13:11] == 'h1) || (dev_rx_dl_if_d.data[13:11] == 'h5)) begin
+          if((dev_rx_dl_if_d_data[13:11] == 'h1) || (dev_rx_dl_if_d_data[13:11] == 'h5)) begin
             data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-            if((dev_rx_dl_if_d.data[16:14] == 'h1) || (dev_rx_dl_if_d.data[16:14] == 'h5)) begin
+            if((dev_rx_dl_if_d_data[16:14] == 'h1) || (dev_rx_dl_if_d_data[16:14] == 'h5)) begin
               data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-            end else if((dev_rx_dl_if_d.data[16:14] == 'h2) || (dev_rx_dl_if_d.data[16:14] == 'h4)) begin  
+            end else if((dev_rx_dl_if_d_data[16:14] == 'h2) || (dev_rx_dl_if_d_data[16:14] == 'h4)) begin  
               data_slot[0] = 'h0; data_slot[1] = 'hf; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-            end else if(dev_rx_dl_if_d.data[16:14] == 'h6) begin  
+            end else if(dev_rx_dl_if_d_data[16:14] == 'h6) begin  
               data_slot[0] = 'h0; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h0;
             end else begin
               data_slot[0] = 'h0; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'hf;
             end
-          end else if((dev_rx_dl_if_d.data[10:8] == 'h2) || (dev_rx_dl_if_d.data[10:8] == 'h4)) begin  
+          end else if((dev_rx_dl_if_d_data[10:8] == 'h2) || (dev_rx_dl_if_d_data[10:8] == 'h4)) begin  
             data_slot[0] = 'h8; data_slot[1] = 'h7; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-          end else if(dev_rx_dl_if_d.data[10:8] == 'h6) begin  
+          end else if(dev_rx_dl_if_d_data[10:8] == 'h6) begin  
             data_slot[0] = 'h8; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'h7; data_slot[4] = 'h0;
           end else begin
             data_slot[0] = 'h8; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h7;
           end
-        end else if((dev_rx_dl_if_d.data[10:8] == 'h2) || (dev_rx_dl_if_d.data[10:8] == 'h4)) begin  
+        end else if((dev_rx_dl_if_d_data[10:8] == 'h2) || (dev_rx_dl_if_d_data[10:8] == 'h4)) begin  
           data_slot[0] = 'hc; data_slot[1] = 'h3; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-        end else if(dev_rx_dl_if_d.data[10:8] == 'h6) begin  
+        end else if(dev_rx_dl_if_d_data[10:8] == 'h6) begin  
           data_slot[0] = 'hc; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'h3; data_slot[4] = 'h0;
         end else begin
           data_slot[0] = 'hc; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h3;
         end
-      end else if((dev_rx_dl_if_d.data[7:5] == 'h0) || (dev_rx_dl_if_d.data[7:5] == 'h1) || (dev_rx_dl_if_d.data[7:5] == 'h3)) begin
+      end else if((dev_rx_dl_if_d_data[7:5] == 'h0) || (dev_rx_dl_if_d_data[7:5] == 'h1) || (dev_rx_dl_if_d_data[7:5] == 'h3)) begin
         data_slot[0] = 'he; data_slot[1] = 'h1; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-      end else if(dev_rx_dl_if_d.data[7:5] == 'h5) begin
+      end else if(dev_rx_dl_if_d_data[7:5] == 'h5) begin
         data_slot[0] = 'he; data_slot[1] = 'hf; data_slot[2] = 'h1; data_slot[3] = 'h0; data_slot[4] = 'h0;
       end else begin
         data_slot[0] = 'he; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h1;
       end
-    //end else if(dev_rx_dl_if_d.valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
+    //end else if(dev_rx_dl_if_d_valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
       //data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
     end
     
-    if(dev_rx_dl_if_d.valid && retryable_flit && (!llcrd_flit)) begin
+    if(dev_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
       ack_count = ack_count + 1;
       if(!data_slot[0][0]) begin
         h2d_req_ptr = 'h0;
@@ -7527,109 +7612,109 @@ module device_rx_path #(
         h2d_data_ptr = 'h0;
         m2s_req_ptr = 'h0;
         m2s_rwd_ptr = 'h0;
-        case(dev_rx_dl_if_d.data[7:5])
+        case(dev_rx_dl_if_d_data[7:5])
           'h0: begin
-            header0(dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_rsp_pkt[4]);
+            header0(dev_rx_dl_if_d_data, h2d_req_txn, h2d_rsp_txn);
             h2d_req_ptr = h2d_req_ptr + 1;
             h2d_rsp_ptr = h2d_rsp_ptr + 1;
           end
           'h1: begin
-            header1(dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt[4]);
+            header1(dev_rx_dl_if_d_data, h2d_data_pkt, h2d_rsp_txn);
           end
           'h2: begin
-            header2(dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_data_pkt[4]);
+            header2(dev_rx_dl_if_d_data, h2d_req_txn, h2d_data_pkt);
           end
           'h3: begin
-            header3(dev_rx_dl_if_d.data, h2d_data_pkt[4]);
+            header3(dev_rx_dl_if_d_data, h2d_data_pkt);
           end
           'h4: begin
-            header4(dev_rx_dl_if_d.data, m2s_rwd_pkt);
+            header4(dev_rx_dl_if_d_data, m2s_rwd_pkt);
           end
           'h5: begin
-            header5(dev_rx_dl_if_d.data, m2s_req_pkt[2]);
+            header5(dev_rx_dl_if_d_data, m2s_req_txn);
             m2s_req_ptr = m2s_req_ptr + 1;
           end
           default: begin
 
           end
         endcase
-        case(dev_rx_dl_if_d.data[10:8])
+        case(dev_rx_dl_if_d_data[10:8])
           'h0: begin
-            generic0('h1, dev_rx_dl_if_d.data, h2d_data_pkt[4], m2s_rwd_pkt);
+            generic0('h1, dev_rx_dl_if_d_data, h2d_data_pkt, m2s_rwd_pkt);
           end
           'h1: begin
-            generic1('h1, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
+            generic1('h1, dev_rx_dl_if_d_data, h2d_rsp_txn);
           end
           'h2: begin
-            generic2('h1, dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_req_ptr, h2d_data_pkt[4], h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic2('h1, dev_rx_dl_if_d_data, h2d_req_txn, h2d_req_ptr, h2d_data_pkt, h2d_rsp_txn, h2d_rsp_ptr);
           end
           'h3: begin
-            generic3('h1, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic3('h1, dev_rx_dl_if_d_data, h2d_data_pkt, h2d_rsp_txn, h2d_rsp_ptr);
           end
           'h4: begin
-            generic4('h1, dev_rx_dl_if_d.data, m2s_req_pkt[2], m2s_req_ptr, h2d_data_pkt[4]);
+            generic4('h1, dev_rx_dl_if_d_data, m2s_req_txn, m2s_req_ptr, h2d_data_pkt);
           end
           'h5: begin
-            generic5('h1, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic5('h1, dev_rx_dl_if_d_data, m2s_rwd_pkt, h2d_rsp_txn, h2d_rsp_ptr);
           end
           default: begin
           
           end
         endcase
-        case(dev_rx_dl_if_d.data[13:11])
+        case(dev_rx_dl_if_d_data[13:11])
           'h0: begin
-            generic0('h2, dev_rx_dl_if_d.data, h2d_data_pkt[4], m2s_rwd_pkt);
+            generic0('h2, dev_rx_dl_if_d_data, h2d_data_pkt, m2s_rwd_pkt);
           end
           'h1: begin
-            generic1('h2, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
+            generic1('h2, dev_rx_dl_if_d_data, h2d_rsp_txn);
           end
           'h2: begin
-            generic2('h2, dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_req_ptr, h2d_data_pkt[4], h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic2('h2, dev_rx_dl_if_d_data, h2d_req_txn, h2d_req_ptr, h2d_data_pkt, h2d_rsp_txn, h2d_rsp_ptr);
           end
           'h3: begin
-            generic3('h2, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic3('h2, dev_rx_dl_if_d_data, h2d_data_pkt, h2d_rsp_txn, h2d_rsp_ptr);
           end
           'h4: begin
-            generic4('h2, dev_rx_dl_if_d.data, m2s_req_pkt[2], m2s_req_ptr, h2d_data_pkt[4]);
+            generic4('h2, dev_rx_dl_if_d_data, m2s_req_txn, m2s_req_ptr, h2d_data_pkt);
           end
           'h5: begin
-            generic5('h2, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic5('h2, dev_rx_dl_if_d_data, m2s_rwd_pkt, h2d_rsp_txn, h2d_rsp_ptr);
           end
           default: begin
           
           end
         endcase
-        case(dev_rx_dl_if_d.data[16:14])
+        case(dev_rx_dl_if_d_data[16:14])
           'h0: begin
-            generic0('h3, dev_rx_dl_if_d.data, h2d_data_pkt[4], m2s_rwd_pkt);
+            generic0('h3, dev_rx_dl_if_d_data, h2d_data_pkt, m2s_rwd_pkt);
           end
           'h1: begin
-            generic1('h3, dev_rx_dl_if_d.data, h2d_rsp_pkt[4]);
+            generic1('h3, dev_rx_dl_if_d_data, h2d_rsp_txn);
           end
           'h2: begin
-            generic2('h3, dev_rx_dl_if_d.data, h2d_req_pkt[2], h2d_req_ptr, h2d_data_pkt[4], h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic2('h3, dev_rx_dl_if_d_data, h2d_req_txn, h2d_req_ptr, h2d_data_pkt, h2d_rsp_txn, h2d_rsp_ptr);
           end
           'h3: begin
-            generic3('h3, dev_rx_dl_if_d.data, h2d_data_pkt[4], h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic3('h3, dev_rx_dl_if_d_data, h2d_data_pkt, h2d_rsp_txn, h2d_rsp_ptr);
           end
           'h4: begin
-            generic4('h3, dev_rx_dl_if_d.data, m2s_req_pkt, m2s_req_ptr[2], h2d_data_pkt[4]);
+            generic4('h3, dev_rx_dl_if_d_data, m2s_req_txn, m2s_req_ptr, h2d_data_pkt);
           end
           'h5: begin
-            generic5('h3, dev_rx_dl_if_d.data, m2s_rwd_pkt, h2d_rsp_pkt[4], h2d_rsp_ptr);
+            generic5('h3, dev_rx_dl_if_d_data, m2s_rwd_pkt, h2d_rsp_txn, h2d_rsp_ptr);
           end
           default: begin
           
           end
         endcase
       end else if(data_slot[0][0]) begin
-          generic0('h0, dev_rx_dl_if_d.data, h2d_data_pkt[4], m2s_rwd_pkt);
+          generic0('h0, dev_rx_dl_if_d_data, h2d_data_pkt, m2s_rwd_pkt);
       end
     end
 
-    if(dev_rx_dl_if_d.valid && retryable_flit && llcrd_flit) begin
+    if(dev_rx_dl_if_d_valid && retryable_flit && llcrd_flit) begin
       ack_count = ack_count + 1;
-      ack_ret = {dev_rx_dl_if_d.data[71:68], dev_rx_dl_if_d.data[2], dev_rx_dl_if_d.data[66:64]};
+      ack_ret = {dev_rx_dl_if_d_data[71:68], dev_rx_dl_if_d_data[2], dev_rx_dl_if_d_data[66:64]};
     end
   end 
 
@@ -7652,53 +7737,53 @@ module device_rx_path #(
     if(!dev_rx_dl_if.rstn) begin
       crc_pass_d <= 'h0;
       crc_fail_d <= 'h0;
-      dev_rx_dl_if_d.valid <= 'h0;
-      dev_rx_dl_if_d.data <= 'h0;
+      dev_rx_dl_if_d_valid <= 'h0;
+      dev_rx_dl_if_d_data <= 'h0;
     end else begin
       crc_pass_d <= crc_pass;
       crc_fail_d <= crc_fail;
-      dev_rx_dl_if_d.valid <= dev_rx_dl_if.valid;
-      dev_rx_dl_if_d.data <= dev_rx_dl_if.data;
-      if(dev_rx_dl_if_d.valid) begin
+      dev_rx_dl_if_d_valid <= dev_rx_dl_if.valid;
+      dev_rx_dl_if_d_data <= dev_rx_dl_if.data[527:16];
+      if(dev_rx_dl_if_d_valid) begin
         case(retry_frame_states) 
         RETRY_NOFRAME: begin
           retry_req_rcvd <= 'h0;
           retry_ack_rcvd <= 'h0;
-          if(retry_frame_detect) begin  
-            retry_frame_states <= RETRY_FRAME0;
-          end else begin
-            retry_frame_states <= RETRY_NOFRAME;
-          end
-        end
-        RETRY_FRAME1: begin
           if(retry_frame_detect) begin  
             retry_frame_states <= RETRY_FRAME1;
           end else begin
             retry_frame_states <= RETRY_NOFRAME;
           end
         end
-        RETRY_FRAME2: begin
+        RETRY_FRAME1: begin
           if(retry_frame_detect) begin  
             retry_frame_states <= RETRY_FRAME2;
           end else begin
             retry_frame_states <= RETRY_NOFRAME;
           end
         end
-        RETRY_FRAME3: begin
+        RETRY_FRAME2: begin
           if(retry_frame_detect) begin  
             retry_frame_states <= RETRY_FRAME3;
           end else begin
             retry_frame_states <= RETRY_NOFRAME;
           end
         end
-        RETRY_FRAME4: begin
+        RETRY_FRAME3: begin
           if(retry_frame_detect) begin  
             retry_frame_states <= RETRY_FRAME4;
           end else begin
             retry_frame_states <= RETRY_NOFRAME;
           end
         end
-        RETRY_FRAME5: begin
+        RETRY_FRAME4: begin
+          if(retry_frame_detect) begin  
+            retry_frame_states <= RETRY_FRAME5;
+          end else begin
+            retry_frame_states <= RETRY_NOFRAME;
+          end
+        end
+        RETRY_FRAME5: begin//TODO:some flaw in this check later
           if(retry_frame_detect) begin  
             retry_frame_states <= RETRY_FRAME5;
           end else if(retry_req_detect) begin
@@ -7707,8 +7792,8 @@ module device_rx_path #(
             retry_frame_states <= RETRY_NOFRAME;
           end else if(retry_ack_detect) begin
             retry_ack_rcvd <= 'h1;
-            retry_ack_empty_bit <= dev_rx_dl_if_d.data[64];
-            retry_ack_num_retry <= dev_rx_dl_if_d.data[71:67];
+            retry_ack_empty_bit <= dev_rx_dl_if_d_data[64];
+            retry_ack_num_retry <= dev_rx_dl_if_d_data[71:67];
             retry_frame_states <= RETRY_NOFRAME;
           end else begin
             retry_req_rcvd <= 'h0;
@@ -7717,7 +7802,7 @@ module device_rx_path #(
           end
         end
         default: begin
-            retry_frame_states <= 'hX;
+            retry_frame_states <= RETRY_NOFRAME;
         end
         endcase
       end
@@ -7725,9 +7810,10 @@ module device_rx_path #(
   end
 
 endmodule
-
+//TODO: this replay logic is still under development and needs to be tested and verified
 module replay_buffer#(
   parameter REPLAY_BUFFER_SIZE = 256,
+  parameter REPLAY_BUFFER_IDX_WIDTH = $clog2(REPLAY_BUFFER_SIZE),
   parameter REPLAY_BUFFER_WIDTH = 512
 )(
   cxl_host_tx_dl_if.mon replay_inbuff_if,
@@ -7735,6 +7821,8 @@ module replay_buffer#(
   input logic ack,
   input logic nack,
   input logic fullack,
+  output logic replay_buff_full,
+  output logic replay_buff_empty,
   output logic replay_buff_overflow,
   output logic replay_buff_undrflow,
   output logic [$clog2(REPLAY_BUFFER_SIZE)-1:0] numfreebuf
@@ -7846,7 +7934,6 @@ module buffer#(
     if(!rstn) begin
      	rdptr <= 0;
      	wrptr <= 0;
-     	dataout <= 0;
      	empty <= 0;
      	full <= 0;
      	ovrflw <= 'h0;
@@ -7970,7 +8057,7 @@ module cxl_host
   logic crdt_data_cm;
   logic [2:0] crdt_rsp;
   logic [2:0] crdt_req;
-  logic [2:0] crdt_dat;
+  logic [2:0] crdt_data;
   int d2h_req_occ;
   int d2h_rsp_occ;
   int d2h_data_occ;
@@ -8003,23 +8090,28 @@ module cxl_host
   logic m2s_rwd_qrval;
   h2d_req_txn_t h2d_req_dataout;
   h2d_req_txn_t h2d_req_ddataout;
+  h2d_req_txn_t h2d_req_tdataout;
   h2d_req_txn_t h2d_req_qdataout;
   h2d_rsp_txn_t h2d_rsp_dataout;
   h2d_rsp_txn_t h2d_rsp_ddataout;
+  h2d_rsp_txn_t h2d_rsp_tdataout;
   h2d_rsp_txn_t h2d_rsp_qdataout;
   h2d_data_txn_t h2d_data_dataout;
   h2d_data_txn_t h2d_data_ddataout;
+  h2d_data_txn_t h2d_data_tdataout;
   h2d_data_txn_t h2d_data_qdataout;
   m2s_req_txn_t m2s_req_dataout;
   m2s_req_txn_t m2s_req_ddataout;
+  m2s_req_txn_t m2s_req_tdataout;
   m2s_req_txn_t m2s_req_qdataout;
   m2s_rwd_txn_t m2s_rwd_dataout;
   m2s_rwd_txn_t m2s_rwd_ddataout;
+  m2s_rwd_txn_t m2s_rwd_tdataout;
   m2s_rwd_txn_t m2s_rwd_qdataout;
-  d2h_req_txn_t d2h_req_pkt[4];
-  d2h_rsp_txn_t d2h_rsp_pkt[2];
+  d2h_req_txn_t d2h_req_txn[4];
+  d2h_rsp_txn_t d2h_rsp_txn[2];
   d2h_data_pkt_t d2h_data_pkt[4];
-  s2m_ndr_txn_t s2m_ndr_pkt[3];
+  s2m_ndr_txn_t s2m_ndr_txn[3];
   s2m_drs_pkt_t s2m_drs_pkt[3];
   logic ack;
   logic ack_ret_val;
@@ -8148,10 +8240,10 @@ module cxl_host
 	  .clk(host_d2h_rsp_if.clk),
   	.rstn(host_d2h_rsp_if.rstn),
   	.rval(host_d2h_rsp_if.ready),
-  	.wval(d2h_rsp_pkt[0].valid),
-  	.dwval(d2h_rsp_pkt[1].valid),
-    .datain(d2h_rsp_pkt[0]),
-    .ddatain(d2h_rsp_pkt[1]),
+  	.wval(d2h_rsp_txn[0].valid),
+  	.dwval(d2h_rsp_txn[1].valid),
+    .datain(d2h_rsp_txn[0]),
+    .ddatain(d2h_rsp_txn[1]),
     .dataout(host_d2h_rsp_if.d2h_rsp_txn),
   	.eseq,
   	.wptr(d2h_rsp_wptr),
@@ -8252,6 +8344,7 @@ module cxl_host
     .datain(host_m2s_req_if.m2s_req_txn),
     .dataout(m2s_req_dataout),
     .ddataout(m2s_req_ddataout),
+    .tdataout(m2s_req_tdataout),
     .qdataout(m2s_req_qdataout),
   	.eseq,
   	.wptr,
@@ -8277,6 +8370,7 @@ module cxl_host
     .datain(host_m2s_rwd_if.m2s_rwd_txn),
     .dataout(m2s_rwd_dataout),
     .ddataout(m2s_rwd_ddataout),
+    .tdataout(m2s_rwd_tdataout),
     .qdataout(m2s_rwd_qdataout),
   	.eseq,
   	.wptr,
@@ -8302,6 +8396,7 @@ module cxl_host
     .datain(host_h2d_req_if.h2d_req_txn),
     .dataout(h2d_req_dataout),
     .ddataout(h2d_req_ddataout),
+    .tdataout(h2d_req_tdataout),
     .qdataout(h2d_req_qdataout),
   	.eseq,
   	.wptr,
@@ -8327,6 +8422,7 @@ module cxl_host
     .datain(host_h2d_rsp_if.h2d_rsp_txn),
     .dataout(h2d_rsp_dataout),
     .ddataout(h2d_rsp_ddataout),
+    .tdataout(h2d_rsp_tdataout),
     .qdataout(h2d_rsp_qdataout),
   	.eseq,
   	.wptr,
@@ -8352,6 +8448,7 @@ module cxl_host
     .datain(host_h2d_data_if.h2d_data_txn),
     .dataout(h2d_data_dataout),
     .ddataout(h2d_data_ddataout),
+    .tdataout(h2d_data_tdataout),
     .qdataout(h2d_data_qdataout),
   	.eseq,
   	.wptr,
@@ -8374,31 +8471,31 @@ module cxl_host
   ) host_rx_path_inst (
     .*
   );
-
+/*
   replay_buffer #(
 
   ) replay_buffer_inst (
     .*
   );
-
+*/
 endmodule
 
 module cxl_device
    #(
   
    ) (
-    dev_d2h_req_if.dev_if_mp dev_d2h_req_if,
-    dev_d2h_rsp_if.dev_if_mp dev_d2h_rsp_if,
-    dev_d2h_data_if.dev_if_mp dev_d2h_data_if,
-    dev_h2d_req_if.dev_if_mp dev_h2d_req_if,
-    dev_h2d_rsp_if.dev_if_mp dev_h2d_rsp_if,
-    dev_h2d_data_if.dev_if_mp dev_h2d_data_if,
-    dev_m2s_req_if.dev_if_mp dev_m2s_req_if,
-    dev_m2s_rwd_if.dev_if_mp dev_m2s_rwd_if,
-    dev_s2m_ndr_if.dev_if_mp dev_s2m_ndr_if,
-    dev_s2m_drs_if.dev_if_mp dev_s2m_drs_if,
-    cxl_dev_tx_dl_if.tx_mp dev_tx_dl_if,
-    cxl_dev_rx_dl_if.rx_mp dev_rx_dl_if
+    cxl_cache_d2h_req_if.dev_if_mp  dev_d2h_req_if,
+    cxl_cache_d2h_rsp_if.dev_if_mp  dev_d2h_rsp_if,
+    cxl_cache_d2h_data_if.dev_if_mp dev_d2h_data_if,
+    cxl_cache_h2d_req_if.dev_if_mp  dev_h2d_req_if,
+    cxl_cache_h2d_rsp_if.dev_if_mp  dev_h2d_rsp_if,
+    cxl_cache_h2d_data_if.dev_if_mp dev_h2d_data_if,
+    cxl_mem_m2s_req_if.dev_if_mp    dev_m2s_req_if,
+    cxl_mem_m2s_rwd_if.dev_if_mp    dev_m2s_rwd_if,
+    cxl_mem_s2m_ndr_if.dev_if_mp    dev_s2m_ndr_if,
+    cxl_mem_s2m_drs_if.dev_if_mp    dev_s2m_drs_if,
+    cxl_dev_tx_dl_if.tx_mp          dev_tx_dl_if,
+    cxl_dev_rx_dl_if.rx_mp          dev_rx_dl_if
 );
 
   logic crdt_val;
@@ -8407,7 +8504,7 @@ module cxl_device
   logic crdt_data_cm;
   logic [2:0] crdt_rsp;
   logic [2:0] crdt_req;
-  logic [2:0] crdt_dat;
+  logic [2:0] crdt_data;
   int h2d_req_occ;
   int h2d_rsp_occ;
   int h2d_data_occ;
@@ -8466,7 +8563,7 @@ module cxl_device
   h2d_req_txn_t h2d_req_txn[2];
   h2d_rsp_txn_t h2d_rsp_txn[4];
   h2d_data_pkt_t h2d_data_pkt[4];
-  m2s_req_txn_t m2s_req_pkt[2];
+  m2s_req_txn_t m2s_req_txn[2];
   m2s_rwd_pkt_t m2s_rwd_pkt;
   logic ack;
   logic ack_ret_val;
@@ -8823,17 +8920,22 @@ module cxl_device
   ) device_rx_path_inst (
     .*
   );
-
+/*
   replay_buffer #(
   ) replay_buffer_inst (
+    .replay_inbuff_if(dev_tx_dl_if),
     .*
   );
-
+*/
 endmodule
 
 module tb_top;
 
   logic clk;
+  logic valid_delays_d[10];
+  logic [527:0] data_delays_d[10];
+  logic valid_delays_dd[10];
+  logic [527:0] data_delays_dd[10];
 
   cxl_cache_d2h_req_if  host_d2h_req_if(clk);
   cxl_cache_d2h_rsp_if  host_d2h_rsp_if(clk);
@@ -8858,6 +8960,63 @@ module tb_top;
   cxl_mem_m2s_rwd_if  dev_m2s_rwd_if(clk);
   cxl_mem_s2m_ndr_if  dev_s2m_ndr_if(clk);
   cxl_mem_s2m_drs_if  dev_s2m_drs_if(clk);
+
+  cxl_host_tx_dl_if   host_tx_dl_if(clk);
+  cxl_host_rx_dl_if   host_rx_dl_if(clk);
+  cxl_dev_tx_dl_if    dev_tx_dl_if(clk);
+  cxl_dev_rx_dl_if    dev_rx_dl_if(clk);
+
+//  assign dev_rx_dl_if.valid   = host_tx_dl_if.valid;
+//  assign dev_rx_dl_if.data    = host_tx_dl_if.data;
+//  assign host_rx_dl_if.valid  = dev_tx_dl_if.valid;
+//  assign host_rx_dl_if.data   = dev_tx_dl_if.data;
+
+  always@(posedge clk) begin
+    dev_rx_dl_if.valid<= valid_delays_d[0];
+    valid_delays_d[0] <= valid_delays_d[1];
+    valid_delays_d[1] <= valid_delays_d[2];
+    valid_delays_d[2] <= valid_delays_d[3];
+    valid_delays_d[3] <= valid_delays_d[4];
+    valid_delays_d[4] <= valid_delays_d[5];
+    valid_delays_d[5] <= valid_delays_d[6];
+    valid_delays_d[6] <= valid_delays_d[7];
+    valid_delays_d[7] <= valid_delays_d[8];
+    valid_delays_d[8] <= valid_delays_d[9];
+    valid_delays_d[9] <= host_tx_dl_if.valid;
+    dev_rx_dl_if.data <= data_delays_d[0];
+    data_delays_d[0] <= data_delays_d[1];
+    data_delays_d[1] <= data_delays_d[2];
+    data_delays_d[2] <= data_delays_d[3];
+    data_delays_d[3] <= data_delays_d[4];
+    data_delays_d[4] <= data_delays_d[5];
+    data_delays_d[5] <= data_delays_d[6];
+    data_delays_d[6] <= data_delays_d[7];
+    data_delays_d[7] <= data_delays_d[8];
+    data_delays_d[8] <= data_delays_d[9];
+    data_delays_d[9] <= host_tx_dl_if.data;
+    host_rx_dl_if.valid <= valid_delays_dd[0];
+    valid_delays_dd[0] <= valid_delays_dd[1];
+    valid_delays_dd[1] <= valid_delays_dd[2];
+    valid_delays_dd[2] <= valid_delays_dd[3];
+    valid_delays_dd[3] <= valid_delays_dd[4];
+    valid_delays_dd[4] <= valid_delays_dd[5];
+    valid_delays_dd[5] <= valid_delays_dd[6];
+    valid_delays_dd[6] <= valid_delays_dd[7];
+    valid_delays_dd[7] <= valid_delays_dd[8];
+    valid_delays_dd[8] <= valid_delays_dd[9];
+    valid_delays_dd[9] <= dev_tx_dl_if.valid;
+    host_rx_dl_if.data <= data_delays_dd[0];
+    data_delays_dd[0] <= data_delays_dd[1];
+    data_delays_dd[1] <= data_delays_dd[2];
+    data_delays_dd[2] <= data_delays_dd[3];
+    data_delays_dd[3] <= data_delays_dd[4];
+    data_delays_dd[4] <= data_delays_dd[5];
+    data_delays_dd[5] <= data_delays_dd[6];
+    data_delays_dd[6] <= data_delays_dd[7];
+    data_delays_dd[7] <= data_delays_dd[8];
+    data_delays_dd[8] <= data_delays_dd[9];
+    data_delays_dd[9] <= dev_tx_dl_if.data;
+  end 
 
   cxl_host #(
   ) cxl_host_inst (
@@ -8889,8 +9048,8 @@ module tb_top;
     uvm_config_db#(virtual cxl_cache_h2d_data_if)::set(null, "*", "host_h2d_data_if", host_h2d_data_if);
     uvm_config_db#(virtual cxl_mem_m2s_req_if)::set(null, "*", "host_m2s_req_if", host_m2s_req_if);
     uvm_config_db#(virtual cxl_mem_m2s_rwd_if)::set(null, "*", "host_m2s_rwd_if", host_m2s_rwd_if);
-    uvm_config_db#(virtual cxl_mem_m2s_ndr_if)::set(null, "*", "host_s2m_ndr_if", host_s2m_ndr_if);
-    uvm_config_db#(virtual cxl_mem_m2s_drs_if)::set(null, "*", "host_s2m_drs_if", host_s2m_drs_if);
+    uvm_config_db#(virtual cxl_mem_s2m_ndr_if)::set(null, "*", "host_s2m_ndr_if", host_s2m_ndr_if);
+    uvm_config_db#(virtual cxl_mem_s2m_drs_if)::set(null, "*", "host_s2m_drs_if", host_s2m_drs_if);
 
     uvm_config_db#(virtual cxl_cache_d2h_req_if)::set(null, "*", "dev_d2h_req_if", dev_d2h_req_if);
     uvm_config_db#(virtual cxl_cache_d2h_rsp_if)::set(null, "*", "dev_d2h_rsp_if", dev_d2h_rsp_if);
@@ -8900,14 +9059,15 @@ module tb_top;
     uvm_config_db#(virtual cxl_cache_h2d_data_if)::set(null, "*", "dev_h2d_data_if", dev_h2d_data_if);
     uvm_config_db#(virtual cxl_mem_m2s_req_if)::set(null, "*", "dev_m2s_req_if", dev_m2s_req_if);
     uvm_config_db#(virtual cxl_mem_m2s_rwd_if)::set(null, "*", "dev_m2s_rwd_if", dev_m2s_rwd_if);
-    uvm_config_db#(virtual cxl_mem_m2s_ndr_if)::set(null, "*", "dev_s2m_ndr_if", dev_s2m_ndr_if);
-    uvm_config_db#(virtual cxl_mem_m2s_drs_if)::set(null, "*", "dev_s2m_drs_if", dev_s2m_drs_if);
+    uvm_config_db#(virtual cxl_mem_s2m_ndr_if)::set(null, "*", "dev_s2m_ndr_if", dev_s2m_ndr_if);
+    uvm_config_db#(virtual cxl_mem_s2m_drs_if)::set(null, "*", "dev_s2m_drs_if", dev_s2m_drs_if);
     run_test("cxl_base_test");
   end
 
   class cxl_cfg_obj extends uvm_object;
     `uvm_object_utils(cxl_cfg_obj)
-    rand hdm_t hdm;
+    rand cxl_hdm_t hdm;
+    rand cxl_type_t cxl_type;
 
     function new(string name = "cxl_cfg_obj");
       super.new(name);
@@ -8928,26 +9088,27 @@ module tb_top;
   endclass
 
   class cxl_base_txn_seq_item extends uvm_sequence_item;
+    rand int delay_value;
+    rand logic delay_set;
+    rand delay_type_t delay_type;
+   
     `uvm_object_utils_begin(cxl_base_txn_seq_item)
       `uvm_field_int(delay_value, UVM_NOCOMPARE)
       `uvm_field_int(delay_set, UVM_NOCOMPARE)
       `uvm_field_enum(delay_type_t,delay_type, UVM_NOCOMPARE)
     `uvm_object_utils_end
-    rand int delay_value;
-    rand logic delay_set;
-    rand delay_type_t delay_type;
-    
+
     constraint delay_c{
       soft delay_set inside {'h0};
       if(delay_set){
-        (delay_type_t == GEET_CXL_SHORT_DLY) -> delay_value inside {[1:10]};
-        (delay_type_t == GEET_CXL_MED_DLY)   -> delay_value inside {[10:100]};
-        (delay_type_t == GEET_CXL_LONG_DLY)  -> delay_value inside {[100:1000]};
+        (delay_type == GEET_CXL_SHORT_DLY) -> delay_value inside {[1:10]};
+        (delay_type == GEET_CXL_MED_DLY)   -> delay_value inside {[10:100]};
+        (delay_type == GEET_CXL_LONG_DLY)  -> delay_value inside {[100:1000]};
       } else {
         delay_value inside {'h0};
       }
-      solve delay_set before delay_type_t;
-      solve delay_type_t before delay_value;
+      solve delay_set before delay_type;
+      solve delay_type before delay_value;
     }
 
     function new(string name = "cxl_base_txn_seq_item");
@@ -8959,6 +9120,13 @@ module tb_top;
   //can justify not using struct for fields as a txn because in future if you want 
   //different uvm_field types you cannot assign it using struct alone 
   class d2h_req_seq_item extends cxl_base_txn_seq_item;
+    rand logic valid;
+    rand d2h_req_opcode_t opcode;
+    rand logic [51:0] address;
+    rand logic [11:0] cqid;
+    rand logic nt;
+    int d2h_req_crdt;
+
     `uvm_object_utils_begin(d2h_req_seq_item)
       `uvm_field_int(valid, UVM_DEFAULT)
       `uvm_field_enum(d2h_req_opcode_t, opcode, UVM_DEFAULT)
@@ -8967,13 +9135,6 @@ module tb_top;
       `uvm_field_int(nt, UVM_DEFAULT)
       `uvm_field_int(d2h_req_crdt, UVM_NOCOMPARE)
     `uvm_object_utils_end
-
-    rand logic valid;
-    rand d2h_req_opcode_t opcode;
-    rand logic [51:0] address;
-    rand logic [11:0] cqid;
-    rand logic nt;
-    int d2h_req_crdt;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -8990,17 +9151,17 @@ module tb_top;
   endclass
 
   class d2h_rsp_seq_item extends cxl_base_txn_seq_item;
+    rand logic valid;
+    rand d2h_rsp_opcode_t opcode;
+    rand logic [11:0] uqid;
+    int d2h_rsp_crdt;
+
     `uvm_object_utils_begin(d2h_rsp_seq_item)
       `uvm_field_int(valid, UVM_DEFAULT)
       `uvm_field_enum(d2h_rsp_opcode_t, opcode, UVM_DEFAULT)
       `uvm_field_int(uqid, UVM_DEFAULT)
       `uvm_field_int(d2h_rsp_crdt, UVM_NOCOMPARE)
     `uvm_object_utils_end
-
-    rand logic valid;
-    rand d2h_rsp_opcode_t opcode;
-    rand logic [11:0] uqid;
-    int d2h_rsp_crdt;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -9013,6 +9174,13 @@ module tb_top;
   endclass
 
   class d2h_data_seq_item extends cxl_base_txn_seq_item;
+    rand logic valid;
+    rand logic [11:0] uqid;
+    rand logic chunkvalid;
+    rand logic bogus;
+    rand logic poison;
+    rand logic [511:0] data;
+
     `uvm_object_utils_begin(d2h_data_seq_item)
       `uvm_field_int(valid, UVM_DEFAULT)
       `uvm_field_int(uqid, UVM_DEFAULT)
@@ -9021,13 +9189,6 @@ module tb_top;
       `uvm_field_int(poison, UVM_DEFAULT)
       `uvm_field_int(data, UVM_DEFAULT)
     `uvm_object_utils_end
-
-    rand logic valid;
-    rand logic [11:0] uqid;
-    rand logic chunkvalid;
-    rand logic bogus;
-    rand logic poison;
-    rand logic [511:0] data;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -9049,6 +9210,12 @@ module tb_top;
   endclass
 
   class h2d_req_seq_item extends cxl_base_txn_seq_item;
+    rand logic valid;
+    rand h2d_req_opcode_t opcode;
+    rand logic [51:0] address;
+    rand logic [11:0] uqid;
+    int h2d_req_crdt;
+
     `uvm_object_utils_begin(h2d_req_seq_item)
       `uvm_field_int(valid, UVM_DEFAULT)
       `uvm_field_enum(h2d_req_opcode_t, opcode, UVM_DEFAULT)
@@ -9056,12 +9223,6 @@ module tb_top;
       `uvm_field_int(uqid, UVM_DEFAULT)
       `uvm_field_int(h2d_req_crdt, UVM_NOCOMPARE)
     `uvm_object_utils_end
-
-    rand logic valid;
-    rand h2d_req_opcode_t opcode;
-    rand logic [51:0] address;
-    rand logic [11:0] uqid;
-    int h2d_req_crdt;
 
     constraint always_valid_c{
       soft valid == 1;
@@ -9078,22 +9239,22 @@ module tb_top;
   endclass
 
   class h2d_rsp_seq_item extends cxl_base_txn_seq_item;
+    rand logic valid;
+    rand h2d_rsp_opcode_t opcode;
+    rand h2d_rsp_data_opcode_t rspdata;
+    rand logic [1:0] rsppre;
+    rand logic [11:0] cqid;
+    int h2d_rsp_crdt;
+
     `uvm_object_utils_begin(h2d_rsp_seq_item)
       `uvm_field_int(valid, UVM_DEFAULT)
       `uvm_field_enum(h2d_rsp_opcode_t, opcode, UVM_DEFAULT)
-      `uvm_field_int(rspdata, UVM_DEFAULT)
+      `uvm_field_enum(h2d_rsp_data_opcode_t, rspdata, UVM_DEFAULT)
       `uvm_field_int(rsppre, UVM_DEFAULT)
       `uvm_field_int(cqid, UVM_DEFAULT)
       `uvm_field_int(h2d_rsp_crdt, UVM_NOCOMPARE)
     `uvm_object_utils_end
     
-    rand logic valid;
-    rand h2d_rsp_opcode_t opcode;
-    rand logic [11:0] rspdata;
-    rand logic [1:0] rsppre;
-    rand logic [11:0] cqid;
-    int h2d_rsp_crdt;
-
     constraint always_valid_c{
       soft valid == 1;
     }
@@ -9110,6 +9271,14 @@ module tb_top;
   endclass
 
   class h2d_data_seq_item extends cxl_base_txn_seq_item;
+    rand logic valid;
+    rand logic [11:0] cqid;
+    rand logic chunkvalid;
+    rand logic poison;
+    rand logic goerr;
+    rand logic [511:0] data;
+    int h2d_data_crdt;
+
     `uvm_object_utils_begin(h2d_data_seq_item)
       `uvm_field_int(valid, UVM_DEFAULT)
       `uvm_field_int(cqid, UVM_DEFAULT)
@@ -9119,14 +9288,6 @@ module tb_top;
       `uvm_field_int(data, UVM_DEFAULT)
       `uvm_field_int(h2d_data_crdt, UVM_NOCOMPARE)
     `uvm_object_utils_end
-
-    rand logic valid;
-    rand logic [11:0] cqid;
-    rand logic chunkvalid;
-    rand logic poison;
-    rand logic goerr;
-    rand logic [511:0] data;
-    int h2d_data_crdt;
 
     constraint always_valid_c{
       soft valid == 'h1;
@@ -9148,10 +9309,20 @@ module tb_top;
   endclass
 
   class m2s_req_seq_item extends cxl_base_txn_seq_item;
+    rand logic valid;
+    rand logic [51:0] address;
+    rand m2s_req_opcode_t memopcode;
+    rand metafield_t metafield;
+    rand metavalue_t metavalue;
+    rand snptype_t snptype;
+    rand logic [15:0] tag;
+    rand logic [1:0] tc;
+    int m2s_req_crdt;
+
     `uvm_object_utils_begin(m2s_req_seq_item)
       `uvm_field_int(valid, UVM_DEFAULT)
       `uvm_field_int(address, UVM_DEFAULT)
-      `uvm_field_enum(m2s_req_opcode_t, opcode, UVM_DEFAULT)
+      `uvm_field_enum(m2s_req_opcode_t, memopcode, UVM_DEFAULT)
       `uvm_field_enum(metafield_t, metafield, UVM_DEFAULT)
       `uvm_field_enum(metavalue_t, metavalue, UVM_DEFAULT)
       `uvm_field_enum(snptype_t, snptype, UVM_DEFAULT)
@@ -9159,16 +9330,6 @@ module tb_top;
       `uvm_field_int(tc, UVM_DEFAULT)
       `uvm_field_int(m2s_req_crdt, UVM_NOCOMPARE)
     `uvm_object_utils_end
-
-    rand logic valid;
-    rand logic [51:0] address;
-    rand m2s_req_opcode_t opcode;
-    rand metafield_t metafield;
-    rand metavalue_t metavalue;
-    rand snptype_t snptype;
-    rand logic [15:0] tag;
-    rand logic [1:0] tc;
-    int m2s_req_crdt;
 
     constraint always_valid_c{
       soft valid == 'h1;
@@ -9197,10 +9358,22 @@ module tb_top;
   endclass
 
   class m2s_rwd_seq_item extends cxl_base_txn_seq_item;
+    rand logic valid;
+    rand logic [51:0] address;
+    rand m2s_rwd_opcode_t memopcode;
+    rand metafield_t metafield;
+    rand metavalue_t metavalue;
+    rand snptype_t snptype;
+    rand logic [15:0] tag;
+    rand logic [1:0] tc;
+    rand logic poison;
+    rand logic [511:0] data;
+    int m2s_rwd_crdt;
+
     `uvm_object_utils_begin(m2s_rwd_seq_item)
       `uvm_field_int(valid, UVM_DEFAULT)
       `uvm_field_int(address, UVM_DEFAULT)
-      `uvm_field_enum(m2s_rwd_opcode_t, opcode, UVM_DEFAULT)
+      `uvm_field_enum(m2s_rwd_opcode_t, memopcode, UVM_DEFAULT)
       `uvm_field_enum(metafield_t, metafield, UVM_DEFAULT)
       `uvm_field_enum(metavalue_t, metavalue, UVM_DEFAULT)
       `uvm_field_enum(snptype_t, snptype, UVM_DEFAULT)
@@ -9210,18 +9383,6 @@ module tb_top;
       `uvm_field_int(data, UVM_DEFAULT)
       `uvm_field_int(m2s_rwd_crdt, UVM_NOCOMPARE)
     `uvm_object_utils_end
-
-    rand logic valid;
-    rand logic [51:0] address;
-    rand m2s_rwd_opcode_t opcode;
-    rand metafield_t metafield;
-    rand metavalue_t metavalue;
-    rand snptype_t snptype;
-    rand logic [15:0] tag;
-    rand logic [1:0] tc;
-    rand logic poison;
-    rand logic [511:0] data;
-    int m2s_rwd_crdt;
 
     constraint always_valid_c{
       soft valid == 'h1;
@@ -9254,6 +9415,13 @@ module tb_top;
   endclass
 
   class s2m_ndr_seq_item extends cxl_base_txn_seq_item;
+    rand logic valid;
+    rand s2m_ndr_opcode_t opcode;
+    rand metafield_t metafield;
+    rand metavalue_t metavalue;
+    rand logic [15:0] tag;
+    int s2m_ndr_crdt;
+
     `uvm_object_utils_begin(s2m_ndr_seq_item)
       `uvm_field_int(valid, UVM_DEFAULT)
       `uvm_field_enum(s2m_ndr_opcode_t, opcode, UVM_DEFAULT)
@@ -9262,13 +9430,6 @@ module tb_top;
       `uvm_field_int(tag, UVM_DEFAULT)
       `uvm_field_int(s2m_ndr_crdt, UVM_NOCOMPARE)
     `uvm_object_utils_end
-
-    rand logic valid;
-    rand s2m_ndr_opcode_t opcode;
-    rand metafield_t metafield;
-    rand metavalue_t metavalue;
-    rand logic [15:0] tag;
-    int s2m_ndr_crdt;
 
     constraint always_valid_c{
       soft valid == 'h1;
@@ -9299,6 +9460,15 @@ module tb_top;
   endclass
 
   class s2m_drs_seq_item extends cxl_base_txn_seq_item;
+    rand logic valid;
+    rand s2m_drs_opcode_t opcode;
+    rand metafield_t metafield;
+    rand metavalue_t metavalue;
+    rand logic [15:0] tag;
+    rand logic poison;
+    rand logic [511:0] data;
+    int s2m_drs_crdt;
+
     `uvm_object_utils_begin(s2m_drs_seq_item)
       `uvm_field_int(valid, UVM_DEFAULT)
       `uvm_field_enum(s2m_drs_opcode_t, opcode, UVM_DEFAULT)
@@ -9309,15 +9479,6 @@ module tb_top;
       `uvm_field_int(data, UVM_DEFAULT)
       `uvm_field_int(s2m_drs_crdt, UVM_NOCOMPARE)
     `uvm_object_utils_end
-
-    rand logic valid;
-    rand s2m_drs_opcode_t opcode;
-    rand metafield_t metafield;
-    rand metavalue_t metavalue;
-    rand logic [15:0] tag;
-    rand logic poison;
-    rand logic [511:0] data;
-    int s2m_drs_crdt;
 
     constraint always_valid_c{
       soft valid == 'h1;
@@ -9346,126 +9507,117 @@ module tb_top;
   endclass
 
 
-  class cxl_base_sequencer extends uvm_sequencer#(cxl_base_txn_seq_item);
-    `uvm_component_utils(cxl_base_sequencer)
-
-    function new(string name = "cxl_base_sequencer", uvm_component parent = null );
-      super.new(name, parent);
-    endfunction
-
-  endclass
-
-  class host_d2h_req_sequencer extends cxl_base_sequencer#(d2h_req_seq_item);
+  class host_d2h_req_sequencer extends uvm_sequencer#(d2h_req_seq_item);
     `uvm_component_utils(host_d2h_req_sequencer);
-    uvm_tlm_analysis_fifo host_d2h_req_fifo;
+    uvm_tlm_analysis_fifo#(d2h_req_seq_item) host_d2h_req_fifo;
 
-    function new(string name = "host_d2h_req_sequencer");
-      super.new(name);
+    function new(string name = "host_d2h_req_sequencer", uvm_component parent = null );
+      super.new(name, parent);
       host_d2h_req_fifo = new("host_d2h_req_fifo",   this);
     endfunction
 
   endclass
 
-  class host_d2h_rsp_sequencer extends cxl_base_sequencer#(d2h_rsp_seq_item);
+  class host_d2h_rsp_sequencer extends uvm_sequencer#(d2h_rsp_seq_item);
     `uvm_component_utils(host_d2h_rsp_sequencer);
-    uvm_tlm_analysis_fifo host_d2h_rsp_fifo;
+    uvm_tlm_analysis_fifo#(d2h_rsp_seq_item) host_d2h_rsp_fifo;
 
-    function new(string name = "host_d2h_rsp_sequencer");
-      super.new(name);
+    function new(string name = "host_d2h_rsp_sequencer", uvm_component parent = null );
+      super.new(name, parent);
       host_d2h_rsp_fifo = new("host_d2h_rsp_fifo",   this);
     endfunction
 
   endclass
 
-  class host_d2h_data_sequencer extends cxl_base_sequencer#(d2h_data_seq_item);
+  class host_d2h_data_sequencer extends uvm_sequencer#(d2h_data_seq_item);
     `uvm_component_utils(host_d2h_data_sequencer);
-    uvm_tlm_analysis_fifo host_d2h_data_fifo;
+    uvm_tlm_analysis_fifo#(d2h_data_seq_item) host_d2h_data_fifo;
 
-    function new(string name = "host_d2h_data_sequencer");
-      super.new(name);
+    function new(string name = "host_d2h_data_sequencer", uvm_component parent = null );
+      super.new(name, parent);
       host_d2h_data_fifo = new("host_d2h_data_fifo",   this);
     endfunction
 
   endclass
 
-  class dev_h2d_req_sequencer extends cxl_base_sequencer#(h2d_req_seq_item);
+  class dev_h2d_req_sequencer extends uvm_sequencer#(h2d_req_seq_item);
     `uvm_component_utils(dev_h2d_req_sequencer);
-    uvm_tlm_analysis_fifo dev_h2d_req_fifo;
+    uvm_tlm_analysis_fifo#(h2d_req_seq_item) dev_h2d_req_fifo;
 
-    function new(string name = "dev_h2d_req_sequencer");
-      super.new(name);
+    function new(string name = "dev_h2d_req_sequencer", uvm_component parent = null );
+      super.new(name, parent);
       dev_h2d_req_fifo = new("dev_h2d_req_fifo",   this);
     endfunction
 
   endclass
 
-  class dev_h2d_rsp_sequencer extends cxl_base_sequencer#(h2d_rsp_seq_item);
+  class dev_h2d_rsp_sequencer extends uvm_sequencer#(h2d_rsp_seq_item);
     `uvm_component_utils(dev_h2d_rsp_sequencer);
-    uvm_tlm_analysis_fifo dev_h2d_req_fifo;
+    uvm_tlm_analysis_fifo#(h2d_rsp_seq_item) dev_h2d_rsp_fifo;
 
-    function new(string name = "dev_h2d_rsp_sequencer");
-      super.new(name);
+    function new(string name = "dev_h2d_rsp_sequencer", uvm_component parent = null );
+      super.new(name, parent);
       dev_h2d_rsp_fifo = new("dev_h2d_rsp_fifo",   this);
     endfunction
 
   endclass
 
-  class dev_h2d_data_sequencer extends cxl_base_sequencer#(h2d_data_seq_item);
+  class dev_h2d_data_sequencer extends uvm_sequencer#(h2d_data_seq_item);
     `uvm_component_utils(dev_h2d_data_sequencer);
-    uvm_tlm_analysis_fifo dev_h2d_data_fifo;
+    uvm_tlm_analysis_fifo#(h2d_data_seq_item) dev_h2d_data_fifo;
 
-    function new(string name = "dev_h2d_data_sequencer");
-      super.new(name);
+    function new(string name = "dev_h2d_data_sequencer", uvm_component parent = null );
+      super.new(name, parent);
       dev_h2d_data_fifo = new("dev_h2d_data_fifo",   this);
     endfunction
 
   endclass
 
-  class dev_m2s_req_sequencer extends cxl_base_sequencer#(m2s_req_seq_item);
+  class dev_m2s_req_sequencer extends uvm_sequencer#(m2s_req_seq_item);
     `uvm_component_utils(dev_m2s_req_sequencer);
-    uvm_tlm_analysis_fifo dev_m2s_req_fifo;
+    uvm_tlm_analysis_fifo#(m2s_req_seq_item) dev_m2s_req_fifo;
 
-    function new(string name = "dev_m2s_req_sequencer");
-      super.new(name);
+    function new(string name = "dev_m2s_req_sequencer", uvm_component parent = null );
+      super.new(name, parent);
       dev_m2s_req_fifo = new("dev_m2s_req_fifo",   this);
     endfunction
 
   endclass
 
-  class dev_m2s_rwd_sequencer extends cxl_base_sequencer#(m2s_rwd_seq_item);
+  class dev_m2s_rwd_sequencer extends uvm_sequencer#(m2s_rwd_seq_item);
     `uvm_component_utils(dev_m2s_rwd_sequencer);
-    uvm_tlm_analysis_fifo dev_m2s_rwd_fifo;
+    uvm_tlm_analysis_fifo#(m2s_rwd_seq_item) dev_m2s_rwd_fifo;
 
-    function new(string name = "dev_m2s_rwd_sequencer");
-      super.new(name);
+    function new(string name = "dev_m2s_rwd_sequencer", uvm_component parent = null );
+      super.new(name, parent);
       dev_m2s_rwd_fifo = new("dev_m2s_rwd_fifo",   this);
     endfunction
 
   endclass
 
-  class host_s2m_ndr_sequencer extends cxl_base_sequencer#(s2m_ndr_seq_item);
+  class host_s2m_ndr_sequencer extends uvm_sequencer#(s2m_ndr_seq_item);
     `uvm_component_utils(host_s2m_ndr_sequencer);
-    uvm_tlm_analysis_fifo host_s2m_ndr_fifo;
+    uvm_tlm_analysis_fifo#(s2m_ndr_seq_item) host_s2m_ndr_fifo;
 
-    function new(string name = "host_s2m_ndr_sequencer");
-      super.new(name);
+    function new(string name = "host_s2m_ndr_sequencer", uvm_component parent = null );
+      super.new(name, parent);
       host_s2m_ndr_fifo = new("host_s2m_ndr_fifo",   this);
     endfunction
 
   endclass
 
-  class host_s2m_drs_sequencer extends cxl_base_sequencer#(s2m_drs_seq_item);
+  class host_s2m_drs_sequencer extends uvm_sequencer#(s2m_drs_seq_item);
     `uvm_component_utils(host_s2m_drs_sequencer);
-    uvm_tlm_analysis_fifo host_s2m_drs_fifo;
+    uvm_tlm_analysis_fifo#(s2m_drs_seq_item) host_s2m_drs_fifo;
 
-    function new(string name = "host_s2m_drs_sequencer");
-      super.new(name);
+    function new(string name = "host_s2m_drs_sequencer", uvm_component parent = null );
+      super.new(name, parent);
       host_s2m_drs_fifo = new("host_s2m_drs_fifo",   this);
     endfunction
 
   endclass
 
-  class dev_d2h_req_sequencer extends cxl_base_sequencer#(d2h_req_seq_item);
+  class dev_d2h_req_sequencer extends uvm_sequencer#(d2h_req_seq_item);
     `uvm_component_utils(dev_d2h_req_sequencer)
     
     int d2h_req_crdt;
@@ -9473,17 +9625,17 @@ module tb_top;
     d2h_req_seq_item d2h_req_seq_item_exp_h;
     d2h_req_seq_item d2h_req_seq_item_act_h;
     d2h_req_seq_item drv_mon_txn[$];
-    d2h_req_seq_item inflight_txn[$];
-    uvm_tlm_analysis_fifo dev_d2h_req_fifo;
+    //d2h_req_seq_item inflight_txn[$];
+    uvm_tlm_analysis_fifo#(d2h_req_seq_item) dev_d2h_req_fifo;
 
     function new(string name = "dev_d2h_req_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_d2h_req_fifo    = new("dev_d2h_req_fifo",   this);
     endfunction
 
-    virtual task run_phase(uvm_phase);
+    virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      fork 
+      /*fork 
         begin
           forever begin
             wait_for_item_done();
@@ -9495,19 +9647,19 @@ module tb_top;
         begin
           forever begin
             wait(!dev_d2h_req_fifo.is_empty);
-            d2h_req_seq_item_act_h = dev_d2h_req_fifo.get_ap();
+            dev_d2h_req_fifo.get_ap(d2h_req_seq_item_act_h);
             d2h_req_seq_item_exp_h = drv_mon_txn.pop_front();
             if(d2h_req_seq_item_act_h.compare(d2h_req_seq_item_exp_h)) begin
               `uvm_fatal(get_type_name(), $sformatf("exp driven txn and actual monitored txn mismatch") );
             end
           end
         end
-      join_none
+      join_none*/
     endtask 
 
   endclass
 
-  class dev_d2h_rsp_sequencer extends cxl_base_sequencer#(d2h_rsp_seq_item);
+  class dev_d2h_rsp_sequencer extends uvm_sequencer#(d2h_rsp_seq_item);
     `uvm_component_utils(dev_d2h_rsp_sequencer)
     
     int d2h_rsp_crdt;
@@ -9516,39 +9668,39 @@ module tb_top;
     d2h_rsp_seq_item d2h_rsp_seq_item_act_h;
     d2h_rsp_seq_item drv_mon_txn[$];
     d2h_rsp_seq_item inflight_txn[$];
-    uvm_tlm_analysis_fifo dev_d2h_rsp_fifo;
+    uvm_tlm_analysis_fifo#(d2h_rsp_seq_item) dev_d2h_rsp_fifo;
 
     function new(string name = "dev_d2h_rsp_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_d2h_rsp_fifo    = new("dev_d2h_rsp_fifo",   this);
     endfunction
 
-    virtual task run_phase(uvm_phase);
+    virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      fork 
+      /*fork 
         begin
           forever begin
             wait_for_item_done();
             d2h_rsp_seq_item_h = last_req();
-            inflight_txn.push_back(d2h_rsp_seq_item_h.address);
+            inflight_txn.push_back(d2h_rsp_seq_item_h);
           end
         end
         begin
           forever begin
             wait(!dev_d2h_rsp_fifo.is_empty);
-            d2h_rsp_seq_item_act_h = dev_d2h_rsp_fifo.get_ap();
+            dev_d2h_rsp_fifo.get_ap(d2h_rsp_seq_item_act_h);
             d2h_rsp_seq_item_exp_h = drv_mon_txn.pop_front();
             if(d2h_rsp_seq_item_act_h.compare(d2h_rsp_seq_item_exp_h)) begin
               `uvm_fatal(get_type_name(), $sformatf("exp driven txn and actual monitored txn mismatch") );
             end
           end
         end
-      join_none
+      join_none*/
     endtask 
 
   endclass
 
-  class dev_d2h_data_sequencer extends cxl_base_sequencer#(d2h_data_seq_item);
+  class dev_d2h_data_sequencer extends uvm_sequencer#(d2h_data_seq_item);
     `uvm_component_utils(dev_d2h_data_sequencer)
     
     int d2h_data_crdt;
@@ -9557,39 +9709,39 @@ module tb_top;
     d2h_data_seq_item d2h_data_seq_item_act_h;
     d2h_data_seq_item drv_mon_txn[$];
     d2h_data_seq_item inflight_txn[$];
-    uvm_tlm_analysis_fifo dev_d2h_data_fifo;
+    uvm_tlm_analysis_fifo#(d2h_data_seq_item) dev_d2h_data_fifo;
 
     function new(string name = "dev_d2h_data_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_d2h_data_fifo    = new("dev_d2h_data_fifo",   this);
     endfunction
 
-    virtual task run_phase(uvm_phase);
+    virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      fork 
+      /*fork 
         begin
           forever begin
             wait_for_item_done();
             d2h_data_seq_item_h = last_req();
-            inflight_txn.push_back(d2h_data_seq_item_h.address);
+            inflight_txn.push_back(d2h_data_seq_item_h);
           end
         end
         begin
           forever begin
             wait(!dev_d2h_data_fifo.is_empty);
-            d2h_data_seq_item_act_h = dev_d2h_data_fifo.get_ap();
+            dev_d2h_data_fifo.get_ap(d2h_data_seq_item_act_h);
             d2h_data_seq_item_exp_h = drv_mon_txn.pop_front();
             if(d2h_data_seq_item_act_h.compare(d2h_data_seq_item_exp_h)) begin
               `uvm_fatal(get_type_name(), $sformatf("exp driven txn and actual monitored txn mismatch") );
             end
           end
         end
-      join_none
+      join_none*/
     endtask 
 
   endclass
 
-  class host_h2d_req_sequencer extends cxl_base_sequencer#(h2d_req_seq_item);
+  class host_h2d_req_sequencer extends uvm_sequencer#(h2d_req_seq_item);
     `uvm_component_utils(host_h2d_req_sequencer)
     
     int h2d_req_crdt;
@@ -9598,39 +9750,39 @@ module tb_top;
     h2d_req_seq_item h2d_req_seq_item_act_h;
     h2d_req_seq_item drv_mon_txn[$];
     h2d_req_seq_item inflight_txn[$];
-    uvm_tlm_analysis_fifo host_h2d_req_fifo;
+    uvm_tlm_analysis_fifo#(h2d_req_seq_item) host_h2d_req_fifo;
 
     function new(string name = "host_h2d_req_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_h2d_req_fifo    = new("host_h2d_req_fifo",   this);
     endfunction
 
-    virtual task run_phase(uvm_phase);
+    virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      fork 
+      /*fork 
         begin
           forever begin
             wait_for_item_done();
             h2d_req_seq_item_h = last_req();
-            inflight_txn.push_back(h2d_req_seq_item_h.address);
+            inflight_txn.push_back(h2d_req_seq_item_h);
           end
         end
         begin
           forever begin
             wait(!host_h2d_req_fifo.is_empty);
-            h2d_req_seq_item_act_h = host_h2d_req_fifo.get_ap();
+            host_h2d_req_fifo.get_ap(h2d_req_seq_item_act_h);
             h2d_req_seq_item_exp_h = drv_mon_txn.pop_front();
             if(h2d_req_seq_item_act_h.compare(h2d_req_seq_item_exp_h)) begin
               `uvm_fatal(get_type_name(), $sformatf("exp driven txn and actual monitored txn mismatch") );
             end
           end
         end
-      join_none
+      join_none*/
     endtask 
 
   endclass
 
-  class host_h2d_rsp_sequencer extends cxl_base_sequencer#(h2d_rsp_seq_item);
+  class host_h2d_rsp_sequencer extends uvm_sequencer#(h2d_rsp_seq_item);
     `uvm_component_utils(host_h2d_rsp_sequencer)
     
     int h2d_rsp_crdt;
@@ -9639,39 +9791,39 @@ module tb_top;
     h2d_rsp_seq_item h2d_rsp_seq_item_act_h;
     h2d_rsp_seq_item drv_mon_txn[$];
     h2d_rsp_seq_item inflight_txn[$];
-    uvm_tlm_analysis_fifo host_h2d_rsp_fifo;
+    uvm_tlm_analysis_fifo#(h2d_rsp_seq_item) host_h2d_rsp_fifo;
 
     function new(string name = "host_h2d_rsp_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_h2d_rsp_fifo    = new("host_h2d_rsp_fifo",   this);
     endfunction
 
-    virtual task run_phase(uvm_phase);
+    virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      fork 
+      /*fork 
         begin
           forever begin
             wait_for_item_done();
             h2d_rsp_seq_item_h = last_req();
-            inflight_txn.push_back(h2d_rsp_seq_item_h.address);
+            inflight_txn.push_back(h2d_rsp_seq_item_h);
           end
         end
         begin
           forever begin
             wait(!host_h2d_rsp_fifo.is_empty);
-            h2d_rsp_seq_item_act_h = host_h2d_rsp_fifo.get_ap();
+            host_h2d_rsp_fifo.get_ap(h2d_rsp_seq_item_act_h);
             h2d_rsp_seq_item_exp_h = drv_mon_txn.pop_front();
             if(h2d_rsp_seq_item_act_h.compare(h2d_rsp_seq_item_exp_h)) begin
               `uvm_fatal(get_type_name(), $sformatf("exp driven txn and actual monitored txn mismatch") );
             end
           end  
         end
-      join_none
+      join_none*/
     endtask 
 
   endclass
 
-  class host_h2d_data_sequencer extends cxl_base_sequencer#(h2d_data_seq_item);
+  class host_h2d_data_sequencer extends uvm_sequencer#(h2d_data_seq_item);
     `uvm_component_utils(host_h2d_data_sequencer)
     
     int h2d_data_crdt;
@@ -9680,39 +9832,39 @@ module tb_top;
     h2d_data_seq_item h2d_data_seq_item_act_h;
     h2d_data_seq_item drv_mon_txn[$];
     h2d_data_seq_item inflight_txn[$];
-    uvm_tlm_analysis_fifo host_h2d_data_fifo;
+    uvm_tlm_analysis_fifo#(h2d_data_seq_item) host_h2d_data_fifo;
 
     function new(string name = "host_h2d_data_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_h2d_data_fifo    = new("host_h2d_data_fifo",   this);
     endfunction
 
-    virtual task run_phase(uvm_phase);
+    virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      fork 
+      /*fork 
         begin
           forever begin
             wait_for_item_done();
             h2d_data_seq_item_h = last_req();
-            inflight_txn.push_back(h2d_data_seq_item_h.address);
+            inflight_txn.push_back(h2d_data_seq_item_h);
           end
         end
         begin
           forever begin
             wait(!host_h2d_data_fifo.is_empty);
-            h2d_data_seq_item_act_h = host_h2d_data_fifo.get_ap();
+            host_h2d_data_fifo.get_ap(h2d_data_seq_item_act_h);
             h2d_data_seq_item_exp_h = drv_mon_txn.pop_front();
             if(h2d_data_seq_item_act_h.compare(h2d_data_seq_item_exp_h)) begin
               `uvm_fatal(get_type_name(), $sformatf("exp driven txn and actual monitored txn mismatch") );
             end
           end
         end
-      join_none
+      join_none*/
     endtask 
 
   endclass
 
-  class host_m2s_req_sequencer extends cxl_base_sequencer#(m2s_req_seq_item);
+  class host_m2s_req_sequencer extends uvm_sequencer#(m2s_req_seq_item);
     `uvm_component_utils(host_m2s_req_sequencer)
     
     int m2s_req_crdt;
@@ -9721,27 +9873,27 @@ module tb_top;
     m2s_req_seq_item m2s_req_seq_item_act_h;
     m2s_req_seq_item drv_mon_txn[$];
     m2s_req_seq_item inflight_txn[$];
-    uvm_tlm_analysis_fifo host_m2s_req_fifo;
+    uvm_tlm_analysis_fifo#(m2s_req_seq_item) host_m2s_req_fifo;
 
     function new(string name = "host_m2s_req_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_m2s_req_fifo    = new("host_m2s_req_fifo",   this);
     endfunction
 
-    virtual task run_phase(uvm_phase);
+    virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      fork 
+      /*fork 
         begin
           forever begin
             wait_for_item_done();
             m2s_req_seq_item_h = last_req();
-            inflight_txn.push_back(m2s_req_seq_item_h.address);
+            inflight_txn.push_back(m2s_req_seq_item_h);
           end
         end
         begin
           forever begin
             wait(!host_m2s_req_fifo.is_empty);
-            m2s_req_seq_item_act_h = host_m2s_req_fifo.get_ap();
+            host_m2s_req_fifo.get_ap(m2s_req_seq_item_act_h);
             m2s_req_seq_item_exp_h = drv_mon_txn.pop_front();
             if(m2s_req_seq_item_act_h.compare(m2s_req_seq_item_exp_h)) begin
               `uvm_fatal(get_type_name(), $sformatf("exp driven txn and actual monitored txn mismatch") );
@@ -9749,12 +9901,12 @@ module tb_top;
           
           end
         end
-      join_none
+      join_none*/
     endtask 
 
   endclass
 
-  class host_m2s_rwd_sequencer extends cxl_base_sequencer#(m2s_rwd_seq_item);
+  class host_m2s_rwd_sequencer extends uvm_sequencer#(m2s_rwd_seq_item);
     `uvm_component_utils(host_m2s_rwd_sequencer)
     
     int m2s_rwd_crdt;
@@ -9763,39 +9915,39 @@ module tb_top;
     m2s_rwd_seq_item m2s_rwd_seq_item_act_h;
     m2s_rwd_seq_item drv_mon_txn[$];
     m2s_rwd_seq_item inflight_txn[$];
-    uvm_tlm_analysis_fifo host_m2s_rwd_fifo;
+    uvm_tlm_analysis_fifo#(m2s_rwd_seq_item) host_m2s_rwd_fifo;
 
     function new(string name = "host_m2s_rwd_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_m2s_rwd_fifo    = new("host_m2s_rwd_fifo",   this);
     endfunction
 
-    virtual task run_phase(uvm_phase);
+    virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      fork 
+      /*fork 
         begin
           forever begin
             wait_for_item_done();
             m2s_rwd_seq_item_h = last_req();
-            inflight_txn.push_back(m2s_rwd_seq_item_h.address);
+            inflight_txn.push_back(m2s_rwd_seq_item_h);
           end
         end
         begin
           forever begin
             wait(!host_m2s_rwd_fifo.is_empty);
-            m2s_rwd_seq_item_act_h = host_m2s_rwd_fifo.get_ap();
+            host_m2s_rwd_fifo.get_ap(m2s_rwd_seq_item_act_h);
             m2s_rwd_seq_item_exp_h = drv_mon_txn.pop_front();
             if(m2s_rwd_seq_item_act_h.compare(m2s_rwd_seq_item_exp_h)) begin
               `uvm_fatal(get_type_name(), $sformatf("exp driven txn and actual monitored txn mismatch") );
             end
           end
         end
-      join_none
+      join_none*/
     endtask 
 
   endclass
 
-  class dev_s2m_ndr_sequencer extends cxl_base_sequencer#(s2m_ndr_seq_item);
+  class dev_s2m_ndr_sequencer extends uvm_sequencer#(s2m_ndr_seq_item);
     `uvm_component_utils(dev_s2m_ndr_sequencer)
     
     int s2m_ndr_crdt;
@@ -9804,39 +9956,39 @@ module tb_top;
     s2m_ndr_seq_item s2m_ndr_seq_item_act_h;
     s2m_ndr_seq_item drv_mon_txn[$];
     s2m_ndr_seq_item inflight_txn[$];
-    uvm_tlm_analysis_fifo dev_s2m_ndr_fifo;
+    uvm_tlm_analysis_fifo#(s2m_ndr_seq_item) dev_s2m_ndr_fifo;
 
     function new(string name = "dev_s2m_ndr_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_s2m_ndr_fifo    = new("dev_s2m_ndr_fifo",   this);
     endfunction
 
-    virtual task run_phase(uvm_phase);
+    virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      fork 
+      /*fork 
         begin
           forever begin
             wait_for_item_done();
             s2m_ndr_seq_item_h = last_req();
-            inflight_txn.push_back(s2m_ndr_seq_item_h.address);
+            inflight_txn.push_back(s2m_ndr_seq_item_h);
           end
         end
         begin
           forever begin
             wait(!dev_s2m_ndr_fifo.is_empty);
-            s2m_ndr_seq_item_act_h = dev_s2m_ndr_fifo.get_ap();
+            dev_s2m_ndr_fifo.get_ap(s2m_ndr_seq_item_act_h);
             s2m_ndr_seq_item_exp_h = drv_mon_txn.pop_front();
             if(s2m_ndr_seq_item_act_h.compare(s2m_ndr_seq_item_exp_h)) begin
               `uvm_fatal(get_type_name(), $sformatf("exp driven txn and actual monitored txn mismatch") );
             end
           end
         end
-      join_none
+      join_none*/
     endtask 
 
   endclass
 
-  class dev_s2m_drs_sequencer extends cxl_base_sequencer#(s2m_drs_seq_item);
+  class dev_s2m_drs_sequencer extends uvm_sequencer#(s2m_drs_seq_item);
     `uvm_component_utils(dev_s2m_drs_sequencer)
     
     int s2m_drs_crdt;
@@ -9845,34 +9997,34 @@ module tb_top;
     s2m_drs_seq_item s2m_drs_seq_item_act_h;
     s2m_drs_seq_item drv_mon_txn[$];
     s2m_drs_seq_item inflight_txn[$];
-    uvm_tlm_analysis_fifo dev_s2m_drs_fifo;
+    uvm_tlm_analysis_fifo#(s2m_drs_seq_item) dev_s2m_drs_fifo;
 
     function new(string name = "dev_s2m_drs_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_s2m_drs_fifo    = new("dev_s2m_drs_fifo",   this);
     endfunction
 
-    virtual task run_phase(uvm_phase);
+    virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      fork 
+      /*fork 
         begin
           forever begin
             wait_for_item_done();
             s2m_drs_seq_item_h = last_req();
-            inflight_txn.push_back(s2m_drs_seq_item_h.address);
+            inflight_txn.push_back(s2m_drs_seq_item_h);
           end
         end
         begin
           forever begin
             wait(!dev_s2m_drs_fifo.is_empty);
-            s2m_drs_seq_item_act_h = dev_s2m_drs_fifo.get_ap();
+            dev_s2m_drs_fifo.get_ap(s2m_drs_seq_item_act_h);
             s2m_drs_seq_item_exp_h = drv_mon_txn.pop_front();
             if(s2m_drs_seq_item_act_h.compare(s2m_drs_seq_item_exp_h)) begin
               `uvm_fatal(get_type_name(), $sformatf("exp driven txn and actual monitored txn mismatch") );
             end
           end   
         end
-        join_none
+        join_none*/
     endtask 
 
   endclass
@@ -9891,7 +10043,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "dev_d2h_req_if", dev_d2h_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.mon)::get(this, "", "dev_d2h_req_if", dev_d2h_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_req_if"));
       end
       fork
@@ -9927,7 +10079,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_rsp_if)::get(this, "", "dev_d2h_rsp_if", dev_d2h_rsp_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.mon)::get(this, "", "dev_d2h_rsp_if", dev_d2h_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_rsp_if"));
       end
       fork
@@ -9962,7 +10114,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_data_if)::get(this, "", "dev_d2h_data_if", dev_d2h_data_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.mon)::get(this, "", "dev_d2h_data_if", dev_d2h_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_data_if"));
       end
       fork
@@ -9988,9 +10140,10 @@ module tb_top;
 
   class host_h2d_req_monitor extends uvm_monitor;
     `uvm_component_utils(host_h2d_req_monitor)
-    
+
     uvm_analysis_port#(h2d_req_seq_item) h2d_req_port;
     virtual cxl_cache_h2d_req_if.mon host_h2d_req_if;
+    h2d_req_seq_item h2d_req_seq_item_h;
 
     function new(string name = "host_h2d_req_monitor", uvm_component parent = null);
       super.new(name, parent);
@@ -9999,7 +10152,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_req_if)::get(this, "", "host_h2d_req_if", host_h2d_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.mon)::get(this, "", "host_h2d_req_if", host_h2d_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_req_if"));
       end
       fork
@@ -10035,7 +10188,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_rsp_if)::get(this, "", "host_h2d_rsp_if", host_h2d_rsp_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.mon)::get(this, "", "host_h2d_rsp_if", host_h2d_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_rsp_if"));
       end
       fork
@@ -10072,7 +10225,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_data_if)::get(this, "", "host_h2d_data_if", host_h2d_data_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.mon)::get(this, "", "host_h2d_data_if", host_h2d_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_data_if"));
       end
       fork
@@ -10110,7 +10263,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_m2s_req_if)::get(this, "", "host_m2s_req_if", host_m2s_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.mon)::get(this, "", "host_m2s_req_if", host_m2s_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_req_if"));
       end
       fork
@@ -10121,7 +10274,7 @@ module tb_top;
               m2s_req_seq_item_h = m2s_req_seq_item::type_id::create("m2s_req_seq_item_h", this);
               m2s_req_seq_item_h.valid         = host_m2s_req_if.m2s_req_txn.valid;
               m2s_req_seq_item_h.address       = host_m2s_req_if.m2s_req_txn.address;
-              m2s_req_seq_item_h.opcode        = host_m2s_req_if.m2s_req_txn.opcode;
+              m2s_req_seq_item_h.memopcode     = host_m2s_req_if.m2s_req_txn.memopcode;
               m2s_req_seq_item_h.metafield     = host_m2s_req_if.m2s_req_txn.metafield;
               m2s_req_seq_item_h.metavalue     = host_m2s_req_if.m2s_req_txn.metavalue;
               m2s_req_seq_item_h.snptype       = host_m2s_req_if.m2s_req_txn.snptype;
@@ -10150,7 +10303,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_m2s_rwd_if)::get(this, "", "host_m2s_rwd_if", host_m2s_rwd_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.mon)::get(this, "", "host_m2s_rwd_if", host_m2s_rwd_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_rwd_if"));
       end
       fork
@@ -10161,7 +10314,7 @@ module tb_top;
               m2s_rwd_seq_item_h = m2s_rwd_seq_item::type_id::create("m2s_rwd_seq_item_h", this);
               m2s_rwd_seq_item_h.valid         = host_m2s_rwd_if.m2s_rwd_txn.valid;
               m2s_rwd_seq_item_h.address       = host_m2s_rwd_if.m2s_rwd_txn.address;
-              m2s_rwd_seq_item_h.opcode        = host_m2s_rwd_if.m2s_rwd_txn.opcode;
+              m2s_rwd_seq_item_h.memopcode     = host_m2s_rwd_if.m2s_rwd_txn.memopcode;
               m2s_rwd_seq_item_h.metafield     = host_m2s_rwd_if.m2s_rwd_txn.metafield;
               m2s_rwd_seq_item_h.metavalue     = host_m2s_rwd_if.m2s_rwd_txn.metavalue;
               m2s_rwd_seq_item_h.snptype       = host_m2s_rwd_if.m2s_rwd_txn.snptype;
@@ -10192,7 +10345,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_s2m_ndr_if)::get(this, "", "dev_s2m_ndr_if", dev_s2m_ndr_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.mon)::get(this, "", "dev_s2m_ndr_if", dev_s2m_ndr_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_ndr_if"));
       end
       fork
@@ -10229,7 +10382,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_s2m_drs_if)::get(this, "", "dev_s2m_drs_if", dev_s2m_drs_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.mon)::get(this, "", "dev_s2m_drs_if", dev_s2m_drs_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_drs_if"));
       end
       fork
@@ -10268,7 +10421,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "host_d2h_req_if", host_d2h_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.mon)::get(this, "", "host_d2h_req_if", host_d2h_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_req_if"));
       end
       fork
@@ -10304,7 +10457,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_rsp_if)::get(this, "", "host_d2h_rsp_if", host_d2h_rsp_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.mon)::get(this, "", "host_d2h_rsp_if", host_d2h_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_rsp_if"));
       end
       fork
@@ -10339,7 +10492,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_data_if)::get(this, "", "host_d2h_data_if", host_d2h_data_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.mon)::get(this, "", "host_d2h_data_if", host_d2h_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_data_if"));
       end
       fork
@@ -10368,6 +10521,7 @@ module tb_top;
     
     uvm_analysis_port#(h2d_req_seq_item) h2d_req_port;
     virtual cxl_cache_h2d_req_if.mon dev_h2d_req_if;
+    h2d_req_seq_item h2d_req_seq_item_h;
 
     function new(string name = "dev_h2d_req_monitor", uvm_component parent = null);
       super.new(name, parent);
@@ -10376,7 +10530,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_req_if)::get(this, "", "dev_h2d_req_if", dev_h2d_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.mon)::get(this, "", "dev_h2d_req_if", dev_h2d_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_req_if"));
       end
       fork
@@ -10412,7 +10566,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_rsp_if)::get(this, "", "dev_h2d_rsp_if", dev_h2d_rsp_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.mon)::get(this, "", "dev_h2d_rsp_if", dev_h2d_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_rsp_if"));
       end
       fork
@@ -10449,7 +10603,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_data_if)::get(this, "", "dev_h2d_data_if", dev_h2d_data_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.mon)::get(this, "", "dev_h2d_data_if", dev_h2d_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_data_if"));
       end
       fork
@@ -10487,7 +10641,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_m2s_req_if)::get(this, "", "dev_m2s_req_if", dev_m2s_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.mon)::get(this, "", "dev_m2s_req_if", dev_m2s_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_req_if"));
       end
       fork
@@ -10498,7 +10652,7 @@ module tb_top;
               m2s_req_seq_item_h = m2s_req_seq_item::type_id::create("m2s_req_seq_item_h", this);
               m2s_req_seq_item_h.valid         = dev_m2s_req_if.m2s_req_txn.valid;
               m2s_req_seq_item_h.address       = dev_m2s_req_if.m2s_req_txn.address;
-              m2s_req_seq_item_h.opcode        = dev_m2s_req_if.m2s_req_txn.opcode;
+              m2s_req_seq_item_h.memopcode     = dev_m2s_req_if.m2s_req_txn.memopcode;
               m2s_req_seq_item_h.metafield     = dev_m2s_req_if.m2s_req_txn.metafield;
               m2s_req_seq_item_h.metavalue     = dev_m2s_req_if.m2s_req_txn.metavalue;
               m2s_req_seq_item_h.snptype       = dev_m2s_req_if.m2s_req_txn.snptype;
@@ -10527,7 +10681,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_m2s_rwd_if)::get(this, "", "dev_m2s_rwd_if", dev_m2s_rwd_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.mon)::get(this, "", "dev_m2s_rwd_if", dev_m2s_rwd_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_rwd_if"));
       end
       fork
@@ -10538,7 +10692,7 @@ module tb_top;
               m2s_rwd_seq_item_h = m2s_rwd_seq_item::type_id::create("m2s_rwd_seq_item_h", this);
               m2s_rwd_seq_item_h.valid         = dev_m2s_rwd_if.m2s_rwd_txn.valid;
               m2s_rwd_seq_item_h.address       = dev_m2s_rwd_if.m2s_rwd_txn.address;
-              m2s_rwd_seq_item_h.opcode        = dev_m2s_rwd_if.m2s_rwd_txn.opcode;
+              m2s_rwd_seq_item_h.memopcode     = dev_m2s_rwd_if.m2s_rwd_txn.memopcode;
               m2s_rwd_seq_item_h.metafield     = dev_m2s_rwd_if.m2s_rwd_txn.metafield;
               m2s_rwd_seq_item_h.metavalue     = dev_m2s_rwd_if.m2s_rwd_txn.metavalue;
               m2s_rwd_seq_item_h.snptype       = dev_m2s_rwd_if.m2s_rwd_txn.snptype;
@@ -10569,7 +10723,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_s2m_ndr_if)::get(this, "", "host_s2m_ndr_if", host_s2m_ndr_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.mon)::get(this, "", "host_s2m_ndr_if", host_s2m_ndr_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_ndr_if"));
       end
       fork
@@ -10606,7 +10760,7 @@ module tb_top;
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_s2m_drs_if)::get(this, "", "host_s2m_drs_if", host_s2m_drs_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.mon)::get(this, "", "host_s2m_drs_if", host_s2m_drs_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_drs_if"));
       end
       fork
@@ -10631,7 +10785,7 @@ module tb_top;
 
   endclass
 
-  class host_d2h_req_driver extends uvm_driver;
+  class host_d2h_req_driver extends uvm_driver#(d2h_req_seq_item);
     `uvm_component_utils(host_d2h_req_driver)
     
     virtual cxl_cache_d2h_req_if.host_pasv_drvr_mp host_d2h_req_if;
@@ -10641,9 +10795,9 @@ module tb_top;
       super.new(name, parent);
     endfunction
 
-    virtual function void build_phase(uvm_phase);
+    virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "host_d2h_req_if", host_d2h_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.host_pasv_drvr_mp)::get(this, "", "host_d2h_req_if", host_d2h_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_req_if"));
       end
     endfunction
@@ -10667,7 +10821,7 @@ module tb_top;
 
   endclass
 
-  class host_d2h_rsp_driver extends uvm_driver;
+  class host_d2h_rsp_driver extends uvm_driver#(d2h_rsp_seq_item);
     `uvm_component_utils(host_d2h_rsp_driver)
     
     virtual cxl_cache_d2h_rsp_if.host_pasv_drvr_mp host_d2h_rsp_if;
@@ -10679,7 +10833,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_rsp_if)::get(this, "", "host_d2h_rsp_if", host_d2h_rsp_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.host_pasv_drvr_mp)::get(this, "", "host_d2h_rsp_if", host_d2h_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_rsp_if"));
       end
     endfunction
@@ -10703,7 +10857,7 @@ module tb_top;
 
   endclass
 
-  class host_d2h_data_driver extends uvm_driver;
+  class host_d2h_data_driver extends uvm_driver#(d2h_data_seq_item);
     `uvm_component_utils(host_d2h_data_driver)
     
     virtual cxl_cache_d2h_data_if.host_pasv_drvr_mp host_d2h_data_if;
@@ -10715,7 +10869,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_data_if)::get(this, "", "host_d2h_data_if", host_d2h_data_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.host_pasv_drvr_mp)::get(this, "", "host_d2h_data_if", host_d2h_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_data_if"));
       end
     endfunction
@@ -10739,7 +10893,7 @@ module tb_top;
 
   endclass
 
-  class host_s2m_ndr_driver extends uvm_driver;
+  class host_s2m_ndr_driver extends uvm_driver#(s2m_ndr_seq_item);
     `uvm_component_utils(host_s2m_ndr_driver)
     
     virtual cxl_mem_s2m_ndr_if.host_pasv_drvr_mp host_s2m_ndr_if;
@@ -10751,7 +10905,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_s2m_ndr_if)::get(this, "", "host_s2m_ndr_if", host_s2m_ndr_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.host_pasv_drvr_mp)::get(this, "", "host_s2m_ndr_if", host_s2m_ndr_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_ndr_if"));
       end
     endfunction
@@ -10775,7 +10929,7 @@ module tb_top;
 
   endclass
 
-  class host_s2m_drs_driver extends uvm_driver;
+  class host_s2m_drs_driver extends uvm_driver#(s2m_drs_seq_item);
     `uvm_component_utils(host_s2m_drs_driver)
     
     virtual cxl_mem_s2m_drs_if.host_pasv_drvr_mp host_s2m_drs_if;
@@ -10787,7 +10941,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_host_s2m_drs_if)::get(this, "", "host_s2m_drs_if", host_s2m_drs_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.host_pasv_drvr_mp)::get(this, "", "host_s2m_drs_if", host_s2m_drs_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_drs_if"));
       end
     endfunction
@@ -10811,7 +10965,7 @@ module tb_top;
 
   endclass
 
-  class dev_h2d_req_driver extends uvm_driver;
+  class dev_h2d_req_driver extends uvm_driver#(h2d_req_seq_item);
     `uvm_component_utils(dev_h2d_req_driver)
     
     virtual cxl_cache_h2d_req_if.dev_pasv_drvr_mp dev_h2d_req_if;
@@ -10823,7 +10977,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_req_if)::get(this, "", "dev_h2d_req_if", dev_h2d_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.dev_pasv_drvr_mp)::get(this, "", "dev_h2d_req_if", dev_h2d_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_req_if"));
       end
     endfunction
@@ -10847,7 +11001,7 @@ module tb_top;
 
   endclass
 
-  class dev_h2d_rsp_driver extends uvm_driver;
+  class dev_h2d_rsp_driver extends uvm_driver#(h2d_rsp_seq_item);
     `uvm_component_utils(dev_h2d_rsp_driver)
     
     virtual cxl_cache_h2d_rsp_if.dev_pasv_drvr_mp dev_h2d_rsp_if;
@@ -10859,7 +11013,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_rsp_if)::get(this, "", "dev_h2d_rsp_if", dev_h2d_rsp_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.dev_pasv_drvr_mp)::get(this, "", "dev_h2d_rsp_if", dev_h2d_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_rsp_if"));
       end
     endfunction
@@ -10883,7 +11037,7 @@ module tb_top;
 
   endclass
 
-  class dev_h2d_data_driver extends uvm_driver;
+  class dev_h2d_data_driver extends uvm_driver#(h2d_data_seq_item);
     `uvm_component_utils(dev_h2d_data_driver)
     
     virtual cxl_cache_h2d_data_if.dev_pasv_drvr_mp dev_h2d_data_if;
@@ -10895,7 +11049,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "dev_h2d_data_if", dev_h2d_data_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.dev_pasv_drvr_mp)::get(this, "", "dev_h2d_data_if", dev_h2d_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_data_if"));
       end
     endfunction
@@ -10919,7 +11073,7 @@ module tb_top;
 
   endclass
 
-  class dev_m2s_req_driver extends uvm_driver;
+  class dev_m2s_req_driver extends uvm_driver#(m2s_req_seq_item);
     `uvm_component_utils(dev_m2s_req_driver)
     
     virtual cxl_mem_m2s_req_if.dev_pasv_drvr_mp dev_m2s_req_if;
@@ -10931,7 +11085,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_m2s_req_if)::get(this, "", "dev_m2s_req_if", dev_m2s_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.dev_pasv_drvr_mp)::get(this, "", "dev_m2s_req_if", dev_m2s_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_req_if"));
       end
     endfunction
@@ -10955,7 +11109,7 @@ module tb_top;
 
   endclass
 
-  class dev_m2s_rwd_driver extends uvm_driver;
+  class dev_m2s_rwd_driver extends uvm_driver#(m2s_rwd_seq_item);
     `uvm_component_utils(dev_m2s_rwd_driver)
     
     virtual cxl_mem_m2s_rwd_if.dev_pasv_drvr_mp dev_m2s_rwd_if;
@@ -10967,7 +11121,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "dev_m2s_rwd_if", dev_m2s_rwd_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.dev_pasv_drvr_mp)::get(this, "", "dev_m2s_rwd_if", dev_m2s_rwd_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_rwd_if"));
       end
     endfunction
@@ -10991,7 +11145,7 @@ module tb_top;
 
   endclass
 
-  class dev_d2h_req_driver extends uvm_driver;
+  class dev_d2h_req_driver extends uvm_driver#(d2h_req_seq_item);
     `uvm_component_utils(dev_d2h_req_driver)
     
     virtual cxl_cache_d2h_req_if.dev_actv_drvr_mp dev_d2h_req_if;
@@ -11002,7 +11156,7 @@ module tb_top;
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_req_if)::get(this, "", "dev_d2h_req_if", dev_d2h_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.dev_actv_drvr_mp)::get(this, "", "dev_d2h_req_if", dev_d2h_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_req_if"));
       end
     endfunction
@@ -11028,7 +11182,7 @@ module tb_top;
     endtask
   endclass
 
-  class dev_d2h_rsp_driver extends uvm_driver;
+  class dev_d2h_rsp_driver extends uvm_driver#(d2h_rsp_seq_item);
     `uvm_component_utils(dev_d2h_rsp_driver)
     
     virtual cxl_cache_d2h_rsp_if.dev_actv_drvr_mp dev_d2h_rsp_if;
@@ -11039,7 +11193,7 @@ module tb_top;
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_rsp_if)::get(this, "", "dev_d2h_rsp_if", dev_d2h_rsp_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.dev_actv_drvr_mp)::get(this, "", "dev_d2h_rsp_if", dev_d2h_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_rsp_if"));
       end
     endfunction
@@ -11064,7 +11218,7 @@ module tb_top;
 
   endclass
 
-  class dev_d2h_data_driver extends uvm_driver;
+  class dev_d2h_data_driver extends uvm_driver#(d2h_data_seq_item);
     `uvm_component_utils(dev_d2h_data_driver)
     virtual cxl_cache_d2h_data_if.dev_actv_drvr_mp dev_d2h_data_if;
     d2h_data_seq_item d2h_data_seq_item_h;
@@ -11075,7 +11229,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_d2h_data_if)::get(this, "", "dev_d2h_data_if", dev_d2h_data_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.dev_actv_drvr_mp)::get(this, "", "dev_d2h_data_if", dev_d2h_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_data_if"));
       end
     endfunction
@@ -11103,9 +11257,10 @@ module tb_top;
 
   endclass
 
-  class host_h2d_req_driver extends uvm_driver;
+  class host_h2d_req_driver extends uvm_driver#(h2d_req_seq_item);
     `uvm_component_utils(host_h2d_req_driver)
     virtual cxl_cache_h2d_req_if.host_actv_drvr_mp host_h2d_req_if;
+    h2d_req_seq_item h2d_req_seq_item_h;
 
     function new(string name = "host_h2d_req_driver", uvm_component parent = null);
       super.new(name, parent);
@@ -11113,7 +11268,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_req_if)::get(this, "", "host_h2d_req_if", host_h2d_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.host_actv_drvr_mp)::get(this, "", "host_h2d_req_if", host_h2d_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_req_if"));
       end
     endfunction
@@ -11139,7 +11294,7 @@ module tb_top;
 
   endclass
   
-  class host_h2d_rsp_driver extends uvm_driver;
+  class host_h2d_rsp_driver extends uvm_driver#(h2d_rsp_seq_item);
     `uvm_component_utils(host_h2d_rsp_driver)
     virtual cxl_cache_h2d_rsp_if.host_actv_drvr_mp host_h2d_rsp_if;
     h2d_rsp_seq_item h2d_rsp_seq_item_h;
@@ -11150,7 +11305,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_rsp_if)::get(this, "", "host_h2d_rsp_if", host_h2d_rsp_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.host_actv_drvr_mp)::get(this, "", "host_h2d_rsp_if", host_h2d_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_rsp_if"));
       end
     endfunction
@@ -11177,7 +11332,7 @@ module tb_top;
 
   endclass
 
-  class host_h2d_data_driver extends uvm_driver;
+  class host_h2d_data_driver extends uvm_driver#(h2d_data_seq_item);
     `uvm_component_utils(host_h2d_data_driver)
     virtual cxl_cache_h2d_data_if.host_actv_drvr_mp host_h2d_data_if;
     h2d_data_seq_item h2d_data_seq_item_h;
@@ -11188,7 +11343,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_cache_h2d_data_if)::get(this, "", "host_h2d_data_if", host_h2d_data_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.host_actv_drvr_mp)::get(this, "", "host_h2d_data_if", host_h2d_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_data_if"));
       end
     endfunction
@@ -11216,7 +11371,7 @@ module tb_top;
 
   endclass
 
-  class host_m2s_req_driver extends uvm_driver;
+  class host_m2s_req_driver extends uvm_driver#(m2s_req_seq_item);
     `uvm_component_utils(host_m2s_req_driver)
     virtual cxl_mem_m2s_req_if.host_actv_drvr_mp host_m2s_req_if;
     m2s_req_seq_item m2s_req_seq_item_h;
@@ -11227,7 +11382,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_m2s_req_if)::get(this, "", "host_m2s_req_if", host_m2s_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.host_actv_drvr_mp)::get(this, "", "host_m2s_req_if", host_m2s_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_req_if"));
       end
     endfunction 
@@ -11241,7 +11396,7 @@ module tb_top;
         end
         host_m2s_req_if.m2s_req_txn.valid    <=  m2s_req_seq_item_h.valid;
         host_m2s_req_if.m2s_req_txn.address  <=  m2s_req_seq_item_h.address;
-        host_m2s_req_if.m2s_req_txn.opcode   <=  m2s_req_seq_item_h.opcode;
+        host_m2s_req_if.m2s_req_txn.memopcode<=  m2s_req_seq_item_h.memopcode;
         host_m2s_req_if.m2s_req_txn.metafield<=  m2s_req_seq_item_h.metafield;
         host_m2s_req_if.m2s_req_txn.metavalue<=  m2s_req_seq_item_h.metavalue;
         host_m2s_req_if.m2s_req_txn.snptype  <=  m2s_req_seq_item_h.snptype;
@@ -11257,7 +11412,7 @@ module tb_top;
 
   endclass
 
-  class host_m2s_rwd_driver extends uvm_driver;
+  class host_m2s_rwd_driver extends uvm_driver#(m2s_rwd_seq_item);
     `uvm_component_utils(host_m2s_rwd_driver)
     virtual cxl_mem_m2s_rwd_if.host_actv_drvr_mp host_m2s_rwd_if;
     m2s_rwd_seq_item m2s_rwd_seq_item_h;
@@ -11268,7 +11423,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_m2s_rwd_if)::get(this, "", "host_m2s_rwd_if", host_m2s_rwd_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.host_actv_drvr_mp)::get(this, "", "host_m2s_rwd_if", host_m2s_rwd_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_rwd_if"));
       end
     endfunction
@@ -11282,7 +11437,7 @@ module tb_top;
         end
         host_m2s_rwd_if.m2s_rwd_txn.valid    <=  m2s_rwd_seq_item_h.valid;
         host_m2s_rwd_if.m2s_rwd_txn.address  <=  m2s_rwd_seq_item_h.address;
-        host_m2s_rwd_if.m2s_rwd_txn.opcode   <=  m2s_rwd_seq_item_h.opcode;
+        host_m2s_rwd_if.m2s_rwd_txn.memopcode<=  m2s_rwd_seq_item_h.memopcode;
         host_m2s_rwd_if.m2s_rwd_txn.metafield<=  m2s_rwd_seq_item_h.metafield;
         host_m2s_rwd_if.m2s_rwd_txn.metavalue<=  m2s_rwd_seq_item_h.metavalue;
         host_m2s_rwd_if.m2s_rwd_txn.snptype  <=  m2s_rwd_seq_item_h.snptype;
@@ -11300,9 +11455,9 @@ module tb_top;
 
   endclass
 
-  class dev_s2m_ndr_driver extends uvm_driver;
+  class dev_s2m_ndr_driver extends uvm_driver#(s2m_ndr_seq_item);
     `uvm_component_utils(dev_s2m_ndr_driver)
-    virtual cxl_mem_m2s_rwd_if.dev_actv_drvr_mp dev_s2m_ndr_if;
+    virtual cxl_mem_s2m_ndr_if.dev_actv_drvr_mp dev_s2m_ndr_if;
     s2m_ndr_seq_item s2m_ndr_seq_item_h;
 
     function new(string name = "dev_s2m_ndr_driver", uvm_component parent = null);
@@ -11311,7 +11466,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_s2m_ndr_if)::get(this, "", "dev_s2m_ndr_if", dev_s2m_ndr_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.dev_actv_drvr_mp)::get(this, "", "dev_s2m_ndr_if", dev_s2m_ndr_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_ndr_if"));
       end
     endfunction
@@ -11338,7 +11493,7 @@ module tb_top;
 
   endclass
 
-  class dev_s2m_drs_driver extends uvm_driver;
+  class dev_s2m_drs_driver extends uvm_driver#(s2m_drs_seq_item);
     `uvm_component_utils(dev_s2m_drs_driver)
     virtual cxl_mem_s2m_drs_if.dev_actv_drvr_mp dev_s2m_drs_if;
     s2m_drs_seq_item s2m_drs_seq_item_h;
@@ -11349,7 +11504,7 @@ module tb_top;
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
-      if(!(uvm_config_db#(cxl_mem_s2m_drs_if)::get(this, "", "dev_s2m_drs_if", dev_s2m_drs_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.dev_actv_drvr_mp)::get(this, "", "dev_s2m_drs_if", dev_s2m_drs_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_drs_if"));
       end
     endfunction
@@ -11719,7 +11874,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       if(is_active == UVM_ACTIVE) begin
-        host_d2h_rsp_driver_h.seq_item_port.connect(d2h_rsp_sequencer_h.seq_item_export);
+        host_d2h_rsp_driver_h.seq_item_port.connect(host_d2h_rsp_sequencer_h.seq_item_export);
         host_d2h_rsp_monitor_h.d2h_rsp_port.connect(host_d2h_rsp_sequencer_h.host_d2h_rsp_fifo.analysis_export);
       end
     endfunction
@@ -11777,7 +11932,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       if(is_active == UVM_ACTIVE) begin
-        dev_h2d_req_driver_h.seq_item_port.connect(h2d_req_sequencer_h.seq_item_export);
+        dev_h2d_req_driver_h.seq_item_port.connect(dev_h2d_req_sequencer_h.seq_item_export);
         dev_h2d_req_monitor_h.h2d_req_port.connect(dev_h2d_req_sequencer_h.dev_h2d_req_fifo.analysis_export);
       end
     endfunction
@@ -11786,8 +11941,8 @@ module tb_top;
   
   class dev_h2d_rsp_agent extends uvm_agent;
     `uvm_component_utils(dev_h2d_rsp_agent)
-    host_h2d_rsp_driver dev_h2d_rsp_driver_h;
-    host_h2d_rsp_monitor dev_h2d_rsp_monitor_h;
+    dev_h2d_rsp_driver dev_h2d_rsp_driver_h;
+    dev_h2d_rsp_monitor dev_h2d_rsp_monitor_h;
     dev_h2d_rsp_sequencer dev_h2d_rsp_sequencer_h;
 
     function new(string name = "dev_h2d_rsp_agent", uvm_component parent = null);
@@ -11814,7 +11969,7 @@ module tb_top;
   endclass
   
   class dev_h2d_data_agent extends uvm_agent;
-    `uvm_component_utils(host_h2d_data_agent)
+    `uvm_component_utils(dev_h2d_data_agent)
     dev_h2d_data_driver dev_h2d_data_driver_h;
     dev_h2d_data_monitor dev_h2d_data_monitor_h;
     dev_h2d_data_sequencer dev_h2d_data_sequencer_h;
@@ -11967,7 +12122,7 @@ module tb_top;
     host_h2d_rsp_sequencer      host_h2d_rsp_seqr;
     host_h2d_data_sequencer     host_h2d_data_seqr;
     host_m2s_req_sequencer      host_m2s_req_seqr;
-    host_m2s_rsp_sequencer      host_m2s_rsp_seqr;
+    host_m2s_rwd_sequencer      host_m2s_rwd_seqr;
     host_s2m_ndr_sequencer      host_s2m_ndr_seqr;
     host_s2m_drs_sequencer      host_s2m_drs_seqr;
     dev_d2h_req_sequencer       dev_d2h_req_seqr;
@@ -11977,11 +12132,11 @@ module tb_top;
     dev_h2d_rsp_sequencer       dev_h2d_rsp_seqr;
     dev_h2d_data_sequencer      dev_h2d_data_seqr;
     dev_m2s_req_sequencer       dev_m2s_req_seqr;
-    dev_m2s_rsp_sequencer       dev_m2s_rsp_seqr;
+    dev_m2s_rwd_sequencer       dev_m2s_rwd_seqr;
     dev_s2m_ndr_sequencer       dev_s2m_ndr_seqr;
     dev_s2m_drs_sequencer       dev_s2m_drs_seqr;
 
-    function new(string name = "cxl_cm_vsequencer", uvm_component = null);
+    function new(string name = "cxl_cm_vsequencer", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
@@ -12043,8 +12198,10 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       cxl_cfg_obj_h         = cxl_cfg_obj::type_id::create("cxl_cfg_obj_h", this);
-      cxl_cfg_obj_h.randomize();
-      uvm_config_db#(cxl_cfg_obj)::set(this, "*", "cxl_cfg_obj_h", cxl_cfg_obj_h);
+      if(cxl_cfg_obj_h.randomize() == 0) begin
+        `uvm_fatal("CXL_CFG_OBJ","cxl_cfg_obj randomization failed")
+      end;
+      uvm_resource_db#(cxl_cfg_obj)::set("*", "cxl_cfg_obj_h", cxl_cfg_obj_h);
       host_d2h_req_agent_h  = host_d2h_req_agent::type_id::create("host_d2h_req_agent_h", this);
       host_d2h_rsp_agent_h  = host_d2h_rsp_agent::type_id::create("host_d2h_rsp_agent_h", this);
       host_d2h_data_agent_h = host_d2h_data_agent::type_id::create("host_d2h_data_agent_h", this);
@@ -12074,61 +12231,61 @@ module tb_top;
         cxl_cm_vseqr.dev_d2h_req_seqr   = dev_d2h_req_agent_h.dev_d2h_req_sequencer_h;
       end
       if(dev_d2h_rsp_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_d2h_rsp_seqr   = dev_d2h_rsp_agent_h.d2h_rsp_sequencer_h;
+        cxl_cm_vseqr.dev_d2h_rsp_seqr   = dev_d2h_rsp_agent_h.dev_d2h_rsp_sequencer_h;
       end
       if(dev_d2h_data_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_d2h_data_seqr  = dev_d2h_data_agent_h.d2h_data_sequencer_h;
+        cxl_cm_vseqr.dev_d2h_data_seqr  = dev_d2h_data_agent_h.dev_d2h_data_sequencer_h;
       end
       if(host_h2d_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_h2d_req_seqr   = host_h2d_req_agent_h.h2d_req_sequencer_h;
+        cxl_cm_vseqr.host_h2d_req_seqr   = host_h2d_req_agent_h.host_h2d_req_sequencer_h;
       end
       if(host_h2d_rsp_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_h2d_rsp_seqr   = host_h2d_rsp_agent_h.h2d_rsp_sequencer_h;
+        cxl_cm_vseqr.host_h2d_rsp_seqr   = host_h2d_rsp_agent_h.host_h2d_rsp_sequencer_h;
       end
       if(host_h2d_data_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_h2d_data_seqr  = host_h2d_data_agent_h.h2d_data_sequencer_h;
+        cxl_cm_vseqr.host_h2d_data_seqr  = host_h2d_data_agent_h.host_h2d_data_sequencer_h;
       end
       if(host_m2s_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_m2s_req_seqr   = host_m2s_req_agent_h.m2s_req_sequencer_h;
+        cxl_cm_vseqr.host_m2s_req_seqr   = host_m2s_req_agent_h.host_m2s_req_sequencer_h;
       end
       if(host_m2s_rwd_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_m2s_rwd_seqr   = host_m2s_rwd_agent_h.m2s_rwd_sequencer_h;
+        cxl_cm_vseqr.host_m2s_rwd_seqr   = host_m2s_rwd_agent_h.host_m2s_rwd_sequencer_h;
       end
       if(dev_s2m_ndr_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_s2m_ndr_seqr   = dev_s2m_ndr_agent_h.s2m_ndr_sequencer_h;
+        cxl_cm_vseqr.dev_s2m_ndr_seqr   = dev_s2m_ndr_agent_h.dev_s2m_ndr_sequencer_h;
       end
       if(dev_s2m_drs_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_s2m_drs_seqr   = dev_s2m_drs_agent_h.s2m_drs_sequencer_h;
+        cxl_cm_vseqr.dev_s2m_drs_seqr   = dev_s2m_drs_agent_h.dev_s2m_drs_sequencer_h;
       end
       if(host_d2h_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_d2h_req_seqr   = host_d2h_req_agent_h.d2h_req_sequencer_h;
+        cxl_cm_vseqr.host_d2h_req_seqr   = host_d2h_req_agent_h.host_d2h_req_sequencer_h;
       end
       if(host_d2h_rsp_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr._host_d2h_rsp_seqr   = host_d2h_rsp_agent_h.d2h_rsp_sequencer_h;
+        cxl_cm_vseqr.host_d2h_rsp_seqr   = host_d2h_rsp_agent_h.host_d2h_rsp_sequencer_h;
       end
       if(host_d2h_data_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_d2h_data_seqr  = host_d2h_data_agent_h.d2h_data_sequencer_h;
+        cxl_cm_vseqr.host_d2h_data_seqr  = host_d2h_data_agent_h.host_d2h_data_sequencer_h;
       end
       if(dev_h2d_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_h2d_req_seqr   = dev_h2d_req_agent_h.h2d_req_sequencer_h;
+        cxl_cm_vseqr.dev_h2d_req_seqr   = dev_h2d_req_agent_h.dev_h2d_req_sequencer_h;
       end
       if(dev_h2d_rsp_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_h2d_rsp_seqr   = dev_h2d_rsp_agent_h.h2d_rsp_sequencer_h;
+        cxl_cm_vseqr.dev_h2d_rsp_seqr   = dev_h2d_rsp_agent_h.dev_h2d_rsp_sequencer_h;
       end
       if(dev_h2d_data_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_h2d_data_seqr  = dev_h2d_data_agent_h.h2d_data_sequencer_h;
+        cxl_cm_vseqr.dev_h2d_data_seqr  = dev_h2d_data_agent_h.dev_h2d_data_sequencer_h;
       end
       if(dev_m2s_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_m2s_req_seqr   = dev_m2s_req_agent_h.m2s_req_sequencer_h;
+        cxl_cm_vseqr.dev_m2s_req_seqr   = dev_m2s_req_agent_h.dev_m2s_req_sequencer_h;
       end
       if(dev_m2s_rwd_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_m2s_rwd_seqr   = dev_m2s_rwd_agent_h.m2s_rwd_sequencer_h;
+        cxl_cm_vseqr.dev_m2s_rwd_seqr   = dev_m2s_rwd_agent_h.dev_m2s_rwd_sequencer_h;
       end
       if(host_s2m_ndr_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_s2m_ndr_seqr   = host_s2m_ndr_agent_h.s2m_ndr_sequencer_h;
+        cxl_cm_vseqr.host_s2m_ndr_seqr   = host_s2m_ndr_agent_h.host_s2m_ndr_sequencer_h;
       end
       if(host_s2m_drs_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_s2m_drs_seqr   = host_s2m_drs_agent_h.s2m_drs_sequencer_h;
+        cxl_cm_vseqr.host_s2m_drs_seqr   = host_s2m_drs_agent_h.host_s2m_drs_sequencer_h;
       end
     endfunction
 
@@ -12158,7 +12315,6 @@ module tb_top;
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
       d2h_req_seq_item_h.size == num_trans;
-      solve num_trans before d2h_req_seq_item_h;
     }
 
     function new(string name = "dev_d2h_req_seq");
@@ -12180,7 +12336,6 @@ module tb_top;
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
       h2d_req_seq_item_h.size == num_trans;
-      solve num_trans before h2d_req_seq_item_h;
     }
 
     function new(string name = "host_h2d_req_seq");
@@ -12202,7 +12357,6 @@ module tb_top;
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
       m2s_req_seq_item_h.size == num_trans;
-      solve num_trans before m2s_req_seq_item_h;
     }
 
     function new(string name = "host_m2s_req_seq");
@@ -12224,7 +12378,6 @@ module tb_top;
     constraint num_of_trans_c{
       soft num_trans inside {[10:100]};
       m2s_rwd_seq_item_h.size == num_trans;
-      solve num_trans before m2s_rwd_seq_item_h;
     }
 
     function new(string name = "host_m2s_rwd_seq");
@@ -12270,7 +12423,7 @@ module tb_top;
     endfunction
     
     task body();
-      if(!uvm_config_db#(cxl_cfg_obj)::get(this, "", "cxl_cfg_obj_h", cxl_cfg_obj_h)) begin
+      if(!uvm_resource_db#(cxl_cfg_obj)::read_by_name("", "cxl_cfg_obj_h", cxl_cfg_obj_h)) begin
         `uvm_fatal("CXL_CFG_OBJ", "cxl_cfg_obj not found")
       end
       fork 
@@ -12296,11 +12449,11 @@ module tb_top;
         end
         begin
           //TODO: define the TYPE2 and TYPE3 macros in the uvm_config_db or somewhere else based on the env configuration
-          if(TYPE2) begin
+          if(cxl_cfg_obj_h.cxl_type == GEET_CXL_TYPE_2) begin
             forever begin
               type2_m2s_req_rwd_responder_s2m_ndr_drs();
             end
-          end else begin
+          end else if (cxl_cfg_obj_h.cxl_type == GEET_CXL_TYPE_3)begin
             forever begin
               type3_m2s_req_rwd_responder_s2m_ndr_drs();
             end
@@ -12315,10 +12468,10 @@ module tb_top;
       m2s_rwd_seq_item_rcvd = null;
       fork 
         begin
-          m2s_req_seq_item_rcvd = p_sequncer.dev_m2s_req_seqr.dev_m2s_req_fifo.get(); 
+          p_sequencer.dev_m2s_req_seqr.dev_m2s_req_fifo.get(m2s_req_seq_item_rcvd); 
         end
         begin
-          m2s_rwd_seq_item_rcvd = p_sequncer.dev_m2s_rwd_seqr.dev_m2s_rwd_fifo.get(); 
+          p_sequencer.dev_m2s_rwd_seqr.dev_m2s_rwd_fifo.get(m2s_rwd_seq_item_rcvd); 
         end
       join_any
       fork 
@@ -12330,26 +12483,26 @@ module tb_top;
               {
                 valid == 'h1;
                 //TODO: just check if below covers all the possible conditions for opcode in the appendix in CXLv2
-                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (opcode == GEET_CXL_MEM_OPCODE_CMP);
-                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (opcode inside {GEET_CXL_MEM_OPCODE_CMPE, GEET_CXL_MEM_OPCODE_CMPS});
-                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV)) -> (opcode == GEET_CXL_MEM_OPCODE_CMPE);
-                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (opcode inside {GEET_CXL_MEM_OPCODE_CMPE, GEET_CXL_MEM_OPCODE_CMPS});
-                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV, GEET_CXL_MEM_SNPTYP_MEMSNPCUR})) -> (opcode == GEET_CXL_MEM_OPCODE_CMP);
-                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV)) -> (opcode == GEET_CXL_MEM_OPCODE_CMPE);
-                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (opcode == GEET_CXL_MEM_OPCODE_CMPS);
-                ((m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV})) -> (opcode == GEET_CXL_MEM_OPCODE_CMP);
+                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (opcode == GEET_CXL_MEM_OPCODE_CMP);
+                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (opcode inside {GEET_CXL_MEM_OPCODE_CMPE, GEET_CXL_MEM_OPCODE_CMPS});
+                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV)) -> (opcode == GEET_CXL_MEM_OPCODE_CMPE);
+                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (opcode inside {GEET_CXL_MEM_OPCODE_CMPE, GEET_CXL_MEM_OPCODE_CMPS});
+                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV, GEET_CXL_MEM_SNPTYP_MEMSNPCUR})) -> (opcode == GEET_CXL_MEM_OPCODE_CMP);
+                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV)) -> (opcode == GEET_CXL_MEM_OPCODE_CMPE);
+                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (opcode == GEET_CXL_MEM_OPCODE_CMPS);
+                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV})) -> (opcode == GEET_CXL_MEM_OPCODE_CMP);
                 tag == m2s_req_seq_item_rcvd.tag;
                 metafield == m2s_req_seq_item_rcvd.metafield;
-                ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode == GEET_CXL_MEM_OPCODE_CMPE) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE)) -> (metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY, GEET_CXL_MEM_MV_METAVALUE_INVALID});
-                ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode == GEET_CXL_MEM_OPCODE_CMPS) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE)) -> (metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED});
-                ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode != GEET_CXL_MEM_OPCODE_CMPE) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID});
-                ((m2s_req_seq_item_rcvd.opcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode != GEET_CXL_MEM_OPCODE_CMPS) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY, GEET_CXL_MEM_MV_METAVALUE_INVALID});
+                ((m2s_req_seq_item_rcvd.memopcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode == GEET_CXL_MEM_OPCODE_CMPE) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE)) -> (metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY, GEET_CXL_MEM_MV_METAVALUE_INVALID});
+                ((m2s_req_seq_item_rcvd.memopcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode == GEET_CXL_MEM_OPCODE_CMPS) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE)) -> (metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED});
+                ((m2s_req_seq_item_rcvd.memopcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode != GEET_CXL_MEM_OPCODE_CMPE) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID});
+                ((m2s_req_seq_item_rcvd.memopcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_req_ndr_seq_item_h.opcode != GEET_CXL_MEM_OPCODE_CMPS) && (s2m_req_ndr_seq_item_h.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY, GEET_CXL_MEM_MV_METAVALUE_INVALID});
               }
             );
           end
         end
         begin
-          if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA})) begin
+          if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA})) begin
             `uvm_do_on_with(
               s2m_req_drs_seq_item_h,
               p_sequencer.dev_s2m_ndr_seqr,
@@ -12382,15 +12535,15 @@ module tb_top;
       m2s_rwd_seq_item_rcvd = null;
       fork 
         begin
-          m2s_req_seq_item_rcvd = p_sequncer.dev_m2s_req_seqr.dev_m2s_req_fifo.get(); 
+          p_sequencer.dev_m2s_req_seqr.dev_m2s_req_fifo.get(m2s_req_seq_item_rcvd); 
         end
         begin
-          m2s_rwd_seq_item_rcvd = p_sequncer.dev_m2s_rwd_seqr.dev_m2s_rwd_fifo.get(); 
+          p_sequencer.dev_m2s_rwd_seqr.dev_m2s_rwd_fifo.get(m2s_rwd_seq_item_rcvd); 
         end
       join_any
       fork 
         begin
-          if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT})) begin
+          if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT})) begin
             `uvm_do_on_with(
               s2m_req_ndr_seq_item_h,
               p_sequencer.dev_s2m_ndr_seqr,
@@ -12403,7 +12556,7 @@ module tb_top;
           end
         end
         begin
-          if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.opcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA})) begin
+          if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA})) begin
             `uvm_do_on_with(
               s2m_req_drs_seq_item_h,
               p_sequencer.dev_s2m_ndr_seqr,
@@ -12431,7 +12584,7 @@ module tb_top;
     endtask
 
     task d2h_req_responder_h2d_req();
-/*      d2h_req_seq_item_rcvd = p_sequncer.host_d2h_req_seqr.host_d2h_req_fifo.get(); 
+/*      d2h_req_seq_item_rcvd = p_sequencer.host_d2h_req_seqr.host_d2h_req_fifo.get(); 
       if(d2h_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_RDCURR) begin
         `uvm_do_on_with(
           h2d_req_seq_item_h,
@@ -12449,7 +12602,7 @@ module tb_top;
 
     task h2d_req_responder_d2h_rsp_data();
     //TODO: spec says only return modified data using data channel but for other conditions it is not specified now you are returning data for any of the held state modified or otherwise you need to confirm this operation
-      h2d_req_seq_item_rcvd = p_sequncer.dev_h2d_req_seqr.dev_h2d_req_fifo.get();
+      p_sequencer.dev_h2d_req_seqr.dev_h2d_req_fifo.get(h2d_req_seq_item_rcvd);
       if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_SNPCURR) begin
         fork 
           begin
@@ -12544,7 +12697,7 @@ module tb_top;
     task d2h_req_responder_h2d_rsp_data();
       //TODO: HDM-D needs to be defined in cfg like address map partitions
       //TODO: these FWD flows conflict with normal mem traffic and corrupt traffic look into how to get exclusive access to driver when it does uvm do
-      d2h_req_seq_item_rcvd = p_sequencer.host_d2h_req_seqr.host_d2h_req_fifo.get();
+      p_sequencer.host_d2h_req_seqr.host_d2h_req_fifo.get(d2h_req_seq_item_rcvd);
       if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDCURR}) begin
 //remember rdcurr doesnt give any response only data
         if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
@@ -12565,7 +12718,9 @@ module tb_top;
           end
 //remember this maybe sent or may not be sent so it is good to randomize weather to give a data or not to give a data
           begin
-            std::randomize(unset_set);
+            if(std::randomize(unset_set) == 0) begin
+              `uvm_fatal("RANDOMIZE_FAIL", "Failed to randomize unset_set")
+            end
             if(unset_set) begin
               `uvm_do_on_with(
                 h2d_data_seq_item_h,
@@ -12990,8 +13145,8 @@ module tb_top;
 
 //understand this this too shall be useful in next gen but not in CXLv1.1
     task d2h_rsp_data_responder_h2d_rsp_data();
-/*      d2h_rsp_seq_item_rcvd = p_sequncer.host_d2h_rsp_seqr.host_d2h_rsp_fifo.get();
-      d2h_data_seq_item_rcvd = p_sequncer.host_d2h_data_seqr.host_d2h_data_fifo.get();
+/*      d2h_rsp_seq_item_rcvd = p_sequencer.host_d2h_rsp_seqr.host_d2h_rsp_fifo.get();
+      d2h_data_seq_item_rcvd = p_sequencer.host_d2h_data_seqr.host_d2h_data_fifo.get();
       if(d2h_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RSPVHITV, GEET_CXL_CACHE_OPCODE_RSPIHITI}) begin
         fork 
           begin
@@ -13067,7 +13222,7 @@ module tb_top;
     cxl_cm_env cxl_cm_env_h;
     cxl_vseq cxl_vseq_h;
 
-    function new(string name = cxl_base_test, uvm_component parent = null);
+    function new(string name = "cxl_base_test", uvm_component parent = null);
       super.new(name, parent);
     endfunction
 
