@@ -35,7 +35,7 @@ typedef enum {
     
 } d2h_req_opcode_t; 
 
-typedef enum logic[4:0] {
+typedef enum {
     GEET_CXL_CACHE_OPCODE_RSPIHITI,
     GEET_CXL_CACHE_OPCODE_RSPVHITV,
     GEET_CXL_CACHE_OPCODE_RSPIHITSE,
@@ -9077,18 +9077,7 @@ module tb_top;
 
     function new(string name = "cxl_cfg_obj");
       super.new(name);
-    endfunction
-
-  endclass
-
-  class crdt_seq_item extends uvm_sequence_item;
-    `uvm_object_utils(crdt_seq_item)
-    int req_crdt;
-    int rsp_crdt;
-    int data_crdt;
-
-    function new(string name = "crdt_seq_item");
-      super.new(name);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm config obj : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9119,6 +9108,7 @@ module tb_top;
 
     function new(string name = "cxl_base_txn_seq_item");
       super.new(name);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm seq item : %s", name), UVM_DEBUG)
     endfunction
 
   endclass 
@@ -9152,6 +9142,7 @@ module tb_top;
 
     function new(string name = "d2h_req_seq_item");
       super.new(name);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm seq item : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9175,6 +9166,7 @@ module tb_top;
 
     function new(string name = "d2h_rsp_seq_item");
       super.new(name);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm seq item : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9211,6 +9203,7 @@ module tb_top;
 
     function new(string name = "d2h_data_seq_item");
       super.new(name);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm seq item : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9240,6 +9233,7 @@ module tb_top;
 
     function new(string name = "h2d_req_seq_item");
       super.new(name);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm seq item : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9272,6 +9266,7 @@ module tb_top;
 
     function new(string name = "h2d_rsp_seq_item");
       super.new(name);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm seq item : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9310,6 +9305,7 @@ module tb_top;
 
     function new(string name = "h2d_data_seq_item");
       super.new(name);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm seq item : %s", name), UVM_DEBUG)
     endfunction
   
   endclass
@@ -9359,6 +9355,7 @@ module tb_top;
 
     function new(string name = "m2s_req_seq_item");
       super.new(name);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm seq item : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9416,6 +9413,7 @@ module tb_top;
 
     function new(string name = "m2s_req_seq_item");
       super.new(name);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm seq item : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9461,6 +9459,7 @@ module tb_top;
 
     function new(string name = "s2m_ndr_seq_item");
       super.new(name);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm seq item : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9508,6 +9507,7 @@ module tb_top;
 
     function new(string name = "s2m_drs_seq_item");
       super.new(name);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm seq item : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9520,6 +9520,7 @@ module tb_top;
     function new(string name = "host_d2h_req_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_d2h_req_fifo = new("host_d2h_req_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9531,6 +9532,7 @@ module tb_top;
     function new(string name = "host_d2h_rsp_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_d2h_rsp_fifo = new("host_d2h_rsp_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9542,6 +9544,7 @@ module tb_top;
     function new(string name = "host_d2h_data_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_d2h_data_fifo = new("host_d2h_data_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9553,6 +9556,7 @@ module tb_top;
     function new(string name = "dev_h2d_req_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_h2d_req_fifo = new("dev_h2d_req_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9564,6 +9568,7 @@ module tb_top;
     function new(string name = "dev_h2d_rsp_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_h2d_rsp_fifo = new("dev_h2d_rsp_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9575,6 +9580,7 @@ module tb_top;
     function new(string name = "dev_h2d_data_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_h2d_data_fifo = new("dev_h2d_data_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9586,6 +9592,7 @@ module tb_top;
     function new(string name = "dev_m2s_req_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_m2s_req_fifo = new("dev_m2s_req_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9597,6 +9604,7 @@ module tb_top;
     function new(string name = "dev_m2s_rwd_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_m2s_rwd_fifo = new("dev_m2s_rwd_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9608,6 +9616,7 @@ module tb_top;
     function new(string name = "host_s2m_ndr_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_s2m_ndr_fifo = new("host_s2m_ndr_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9619,6 +9628,7 @@ module tb_top;
     function new(string name = "host_s2m_drs_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_s2m_drs_fifo = new("host_s2m_drs_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
   endclass
@@ -9637,6 +9647,7 @@ module tb_top;
     function new(string name = "dev_d2h_req_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_d2h_req_fifo    = new("dev_d2h_req_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
@@ -9679,6 +9690,7 @@ module tb_top;
     function new(string name = "dev_d2h_rsp_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_d2h_rsp_fifo    = new("dev_d2h_rsp_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
@@ -9720,6 +9732,7 @@ module tb_top;
     function new(string name = "dev_d2h_data_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_d2h_data_fifo    = new("dev_d2h_data_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
@@ -9761,6 +9774,7 @@ module tb_top;
     function new(string name = "host_h2d_req_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_h2d_req_fifo    = new("host_h2d_req_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
@@ -9802,6 +9816,7 @@ module tb_top;
     function new(string name = "host_h2d_rsp_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_h2d_rsp_fifo    = new("host_h2d_rsp_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
@@ -9843,6 +9858,7 @@ module tb_top;
     function new(string name = "host_h2d_data_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_h2d_data_fifo    = new("host_h2d_data_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
@@ -9884,6 +9900,7 @@ module tb_top;
     function new(string name = "host_m2s_req_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_m2s_req_fifo    = new("host_m2s_req_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
@@ -9926,6 +9943,7 @@ module tb_top;
     function new(string name = "host_m2s_rwd_sequencer", uvm_component parent = null );
       super.new(name, parent);
       host_m2s_rwd_fifo    = new("host_m2s_rwd_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
@@ -9967,6 +9985,7 @@ module tb_top;
     function new(string name = "dev_s2m_ndr_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_s2m_ndr_fifo    = new("dev_s2m_ndr_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
@@ -10008,6 +10027,7 @@ module tb_top;
     function new(string name = "dev_s2m_drs_sequencer", uvm_component parent = null );
       super.new(name, parent);
       dev_s2m_drs_fifo    = new("dev_s2m_drs_fifo",   this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
@@ -10045,10 +10065,12 @@ module tb_top;
     function new(string name = "dev_d2h_req_monitor", uvm_component parent = null);
       super.new(name, parent);
       d2h_req_port = new("d2h_req_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.mon)::get(this, "", "dev_d2h_req_if", dev_d2h_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_req_if"));
       end
@@ -10064,6 +10086,7 @@ module tb_top;
               d2h_req_seq_item_h.cqid     = dev_d2h_req_if.d2h_req_txn.cqid;
               d2h_req_seq_item_h.nt       = dev_d2h_req_if.d2h_req_txn.nt;
               d2h_req_port.write(d2h_req_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", d2h_req_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10081,10 +10104,12 @@ module tb_top;
     function new(string name = "dev_d2h_rsp_monitor", uvm_component parent = null);
       super.new(name, parent);
       d2h_rsp_port = new("d2h_rsp_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.mon)::get(this, "", "dev_d2h_rsp_if", dev_d2h_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_rsp_if"));
       end
@@ -10098,6 +10123,7 @@ module tb_top;
               d2h_rsp_seq_item_h.opcode  = dev_d2h_rsp_if.d2h_rsp_txn.opcode;
               d2h_rsp_seq_item_h.uqid    = dev_d2h_rsp_if.d2h_rsp_txn.uqid;
               d2h_rsp_port.write(d2h_rsp_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", d2h_rsp_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10116,10 +10142,12 @@ module tb_top;
     function new(string name = "dev_d2h_data_monitor", uvm_component parent = null);
       super.new(name, parent);
       d2h_data_port = new("d2h_data_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.mon)::get(this, "", "dev_d2h_data_if", dev_d2h_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_data_if"));
       end
@@ -10136,6 +10164,7 @@ module tb_top;
               d2h_data_seq_item_h.poison        = dev_d2h_data_if.d2h_data_txn.poison;
               d2h_data_seq_item_h.data          = dev_d2h_data_if.d2h_data_txn.data;
               d2h_data_port.write(d2h_data_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", d2h_data_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10154,10 +10183,12 @@ module tb_top;
     function new(string name = "host_h2d_req_monitor", uvm_component parent = null);
       super.new(name, parent);
       h2d_req_port = new("h2d_req_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.mon)::get(this, "", "host_h2d_req_if", host_h2d_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_req_if"));
       end
@@ -10172,6 +10203,7 @@ module tb_top;
               h2d_req_seq_item_h.address       = host_h2d_req_if.h2d_req_txn.address;
               h2d_req_seq_item_h.uqid          = host_h2d_req_if.h2d_req_txn.uqid;
               h2d_req_port.write(h2d_req_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", h2d_req_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10190,10 +10222,12 @@ module tb_top;
     function new(string name = "host_h2d_rsp_monitor", uvm_component parent = null);
       super.new(name, parent);
       h2d_rsp_port = new("h2d_rsp_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.mon)::get(this, "", "host_h2d_rsp_if", host_h2d_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_rsp_if"));
       end
@@ -10209,6 +10243,7 @@ module tb_top;
               h2d_rsp_seq_item_h.rsppre        = host_h2d_rsp_if.h2d_rsp_txn.rsppre;
               h2d_rsp_seq_item_h.cqid          = host_h2d_rsp_if.h2d_rsp_txn.cqid;
               h2d_rsp_port.write(h2d_rsp_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", h2d_rsp_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10227,10 +10262,12 @@ module tb_top;
     function new(string name = "host_h2d_data_monitor", uvm_component parent = null);
       super.new(name, parent);
       h2d_data_port = new("h2d_data_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.mon)::get(this, "", "host_h2d_data_if", host_h2d_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_data_if"));
       end
@@ -10247,6 +10284,7 @@ module tb_top;
               h2d_data_seq_item_h.goerr         = host_h2d_data_if.h2d_data_txn.goerr;
               h2d_data_seq_item_h.data          = host_h2d_data_if.h2d_data_txn.data;
               h2d_data_port.write(h2d_data_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", h2d_data_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10265,10 +10303,12 @@ module tb_top;
     function new(string name = "host_m2s_req_monitor", uvm_component parent = null);
       super.new(name, parent);
       m2s_req_port = new("m2s_req_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.mon)::get(this, "", "host_m2s_req_if", host_m2s_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_req_if"));
       end
@@ -10287,6 +10327,7 @@ module tb_top;
               m2s_req_seq_item_h.tag           = host_m2s_req_if.m2s_req_txn.tag;
               m2s_req_seq_item_h.tc            = host_m2s_req_if.m2s_req_txn.tc;
               m2s_req_port.write(m2s_req_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", m2s_req_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10305,10 +10346,12 @@ module tb_top;
     function new(string name = "host_m2s_rwd_monitor", uvm_component parent = null);
       super.new(name, parent);
       m2s_rwd_port = new("m2s_rwd_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.mon)::get(this, "", "host_m2s_rwd_if", host_m2s_rwd_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_rwd_if"));
       end
@@ -10329,6 +10372,7 @@ module tb_top;
               m2s_rwd_seq_item_h.poison        = host_m2s_rwd_if.m2s_rwd_txn.poison;
               m2s_rwd_seq_item_h.data          = host_m2s_rwd_if.m2s_rwd_txn.data;
               m2s_rwd_port.write(m2s_rwd_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", m2s_rwd_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10347,10 +10391,12 @@ module tb_top;
     function new(string name = "dev_s2m_ndr_monitor", uvm_component parent = null);
       super.new(name, parent);
       s2m_ndr_port = new("s2m_ndr_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.mon)::get(this, "", "dev_s2m_ndr_if", dev_s2m_ndr_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_ndr_if"));
       end
@@ -10366,6 +10412,7 @@ module tb_top;
               s2m_ndr_seq_item_h.metavalue     = dev_s2m_ndr_if.s2m_ndr_txn.metavalue;
               s2m_ndr_seq_item_h.tag           = dev_s2m_ndr_if.s2m_ndr_txn.tag;
               s2m_ndr_port.write(s2m_ndr_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", s2m_ndr_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10384,10 +10431,12 @@ module tb_top;
     function new(string name = "dev_s2m_drs_monitor", uvm_component parent = null);
       super.new(name, parent);
       s2m_drs_port = new("s2m_drs_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.mon)::get(this, "", "dev_s2m_drs_if", dev_s2m_drs_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_drs_if"));
       end
@@ -10405,6 +10454,7 @@ module tb_top;
               s2m_drs_seq_item_h.poison        = dev_s2m_drs_if.s2m_drs_txn.poison;
               s2m_drs_seq_item_h.data          = dev_s2m_drs_if.s2m_drs_txn.data;
               s2m_drs_port.write(s2m_drs_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", s2m_drs_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10423,10 +10473,12 @@ module tb_top;
     function new(string name = "host_d2h_req_monitor", uvm_component parent = null);
       super.new(name, parent);
       d2h_req_port = new("d2h_req_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.mon)::get(this, "", "host_d2h_req_if", host_d2h_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_req_if"));
       end
@@ -10442,6 +10494,7 @@ module tb_top;
               d2h_req_seq_item_h.cqid     = host_d2h_req_if.d2h_req_txn.cqid;
               d2h_req_seq_item_h.nt       = host_d2h_req_if.d2h_req_txn.nt;
               d2h_req_port.write(d2h_req_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", d2h_req_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10459,10 +10512,12 @@ module tb_top;
     function new(string name = "host_d2h_rsp_monitor", uvm_component parent = null);
       super.new(name, parent);
       d2h_rsp_port = new("d2h_rsp_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.mon)::get(this, "", "host_d2h_rsp_if", host_d2h_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_rsp_if"));
       end
@@ -10476,6 +10531,7 @@ module tb_top;
               d2h_rsp_seq_item_h.opcode  = host_d2h_rsp_if.d2h_rsp_txn.opcode;
               d2h_rsp_seq_item_h.uqid    = host_d2h_rsp_if.d2h_rsp_txn.uqid;
               d2h_rsp_port.write(d2h_rsp_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", d2h_rsp_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10494,10 +10550,12 @@ module tb_top;
     function new(string name = "host_d2h_data_monitor", uvm_component parent = null);
       super.new(name, parent);
       d2h_data_port = new("d2h_data_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.mon)::get(this, "", "host_d2h_data_if", host_d2h_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_data_if"));
       end
@@ -10514,6 +10572,7 @@ module tb_top;
               d2h_data_seq_item_h.poison        = host_d2h_data_if.d2h_data_txn.poison;
               d2h_data_seq_item_h.data          = host_d2h_data_if.d2h_data_txn.data;
               d2h_data_port.write(d2h_data_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", d2h_data_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10532,10 +10591,12 @@ module tb_top;
     function new(string name = "dev_h2d_req_monitor", uvm_component parent = null);
       super.new(name, parent);
       h2d_req_port = new("h2d_req_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.mon)::get(this, "", "dev_h2d_req_if", dev_h2d_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_req_if"));
       end
@@ -10550,6 +10611,7 @@ module tb_top;
               h2d_req_seq_item_h.address       = dev_h2d_req_if.h2d_req_txn.address;
               h2d_req_seq_item_h.uqid          = dev_h2d_req_if.h2d_req_txn.uqid;
               h2d_req_port.write(h2d_req_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", h2d_req_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10568,10 +10630,12 @@ module tb_top;
     function new(string name = "dev_h2d_rsp_monitor", uvm_component parent = null);
       super.new(name, parent);
       h2d_rsp_port = new("h2d_rsp_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.mon)::get(this, "", "dev_h2d_rsp_if", dev_h2d_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_rsp_if"));
       end
@@ -10587,6 +10651,7 @@ module tb_top;
               h2d_rsp_seq_item_h.rsppre        = dev_h2d_rsp_if.h2d_rsp_txn.rsppre;
               h2d_rsp_seq_item_h.cqid          = dev_h2d_rsp_if.h2d_rsp_txn.cqid;
               h2d_rsp_port.write(h2d_rsp_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", h2d_rsp_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10605,10 +10670,12 @@ module tb_top;
     function new(string name = "dev_h2d_data_monitor", uvm_component parent = null);
       super.new(name, parent);
       h2d_data_port = new("h2d_data_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.mon)::get(this, "", "dev_h2d_data_if", dev_h2d_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_data_if"));
       end
@@ -10625,6 +10692,7 @@ module tb_top;
               h2d_data_seq_item_h.goerr         = dev_h2d_data_if.h2d_data_txn.goerr;
               h2d_data_seq_item_h.data          = dev_h2d_data_if.h2d_data_txn.data;
               h2d_data_port.write(h2d_data_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", h2d_data_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10643,10 +10711,12 @@ module tb_top;
     function new(string name = "dev_m2s_req_monitor", uvm_component parent = null);
       super.new(name, parent);
       m2s_req_port = new("m2s_req_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.mon)::get(this, "", "dev_m2s_req_if", dev_m2s_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_req_if"));
       end
@@ -10665,6 +10735,7 @@ module tb_top;
               m2s_req_seq_item_h.tag           = dev_m2s_req_if.m2s_req_txn.tag;
               m2s_req_seq_item_h.tc            = dev_m2s_req_if.m2s_req_txn.tc;
               m2s_req_port.write(m2s_req_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", m2s_req_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10683,10 +10754,12 @@ module tb_top;
     function new(string name = "dev_m2s_rwd_monitor", uvm_component parent = null);
       super.new(name, parent);
       m2s_rwd_port = new("m2s_rwd_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.mon)::get(this, "", "dev_m2s_rwd_if", dev_m2s_rwd_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_rwd_if"));
       end
@@ -10707,6 +10780,7 @@ module tb_top;
               m2s_rwd_seq_item_h.poison        = dev_m2s_rwd_if.m2s_rwd_txn.poison;
               m2s_rwd_seq_item_h.data          = dev_m2s_rwd_if.m2s_rwd_txn.data;
               m2s_rwd_port.write(m2s_rwd_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", m2s_rwd_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10725,10 +10799,12 @@ module tb_top;
     function new(string name = "host_s2m_ndr_monitor", uvm_component parent = null);
       super.new(name, parent);
       s2m_ndr_port = new("s2m_ndr_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.mon)::get(this, "", "host_s2m_ndr_if", host_s2m_ndr_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_ndr_if"));
       end
@@ -10744,6 +10820,7 @@ module tb_top;
               s2m_ndr_seq_item_h.metavalue     = host_s2m_ndr_if.s2m_ndr_txn.metavalue;
               s2m_ndr_seq_item_h.tag           = host_s2m_ndr_if.s2m_ndr_txn.tag;
               s2m_ndr_port.write(s2m_ndr_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", s2m_ndr_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10762,10 +10839,12 @@ module tb_top;
     function new(string name = "host_s2m_drs_monitor", uvm_component parent = null);
       super.new(name, parent);
       s2m_drs_port = new("s2m_drs_port", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.mon)::get(this, "", "host_s2m_drs_if", host_s2m_drs_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_drs_if"));
       end
@@ -10783,6 +10862,7 @@ module tb_top;
               s2m_drs_seq_item_h.poison        = host_s2m_drs_if.s2m_drs_txn.poison;
               s2m_drs_seq_item_h.data          = host_s2m_drs_if.s2m_drs_txn.data;
               s2m_drs_port.write(s2m_drs_seq_item_h);
+              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", s2m_drs_seq_item_h.sprint()), UVM_HIGH)
             end  
           end
         end
@@ -10799,19 +10879,26 @@ module tb_top;
 
     function new(string name = "host_d2h_req_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.host_pasv_drvr_mp)::get(this, "", "host_d2h_req_if", host_d2h_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_req_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(d2h_req_seq_item_h);  
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_req_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(d2h_req_seq_item_h.delay_set) begin
           repeat(d2h_req_seq_item_h.delay_value) @(negedge host_d2h_req_if.clk);
         end
@@ -10822,7 +10909,10 @@ module tb_top;
         end while(!host_d2h_req_if.d2h_req_txn.valid);
         host_d2h_req_if.ready <= 'h0;
         seq_item_port.item_done(d2h_req_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -10835,19 +10925,26 @@ module tb_top;
 
     function new(string name = "host_d2h_rsp_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.host_pasv_drvr_mp)::get(this, "", "host_d2h_rsp_if", host_d2h_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_rsp_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(d2h_rsp_seq_item_h);  
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_rsp_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(d2h_rsp_seq_item_h.delay_set) begin
           repeat(d2h_rsp_seq_item_h.delay_value) @(negedge host_d2h_rsp_if.clk);
         end
@@ -10858,7 +10955,10 @@ module tb_top;
         end while(!host_d2h_rsp_if.d2h_rsp_txn.valid);
         host_d2h_rsp_if.ready <= 'h0;
         seq_item_port.item_done(d2h_rsp_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -10871,19 +10971,26 @@ module tb_top;
 
     function new(string name = "host_d2h_data_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.host_pasv_drvr_mp)::get(this, "", "host_d2h_data_if", host_d2h_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_data_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(d2h_data_seq_item_h);  
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_data_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(d2h_data_seq_item_h.delay_set) begin
           repeat(d2h_data_seq_item_h.delay_value) @(negedge host_d2h_data_if.clk);
         end
@@ -10894,7 +11001,10 @@ module tb_top;
         end while(!host_d2h_data_if.d2h_data_txn.valid);
         host_d2h_data_if.ready <= 'h0;
         seq_item_port.item_done(d2h_data_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -10907,19 +11017,26 @@ module tb_top;
 
     function new(string name = "host_s2m_ndr_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.host_pasv_drvr_mp)::get(this, "", "host_s2m_ndr_if", host_s2m_ndr_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_ndr_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(s2m_ndr_seq_item_h);  
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_ndr_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(s2m_ndr_seq_item_h.delay_set) begin
           repeat(s2m_ndr_seq_item_h.delay_value) @(negedge host_s2m_ndr_if.clk);
         end
@@ -10930,7 +11047,10 @@ module tb_top;
         end while(!host_s2m_ndr_if.s2m_ndr_txn.valid);
         host_s2m_ndr_if.ready <= 'h0;
         seq_item_port.item_done(s2m_ndr_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -10943,19 +11063,26 @@ module tb_top;
 
     function new(string name = "host_s2m_drs_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.host_pasv_drvr_mp)::get(this, "", "host_s2m_drs_if", host_s2m_drs_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_drs_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(s2m_drs_seq_item_h);  
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_drs_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(s2m_drs_seq_item_h.delay_set) begin
           repeat(s2m_drs_seq_item_h.delay_value) @(negedge host_s2m_drs_if.clk);
         end
@@ -10966,7 +11093,10 @@ module tb_top;
         end while(!host_s2m_drs_if.s2m_drs_txn.valid);
         host_s2m_drs_if.ready <= 'h0;
         seq_item_port.item_done(s2m_drs_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -10979,19 +11109,26 @@ module tb_top;
 
     function new(string name = "dev_h2d_req_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.dev_pasv_drvr_mp)::get(this, "", "dev_h2d_req_if", dev_h2d_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_req_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(h2d_req_seq_item_h);  
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_req_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);  
         if(h2d_req_seq_item_h.delay_set) begin
           repeat(h2d_req_seq_item_h.delay_value) @(negedge dev_h2d_req_if.clk);
         end
@@ -11002,7 +11139,10 @@ module tb_top;
         end while(!dev_h2d_req_if.h2d_req_txn.valid);
         dev_h2d_req_if.ready <= 'h0;
         seq_item_port.item_done(h2d_req_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11015,19 +11155,26 @@ module tb_top;
 
     function new(string name = "dev_h2d_rsp_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.dev_pasv_drvr_mp)::get(this, "", "dev_h2d_rsp_if", dev_h2d_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_rsp_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(h2d_rsp_seq_item_h);  
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_rsp_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(h2d_rsp_seq_item_h.delay_set) begin
           repeat(h2d_rsp_seq_item_h.delay_value) @(negedge dev_h2d_rsp_if.clk);
         end
@@ -11038,7 +11185,10 @@ module tb_top;
         end while(!dev_h2d_rsp_if.h2d_rsp_txn.valid);
         dev_h2d_rsp_if.ready <= 'h0;
         seq_item_port.item_done(h2d_rsp_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11051,19 +11201,26 @@ module tb_top;
 
     function new(string name = "dev_h2d_data_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.dev_pasv_drvr_mp)::get(this, "", "dev_h2d_data_if", dev_h2d_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_data_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(h2d_data_seq_item_h);  
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_data_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(h2d_data_seq_item_h.delay_set) begin
           repeat(h2d_data_seq_item_h.delay_value) @(negedge dev_h2d_data_if.clk);
         end
@@ -11074,7 +11231,10 @@ module tb_top;
         end while(!dev_h2d_data_if.h2d_data_txn.valid);
         dev_h2d_data_if.ready <= 'h0;
         seq_item_port.item_done(h2d_data_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11087,19 +11247,26 @@ module tb_top;
 
     function new(string name = "dev_m2s_req_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.dev_pasv_drvr_mp)::get(this, "", "dev_m2s_req_if", dev_m2s_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_req_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(m2s_req_seq_item_h);  
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_req_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(m2s_req_seq_item_h.delay_set) begin
           repeat(m2s_req_seq_item_h.delay_value) @(negedge dev_m2s_req_if.clk);
         end
@@ -11110,7 +11277,10 @@ module tb_top;
         end while(!dev_m2s_req_if.m2s_req_txn.valid);
         dev_m2s_req_if.ready <= 'h0;
         seq_item_port.item_done(m2s_req_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11123,19 +11293,26 @@ module tb_top;
 
     function new(string name = "dev_m2s_rwd_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.dev_pasv_drvr_mp)::get(this, "", "dev_m2s_rwd_if", dev_m2s_rwd_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_rwd_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(m2s_rwd_seq_item_h);  
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_rwd_seq_item_h.sprint()), UVM_DEBUG)
+        phase
         if(m2s_rwd_seq_item_h.delay_set) begin
           repeat(m2s_rwd_seq_item_h.delay_value) @(negedge dev_m2s_rwd_if.clk);
         end
@@ -11146,7 +11323,10 @@ module tb_top;
         end while(!dev_m2s_rwd_if.m2s_rwd_txn.valid);
         dev_m2s_rwd_if.ready <= 'h0;
         seq_item_port.item_done(m2s_rwd_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11159,18 +11339,26 @@ module tb_top;
 
     function new(string name = "dev_d2h_req_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.dev_actv_drvr_mp)::get(this, "", "dev_d2h_req_if", dev_d2h_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_req_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(d2h_req_seq_item_h);
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_req_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(d2h_req_seq_item_h.delay_set) begin
           repeat(d2h_req_seq_item_h.delay_value) @(negedge dev_d2h_req_if.clk);
         end
@@ -11184,7 +11372,10 @@ module tb_top;
         end while(!dev_d2h_req_if.ready);
         dev_d2h_req_if.d2h_req_txn.valid <= 'h0;
         seq_item_port.item_done(d2h_req_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
   endclass
 
@@ -11196,18 +11387,26 @@ module tb_top;
 
     function new(string name = "dev_d2h_rsp_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.dev_actv_drvr_mp)::get(this, "", "dev_d2h_rsp_if", dev_d2h_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_rsp_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(d2h_rsp_seq_item_h);
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_rsp_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(d2h_rsp_seq_item_h.delay_set) begin
           repeat(d2h_rsp_seq_item_h.delay_value) @(negedge dev_d2h_rsp_if.clk);
         end
@@ -11219,7 +11418,10 @@ module tb_top;
         end while(!dev_d2h_rsp_if.ready);
         dev_d2h_rsp_if.d2h_rsp_txn.valid <= 'h0;
         seq_item_port.item_done(d2h_rsp_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11231,19 +11433,26 @@ module tb_top;
 
     function new(string name = "dev_d2h_data_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.dev_actv_drvr_mp)::get(this, "", "dev_d2h_data_if", dev_d2h_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_data_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(d2h_data_seq_item_h);
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_data_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(d2h_data_seq_item_h.delay_set) begin
           repeat(d2h_data_seq_item_h.delay_value) @(negedge dev_d2h_data_if.clk);
         end
@@ -11257,8 +11466,11 @@ module tb_top;
           @(negedge dev_d2h_data_if.clk);
         end while(!dev_d2h_data_if.ready);
         dev_d2h_data_if.d2h_data_txn.valid <= 'h0;
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
         seq_item_port.item_done(d2h_data_seq_item_h);
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11270,19 +11482,26 @@ module tb_top;
 
     function new(string name = "host_h2d_req_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.host_actv_drvr_mp)::get(this, "", "host_h2d_req_if", host_h2d_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_req_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(h2d_req_seq_item_h);
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_req_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(h2d_req_seq_item_h.delay_set) begin
           repeat(h2d_req_seq_item_h.delay_value) @(negedge host_h2d_req_if.clk);
         end
@@ -11295,7 +11514,10 @@ module tb_top;
         end while(!host_h2d_req_if.ready);
         host_h2d_req_if.h2d_req_txn.valid <= 'h0;
         seq_item_port.item_done(h2d_req_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11307,19 +11529,26 @@ module tb_top;
 
     function new(string name = "host_h2d_rsp_monitor", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.host_actv_drvr_mp)::get(this, "", "host_h2d_rsp_if", host_h2d_rsp_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_rsp_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(h2d_rsp_seq_item_h);
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_rsp_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(h2d_rsp_seq_item_h.delay_set) begin
           repeat(h2d_rsp_seq_item_h.delay_value) @(negedge host_h2d_rsp_if.clk);
         end
@@ -11333,7 +11562,10 @@ module tb_top;
         end while(!host_h2d_rsp_if.ready);
         host_h2d_rsp_if.h2d_rsp_txn.valid <= 'h0;
         seq_item_port.item_done(h2d_rsp_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11345,19 +11577,26 @@ module tb_top;
 
     function new(string name = "host_h2d_data_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.host_actv_drvr_mp)::get(this, "", "host_h2d_data_if", host_h2d_data_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_data_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(h2d_data_seq_item_h);
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_data_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(h2d_data_seq_item_h.delay_set) begin
           repeat(h2d_data_seq_item_h.delay_value) @(negedge host_h2d_data_if.clk);
         end
@@ -11372,7 +11611,10 @@ module tb_top;
         end while(!host_h2d_data_if.ready);
         host_h2d_data_if.h2d_data_txn.valid <= 'h0;
         seq_item_port.item_done(h2d_data_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11384,19 +11626,26 @@ module tb_top;
 
     function new(string name = "host_m2s_req_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.host_actv_drvr_mp)::get(this, "", "host_m2s_req_if", host_m2s_req_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_req_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction 
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin  
         seq_item_port.get_next_item(m2s_req_seq_item_h);
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_req_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(m2s_req_seq_item_h.delay_set) begin
           repeat(m2s_req_seq_item_h.delay_value) @(negedge host_m2s_req_if.clk);
         end
@@ -11413,6 +11662,8 @@ module tb_top;
         end while(!host_m2s_req_if.ready);
         host_m2s_req_if.m2s_req_txn.valid <= 'h0;
         seq_item_port.item_done(m2s_req_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
 
@@ -11425,19 +11676,26 @@ module tb_top;
 
     function new(string name = "host_m2s_rwd_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.host_actv_drvr_mp)::get(this, "", "host_m2s_rwd_if", host_m2s_rwd_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_rwd_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin  
         seq_item_port.get_next_item(m2s_rwd_seq_item_h);
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_rwd_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(m2s_rwd_seq_item_h.delay_set) begin
           repeat(m2s_rwd_seq_item_h.delay_value) @(negedge host_m2s_rwd_if.clk);
         end
@@ -11456,7 +11714,10 @@ module tb_top;
         end while(!host_m2s_rwd_if.ready);
         host_m2s_rwd_if.m2s_rwd_txn.valid <= 'h0;
         seq_item_port.item_done(m2s_rwd_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11468,19 +11729,26 @@ module tb_top;
 
     function new(string name = "dev_s2m_ndr_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.dev_actv_drvr_mp)::get(this, "", "dev_s2m_ndr_if", dev_s2m_ndr_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_ndr_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin  
         seq_item_port.get_next_item(s2m_ndr_seq_item_h);
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_ndr_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(s2m_ndr_seq_item_h.delay_set) begin
           repeat(s2m_ndr_seq_item_h.delay_value) @(negedge dev_s2m_ndr_if.clk);
         end
@@ -11494,7 +11762,10 @@ module tb_top;
         end while(!dev_s2m_ndr_if.ready);
         dev_s2m_ndr_if.s2m_ndr_txn.valid <= 'h0;
         seq_item_port.item_done(s2m_ndr_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)  
     endtask
 
   endclass
@@ -11506,19 +11777,26 @@ module tb_top;
 
     function new(string name = "dev_s2m_drs_driver", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm driver : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.dev_actv_drvr_mp)::get(this, "", "dev_s2m_drs_if", dev_s2m_drs_if))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_drs_if"));
       end
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin  
         seq_item_port.get_next_item(s2m_drs_seq_item_h);
+        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_drs_seq_item_h.sprint()), UVM_DEBUG)
+        phase.raise_objection(this);
         if(s2m_drs_seq_item_h.delay_set) begin
           repeat(s2m_drs_seq_item_h.delay_value) @(negedge dev_s2m_drs_if.clk);
         end
@@ -11534,7 +11812,10 @@ module tb_top;
         end while(!dev_s2m_drs_if.ready);
         dev_s2m_drs_if.s2m_drs_txn.valid <= 'h0;
         seq_item_port.item_done(s2m_drs_seq_item_h);
+        phase.drop_objection(this);
+        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11547,23 +11828,30 @@ module tb_top;
 
     function new(string name = "dev_d2h_req_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_d2h_req_sequencer_h = dev_d2h_req_sequencer::type_id::create("dev_d2h_req_sequencer_h", this);
         dev_d2h_req_driver_h = dev_d2h_req_driver::type_id::create("dev_d2h_req_driver_h", this);
       end
       dev_d2h_req_monitor_h = dev_d2h_req_monitor::type_id::create("dev_d2h_req_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_d2h_req_driver_h.seq_item_port.connect(dev_d2h_req_sequencer_h.seq_item_export);
         dev_d2h_req_monitor_h.d2h_req_port.connect(dev_d2h_req_sequencer_h.dev_d2h_req_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11576,23 +11864,30 @@ module tb_top;
 
     function new(string name = "dev_d2h_rsp_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_d2h_rsp_sequencer_h = dev_d2h_rsp_sequencer::type_id::create("dev_d2h_rsp_sequencer_h", this);
         dev_d2h_rsp_driver_h = dev_d2h_rsp_driver::type_id::create("dev_d2h_rsp_driver_h", this);
       end
       dev_d2h_rsp_monitor_h = dev_d2h_rsp_monitor::type_id::create("dev_d2h_rsp_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_d2h_rsp_driver_h.seq_item_port.connect(dev_d2h_rsp_sequencer_h.seq_item_export);
         dev_d2h_rsp_monitor_h.d2h_rsp_port.connect(dev_d2h_rsp_sequencer_h.dev_d2h_rsp_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11605,23 +11900,30 @@ module tb_top;
 
     function new(string name = "dev_d2h_data_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_d2h_data_sequencer_h = dev_d2h_data_sequencer::type_id::create("dev_d2h_data_sequencer_h", this);
         dev_d2h_data_driver_h = dev_d2h_data_driver::type_id::create("dev_d2h_data_driver_h", this);
       end
       dev_d2h_data_monitor_h = dev_d2h_data_monitor::type_id::create("dev_d2h_data_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_d2h_data_driver_h.seq_item_port.connect(dev_d2h_data_sequencer_h.seq_item_export);
         dev_d2h_data_monitor_h.d2h_data_port.connect(dev_d2h_data_sequencer_h.dev_d2h_data_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11634,23 +11936,30 @@ module tb_top;
 
     function new(string name = "host_h2d_req_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_h2d_req_sequencer_h = host_h2d_req_sequencer::type_id::create("host_h2d_req_sequencer_h", this);
         host_h2d_req_driver_h = host_h2d_req_driver::type_id::create("host_h2d_req_driver_h", this);
       end
       host_h2d_req_monitor_h = host_h2d_req_monitor::type_id::create("host_h2d_req_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)  
       if(is_active == UVM_ACTIVE) begin
         host_h2d_req_driver_h.seq_item_port.connect(host_h2d_req_sequencer_h.seq_item_export);
         host_h2d_req_monitor_h.h2d_req_port.connect(host_h2d_req_sequencer_h.host_h2d_req_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11663,23 +11972,30 @@ module tb_top;
 
     function new(string name = "host_h2d_rsp_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)  
       if(is_active == UVM_ACTIVE) begin
         host_h2d_rsp_sequencer_h = host_h2d_rsp_sequencer::type_id::create("host_h2d_rsp_sequencer_h", this);
         host_h2d_rsp_driver_h = host_h2d_rsp_driver::type_id::create("host_h2d_rsp_driver_h", this);
       end
       host_h2d_rsp_monitor_h = host_h2d_rsp_monitor::type_id::create("host_h2d_rsp_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_h2d_rsp_driver_h.seq_item_port.connect(host_h2d_rsp_sequencer_h.seq_item_export);
         host_h2d_rsp_monitor_h.h2d_rsp_port.connect(host_h2d_rsp_sequencer_h.host_h2d_rsp_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11692,23 +12008,30 @@ module tb_top;
 
     function new(string name = "host_h2d_data_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_h2d_data_sequencer_h = host_h2d_data_sequencer::type_id::create("host_h2d_data_sequencer_h", this);
         host_h2d_data_driver_h = host_h2d_data_driver::type_id::create("host_h2d_data_driver_h", this);
       end
       host_h2d_data_monitor_h = host_h2d_data_monitor::type_id::create("host_h2d_data_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_h2d_data_driver_h.seq_item_port.connect(host_h2d_data_sequencer_h.seq_item_export);
         host_h2d_data_monitor_h.h2d_data_port.connect(host_h2d_data_sequencer_h.host_h2d_data_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11721,23 +12044,30 @@ module tb_top;
 
     function new(string name = "host_m2s_req_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_m2s_req_sequencer_h = host_m2s_req_sequencer::type_id::create("host_m2s_req_sequencer_h", this);
         host_m2s_req_driver_h = host_m2s_req_driver::type_id::create("host_m2s_req_driver_h", this);
       end
       host_m2s_req_monitor_h = host_m2s_req_monitor::type_id::create("host_m2s_req_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_m2s_req_driver_h.seq_item_port.connect(host_m2s_req_sequencer_h.seq_item_export);
         host_m2s_req_monitor_h.m2s_req_port.connect(host_m2s_req_sequencer_h.host_m2s_req_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11750,23 +12080,30 @@ module tb_top;
 
     function new(string name = "host_m2s_rwd_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_m2s_rwd_sequencer_h = host_m2s_rwd_sequencer::type_id::create("host_m2s_rwd_sequencer_h", this);
         host_m2s_rwd_driver_h = host_m2s_rwd_driver::type_id::create("host_m2s_rwd_driver_h", this);
       end
       host_m2s_rwd_monitor_h = host_m2s_rwd_monitor::type_id::create("host_m2s_rwd_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_m2s_rwd_driver_h.seq_item_port.connect(host_m2s_rwd_sequencer_h.seq_item_export);
         host_m2s_rwd_monitor_h.m2s_rwd_port.connect(host_m2s_rwd_sequencer_h.host_m2s_rwd_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11779,23 +12116,30 @@ module tb_top;
 
     function new(string name = "dev_s2m_ndr_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_s2m_ndr_sequencer_h = dev_s2m_ndr_sequencer::type_id::create("dev_s2m_ndr_sequencer_h", this);
         dev_s2m_ndr_driver_h = dev_s2m_ndr_driver::type_id::create("dev_s2m_ndr_driver_h", this);
       end
       dev_s2m_ndr_monitor_h = dev_s2m_ndr_monitor::type_id::create("dev_s2m_ndr_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_s2m_ndr_driver_h.seq_item_port.connect(dev_s2m_ndr_sequencer_h.seq_item_export);
         dev_s2m_ndr_monitor_h.s2m_ndr_port.connect(dev_s2m_ndr_sequencer_h.dev_s2m_ndr_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11808,23 +12152,30 @@ module tb_top;
 
     function new(string name = "dev_s2m_drs_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_s2m_drs_sequencer_h = dev_s2m_drs_sequencer::type_id::create("dev_s2m_drs_sequencer_h", this);
         dev_s2m_drs_driver_h = dev_s2m_drs_driver::type_id::create("dev_s2m_drs_driver_h", this);
       end
       dev_s2m_drs_monitor_h = dev_s2m_drs_monitor::type_id::create("dev_s2m_drs_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_s2m_drs_driver_h.seq_item_port.connect(dev_s2m_drs_sequencer_h.seq_item_export);
         dev_s2m_drs_monitor_h.s2m_drs_port.connect(dev_s2m_drs_sequencer_h.dev_s2m_drs_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11837,23 +12188,30 @@ module tb_top;
 
     function new(string name = "host_d2h_req_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_d2h_req_sequencer_h = host_d2h_req_sequencer::type_id::create("host_d2h_req_sequencer_h", this);
         host_d2h_req_driver_h = host_d2h_req_driver::type_id::create("host_d2h_req_driver_h", this);
       end
       host_d2h_req_monitor_h = host_d2h_req_monitor::type_id::create("host_d2h_req_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)  
       if(is_active == UVM_ACTIVE) begin
         host_d2h_req_driver_h.seq_item_port.connect(host_d2h_req_sequencer_h.seq_item_export);
         host_d2h_req_monitor_h.d2h_req_port.connect(host_d2h_req_sequencer_h.host_d2h_req_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11866,23 +12224,30 @@ module tb_top;
 
     function new(string name = "host_d2h_rsp_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_d2h_rsp_sequencer_h = host_d2h_rsp_sequencer::type_id::create("host_d2h_rsp_sequencer_h", this);
         host_d2h_rsp_driver_h = host_d2h_rsp_driver::type_id::create("host_d2h_rsp_driver_h", this);
       end
       host_d2h_rsp_monitor_h = host_d2h_rsp_monitor::type_id::create("host_d2h_rsp_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)  
       if(is_active == UVM_ACTIVE) begin
         host_d2h_rsp_driver_h.seq_item_port.connect(host_d2h_rsp_sequencer_h.seq_item_export);
         host_d2h_rsp_monitor_h.d2h_rsp_port.connect(host_d2h_rsp_sequencer_h.host_d2h_rsp_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11895,23 +12260,30 @@ module tb_top;
 
     function new(string name = "host_d2h_data_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_d2h_data_sequencer_h = host_d2h_data_sequencer::type_id::create("host_d2h_data_sequencer_h", this);
         host_d2h_data_driver_h = host_d2h_data_driver::type_id::create("host_d2h_data_driver_h", this);
       end
       host_d2h_data_monitor_h = host_d2h_data_monitor::type_id::create("host_d2h_data_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_d2h_data_driver_h.seq_item_port.connect(host_d2h_data_sequencer_h.seq_item_export);
         host_d2h_data_monitor_h.d2h_data_port.connect(host_d2h_data_sequencer_h.host_d2h_data_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11924,23 +12296,30 @@ module tb_top;
 
     function new(string name = "dev_h2d_req_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_h2d_req_sequencer_h = dev_h2d_req_sequencer::type_id::create("dev_h2d_req_sequencer_h", this);
         dev_h2d_req_driver_h = dev_h2d_req_driver::type_id::create("dev_h2d_req_driver_h", this);
       end
       dev_h2d_req_monitor_h = dev_h2d_req_monitor::type_id::create("dev_h2d_req_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_h2d_req_driver_h.seq_item_port.connect(dev_h2d_req_sequencer_h.seq_item_export);
         dev_h2d_req_monitor_h.h2d_req_port.connect(dev_h2d_req_sequencer_h.dev_h2d_req_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11953,23 +12332,30 @@ module tb_top;
 
     function new(string name = "dev_h2d_rsp_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_h2d_rsp_sequencer_h = dev_h2d_rsp_sequencer::type_id::create("dev_h2d_rsp_sequencer_h", this);
         dev_h2d_rsp_driver_h = dev_h2d_rsp_driver::type_id::create("dev_h2d_rsp_driver_h", this);
       end
       dev_h2d_rsp_monitor_h = dev_h2d_rsp_monitor::type_id::create("dev_h2d_rsp_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_h2d_rsp_driver_h.seq_item_port.connect(dev_h2d_rsp_sequencer_h.seq_item_export);
         dev_h2d_rsp_monitor_h.h2d_rsp_port.connect(dev_h2d_rsp_sequencer_h.dev_h2d_rsp_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -11982,23 +12368,30 @@ module tb_top;
 
     function new(string name = "dev_h2d_data_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_h2d_data_sequencer_h = dev_h2d_data_sequencer::type_id::create("dev_h2d_data_sequencer_h", this);
         dev_h2d_data_driver_h = dev_h2d_data_driver::type_id::create("dev_h2d_data_driver_h", this);
       end
       dev_h2d_data_monitor_h = dev_h2d_data_monitor::type_id::create("dev_h2d_data_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_h2d_data_driver_h.seq_item_port.connect(dev_h2d_data_sequencer_h.seq_item_export);
         dev_h2d_data_monitor_h.h2d_data_port.connect(dev_h2d_data_sequencer_h.dev_h2d_data_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -12011,23 +12404,30 @@ module tb_top;
 
     function new(string name = "dev_m2s_req_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_m2s_req_sequencer_h = dev_m2s_req_sequencer::type_id::create("dev_m2s_req_sequencer_h", this);
         dev_m2s_req_driver_h = dev_m2s_req_driver::type_id::create("dev_m2s_req_driver_h", this);
       end
       dev_m2s_req_monitor_h = dev_m2s_req_monitor::type_id::create("dev_m2s_req_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_m2s_req_driver_h.seq_item_port.connect(dev_m2s_req_sequencer_h.seq_item_export);
         dev_m2s_req_monitor_h.m2s_req_port.connect(dev_m2s_req_sequencer_h.dev_m2s_req_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -12040,23 +12440,30 @@ module tb_top;
 
     function new(string name = "dev_m2s_rwd_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_m2s_rwd_sequencer_h = dev_m2s_rwd_sequencer::type_id::create("dev_m2s_rwd_sequencer_h", this);
         dev_m2s_rwd_driver_h = dev_m2s_rwd_driver::type_id::create("dev_m2s_rwd_driver_h", this);
       end
       dev_m2s_rwd_monitor_h = dev_m2s_rwd_monitor::type_id::create("dev_m2s_rwd_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_m2s_rwd_driver_h.seq_item_port.connect(dev_m2s_rwd_sequencer_h.seq_item_export);
         dev_m2s_rwd_monitor_h.m2s_rwd_port.connect(dev_m2s_rwd_sequencer_h.dev_m2s_rwd_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -12069,23 +12476,30 @@ module tb_top;
 
     function new(string name = "host_s2m_ndr_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_s2m_ndr_sequencer_h = host_s2m_ndr_sequencer::type_id::create("host_s2m_ndr_sequencer_h", this);
         host_s2m_ndr_driver_h = host_s2m_ndr_driver::type_id::create("host_s2m_ndr_driver_h", this);
       end
       host_s2m_ndr_monitor_h = host_s2m_ndr_monitor::type_id::create("host_s2m_ndr_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_s2m_ndr_driver_h.seq_item_port.connect(host_s2m_ndr_sequencer_h.seq_item_export);
         host_s2m_ndr_monitor_h.s2m_ndr_port.connect(host_s2m_ndr_sequencer_h.host_s2m_ndr_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -12098,23 +12512,30 @@ module tb_top;
 
     function new(string name = "host_s2m_drs_agent", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_s2m_drs_sequencer_h = host_s2m_drs_sequencer::type_id::create("host_s2m_drs_sequencer_h", this);
         host_s2m_drs_driver_h = host_s2m_drs_driver::type_id::create("host_s2m_drs_driver_h", this);
       end
       host_s2m_drs_monitor_h = host_s2m_drs_monitor::type_id::create("host_s2m_drs_monitor_h", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_s2m_drs_driver_h.seq_item_port.connect(host_s2m_drs_sequencer_h.seq_item_export);
         host_s2m_drs_monitor_h.s2m_drs_port.connect(host_s2m_drs_sequencer_h.host_s2m_drs_fifo.analysis_export);
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -12144,10 +12565,12 @@ module tb_top;
 
     function new(string name = "cxl_cm_vsequencer", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm virtual sequencer : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm virtual sequencer : %s", get_full_name()), UVM_HIGH)
       dev_d2h_req_seqr    = dev_d2h_req_sequencer::type_id::create("dev_d2h_req_seqr", this);
       dev_d2h_rsp_seqr    = dev_d2h_rsp_sequencer::type_id::create("dev_d2h_rsp_seqr", this);
       dev_d2h_data_seqr   = dev_d2h_data_sequencer::type_id::create("dev_d2h_data_seqr", this);
@@ -12168,6 +12591,7 @@ module tb_top;
       host_m2s_rwd_seqr   = host_m2s_rwd_sequencer::type_id::create("host_m2s_rwd_seqr", this);
       host_s2m_ndr_seqr   = host_s2m_ndr_sequencer::type_id::create("host_s2m_ndr_seqr", this);
       host_s2m_drs_seqr   = host_s2m_drs_sequencer::type_id::create("host_s2m_drs_seqr", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm virtual sequencer : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -12199,14 +12623,17 @@ module tb_top;
 
     function new(string name = "cxl_cm_env", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm environment : %s", name), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm environment : %s", get_full_name()), UVM_HIGH)
       cxl_cfg_obj_h         = cxl_cfg_obj::type_id::create("cxl_cfg_obj_h", this);
       if(cxl_cfg_obj_h.randomize() == 0) begin
-        `uvm_fatal("CXL_CFG_OBJ","cxl_cfg_obj randomization failed")
+        `uvm_fatal("CXL_CFG_OBJ", $sformatf("cxl_cfg_obj randomization failed"))
       end;
+      `uvm_info(get_type_name(), $sformatf("cxl_cfg_obj_h addr = %0p", cxl_cfg_obj_h), UVM_NONE)
       uvm_resource_db#(cxl_cfg_obj)::set("*", "cxl_cfg_obj_h", cxl_cfg_obj_h);
       host_d2h_req_agent_h  = host_d2h_req_agent::type_id::create("host_d2h_req_agent_h", this);
       host_d2h_rsp_agent_h  = host_d2h_rsp_agent::type_id::create("host_d2h_rsp_agent_h", this);
@@ -12229,70 +12656,93 @@ module tb_top;
       dev_s2m_ndr_agent_h   = dev_s2m_ndr_agent::type_id::create("dev_s2m_ndr_agent_h", this);
       dev_s2m_drs_agent_h   = dev_s2m_drs_agent::type_id::create("dev_s2m_drs_agent_h", this);
       cxl_cm_vseqr          = cxl_cm_vsequencer::type_id::create("cxl_cm_vseqr", this);
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm environment : %s", get_full_name()), UVM_HIGH)
     endfunction 
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm environment : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("dev_d2h_req_agent_h is_active = %0s", dev_d2h_req_agent_h.is_active.name()), UVM_FULL)
       if(dev_d2h_req_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.dev_d2h_req_seqr   = dev_d2h_req_agent_h.dev_d2h_req_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("dev_d2h_rsp_agent_h is_active = %0s", dev_d2h_rsp_agent_h.is_active.name()), UVM_FULL)
       if(dev_d2h_rsp_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.dev_d2h_rsp_seqr   = dev_d2h_rsp_agent_h.dev_d2h_rsp_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("dev_d2h_data_agent_h is_active = %0s", dev_d2h_data_agent_h.is_active.name()), UVM_FULL)
       if(dev_d2h_data_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.dev_d2h_data_seqr  = dev_d2h_data_agent_h.dev_d2h_data_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("host_h2d_req_agent_h is_active = %0s", host_h2d_req_agent_h.is_active.name()), UVM_FULL)
       if(host_h2d_req_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.host_h2d_req_seqr   = host_h2d_req_agent_h.host_h2d_req_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("host_h2d_rsp_agent_h is_active = %0s", host_h2d_rsp_agent_h.is_active.name()), UVM_FULL)
       if(host_h2d_rsp_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.host_h2d_rsp_seqr   = host_h2d_rsp_agent_h.host_h2d_rsp_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("host_h2d_data_agent_h is_active = %0s", host_h2d_data_agent_h.is_active.name()), UVM_FULL)
       if(host_h2d_data_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.host_h2d_data_seqr  = host_h2d_data_agent_h.host_h2d_data_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("host_m2s_req_agent_h is_active = %0s", host_m2s_req_agent_h.is_active.name()), UVM_FULL)
       if(host_m2s_req_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.host_m2s_req_seqr   = host_m2s_req_agent_h.host_m2s_req_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("host_m2s_rwd_agent_h is_active = %0s", host_m2s_rwd_agent_h.is_active.name()), UVM_FULL)
       if(host_m2s_rwd_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.host_m2s_rwd_seqr   = host_m2s_rwd_agent_h.host_m2s_rwd_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("dev_s2m_ndr_agent_h is_active = %0s", dev_s2m_ndr_agent_h.is_active.name()), UVM_FULL)
       if(dev_s2m_ndr_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.dev_s2m_ndr_seqr   = dev_s2m_ndr_agent_h.dev_s2m_ndr_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("dev_s2m_drs_agent_h is_active = %0s", dev_s2m_drs_agent_h.is_active.name()), UVM_FULL)
       if(dev_s2m_drs_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.dev_s2m_drs_seqr   = dev_s2m_drs_agent_h.dev_s2m_drs_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("host_d2h_req_agent_h is_active = %0s", host_d2h_req_agent_h.is_active.name()), UVM_FULL)
       if(host_d2h_req_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.host_d2h_req_seqr   = host_d2h_req_agent_h.host_d2h_req_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("host_d2h_rsp_agent_h is_active = %0s", host_d2h_rsp_agent_h.is_active.name()), UVM_FULL)
       if(host_d2h_rsp_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.host_d2h_rsp_seqr   = host_d2h_rsp_agent_h.host_d2h_rsp_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("host_d2h_data_agent_h is_active = %0s", host_d2h_data_agent_h.is_active.name()), UVM_FULL)
       if(host_d2h_data_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.host_d2h_data_seqr  = host_d2h_data_agent_h.host_d2h_data_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("dev_h2d_req_agent_h is_active = %0s", dev_h2d_req_agent_h.is_active.name()), UVM_FULL)
       if(dev_h2d_req_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.dev_h2d_req_seqr   = dev_h2d_req_agent_h.dev_h2d_req_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("dev_h2d_rsp_agent_h is_active = %0s", dev_h2d_rsp_agent_h.is_active.name()), UVM_FULL)
       if(dev_h2d_rsp_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.dev_h2d_rsp_seqr   = dev_h2d_rsp_agent_h.dev_h2d_rsp_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("dev_h2d_data_agent_h is_active = %0s", dev_h2d_data_agent_h.is_active.name()), UVM_FULL)
       if(dev_h2d_data_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.dev_h2d_data_seqr  = dev_h2d_data_agent_h.dev_h2d_data_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("dev_m2s_req_agent_h is_active = %0s", dev_m2s_req_agent_h.is_active.name()), UVM_FULL)
       if(dev_m2s_req_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.dev_m2s_req_seqr   = dev_m2s_req_agent_h.dev_m2s_req_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("dev_m2s_rwd_agent_h is_active = %0s", dev_m2s_rwd_agent_h.is_active.name()), UVM_FULL)
       if(dev_m2s_rwd_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.dev_m2s_rwd_seqr   = dev_m2s_rwd_agent_h.dev_m2s_rwd_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("host_s2m_ndr_agent_h is_active = %0s", host_s2m_ndr_agent_h.is_active.name()), UVM_FULL)
       if(host_s2m_ndr_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.host_s2m_ndr_seqr   = host_s2m_ndr_agent_h.host_s2m_ndr_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("host_s2m_drs_agent_h is_active = %0s", host_s2m_drs_agent_h.is_active.name()), UVM_FULL)
       if(host_s2m_drs_agent_h.is_active == UVM_ACTIVE) begin
         cxl_cm_vseqr.host_s2m_drs_seqr   = host_s2m_drs_agent_h.host_s2m_drs_sequencer_h;
       end
+      `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm environment : %s", get_full_name()), UVM_HIGH)
     endfunction
 
   endclass
@@ -13199,24 +13649,35 @@ module tb_top;
 
     function new(string name = "cxl_vseq");
       super.new(name);
+      `uvm_info(get_type_name(), $sformatf("constructing %s", get_full_name()), UVM_DEBUG)
     endfunction
 
     task body();
       fork 
         begin
+          `uvm_info(get_type_name(), $sformatf("starting dev_d2h_req_seq"), UVM_HIGH)
           `uvm_do_on(dev_d2h_req_seq_h, p_sequencer);
+          `uvm_info(get_type_name(), $sformatf("completed dev_d2h_req_seq"), UVM_HIGH)  
         end
         begin
+          `uvm_info(get_type_name(), $sformatf("starting host_h2d_req_seq"), UVM_HIGH)
           `uvm_do_on(host_h2d_req_seq_h, p_sequencer);
+          `uvm_info(get_type_name(), $sformatf("completed host_h2d_req_seq"), UVM_HIGH)
         end
         begin
+          `uvm_info(get_type_name(), $sformatf("starting host_m2s_req_seq"), UVM_HIGH)
           `uvm_do_on(host_m2s_req_seq_h, p_sequencer);
+          `uvm_info(get_type_name(), $sformatf("completed host_m2s_req_seq"), UVM_HIGH)
         end
         begin
+          `uvm_info(get_type_name(), $sformatf("starting host_m2s_rwd_seq"), UVM_HIGH)
           `uvm_do_on(host_m2s_rwd_seq_h, p_sequencer);
+          `uvm_info(get_type_name(), $sformatf("completed host_m2s_rwd_seq"), UVM_HIGH)
         end
         begin
+          `uvm_info(get_type_name(), $sformatf("starting cxl_cm_responder_seq"), UVM_HIGH)
           `uvm_do_on(cxl_cm_responder_seq_h, p_sequencer);
+          `uvm_info(get_type_name(), $sformatf("completed cxl_cm_responder_seq"), UVM_HIGH)
         end
       join;
     endtask
@@ -13230,17 +13691,24 @@ module tb_top;
 
     function new(string name = "cxl_base_test", uvm_component parent = null);
       super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructing %s", get_full_name()), UVM_DEBUG)
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("entering %s build_phase", get_full_name()), UVM_HIGH)
       cxl_cm_env_h = cxl_cm_env::type_id::create("cxl_cm_env_h", this);
+      `uvm_info(get_type_name(), $sformatf("exiting %s build_phase", get_full_name()), UVM_HIGH)
     endfunction     
 
     virtual task run_phase(uvm_phase phase);
       super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("entering %s run_phase", get_full_name()), UVM_HIGH)
+      phase.raise_objection(this);
       cxl_vseq_h = cxl_vseq::type_id::create("cxl_vseq_h", this);
       cxl_vseq_h.start(cxl_cm_env_h.cxl_cm_vseqr);
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("exiting %s run_phase", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
