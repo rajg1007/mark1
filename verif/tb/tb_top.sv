@@ -923,27 +923,29 @@ end
 endmodule
 
 module host_tx_path#(
+  parameter BUFFER_DEPTH = 32,
+  parameter BUFFER_ADDR_WIDTH = 5
 
 )(
   input logic init_done,
   input logic ack,
   input logic ack_ret_val,
   input logic [7:0] ack_ret,
-  input int d2h_req_occ,
-  input int d2h_rsp_occ,
-  input int d2h_data_occ,
-  input int s2m_ndr_occ,
-  input int s2m_drs_occ,
-  input int h2d_req_occ,
-  input int h2d_rsp_occ,
-  input int h2d_data_occ,
-  input int m2s_req_occ,
-  input int m2s_rwd_occ,
-  input int d2h_req_wptr,
-  input int d2h_rsp_wptr,
-  input int d2h_data_wptr,
-  input int s2m_ndr_wptr,
-  input int s2m_drs_wptr,
+  input logic [BUFFER_ADDR_WIDTH-1:0] d2h_req_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] d2h_rsp_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] d2h_data_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] s2m_ndr_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] s2m_drs_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] h2d_req_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] h2d_rsp_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] h2d_data_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] m2s_req_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] m2s_rwd_occ,
+  input logic [BUFFER_ADDR_WIDTH:0] d2h_req_wptr,
+  input logic [BUFFER_ADDR_WIDTH:0] d2h_rsp_wptr,
+  input logic [BUFFER_ADDR_WIDTH:0] d2h_data_wptr,
+  input logic [BUFFER_ADDR_WIDTH:0] s2m_ndr_wptr,
+  input logic [BUFFER_ADDR_WIDTH:0] s2m_drs_wptr,
   output logic h2d_req_rval,
   output logic h2d_req_drval,
   output logic h2d_req_qrval,
@@ -992,8 +994,8 @@ module host_tx_path#(
   logic [5:0] h_gnt_d;
   logic [5:0] g_val;
   logic [5:0] g_req;
-  logic [6:0] g_gnt;
-  logic [6:0] g_gnt_d;
+  logic [5:0] g_gnt;
+  logic [5:0] g_gnt_d;
   typedef enum {
     XSLOT = 'h0,
     H_SLOT0 = 'h1,
@@ -1533,27 +1535,11 @@ module host_tx_path#(
   always@(posedge host_tx_dl_if.clk) begin
     if(!host_tx_dl_if.rstn) begin
       lru <= 'h0;
-      d2h_req_occ   <= 'd0;
-      d2h_rsp_occ   <= 'd0;
-      d2h_data_occ  <= 'd0;
-      s2m_ndr_occ   <= 'd0;
-      s2m_drs_occ   <= 'd0;
       d2h_req_occ_d   <= 'd0;
       d2h_rsp_occ_d   <= 'd0;
       d2h_data_occ_d  <= 'd0;
       s2m_ndr_occ_d   <= 'd0;
       s2m_drs_occ_d   <= 'd0;
-      d2h_req_crdt_send <= 'h0;
-      d2h_req_consumed_credits  <= 'h0;
-      d2h_rsp_consumed_credits  <= 'h0;
-      d2h_data_consumed_credits <= 'h0;
-      s2m_ndr_consumed_credits  <= 'h0;
-      s2m_drs_consumed_credits  <= 'h0;
-      d2h_req_outstanding_credits <= 'd0;
-      d2h_rsp_outstanding_credits <= 'd0;
-      d2h_data_outstanding_credits<= 'd0;
-      s2m_ndr_outstanding_credits <= 'd0;
-      s2m_drs_outstanding_credits <= 'd0;
       d2h_req_crdt_tbs[0].pending <= 'h1;
       d2h_req_crdt_tbs[1].pending <= 'h1;
       d2h_req_crdt_tbs[2].pending <= 'h1;
@@ -1831,11 +1817,6 @@ module host_tx_path#(
       slot_sel <= H_SLOT0;
       slot_sel_d <= H_SLOT0;
       holding_wrptr <= 'h0;
-      data_slot[0] <= 'h0;
-      data_slot[1] <= 'h0;
-      data_slot[2] <= 'h0;
-      data_slot[3] <= 'h0;
-      data_slot[4] <= 'h0;
       data_slot_d[0] <= 'h0;
       data_slot_d[1] <= 'h0;
       data_slot_d[2] <= 'h0;
@@ -2342,7 +2323,7 @@ module host_tx_path#(
           G_SLOT1: begin
             case(g_gnt)
               'h2: begin
-                holding_q[holding_wrptr].data[10:8]     <= 'h1;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[10:8]                                   <= 'h1;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= h2d_rsp_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]      <= h2d_rsp_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+16):(SLOT1_OFFSET+5)]     <= h2d_rsp_dataout.rspdata;
@@ -2370,7 +2351,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].valid                                        <= 'h0;
               end
               'h4: begin
-                holding_q[holding_wrptr].data[10:8]     <= 'h2;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[10:8]                                   <= 'h2;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= h2d_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= h2d_req_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)]     <= h2d_req_dataout.address[51:6];
@@ -2397,7 +2378,7 @@ module host_tx_path#(
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
               'h8: begin
-                holding_q[holding_wrptr].data[10:8]     <= 'h3;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[10:8]                                   <= 'h3;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= h2d_data_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)]     <= h2d_data_dataout.cqid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+13)]                      <= h2d_data_dataout.chunkvalid;
@@ -2539,7 +2520,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= h2d_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      <= h2d_req_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)]     <= h2d_req_dataout.address[51:6];
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+61)+(SLOT2_OFFSET+50)]    <= h2d_req_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+50)]    <= h2d_req_dataout.uqid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)]    <= 'h0; 
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+64)]                      <= h2d_data_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+65)]    <= h2d_data_dataout.cqid;
@@ -2706,7 +2687,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= h2d_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      <= h2d_req_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)]     <= h2d_req_dataout.address[51:6];
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+61)+(SLOT3_OFFSET+50)]    <= h2d_req_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+50)]    <= h2d_req_dataout.uqid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)]    <= 'h0; 
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+64)]                      <= h2d_data_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+65)]    <= h2d_data_dataout.cqid;
@@ -2842,7 +2823,6 @@ module host_tx_path#(
     if(!host_tx_dl_if.rstn) begin
       host_tx_dl_if_pre_valid <= 'h0;
       host_tx_dl_if_pre_data <= 'h0;
-      host_tx_dl_if_pre_crc <= 'h0;
       host_tx_dl_if.valid <= 'h0;
       host_tx_dl_if_d.valid <= 'h0;
       host_tx_dl_if.data <= 'h0;
@@ -2916,7 +2896,7 @@ module host_tx_path#(
   );
 */
   rra #(
-    
+   .NO_OF_REQ(6)
   ) h_slot_rra_inst (
     .clk(clk),
     .rstn(rstn),
@@ -2925,7 +2905,7 @@ module host_tx_path#(
   );
 
   rra #( 
-
+   .NO_OF_REQ(6)
   ) g_slot_rra_inst (
     .clk(clk),
     .rstn(rstn),
@@ -2936,27 +2916,28 @@ module host_tx_path#(
 endmodule
 
 module device_tx_path#(
-
+  parameter BUFFER_DEPTH = 32,
+  parameter BUFFER_ADDR_WIDTH = 5
 )(
   input logic init_done,
   input logic ack,
   input logic ack_ret_val,
   input logic [7:0] ack_ret,
-  input int d2h_req_occ,
-  input int d2h_rsp_occ,
-  input int d2h_data_occ,
-  input int s2m_ndr_occ,
-  input int s2m_drs_occ,
-  input int h2d_req_occ,
-  input int h2d_rsp_occ,
-  input int h2d_data_occ,
-  input int m2s_req_occ,
-  input int m2s_rwd_occ,
-  input int h2d_req_wptr,
-  input int h2d_rsp_wptr,
-  input int h2d_data_wptr,
-  input int m2s_req_wptr,
-  input int m2s_rwd_wptr,
+  input logic [BUFFER_ADDR_WIDTH-1:0] d2h_req_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] d2h_rsp_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] d2h_data_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] s2m_ndr_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] s2m_drs_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] h2d_req_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] h2d_rsp_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] h2d_data_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] m2s_req_occ,
+  input logic [BUFFER_ADDR_WIDTH-1:0] m2s_rwd_occ,
+  input logic [BUFFER_ADDR_WIDTH:0] h2d_req_wptr,
+  input logic [BUFFER_ADDR_WIDTH:0] h2d_rsp_wptr,
+  input logic [BUFFER_ADDR_WIDTH:0] h2d_data_wptr,
+  input logic [BUFFER_ADDR_WIDTH:0] m2s_req_wptr,
+  input logic [BUFFER_ADDR_WIDTH:0] m2s_rwd_wptr,
   output logic d2h_req_rval,
   output logic d2h_req_drval,
   output logic d2h_req_trval,
@@ -3555,27 +3536,11 @@ module device_tx_path#(
   always@(posedge dev_tx_dl_if.clk) begin
     if(!dev_tx_dl_if.rstn) begin
       lru <= 'h0;
-      h2d_req_occ   <= 'd0;
-      h2d_rsp_occ   <= 'd0;
-      h2d_data_occ  <= 'd0;
-      m2s_req_occ   <= 'd0;
-      m2s_rwd_occ   <= 'd0;
       h2d_req_occ_d   <= 'd0;
       h2d_rsp_occ_d   <= 'd0;
       h2d_data_occ_d  <= 'd0;
       m2s_req_occ_d   <= 'd0;
       m2s_rwd_occ_d   <= 'd0;
-      h2d_req_crdt_send <= 'h0;
-      h2d_req_consumed_credits  <= 'h0;
-      h2d_rsp_consumed_credits  <= 'h0;
-      h2d_data_consumed_credits <= 'h0;
-      m2s_req_consumed_credits  <= 'h0;
-      m2s_rwd_consumed_credits  <= 'h0;
-      h2d_req_outstanding_credits <= 'd0;
-      h2d_rsp_outstanding_credits <= 'd0;
-      h2d_data_outstanding_credits<= 'd0;
-      m2s_req_outstanding_credits <= 'd0;
-      m2s_rwd_outstanding_credits <= 'd0;
       h2d_req_crdt_tbs[0].pending <= 'h1;
       h2d_req_crdt_tbs[1].pending <= 'h1;
       h2d_req_crdt_tbs[2].pending <= 'h1;
@@ -5051,7 +5016,6 @@ module device_tx_path#(
     if(!dev_tx_dl_if.rstn) begin
       dev_tx_dl_if_pre_valid <= 'h0;
       dev_tx_dl_if_pre_data <= 'h0;
-      dev_tx_dl_if_pre_crc <= 'h0;
       dev_tx_dl_if.valid <= 'h0;
       dev_tx_dl_if_d.valid <= 'h0;
       dev_tx_dl_if.data <= 'h0;
@@ -5125,7 +5089,7 @@ module device_tx_path#(
   );
 */
   rra #(
-
+    .NO_OF_REQ(6)
   ) h_slot_rra_inst(
     .clk(clk),
     .rstn(rstn),
@@ -5134,7 +5098,7 @@ module device_tx_path#(
   );
 
   rra #(
-
+    .NO_OF_REQ(7)
   ) g_slot_rra_inst(
     .clk(clk),
     .rstn(rstn),
@@ -6265,7 +6229,6 @@ module host_rx_path #(
       data_slot_d[3] <= 'h0;
       data_slot_d[4] <= 'h0;
       ack <= 'h0;
-      ack_count <= 'h0;
       ack_count_d <= 'h0;
       ack_ret_val <= 'h0;
     end else begin
@@ -7115,12 +7078,12 @@ module device_rx_path #(
         h2d_req_txn[1].valid                = data[(SLOT2_OFFSET+0)];
         h2d_req_txn[1].opcode               = h2d_req_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
         h2d_req_txn[1].address              = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
-        h2d_req_txn[1].uqid                 = data[(SLOT2_OFFSET+61)+(SLOT2_OFFSET+50)];
+        h2d_req_txn[1].uqid                 = data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+50)];
       end else begin
         h2d_req_txn[0].valid                = data[(SLOT2_OFFSET+0)];
         h2d_req_txn[0].opcode               = h2d_req_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
         h2d_req_txn[0].address              = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
-        h2d_req_txn[0].uqid                 = data[(SLOT2_OFFSET+61)+(SLOT2_OFFSET+50)];
+        h2d_req_txn[0].uqid                 = data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+50)];
       end
       h2d_data_pkt[0].pending_data_slot        = 'hf;
       h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT2_OFFSET+64)];
@@ -7146,12 +7109,12 @@ module device_rx_path #(
         h2d_req_txn[1].valid                = data[(SLOT3_OFFSET+0)];
         h2d_req_txn[1].opcode               = h2d_req_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
         h2d_req_txn[1].address              = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
-        h2d_req_txn[1].uqid                 = data[(SLOT3_OFFSET+61)+(SLOT3_OFFSET+50)];
+        h2d_req_txn[1].uqid                 = data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+50)];
       end else begin
         h2d_req_txn[0].valid                = data[(SLOT3_OFFSET+0)];
         h2d_req_txn[0].opcode               = h2d_req_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
         h2d_req_txn[0].address              = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
-        h2d_req_txn[0].uqid                 = data[(SLOT3_OFFSET+61)+(SLOT3_OFFSET+50)];
+        h2d_req_txn[0].uqid                 = data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+50)];
       end
       h2d_data_pkt[0].pending_data_slot        = 'hf;
       h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT3_OFFSET+64)];
@@ -7502,18 +7465,12 @@ module device_rx_path #(
       //TODO: not sure if this foreach will initialize for all indeces
       //foreach(data_slot[i]) data_slot[i] <= 'h0;
       //foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
-      data_slot[0] <= 'h0;
-      data_slot[1] <= 'h0;
-      data_slot[2] <= 'h0;
-      data_slot[3] <= 'h0;
-      data_slot[4] <= 'h0;
       data_slot_d[0] <= 'h0;
       data_slot_d[1] <= 'h0;
       data_slot_d[2] <= 'h0;
       data_slot_d[3] <= 'h0;
       data_slot_d[4] <= 'h0;
       ack <= 'h0;
-      ack_count <= 'h0;
       ack_count_d <= 'h0;
       ack_ret_val <= 'h0;
     end else begin
@@ -8006,13 +7963,13 @@ module buffer#(
             end
           endcase
         end
-       	occupancy <= ('d256 - (wrptr - rdptr));
+       	occupancy <= (DEPTH - (wrptr - rdptr));
         if(rdptr == wrptr) begin
          	empty <= 'h1;
         end else begin 
          	empty <= 'h0;
         end
-        if((rdptr[8] != wrptr[8]) && (rdptr[7:0] == wrptr[7:0])) begin
+        if((rdptr[ADDR_WIDTH] != wrptr[ADDR_WIDTH]) && (rdptr[(ADDR_WIDTH-1):0] == wrptr[(ADDR_WIDTH-1):0])) begin
          	full <= 'h1;
         end else begin
          	full <= 'h0;
@@ -8051,6 +8008,8 @@ module cxl_host
     cxl_host_rx_dl_if.rx_mp host_rx_dl_if
   );
 
+  localparam BUFFER_DEPTH = 32;
+  localparam BUFFER_ADDR_WIDTH = $clog2(BUFFER_DEPTH);
   logic crdt_val;
   logic crdt_rsp_cm;
   logic crdt_req_cm;
@@ -8058,21 +8017,21 @@ module cxl_host
   logic [2:0] crdt_rsp;
   logic [2:0] crdt_req;
   logic [2:0] crdt_data;
-  int d2h_req_occ;
-  int d2h_rsp_occ;
-  int d2h_data_occ;
-  int s2m_ndr_occ;
-  int s2m_drs_occ;
-  int d2h_req_wptr;
-  int d2h_rsp_wptr;
-  int d2h_data_wptr;
-  int s2m_ndr_wptr;
-  int s2m_drs_wptr;
-  int h2d_req_occ;
-  int h2d_rsp_occ;
-  int h2d_data_occ;
-  int m2s_req_occ;
-  int m2s_rwd_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] d2h_req_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] d2h_rsp_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] d2h_data_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] s2m_ndr_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] s2m_drs_occ;
+  logic [BUFFER_ADDR_WIDTH:0]   d2h_req_wptr;
+  logic [BUFFER_ADDR_WIDTH:0]   d2h_rsp_wptr;
+  logic [BUFFER_ADDR_WIDTH:0]   d2h_data_wptr;
+  logic [BUFFER_ADDR_WIDTH:0]   s2m_ndr_wptr;
+  logic [BUFFER_ADDR_WIDTH:0]   s2m_drs_wptr;
+  logic [BUFFER_ADDR_WIDTH-1:0] h2d_req_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] h2d_rsp_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] h2d_data_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] m2s_req_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] m2s_rwd_occ;
   logic h2d_req_rval;
   logic h2d_req_drval;
   logic h2d_req_qrval;
@@ -8226,8 +8185,8 @@ module cxl_host
   assign host_s2m_drs_if.s2m_drs_txn = s2m_drs_dataout;
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(d2h_req_txn_t)
   ) d2h_req_fifo_inst (
 	  .clk(host_d2h_req_if.clk),
@@ -8253,8 +8212,8 @@ module cxl_host
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(d2h_rsp_txn_t)
   ) d2h_rsp_fifo_inst (
 	  .clk(host_d2h_rsp_if.clk),
@@ -8276,8 +8235,8 @@ module cxl_host
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(d2h_data_txn_t)
   ) d2h_data_fifo_inst (
 	  .clk(host_d2h_data_if.clk),
@@ -8301,8 +8260,8 @@ module cxl_host
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(s2m_ndr_txn_t)
   ) s2m_ndr_fifo_inst (
 	  .clk(host_s2m_ndr_if.clk),
@@ -8326,8 +8285,8 @@ module cxl_host
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(s2m_drs_txn_t)
   ) s2m_drs_fifo_inst (
 	  .clk(host_s2m_drs_if.clk),
@@ -8351,8 +8310,8 @@ module cxl_host
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(m2s_req_txn_t)
   ) m2s_req_fifo_inst (
 	  .clk(host_m2s_req_if.clk),
@@ -8377,8 +8336,8 @@ module cxl_host
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(m2s_rwd_txn_t)
   ) m2s_rwd_fifo_inst (
 	  .clk(host_m2s_rwd_if.clk),
@@ -8403,8 +8362,8 @@ module cxl_host
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(h2d_req_txn_t)
   ) h2d_req_fifo_inst (
 	  .clk(host_h2d_req_if.clk),
@@ -8429,8 +8388,8 @@ module cxl_host
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(h2d_rsp_txn_t)
   ) h2d_rsp_fifo_inst (
 	  .clk(host_h2d_rsp_if.clk),
@@ -8455,8 +8414,8 @@ module cxl_host
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(h2d_data_txn_t)
   ) h2d_data_fifo_inst (
 	  .clk(host_h2d_data_if.clk),
@@ -8481,7 +8440,8 @@ module cxl_host
   );
 
   host_tx_path #(
-
+    .BUFFER_DEPTH(BUFFER_DEPTH),
+    .BUFFER_ADDR_WIDTH(BUFFER_ADDR_WIDTH)
   ) host_tx_path_inst (
     .*
   );
@@ -8518,6 +8478,8 @@ module cxl_device
     cxl_dev_rx_dl_if.rx_mp          dev_rx_dl_if
 );
 
+  localparam BUFFER_DEPTH = 32;
+  localparam BUFFER_ADDR_WIDTH = $clog2(BUFFER_DEPTH);
   logic crdt_val;
   logic crdt_rsp_cm;
   logic crdt_req_cm;
@@ -8525,21 +8487,21 @@ module cxl_device
   logic [2:0] crdt_rsp;
   logic [2:0] crdt_req;
   logic [2:0] crdt_data;
-  int h2d_req_occ;
-  int h2d_rsp_occ;
-  int h2d_data_occ;
-  int m2s_req_occ;
-  int m2s_rwd_occ;
-  int h2d_req_wptr;
-  int h2d_rsp_wptr;
-  int h2d_data_wptr;
-  int m2s_req_wptr;
-  int m2s_rwd_wptr;
-  int d2h_req_occ;
-  int d2h_rsp_occ;
-  int d2h_data_occ;
-  int s2m_ndr_occ;
-  int s2m_drs_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] h2d_req_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] h2d_rsp_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] h2d_data_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] m2s_req_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] m2s_rwd_occ;
+  logic [BUFFER_ADDR_WIDTH:0]   h2d_req_wptr;
+  logic [BUFFER_ADDR_WIDTH:0]   h2d_rsp_wptr;
+  logic [BUFFER_ADDR_WIDTH:0]   h2d_data_wptr;
+  logic [BUFFER_ADDR_WIDTH:0]   m2s_req_wptr;
+  logic [BUFFER_ADDR_WIDTH:0]   m2s_rwd_wptr;
+  logic [BUFFER_ADDR_WIDTH-1:0] d2h_req_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] d2h_rsp_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] d2h_data_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] s2m_ndr_occ;
+  logic [BUFFER_ADDR_WIDTH-1:0] s2m_drs_occ;
   logic d2h_req_rval;
   logic d2h_req_drval;
   logic d2h_req_trval;
@@ -8698,8 +8660,8 @@ module cxl_device
   assign dev_h2d_data_if.h2d_data_txn = h2d_data_dataout;
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(d2h_req_txn_t)
   ) d2h_req_fifo_inst (
 	  .clk(dev_d2h_req_if.clk),
@@ -8725,8 +8687,8 @@ module cxl_device
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(d2h_rsp_txn_t)
   ) d2h_rsp_fifo_inst (
 	  .clk(dev_d2h_rsp_if.clk),
@@ -8752,8 +8714,8 @@ module cxl_device
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(d2h_data_txn_t)
   ) d2h_data_fifo_inst (
 	  .clk(dev_d2h_data_if.clk),
@@ -8779,8 +8741,8 @@ module cxl_device
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(s2m_ndr_txn_t)
   ) s2m_ndr_fifo_inst (
 	  .clk(dev_s2m_ndr_if.clk),
@@ -8806,8 +8768,8 @@ module cxl_device
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(s2m_drs_txn_t)
   ) s2m_drs_fifo_inst (
 	  .clk(dev_s2m_drs_if.clk),
@@ -8833,8 +8795,8 @@ module cxl_device
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(m2s_req_txn_t)
   ) m2s_req_fifo_inst (
 	  .clk(dev_m2s_req_if.clk),
@@ -8856,8 +8818,8 @@ module cxl_device
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(m2s_rwd_txn_t)
   ) m2s_rwd_fifo_inst (
 	  .clk(dev_m2s_rwd_if.clk),
@@ -8877,8 +8839,8 @@ module cxl_device
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(h2d_req_txn_t)
   ) h2d_req_fifo_inst (
 	  .clk(dev_h2d_req_if.clk),
@@ -8900,8 +8862,8 @@ module cxl_device
   );
 
   buffer#(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(h2d_rsp_txn_t)
   ) h2d_rsp_fifo_inst (
 	  .clk(dev_h2d_rsp_if.clk),
@@ -8927,8 +8889,8 @@ module cxl_device
   );
 
   buffer #(
-    .DEPTH(32),
-    .ADDR_WIDTH(5),
+    .DEPTH(BUFFER_DEPTH),
+    .ADDR_WIDTH(BUFFER_ADDR_WIDTH),
     .FIFO_DATA_TYPE(h2d_data_txn_t)
   ) h2d_data_fifo_inst (
 	  .clk(dev_h2d_data_if.clk),
