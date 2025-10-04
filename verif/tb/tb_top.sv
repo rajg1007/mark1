@@ -11312,7 +11312,7 @@ module tb_top;
         seq_item_port.get_next_item(m2s_rwd_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_rwd_seq_item_h.sprint()), UVM_DEBUG)
-        phase
+        phase.raise_objection(this);
         if(m2s_rwd_seq_item_h.delay_set) begin
           repeat(m2s_rwd_seq_item_h.delay_value) @(negedge dev_m2s_rwd_if.clk);
         end
@@ -11834,19 +11834,19 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_d2h_req_sequencer_h = dev_d2h_req_sequencer::type_id::create("dev_d2h_req_sequencer_h", this);
         dev_d2h_req_driver_h = dev_d2h_req_driver::type_id::create("dev_d2h_req_driver_h", this);
       end
       dev_d2h_req_monitor_h = dev_d2h_req_monitor::type_id::create("dev_d2h_req_monitor_h", this);
-      `uvm_info(get_type_name(), $sformatf("constructed uvm agent : %s", name), UVM_DEBUG)
+      `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
     endfunction
 
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_d2h_req_driver_h.seq_item_port.connect(dev_d2h_req_sequencer_h.seq_item_export);
         dev_d2h_req_monitor_h.d2h_req_port.connect(dev_d2h_req_sequencer_h.dev_d2h_req_fifo.analysis_export);
@@ -11870,7 +11870,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_d2h_rsp_sequencer_h = dev_d2h_rsp_sequencer::type_id::create("dev_d2h_rsp_sequencer_h", this);
         dev_d2h_rsp_driver_h = dev_d2h_rsp_driver::type_id::create("dev_d2h_rsp_driver_h", this);
@@ -11882,7 +11882,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_d2h_rsp_driver_h.seq_item_port.connect(dev_d2h_rsp_sequencer_h.seq_item_export);
         dev_d2h_rsp_monitor_h.d2h_rsp_port.connect(dev_d2h_rsp_sequencer_h.dev_d2h_rsp_fifo.analysis_export);
@@ -11906,7 +11906,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_d2h_data_sequencer_h = dev_d2h_data_sequencer::type_id::create("dev_d2h_data_sequencer_h", this);
         dev_d2h_data_driver_h = dev_d2h_data_driver::type_id::create("dev_d2h_data_driver_h", this);
@@ -11918,7 +11918,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_d2h_data_driver_h.seq_item_port.connect(dev_d2h_data_sequencer_h.seq_item_export);
         dev_d2h_data_monitor_h.d2h_data_port.connect(dev_d2h_data_sequencer_h.dev_d2h_data_fifo.analysis_export);
@@ -11942,7 +11942,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_h2d_req_sequencer_h = host_h2d_req_sequencer::type_id::create("host_h2d_req_sequencer_h", this);
         host_h2d_req_driver_h = host_h2d_req_driver::type_id::create("host_h2d_req_driver_h", this);
@@ -11954,7 +11954,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)  
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)  
       if(is_active == UVM_ACTIVE) begin
         host_h2d_req_driver_h.seq_item_port.connect(host_h2d_req_sequencer_h.seq_item_export);
         host_h2d_req_monitor_h.h2d_req_port.connect(host_h2d_req_sequencer_h.host_h2d_req_fifo.analysis_export);
@@ -11978,7 +11978,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)  
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)  
       if(is_active == UVM_ACTIVE) begin
         host_h2d_rsp_sequencer_h = host_h2d_rsp_sequencer::type_id::create("host_h2d_rsp_sequencer_h", this);
         host_h2d_rsp_driver_h = host_h2d_rsp_driver::type_id::create("host_h2d_rsp_driver_h", this);
@@ -11990,7 +11990,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_h2d_rsp_driver_h.seq_item_port.connect(host_h2d_rsp_sequencer_h.seq_item_export);
         host_h2d_rsp_monitor_h.h2d_rsp_port.connect(host_h2d_rsp_sequencer_h.host_h2d_rsp_fifo.analysis_export);
@@ -12014,7 +12014,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_h2d_data_sequencer_h = host_h2d_data_sequencer::type_id::create("host_h2d_data_sequencer_h", this);
         host_h2d_data_driver_h = host_h2d_data_driver::type_id::create("host_h2d_data_driver_h", this);
@@ -12026,7 +12026,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_h2d_data_driver_h.seq_item_port.connect(host_h2d_data_sequencer_h.seq_item_export);
         host_h2d_data_monitor_h.h2d_data_port.connect(host_h2d_data_sequencer_h.host_h2d_data_fifo.analysis_export);
@@ -12050,7 +12050,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_m2s_req_sequencer_h = host_m2s_req_sequencer::type_id::create("host_m2s_req_sequencer_h", this);
         host_m2s_req_driver_h = host_m2s_req_driver::type_id::create("host_m2s_req_driver_h", this);
@@ -12062,7 +12062,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_m2s_req_driver_h.seq_item_port.connect(host_m2s_req_sequencer_h.seq_item_export);
         host_m2s_req_monitor_h.m2s_req_port.connect(host_m2s_req_sequencer_h.host_m2s_req_fifo.analysis_export);
@@ -12086,7 +12086,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_m2s_rwd_sequencer_h = host_m2s_rwd_sequencer::type_id::create("host_m2s_rwd_sequencer_h", this);
         host_m2s_rwd_driver_h = host_m2s_rwd_driver::type_id::create("host_m2s_rwd_driver_h", this);
@@ -12098,7 +12098,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_m2s_rwd_driver_h.seq_item_port.connect(host_m2s_rwd_sequencer_h.seq_item_export);
         host_m2s_rwd_monitor_h.m2s_rwd_port.connect(host_m2s_rwd_sequencer_h.host_m2s_rwd_fifo.analysis_export);
@@ -12122,7 +12122,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_s2m_ndr_sequencer_h = dev_s2m_ndr_sequencer::type_id::create("dev_s2m_ndr_sequencer_h", this);
         dev_s2m_ndr_driver_h = dev_s2m_ndr_driver::type_id::create("dev_s2m_ndr_driver_h", this);
@@ -12134,7 +12134,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_s2m_ndr_driver_h.seq_item_port.connect(dev_s2m_ndr_sequencer_h.seq_item_export);
         dev_s2m_ndr_monitor_h.s2m_ndr_port.connect(dev_s2m_ndr_sequencer_h.dev_s2m_ndr_fifo.analysis_export);
@@ -12158,7 +12158,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_s2m_drs_sequencer_h = dev_s2m_drs_sequencer::type_id::create("dev_s2m_drs_sequencer_h", this);
         dev_s2m_drs_driver_h = dev_s2m_drs_driver::type_id::create("dev_s2m_drs_driver_h", this);
@@ -12170,7 +12170,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_s2m_drs_driver_h.seq_item_port.connect(dev_s2m_drs_sequencer_h.seq_item_export);
         dev_s2m_drs_monitor_h.s2m_drs_port.connect(dev_s2m_drs_sequencer_h.dev_s2m_drs_fifo.analysis_export);
@@ -12194,7 +12194,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_d2h_req_sequencer_h = host_d2h_req_sequencer::type_id::create("host_d2h_req_sequencer_h", this);
         host_d2h_req_driver_h = host_d2h_req_driver::type_id::create("host_d2h_req_driver_h", this);
@@ -12206,7 +12206,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)  
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)  
       if(is_active == UVM_ACTIVE) begin
         host_d2h_req_driver_h.seq_item_port.connect(host_d2h_req_sequencer_h.seq_item_export);
         host_d2h_req_monitor_h.d2h_req_port.connect(host_d2h_req_sequencer_h.host_d2h_req_fifo.analysis_export);
@@ -12230,7 +12230,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_d2h_rsp_sequencer_h = host_d2h_rsp_sequencer::type_id::create("host_d2h_rsp_sequencer_h", this);
         host_d2h_rsp_driver_h = host_d2h_rsp_driver::type_id::create("host_d2h_rsp_driver_h", this);
@@ -12242,7 +12242,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)  
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)  
       if(is_active == UVM_ACTIVE) begin
         host_d2h_rsp_driver_h.seq_item_port.connect(host_d2h_rsp_sequencer_h.seq_item_export);
         host_d2h_rsp_monitor_h.d2h_rsp_port.connect(host_d2h_rsp_sequencer_h.host_d2h_rsp_fifo.analysis_export);
@@ -12266,7 +12266,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_d2h_data_sequencer_h = host_d2h_data_sequencer::type_id::create("host_d2h_data_sequencer_h", this);
         host_d2h_data_driver_h = host_d2h_data_driver::type_id::create("host_d2h_data_driver_h", this);
@@ -12278,7 +12278,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_d2h_data_driver_h.seq_item_port.connect(host_d2h_data_sequencer_h.seq_item_export);
         host_d2h_data_monitor_h.d2h_data_port.connect(host_d2h_data_sequencer_h.host_d2h_data_fifo.analysis_export);
@@ -12302,7 +12302,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_h2d_req_sequencer_h = dev_h2d_req_sequencer::type_id::create("dev_h2d_req_sequencer_h", this);
         dev_h2d_req_driver_h = dev_h2d_req_driver::type_id::create("dev_h2d_req_driver_h", this);
@@ -12314,7 +12314,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_h2d_req_driver_h.seq_item_port.connect(dev_h2d_req_sequencer_h.seq_item_export);
         dev_h2d_req_monitor_h.h2d_req_port.connect(dev_h2d_req_sequencer_h.dev_h2d_req_fifo.analysis_export);
@@ -12338,7 +12338,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_h2d_rsp_sequencer_h = dev_h2d_rsp_sequencer::type_id::create("dev_h2d_rsp_sequencer_h", this);
         dev_h2d_rsp_driver_h = dev_h2d_rsp_driver::type_id::create("dev_h2d_rsp_driver_h", this);
@@ -12350,7 +12350,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_h2d_rsp_driver_h.seq_item_port.connect(dev_h2d_rsp_sequencer_h.seq_item_export);
         dev_h2d_rsp_monitor_h.h2d_rsp_port.connect(dev_h2d_rsp_sequencer_h.dev_h2d_rsp_fifo.analysis_export);
@@ -12374,7 +12374,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_h2d_data_sequencer_h = dev_h2d_data_sequencer::type_id::create("dev_h2d_data_sequencer_h", this);
         dev_h2d_data_driver_h = dev_h2d_data_driver::type_id::create("dev_h2d_data_driver_h", this);
@@ -12386,7 +12386,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_h2d_data_driver_h.seq_item_port.connect(dev_h2d_data_sequencer_h.seq_item_export);
         dev_h2d_data_monitor_h.h2d_data_port.connect(dev_h2d_data_sequencer_h.dev_h2d_data_fifo.analysis_export);
@@ -12410,7 +12410,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_m2s_req_sequencer_h = dev_m2s_req_sequencer::type_id::create("dev_m2s_req_sequencer_h", this);
         dev_m2s_req_driver_h = dev_m2s_req_driver::type_id::create("dev_m2s_req_driver_h", this);
@@ -12422,7 +12422,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_m2s_req_driver_h.seq_item_port.connect(dev_m2s_req_sequencer_h.seq_item_export);
         dev_m2s_req_monitor_h.m2s_req_port.connect(dev_m2s_req_sequencer_h.dev_m2s_req_fifo.analysis_export);
@@ -12446,7 +12446,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_m2s_rwd_sequencer_h = dev_m2s_rwd_sequencer::type_id::create("dev_m2s_rwd_sequencer_h", this);
         dev_m2s_rwd_driver_h = dev_m2s_rwd_driver::type_id::create("dev_m2s_rwd_driver_h", this);
@@ -12458,7 +12458,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         dev_m2s_rwd_driver_h.seq_item_port.connect(dev_m2s_rwd_sequencer_h.seq_item_export);
         dev_m2s_rwd_monitor_h.m2s_rwd_port.connect(dev_m2s_rwd_sequencer_h.dev_m2s_rwd_fifo.analysis_export);
@@ -12482,7 +12482,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_s2m_ndr_sequencer_h = host_s2m_ndr_sequencer::type_id::create("host_s2m_ndr_sequencer_h", this);
         host_s2m_ndr_driver_h = host_s2m_ndr_driver::type_id::create("host_s2m_ndr_driver_h", this);
@@ -12494,7 +12494,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_s2m_ndr_driver_h.seq_item_port.connect(host_s2m_ndr_sequencer_h.seq_item_export);
         host_s2m_ndr_monitor_h.s2m_ndr_port.connect(host_s2m_ndr_sequencer_h.host_s2m_ndr_fifo.analysis_export);
@@ -12518,7 +12518,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_s2m_drs_sequencer_h = host_s2m_drs_sequencer::type_id::create("host_s2m_drs_sequencer_h", this);
         host_s2m_drs_driver_h = host_s2m_drs_driver::type_id::create("host_s2m_drs_driver_h", this);
@@ -12530,7 +12530,7 @@ module tb_top;
     virtual function void connect_phase(uvm_phase phase);
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm agent : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active,name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("is_active = %0s", is_active.name()), UVM_HIGH)
       if(is_active == UVM_ACTIVE) begin
         host_s2m_drs_driver_h.seq_item_port.connect(host_s2m_drs_sequencer_h.seq_item_export);
         host_s2m_drs_monitor_h.s2m_drs_port.connect(host_s2m_drs_sequencer_h.host_s2m_drs_fifo.analysis_export);
