@@ -757,8 +757,8 @@ module rra#(
 )(
   input clk,
   input rstn,
-  input [NO_OF_REQ-1:0] req,
-  output [NO_OF_REQ-1:0] gnt
+  input logic [NO_OF_REQ-1:0] req,
+  output logic [NO_OF_REQ-1:0] gnt
 );
 
 logic [NO_OF_REQ-1:0] hdr;
@@ -8088,6 +8088,16 @@ module cxl_host
   logic m2s_rwd_rval;
   logic m2s_rwd_drval;
   logic m2s_rwd_qrval;
+  logic d2h_req_valid;
+  logic d2h_rsp_valid;
+  logic d2h_data_valid;
+  logic s2m_ndr_valid;
+  logic s2m_drs_valid;
+  d2h_req_txn_t d2h_req_dataout;
+  d2h_rsp_txn_t d2h_rsp_dataout;
+  d2h_data_txn_t d2h_data_dataout;
+  s2m_ndr_txn_t s2m_ndr_dataout;
+  s2m_drs_txn_t s2m_drs_dataout;
   h2d_req_txn_t h2d_req_dataout;
   h2d_req_txn_t h2d_req_ddataout;
   h2d_req_txn_t h2d_req_tdataout;
@@ -8204,6 +8214,16 @@ module cxl_host
   assign host_h2d_req_if.ready = (!h2d_req_full) && (curr_c_crdt_req_cnt != 0);
   assign host_h2d_rsp_if.ready = (!h2d_rsp_full) && (curr_c_crdt_rsp_cnt != 0);
   assign host_h2d_data_if.ready = (!h2d_data_full) && (curr_c_crdt_data_cnt != 0);
+  assign host_d2h_req_if.d2h_req_txn.valid = !d2h_req_valid;
+  assign host_d2h_req_if.d2h_req_txn = d2h_req_dataout;
+  assign host_d2h_rsp_if.d2h_rsp_txn.valid = !d2h_rsp_valid;
+  assign host_d2h_rsp_if.d2h_rsp_txn = d2h_rsp_dataout;
+  assign host_d2h_data_if.d2h_data_txn.valid = !d2h_data_valid;
+  assign host_d2h_data_if.d2h_data_txn = d2h_data_dataout;
+  assign host_s2m_ndr_if.s2m_ndr_txn.valid = !s2m_ndr_valid;
+  assign host_s2m_ndr_if.s2m_ndr_txn = s2m_ndr_dataout;
+  assign host_s2m_drs_if.s2m_drs_txn.valid = !s2m_drs_valid;
+  assign host_s2m_drs_if.s2m_drs_txn = s2m_drs_dataout;
 
   buffer #(
     .DEPTH(32),
@@ -8221,10 +8241,10 @@ module cxl_host
     .ddatain(d2h_req_txn[1]),
     .tdatain(d2h_req_txn[2]),
     .qdatain(d2h_req_txn[3]),
-    .dataout(host_d2h_req_if.d2h_req_txn),
+    .dataout(d2h_req_dataout),
   	.eseq,
   	.wptr(d2h_req_wptr),
-  	.empty(!host_d2h_req_if.d2h_req_txn.valid),
+  	.empty(d2h_req_valid),
   	.full,
   	.undrflw,
   	.ovrflw,
@@ -8244,10 +8264,10 @@ module cxl_host
   	.dwval(d2h_rsp_txn[1].valid),
     .datain(d2h_rsp_txn[0]),
     .ddatain(d2h_rsp_txn[1]),
-    .dataout(host_d2h_rsp_if.d2h_rsp_txn),
+    .dataout(d2h_rsp_dataout),
   	.eseq,
   	.wptr(d2h_rsp_wptr),
-  	.empty(!host_d2h_rsp_if.d2h_rsp_txn.valid),
+  	.empty(d2h_rsp_valid),
   	.full,
   	.undrflw,
   	.ovrflw,
@@ -8269,10 +8289,10 @@ module cxl_host
     .ddatain(d2h_data_pkt[1].d2h_data_txn),
     .tdatain(d2h_data_pkt[2].d2h_data_txn),
     .qdatain(d2h_data_pkt[3].d2h_data_txn),
-    .dataout(host_d2h_data_if.d2h_data_txn),
+    .dataout(d2h_data_dataout),
   	.eseq,
   	.wptr(d2h_data_wptr),
-  	.empty(!host_d2h_data_if.d2h_data_txn.valid),
+  	.empty(d2h_data_valid),
   	.full,
   	.undrflw,
   	.ovrflw,
@@ -8294,10 +8314,10 @@ module cxl_host
     .datain(s2m_ndr_txn[0]),
     .ddatain(s2m_ndr_txn[1]),
     .tdatain(s2m_ndr_txn[2]),
-    .dataout(host_s2m_ndr_if.s2m_ndr_txn),
+    .dataout(s2m_ndr_dataout),
   	.eseq,
   	.wptr(s2m_ndr_wptr),
-  	.empty(!host_s2m_ndr_if.s2m_ndr_txn.valid),
+  	.empty(s2m_ndr_valid),
   	.full,
   	.undrflw,
   	.ovrflw,
@@ -8319,10 +8339,10 @@ module cxl_host
     .datain(s2m_drs_pkt[0].s2m_drs_txn),
     .ddatain(s2m_drs_pkt[1].s2m_drs_txn),
     .tdatain(s2m_drs_pkt[2].s2m_drs_txn),
-    .dataout(host_s2m_drs_if.s2m_drs_txn),
+    .dataout(s2m_drs_dataout),
   	.eseq,
   	.wptr(s2m_drs_wptr),
-  	.empty(!host_s2m_drs_if.s2m_drs_txn.valid),
+  	.empty(s2m_drs_valid),
   	.full,
   	.undrflw,
   	.ovrflw,
@@ -8540,6 +8560,16 @@ module cxl_device
   logic s2m_drs_drval;
   logic s2m_drs_trval;
   logic s2m_drs_qrval;
+  logic h2d_req_valid;
+  logic h2d_rsp_valid;
+  logic h2d_data_valid;
+  logic m2s_req_valid;
+  logic m2s_rwd_valid;
+  h2d_req_txn_t h2d_req_dataout;
+  h2d_rsp_txn_t h2d_rsp_dataout;
+  h2d_data_txn_t h2d_data_dataout;
+  m2s_req_txn_t m2s_req_dataout;
+  m2s_rwd_txn_t m2s_rwd_dataout;
   d2h_req_txn_t d2h_req_dataout;
   d2h_req_txn_t d2h_req_ddataout;
   d2h_req_txn_t d2h_req_tdataout;
@@ -8656,6 +8686,16 @@ module cxl_device
   assign dev_d2h_req_if.ready = (!d2h_req_full) && (curr_c_crdt_req_cnt != 0);
   assign dev_d2h_rsp_if.ready = (!d2h_rsp_full) && (curr_c_crdt_rsp_cnt != 0);
   assign dev_d2h_data_if.ready = (!d2h_data_full) && (curr_c_crdt_data_cnt != 0);
+  assign dev_m2s_req_if.m2s_req_txn.valid = m2s_req_valid; 
+  assign dev_m2s_rwd_if.m2s_rwd_txn.valid = m2s_rwd_valid;
+  assign dev_h2d_req_if.h2d_req_txn.valid = h2d_req_valid;
+  assign dev_h2d_rsp_if.h2d_rsp_txn.valid = h2d_rsp_valid;
+  assign dev_h2d_data_if.h2d_data_txn.valid = h2d_data_valid;
+  assign dev_m2s_req_if.m2s_req_txn = m2s_req_dataout; 
+  assign dev_m2s_rwd_if.m2s_rwd_txn = m2s_rwd_dataout;
+  assign dev_h2d_req_if.h2d_req_txn = h2d_req_dataout;
+  assign dev_h2d_rsp_if.h2d_rsp_txn = h2d_rsp_dataout;
+  assign dev_h2d_data_if.h2d_data_txn = h2d_data_dataout;
 
   buffer #(
     .DEPTH(32),
@@ -8804,10 +8844,10 @@ module cxl_device
   	.dwval(m2s_req_txn[1].valid),
     .datain(m2s_req_txn[0]),
     .ddatain(m2s_req_txn[1]),
-    .dataout(dev_m2s_req_if.m2s_req_txn),
+    .dataout(m2s_req_dataout),
   	.eseq,
   	.wptr(m2s_req_wptr),
-  	.empty(!dev_m2s_req_if.m2s_req_txn.valid),
+  	.empty(m2s_req_valid),
   	.full,
   	.undrflw,
   	.ovrflw,
@@ -8825,10 +8865,10 @@ module cxl_device
   	.rval(dev_m2s_rwd_if.ready),
   	.wval(((m2s_rwd_pkt.m2s_rwd_txn.valid) && (!(|m2s_rwd_pkt.pending_data_slot)))),
     .datain(m2s_rwd_pkt.m2s_rwd_txn),
-    .dataout(dev_m2s_rwd_if.m2s_rwd_txn),
+    .dataout(m2s_rwd_dataout),
   	.eseq,
   	.wptr(m2s_rwd_wptr),
-  	.empty(!dev_m2s_rwd_if.m2s_rwd_txn.valid),
+  	.empty(m2s_rwd_valid),
   	.full,
   	.undrflw,
   	.ovrflw,
@@ -8848,10 +8888,10 @@ module cxl_device
   	.dwval(h2d_req_txn[1].valid),
     .datain(h2d_req_txn[0]),
     .ddatain(h2d_req_txn[1]),
-    .dataout(dev_h2d_req_if.h2d_req_txn),
+    .dataout(h2d_req_dataout),
   	.eseq,
   	.wptr(h2d_req_wptr),
-  	.empty(!dev_h2d_req_if.h2d_req_txn.valid),
+  	.empty(h2d_req_valid),
   	.full,
   	.undrflw,
   	.ovrflw,
@@ -8875,10 +8915,10 @@ module cxl_device
     .ddatain(h2d_rsp_txn[1]),
     .tdatain(h2d_rsp_txn[2]),
     .qdatain(h2d_rsp_txn[3]),
-    .dataout(dev_h2d_rsp_if.h2d_rsp_txn),
+    .dataout(h2d_rsp_dataout),
   	.eseq,
   	.wptr(h2d_rsp_wptr),
-  	.empty(!dev_h2d_rsp_if.h2d_rsp_txn.valid),
+  	.empty(h2d_rsp_valid),
   	.full,
   	.undrflw,
   	.ovrflw,
@@ -8900,10 +8940,10 @@ module cxl_device
   	.ddatain(h2d_data_pkt[1].h2d_data_txn),
   	.tdatain(h2d_data_pkt[2].h2d_data_txn),
   	.qdatain(h2d_data_pkt[3].h2d_data_txn),
-    .dataout(dev_h2d_data_if.h2d_data_txn),
+    .dataout(h2d_data_dataout),
   	.eseq,
   	.wptr(h2d_data_wptr),
-  	.empty(!dev_h2d_data_if.h2d_data_txn.valid),
+  	.empty(h2d_data_valid),
   	.full,
   	.undrflw,
   	.ovrflw,
@@ -9068,6 +9108,10 @@ module tb_top;
     `uvm_object_utils(cxl_cfg_obj)
     rand cxl_hdm_t hdm;
     rand cxl_type_t cxl_type;
+
+    constraint hdm_c {
+      (cxl_type == GEET_CXL_TYPE_1) -> (hdm == GEET_CXL_HDM_H);
+    }
 
     function new(string name = "cxl_cfg_obj");
       super.new(name);
