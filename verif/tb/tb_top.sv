@@ -1,3 +1,4 @@
+//TODO: add monitor checks if rsp is GO then MESI rspdata should be as per encoded this is missing check
 //TODO: CXLv2.0 spec pg num 623 how do you relate to drs and ndr such as for memrddata rows, currently missing, need to add logic to relate these 
 //TODO: add static assertions to check legal combinations of m2s req/rwd opcode  snp and meta in the monitors itself
 //TODO: responder seq bug it is only doing req rsp it is not doing rsp rsp like wr pull should cause a copy uqid txn then send it back to h2d device path that is missing??
@@ -14136,7 +14137,16 @@ module tb_top;
         end
         begin
           forever begin
-            //d2h_rsp_data_responder_h2d_rsp_data(); understand this is going to be useful in multidevice not in CXL v1.1
+            if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+              h2d_rsp_responder_d2h_data_data(); //such as wr pulls //understand this is going to be useful in multidevice not in CXL v1.1
+            end
+          end
+        end
+        begin
+          forever begin
+            if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+              h2d_rsp_responder_h2d_rsp_data(); //understand this is going to be useful in multidevice not in CXL v1.1
+            end
           end
         end
         begin
@@ -14159,6 +14169,61 @@ module tb_top;
         end
       join_none
     endtask    
+    
+    task  h2d_rsp_responder_d2h_data_data(); 
+      p_sequencer.dev_h2d_rsp_seqr.dev_h2d_rsp_fifo.get(h2d_rsp_seq_item_rcvd);
+      if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL, GEET_CXL_CACHE_OPCODE_GOWRITEPULL, GEET_CXL_CACHE_OPCODE_FASTGOWRPULL}) begin
+        `uvm_do_on_with(
+          d2h_data_seq_item_h,
+          p_sequencer.dev_d2h_data_seqr,
+          {
+            uqid == h2d_rsp_seq_item_rcvd.cqid;
+          }
+        );
+      end else if(GEET_CXL_CACHE_OPCODE_GOERRWRPULL) begin
+        `uvm_do_on_with(
+          d2h_data_seq_item_h,
+          p_sequencer.dev_d2h_data_seqr,
+          {
+            uqid == h2d_rsp_seq_item_rcvd.cqid;
+            goerr == 'h1;
+            data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff;
+          }
+        );
+      end
+    endtask
+    
+    task  h2d_rsp_responder_h2d_rsp_data(); 
+      fork 
+        begin
+          p_sequencer.host_d2h_data_seqr.host_d2h_data_fifo.get(d2h_data_seq_item_rcvd_a);
+        end
+        begin
+          p_sequencer.dev_h2d_rsp_seqr.dev_h2d_rsp_fifo.get(h2d_rsp_seq_item_rcvd);
+          wait(d2h_data_seq_item_item_rcvd_a.uqid == h2d_rsp_seq_item_rcvd.cqid);
+          if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_FASTGOWRPULL}) begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                opcode == GEET_CXL_CACHE_OPCODE_EXTCMP;
+                uqid == h2d_rsp_seq_item_rcvd.cqid;
+              }
+            );
+          end else if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL}) begin
+            `uvm_do_on_with(
+              h2d_rsp_seq_item_h,
+              p_sequencer.host_h2d_rsp_seqr,
+              {
+                opcode == GEET_CXL_CACHE_OPCODE_GO;
+                rspdata inside {4'b0011, 4'b0001, 4'b0010, 4'b0110, 4'b0100};
+                uqid == h2d_rsp_seq_item_rcvd.cqid;
+              }
+            );
+          end
+        end
+      join_none
+    endtask
     
     //you must be careful here because req and rwd both send ndr so some might get overriden when both are tried to be called 
     task type2_m2s_req_rwd_responder_s2m_ndr_drs();
@@ -14731,8 +14796,9 @@ module tb_top;
                 cqid == d2h_req_seq_item_rcvd.cqid;
               }
             );
+            //this thing below is wrong it was due to lack of undeerstanding initially
             //here it does not return any data even if it is pull drop
-            if(h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_GOWRITEPULL}) begin
+            /*if(h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_GOWRITEPULL}) begin
               `uvm_do_on_with(
                 h2d_data_seq_item_h,
                 p_sequencer.host_h2d_data_seqr,
@@ -14741,7 +14807,7 @@ module tb_top;
                   cqid == d2h_req_seq_item_rcvd.cqid;
                 }
               );
-            end
+            end*/
           end
           join
         end
@@ -14759,6 +14825,7 @@ module tb_top;
                 cqid == d2h_req_seq_item_rcvd.cqid;
               }
             );
+            /*//this is wrong below
             //here it does not return any data even if it is pull drop
             `uvm_do_on_with(
               h2d_data_seq_item_h,
@@ -14769,7 +14836,7 @@ module tb_top;
                 (h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GOERRWRPULL) -> {data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; goerr == 'h1;}
               }
             );
-            
+            */
           end
           join
         end
@@ -14782,10 +14849,11 @@ module tb_top;
               p_sequencer.host_h2d_rsp_seqr,
               {
                 valid == 'h1;
-                opcode inside {GEET_CXL_CACHE_OPCODE_EXTCMP, GEET_CXL_CACHE_OPCODE_FASTGOWRPULL, GEET_CXL_CACHE_OPCODE_GOERRWRPULL} ;
+                opcode inside {GEET_CXL_CACHE_OPCODE_FASTGOWRPULL, GEET_CXL_CACHE_OPCODE_GOERRWRPULL};
                 cqid == d2h_req_seq_item_rcvd.cqid;
               }
             );
+            /*this is wrong due to lack of understanding: delete later 
             `uvm_do_on_with(
               h2d_data_seq_item_h,
               p_sequencer.host_h2d_data_seqr,
@@ -14795,6 +14863,7 @@ module tb_top;
                 (h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GOERRWRPULL) -> {data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; goerr == 'h1;}
               }
             );
+            */
           end
           join
         end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
@@ -14820,10 +14889,11 @@ module tb_top;
               p_sequencer.host_h2d_rsp_seqr,
               {
                 valid == 'h1;
-                opcode inside {GEET_CXL_CACHE_OPCODE_EXTCMP, GEET_CXL_CACHE_OPCODE_FASTGOWRPULL, GEET_CXL_CACHE_OPCODE_GOERRWRPULL} ;
+                opcode inside {GEET_CXL_CACHE_OPCODE_FASTGOWRPULL, GEET_CXL_CACHE_OPCODE_GOERRWRPULL} ;
                 cqid == d2h_req_seq_item_rcvd.cqid;
               }
             );
+            /* this is wrong due to incorrect understanding:delete later
             `uvm_do_on_with(
               h2d_data_seq_item_h,
               p_sequencer.host_h2d_data_seqr,
@@ -14834,8 +14904,8 @@ module tb_top;
                   data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; 
                   goerr == 'h1;
                   }
-              }
-            );
+                }
+              );*/
           end
         join
       end
