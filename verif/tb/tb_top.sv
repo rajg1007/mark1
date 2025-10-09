@@ -1,4 +1,6 @@
-//TODO: (done) missing rra logic module is currently blank please refer to the paper
+//TODO: CXLv2.0 spec pg num 623 how do you relate to drs and ndr such as for memrddata rows, currently missing, need to add logic to relate these 
+//TODO: add static assertions to check legal combinations of m2s req/rwd opcode  snp and meta in the monitors itself
+//TODO: responder seq bug it is only doing req rsp it is not doing rsp rsp like wr pull should cause a copy uqid txn then send it back to h2d device path that is missing??
 //TODO: (done/pending/lowpri - lrsm/rrssm integration pending - low priority for now) connection of ack to retry buffer and entry of tx pkt and lrsmrrsm integration to be done
 //TODO: (TBD/lowpri) next focus on 32B size pkt logic 
 //TODO: bug in the design crc placement needs fix in tx and rx
@@ -9073,6 +9075,7 @@ module tb_top;
 
     constraint hdm_c {
       (cxl_type == GEET_CXL_TYPE_1) -> (hdm == GEET_CXL_HDM_H);
+      (cxl_type == GEET_CXL_TYPE_3) -> (hdm == GEET_CXL_HDM_H);
     }
 
     function new(string name = "cxl_cfg_obj");
@@ -13025,6 +13028,718 @@ module tb_top;
     endfunction
 
   endclass
+//TODO:put checker of checking all 1s data for err and GO-I condition in rsp in monitor not in scoreboard
+  class cxl_cm_scoreboard extends uvm_scoreboard;
+    `uvm_component_utils(cxl_cm_scoreboard)
+    d2h_req_seq_item  dev_d2h_req_host_d2h_req_integ_aa   [logic[11:0]];
+    d2h_rsp_seq_item  dev_d2h_rsp_host_d2h_rsp_integ_aa   [logic[11:0]];
+    d2h_data_seq_item dev_d2h_data_host_d2h_data_integ_aa [logic[11:0]];
+    h2d_req_seq_item  host_h2d_req_dev_h2d_req_integ_aa   [logic[11:0]];
+    h2d_rsp_seq_item  host_h2d_rsp_dev_h2d_rsp_integ_aa   [logic[11:0]];
+    h2d_data_seq_item host_h2d_data_dev_h2d_data_integ_aa [logic[11:0]];
+    m2s_req_seq_item  host_m2s_req_dev_m2s_req_integ_aa   [logic[11:0]];
+    m2s_rwd_seq_item  host_m2s_rwd_dev_m2s_rwd_integ_aa   [logic[11:0]];
+    s2m_ndr_seq_item  dev_s2m_ndr_host_s2m_ndr_integ_aa   [logic[11:0]];
+    s2m_drs_seq_item  dev_s2m_drs_host_s2m_drs_integ_aa   [logic[11:0]];
+    d2h_req_seq_item  memrdfwd_aa         [logic[11:0]];
+    d2h_req_seq_item  memwrfwd_aa         [logic[11:0]];
+    d2h_req_seq_item  d2h_req_h2d_rsp_aa  [logic[11:0]];
+    d2h_req_seq_item  d2h_req_h2d_data_aa [logic[11:0]];
+    h2d_rsp_seq_item  h2d_rsp_h2d_rsp_aa  [logic[11:0]];
+    h2d_rsp_seq_item  h2d_rsp_d2h_data_aa [logic[11:0]];
+    h2d_req_seq_item  h2d_req_d2h_rsp_aa  [logic[11:0]];
+    h2d_req_seq_item  h2d_req_d2h_data_aa [logic[11:0]];
+    m2s_req_seq_item  m2s_req_s2m_ndr_aa  [logic[11:0]];
+    m2s_req_seq_item  m2s_req_s2m_drs_aa  [logic[11:0]];
+    m2s_rwd_seq_item  m2s_rwd_s2m_ndr_aa  [logic[11:0]];
+    h2d_req_seq_item  host_h2d_req_seq_item_h;
+    h2d_rsp_seq_item  host_h2d_rsp_seq_item_h;
+    h2d_data_seq_item host_h2d_data_seq_item_h;
+    h2d_req_seq_item  dev_h2d_req_seq_item_h;
+    h2d_rsp_seq_item  dev_h2d_rsp_seq_item_h;
+    h2d_data_seq_item dev_h2d_data_seq_item_h;
+    d2h_req_seq_item  host_d2h_req_seq_item_h;
+    d2h_rsp_seq_item  host_d2h_rsp_seq_item_h;
+    d2h_data_seq_item host_d2h_data_seq_item_h;
+    d2h_req_seq_item  dev_d2h_req_seq_item_h;
+    d2h_rsp_seq_item  dev_d2h_rsp_seq_item_h;
+    d2h_data_seq_item dev_d2h_data_seq_item_h;
+    m2s_req_seq_item  dev_m2s_req_seq_item_h;
+    m2s_rwd_seq_item  dev_m2s_rwd_seq_item_h;
+    s2m_ndr_seq_item  dev_s2m_ndr_seq_item_h;
+    s2m_drs_seq_item  dev_s2m_drs_seq_item_h;
+    m2s_req_seq_item  host_m2s_req_seq_item_h;
+    m2s_rwd_seq_item  host_m2s_rwd_seq_item_h;
+    s2m_ndr_seq_item  host_s2m_ndr_seq_item_h;
+    s2m_drs_seq_item  host_s2m_drs_seq_item_h;
+    uvm_tlm_analysis_fifo#(h2d_req_seq_item)  dev_h2d_req_fifo;
+    uvm_tlm_analysis_fifo#(h2d_rsp_seq_item)  dev_h2d_rsp_fifo;
+    uvm_tlm_analysis_fifo#(h2d_data_seq_item) dev_h2d_data_fifo;
+    uvm_tlm_analysis_fifo#(h2d_req_seq_item)  host_h2d_req_fifo;
+    uvm_tlm_analysis_fifo#(h2d_rsp_seq_item)  host_h2d_rsp_fifo;
+    uvm_tlm_analysis_fifo#(h2d_data_seq_item) host_h2d_data_fifo;
+    uvm_tlm_analysis_fifo#(d2h_req_seq_item)  dev_d2h_req_fifo;
+    uvm_tlm_analysis_fifo#(d2h_rsp_seq_item)  dev_d2h_rsp_fifo;
+    uvm_tlm_analysis_fifo#(d2h_data_seq_item) dev_d2h_data_fifo;
+    uvm_tlm_analysis_fifo#(d2h_req_seq_item)  host_d2h_req_fifo;
+    uvm_tlm_analysis_fifo#(d2h_rsp_seq_item)  host_d2h_rsp_fifo;
+    uvm_tlm_analysis_fifo#(d2h_data_seq_item) host_d2h_data_fifo;
+    uvm_tlm_analysis_fifo#(m2s_req_seq_item)  host_m2s_req_fifo;
+    uvm_tlm_analysis_fifo#(m2s_rwd_seq_item)  host_m2s_rwd_fifo;
+    uvm_tlm_analysis_fifo#(m2s_req_seq_item)  dev_m2s_req_fifo;
+    uvm_tlm_analysis_fifo#(m2s_rwd_seq_item)  dev_m2s_rwd_fifo;
+    uvm_tlm_analysis_fifo#(s2m_ndr_seq_item)  host_s2m_ndr_fifo;
+    uvm_tlm_analysis_fifo#(s2m_drs_seq_item)  host_s2m_drs_fifo;
+    uvm_tlm_analysis_fifo#(s2m_ndr_seq_item)  dev_s2m_ndr_fifo;
+    uvm_tlm_analysis_fifo#(s2m_drs_seq_item)  dev_s2m_drs_fifo;
+    cxl_cfg_obj cxl_cfg_obj_h;
+
+    function new(string name = "cxl_cm_scoreboard", uvm_component parent = null);
+      super.new(name, parent);
+      `uvm_info(get_type_name(), $sformatf("constructed uvm scoreboard : %s", name), UVM_DEBUG)
+      dev_h2d_req_fifo    = new("dev_h2d_req_fifo",   this);
+      dev_h2d_rsp_fifo    = new("dev_h2d_rsp_fifo",   this);
+      dev_h2d_data_fifo   = new("dev_h2d_data_fifo",  this);
+      host_h2d_req_fifo   = new("host_h2d_req_fifo",  this);
+      host_h2d_rsp_fifo   = new("host_h2d_rsp_fifo",  this);
+      host_h2d_data_fifo  = new("host_h2d_data_fifo", this);
+      dev_d2h_req_fifo    = new("dev_d2h_req_fifo",   this);
+      dev_d2h_rsp_fifo    = new("dev_d2h_rsp_fifo",   this);
+      dev_d2h_data_fifo   = new("dev_d2h_data_fifo",  this);
+      host_d2h_req_fifo   = new("host_d2h_req_fifo",  this);
+      host_d2h_rsp_fifo   = new("host_d2h_rsp_fifo",  this);
+      host_d2h_data_fifo  = new("host_d2h_data_fifo", this);
+      host_m2s_req_fifo   = new("host_m2s_req_fifo",  this);
+      host_m2s_rwd_fifo   = new("host_m2s_rwd_fifo",  this);
+      dev_m2s_req_fifo    = new("dev_m2s_req_fifo",   this);
+      dev_m2s_rwd_fifo    = new("dev_m2s_rwd_fifo",   this);
+      host_s2m_ndr_fifo   = new("host_s2m_ndr_fifo",  this);
+      host_s2m_drs_fifo   = new("host_s2m_drs_fifo",  this);
+      dev_s2m_ndr_fifo    = new("dev_s2m_ndr_fifo",   this);
+      dev_s2m_drs_fifo    = new("dev_s2m_drs_fifo",   this);
+    endfunction
+
+    virtual function void build_phase(uvm_phase phase);
+      super.build_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm scoreboard : %s", get_full_name()), UVM_HIGH)
+    endfunction
+
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm scoreboard: %s", get_full_name()), UVM_HIGH)
+      if(!uvm_resource_db#(cxl_cfg_obj)::read_by_name("", "cxl_cfg_obj_h", cxl_cfg_obj_h)) begin
+        `uvm_fatal("CXL_CFG_OBJ", "cxl_cfg_obj not found")
+      end
+      fork
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) host_d2h_req();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) host_d2h_rsp();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) host_d2h_data();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) dev_d2h_req();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) dev_d2h_rsp();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) dev_d2h_data();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) host_h2d_req();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) host_h2d_rsp();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) host_h2d_data();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) dev_h2d_req();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) dev_h2d_rsp();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) dev_h2d_data();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) host_m2s_req();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) host_m2s_rwd();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) dev_m2s_req();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) dev_m2s_rwd();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) host_s2m_ndr();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) host_s2m_drs();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) dev_s2m_ndr();
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) dev_s2m_drs();
+      join_none
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm scoreboard: %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    task dev_d2h_req();
+      forever begin
+        dev_d2h_req_fifo.get(dev_d2h_req_seq_item_h);
+        dev_d2h_req_host_d2h_req_integ_aa[dev_d2h_req_seq_item_h.cqid] = dev_d2h_req_seq_item_h;
+        if(dev_d2h_req_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_RDCURR}) begin
+          d2h_req_h2d_data_aa[dev_d2h_req_seq_item_h.cqid] = dev_d2h_req_seq_item_h;
+        end else begin
+          d2h_req_h2d_rsp_aa[dev_d2h_req_seq_item_h.cqid] = dev_d2h_req_seq_item_h;
+          if((cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1}) || (cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2} && cxl_cfg_obj_h.hdm inside {GEET_CXL_HDM_H})) begin
+            if(dev_d2h_req_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_RDSHARED, GEET_CXL_CACHE_OPCODE_RDANY, GEET_CXL_CACHE_OPCODE_RDOWN}) begin
+              d2h_req_h2d_data_aa[dev_d2h_req_seq_item_h.cqid] = dev_d2h_req_seq_item_h;
+            end else if(dev_d2h_req_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_ITOMWR, GEET_CXL_CACHE_OPCODE_MEMWRI, GEET_CXL_CACHE_OPCODE_CLEANEVICT, GEET_CXL_CACHE_OPCODE_DIRTYEVICT, GEET_CXL_CACHE_OPCODE_WOWRINV, GEET_CXL_CACHE_OPCODE_WOWRINVF, GEET_CXL_CACHE_OPCODE_WRINV}) begin
+            end else if(dev_d2h_req_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_CLFLUSH, GEET_CXL_CACHE_OPCODE_CACHEFLUSHED, GEET_CXL_CACHE_OPCODE_RDOWNNODATA, GEET_CXL_CACHE_OPCODE_CLEANEVICTNODATA}) begin
+            end
+          end else if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2} && cxl_cfg_obj_h.hdm inside {GEET_CXL_HDM_D}) begin
+            if(dev_d2h_req_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_RDCURR, GEET_CXL_CACHE_OPCODE_RDSHARED, GEET_CXL_CACHE_OPCODE_RDANY, GEET_CXL_CACHE_OPCODE_RDOWN, GEET_CXL_CACHE_OPCODE_RDOWNNODATA, GEET_CXL_CACHE_OPCODE_CLFLUSH}) begin
+              memrdfwd_aa[dev_d2h_req_seq_item_h.cqid] = dev_d2h_req_seq_item_h;
+            end else if(dev_d2h_req_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_WOWRINV, GEET_CXL_CACHE_OPCODE_WOWRINVF}) begin
+              memwrfwd_aa[dev_d2h_req_seq_item_h.cqid] = dev_d2h_req_seq_item_h;
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal opcode %0s for type 2 device bias mode %0s", dev_d2h_req_seq_item_h.opcode.name, cxl_cfg_obj_h.hdm.name()))
+            end
+          end
+        end
+      end
+    endtask
+
+    task dev_h2d_rsp();
+      forever begin
+        dev_h2d_rsp_fifo.get(dev_h2d_rsp_seq_item_h);
+        if(host_h2d_rsp_dev_h2d_rsp_integ_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+          host_h2d_rsp_dev_h2d_rsp_integ_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+        end else begin
+          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_rsp_seq_item_h.cqid));
+        end
+        if(dev_h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_GOWRPULLDROP}) begin
+          if(d2h_req_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_CLEANEVICT}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+              d2h_req_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_rsp_seq_item_h.cqid));
+          end
+        end else if(dev_h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_GOWRITEPULL}) begin
+          if(d2h_req_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_ITOMWR, GEET_CXL_CACHE_OPCODE_MEMWRI, GEET_CXL_CACHE_OPCODE_CLEANEVICT, GEET_CXL_CACHE_OPCODE_DIRTYEVICT}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+              h2d_rsp_d2h_data_aa[dev_h2d_rsp_seq_item_h.cqid] = dev_h2d_rsp_seq_item_h;
+              d2h_req_h2d_rsp_aa.delete(dev_d2h_req_seq_item_h.cqid);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_d2h_req_seq_item_h.cqid));
+          end
+        end else if(dev_h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL}) begin
+          if(d2h_req_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_WRINV}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+              h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid] = dev_h2d_rsp_seq_item_h;
+              h2d_rsp_d2h_data_aa[dev_h2d_rsp_seq_item_h.cqid] = dev_h2d_rsp_seq_item_h;
+              d2h_req_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_rsp_seq_item_h.cqid));
+          end
+        end else if(dev_h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_FASTGOWRPULL}) begin
+          if(d2h_req_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_WOWRINV, GEET_CXL_CACHE_OPCODE_WOWRINVF}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+              h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid] = dev_h2d_rsp_seq_item_h;
+              h2d_rsp_d2h_data_aa[dev_h2d_rsp_seq_item_h.cqid] = dev_h2d_rsp_seq_item_h;
+              d2h_req_h2d_rsp_aa.delete(dev_d2h_req_seq_item_h.cqid);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_rsp_seq_item_h.cqid));
+          end
+        end else if(dev_h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_EXTCMP}) begin
+          if(h2d_rsp_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_FASTGOWRPULL}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn h2d_rsp_opcode %0s and h2d_rsp_opcode %0s", h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+              h2d_rsp_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn h2d_rsp_opcode %0s and h2d_rsp_opcode %0s", h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_rsp_seq_item_h.cqid));
+          end
+        end else if(dev_h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_GO} && dev_h2d_rsp_seq_item_h.rspdata inside {GEET_CXL_CACHE_MESI_M}) begin
+          if(d2h_req_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_RDANY, GEET_CXL_CACHE_OPCODE_RDOWN}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+              d2h_req_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+          /*end else if(h2d_rsp_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn h2d_rsp_opcode %0s and h2d_rsp_opcode %0s", h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn h2d_rsp_opcode %0s and h2d_rsp_opcode %0s", h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+            h2d_rsp_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+        */end else begin
+            `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_rsp_seq_item_h.cqid));
+          end
+        end else if(dev_h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_GO} && dev_h2d_rsp_seq_item_h.rspdata inside {GEET_CXL_CACHE_MESI_E}) begin
+          if(d2h_req_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_RDANY, GEET_CXL_CACHE_OPCODE_RDOWN, GEET_CXL_CACHE_OPCODE_RDOWNNODATA}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+              d2h_req_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+          /*end else if(h2d_rsp_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn h2d_rsp_opcode %0s and h2d_rsp_opcode %0s", h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn h2d_rsp_opcode %0s and h2d_rsp_opcode %0s", h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+            h2d_rsp_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+        */end else begin
+            `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_rsp_seq_item_h.cqid));
+          end
+        end else if(dev_h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_GO} && dev_h2d_rsp_seq_item_h.rspdata inside {GEET_CXL_CACHE_MESI_S}) begin
+          if(d2h_req_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_RDANY, GEET_CXL_CACHE_OPCODE_RDSHARED}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+              d2h_req_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+          /*end else if(h2d_rsp_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn h2d_rsp_opcode %0s and h2d_rsp_opcode %0s", h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn h2d_rsp_opcode %0s and h2d_rsp_opcode %0s", h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+            h2d_rsp_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+        */end else begin
+            `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_rsp_seq_item_h.cqid));
+          end
+        end else if(dev_h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_GO} && dev_h2d_rsp_seq_item_h.rspdata inside {GEET_CXL_CACHE_MESI_I}) begin
+          if(d2h_req_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_RDANY, GEET_CXL_CACHE_OPCODE_RDSHARED, GEET_CXL_CACHE_OPCODE_CLFLUSH, GEET_CXL_CACHE_OPCODE_CACHEFLUSHED, GEET_CXL_CACHE_OPCODE_RDOWN, GEET_CXL_CACHE_OPCODE_CLEANEVICTNODATA}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+              d2h_req_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+              h2d_rsp_h2d_errdata_aa[dev_h2d_rsp_seq_item_h.cqid] = dev_h2d_rsp_seq_item_h;
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+          end else if(h2d_rsp_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn h2d_rsp_opcode %0s and h2d_rsp_opcode %0s", h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+              h2d_rsp_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+              h2d_rsp_d2h_errdata_aa[dev_h2d_rsp_seq_item_h.cqid] = dev_h2d_rsp_seq_item_h;
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn h2d_rsp_opcode %0s and h2d_rsp_opcode %0s", h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_rsp_seq_item_h.cqid));
+          end
+        end else if(dev_h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_GO} && dev_h2d_rsp_seq_item_h.rspdata inside {GEET_CXL_CACHE_MESI_ERR}) begin
+          if(d2h_req_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_RDANY, GEET_CXL_CACHE_OPCODE_RDSHARED, GEET_CXL_CACHE_OPCODE_CLFLUSH, GEET_CXL_CACHE_OPCODE_RDOWNNODATA, GEET_CXL_CACHE_OPCODE_RDOWN}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+              d2h_req_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+              h2d_rsp_h2d_errdata_aa[dev_h2d_rsp_seq_item_h.cqid] = dev_h2d_rsp_seq_item_h;
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+          end else if(h2d_rsp_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn h2d_rsp_opcode %0s and h2d_rsp_opcode %0s", h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+              h2d_rsp_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+              h2d_rsp_d2h_errdata_aa[dev_h2d_rsp_seq_item_h.cqid] = dev_h2d_rsp_seq_item_h;
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn h2d_rsp_opcode %0s and h2d_rsp_opcode %0s", h2d_rsp_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_rsp_seq_item_h.cqid));
+          end
+        end else if(dev_h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_GOERRWRPULL}) begin
+          if(d2h_req_h2d_rsp_aa.exists(dev_h2d_rsp_seq_item_h.cqid)) begin
+            `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_rsp_seq_item_h.cqid), UVM_NONE);
+            if(d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_ITOMWR, GEET_CXL_CACHE_OPCODE_MEMWRI, GEET_CXL_CACHE_OPCODE_DIRTYEVICT, GEET_CXL_CACHE_OPCODE_WOWRINV, GEET_CXL_CACHE_OPCODE_WOWRINVF}) begin
+              `uvm_info(get_type_name(), $sformatf("legal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()), UVM_NONE);
+              d2h_req_h2d_rsp_aa.delete(dev_h2d_rsp_seq_item_h.cqid);
+              h2d_rsp_d2h_errdata_aa[dev_h2d_rsp_seq_item_h.cqid] = dev_h2d_rsp_seq_item_h;
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s and h2d_rsp_opcode %0s", d2h_req_h2d_rsp_aa[dev_h2d_rsp_seq_item_h.cqid].opcode.name(), dev_h2d_rsp_seq_item_h.opcode.name()));
+            end
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_rsp_seq_item_h.cqid));
+          end
+        end
+      end
+    endtask
+    
+    task dev_h2d_data();
+      forever begin
+        dev_h2d_data_fifo.get(dev_h2d_data_seq_item_h);
+        if(host_d2h_data_dev_d2h_data_integ_aa.exists(dev_h2d_data_seq_item_h.uqid)) begin
+          host_d2h_data_dev_d2h_data_integ_aa.delete(dev_h2d_data_seq_item_h.uqid);
+          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_data_seq_item_h.uqid), UVM_NONE);
+        end else begin
+          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_data_seq_item_h.uqid));
+        end
+        if(d2h_req_h2d_data_aa.exists(dev_h2d_data_seq_item_h.cqid)) begin
+          if(d2h_req_h2d_data_aa[dev_h2d_data_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_RDCURR, GEET_CXL_CACHE_OPCODE_RDSHARED, GEET_CXL_CACHE_OPCODE_RDANY, GEET_CXL_CACHE_OPCODE_RDOWN}) begin
+            `uvm_info(get_type_name(), $sformatf("legal txn d2h_req_opcode %0s and h2d_data_opcode %0s", d2h_req_h2d_data_aa[dev_h2d_data_seq_item_h.cqid].opcode.name(), dev_h2d_data_seq_item_h.opcode.name()));
+            d2h_req_h2d_data_aa.delete(dev_h2d_data_seq_item_h.cqid);
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s and h2d_data_opcode %0s", d2h_req_h2d_data_aa[dev_h2d_data_seq_item_h.cqid].opcode.name(), dev_h2d_data_seq_item_h.opcode.name()));
+          end 
+        end else begin
+            `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_data_seq_item_h.uqid));
+        end
+      end
+    endtask
+
+    task host_d2h_data();
+      forever begin
+        host_d2h_data_fifo.get(host_d2h_data_seq_item_h);
+        if(dev_d2h_data_host_d2h_data_integ_aa.exists(host_d2h_data_seq_item_h.uqid)) begin
+          dev_d2h_data_host_d2h_data_integ_aa.delete(host_d2h_data_seq_item_h.uqid);
+          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", host_d2h_data_seq_item_h.uqid), UVM_NONE);
+        end else begin
+          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not ent from the other side", host_d2h_data_seq_item_h.uqid));
+        end
+        if(h2d_rsp_d2h_data_aa.exists(host_d2h_data_seq_item_h.uqid)) begin
+          if(h2d_rsp_d2h_data_aa[host_d2h_data_seq_item_h.uqid].opcode inside{GEET_CXL_CACHE_OPCODE_WRITEPULL, GEET_CXL_CACHE_OPCODE_GOWRITEPULL, GEET_CXL_CACHE_OPCODE_FASTGOWRPULL}) begin
+            `uvm_info(get_type_name(), $sformatf("match txn h2d_rsp_opcode %0s and d2h_data_opcode %0s", h2d_rsp_d2h_data_aa[host_d2h_data_seq_item_h.uqid].opcode.name(), host_d2h_data_seq_item_h.opcode.name()), UVM_NONE);
+            h2d_rsp_d2h_data_aa.delete(host_d2h_data_seq_item_h.uqid);
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("illegal txn h2d_rsp_opcode %0s and d2h_data_opcode %0s", h2d_rsp_d2h_data_aa[host_d2h_data_seq_item_h.uqid].opcode.name(), host_d2h_data_seq_item_h.opcode.name()));
+          end
+        end else if(h2d_rsp_d2h_errdata_aa.exists(host_d2h_data_seq_item_h.uqid)) begin
+          if(h2d_rsp_d2h_errdata_aa[host_d2h_data_seq_item_h.uqid].opcode inside{GEET_CXL_CACHE_OPCODE_GOERRWRPULL}) begin
+            `uvm_info(get_type_name(), $sformatf("match txn h2d_rsp_opcode %0s and d2h_data_opcode %0s", h2d_rsp_d2h_errdata_aa[host_d2h_data_seq_item_h.uqid].opcode.name(), host_d2h_data_seq_item_h.opcode.name()), UVM_NONE);
+            h2d_rsp_d2h_errdata_aa.delete(host_d2h_data_seq_item_h.uqid);
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("illegal txn h2d_rsp_opcode %0s and d2h_data_opcode %0s", h2d_rsp_d2h_errdata_aa[host_d2h_data_seq_item_h.uqid].opcode.name(), host_d2h_data_seq_item_h.opcode.name()));
+          end
+        end else if(h2d_req_d2h_data_aa.exists(host_d2h_data_seq_item_h.uqid)) begin
+          `uvm_info(get_type_name(), $sformatf("match txn h2d_req_opcode %0s and d2h_data_opcode %0s", h2d_req_d2h_data_aa[host_d2h_data_seq_item_h.uqid].opcode.name(), host_d2h_data_seq_item_h.opcode.name()), UVM_NONE);
+          h2d_req_d2h_data_aa.delete(host_d2h_data_seq_item_h.uqid);
+        end else begin
+          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", host_d2h_data_seq_item_h.uqid));
+        end
+      end
+    endtask
+
+    task host_h2d_rsp();
+      forever begin
+        host_h2d_rsp_fifo.get(host_h2d_rsp_seq_item_h);
+        host_h2d_rsp_dev_h2d_rsp_integ_aa[host_h2d_rsp_seq_item_h.uqid] = host_h2d_rsp_seq_item_h;
+      end
+    endtask
+
+    task host_h2d_data();
+      forever begin
+        host_h2d_data_fifo.get(host_h2d_data_seq_item_h);
+        host_h2d_data_dev_h2d_data_integ_aa[host_h2d_data_seq_item_h.uqid] = host_h2d_data_seq_item_h;
+      end
+    endtask
+
+    task dev_d2h_rsp();
+      forever begin
+        dev_d2h_rsp_fifo.get(dev_d2h_rsp_seq_item_h);
+        dev_d2h_rsp_host_d2h_rsp_integ_aa[dev_d2h_rsp_seq_item_h.uqid] = dev_d2h_rsp_seq_item_h;
+      end
+    endtask
+
+    task dev_d2h_data();
+      forever begin
+        dev_d2h_data_fifo.get(dev_d2h_data_seq_item_h);
+        dev_d2h_data_host_d2h_data_integ_aa[dev_d2h_data_seq_item_h.uqid] = dev_d2h_data_seq_item_h;
+      end
+    endtask
+
+    task host_h2d_req();
+      forever begin
+        host_h2d_req_fifo.get(host_h2d_req_seq_item_h);
+        host_h2d_req_dev_h2d_req_integ_aa[host_h2d_req_seq_item_h.uqid] = host_h2d_req_seq_item_h;
+        h2d_req_d2h_rsp_aa[host_h2d_req_seq_item_h.uqid] = host_h2d_req_seq_item_h;
+        h2d_req_d2h_data_aa[host_h2d_req_seq_item_h.uqid] = host_h2d_req_seq_item_h;
+      end
+    endtask
+
+    task dev_h2d_req();
+      forever begin
+        dev_h2d_req_fifo.get(dev_h2d_req_seq_item_h);
+        if(host_h2d_req_dev_h2d_req_integ_aa.exists(dev_h2d_req_seq_item_h.uqid)) begin
+          host_h2d_req_dev_h2d_req_integ_aa.delete(dev_h2d_req_seq_item_h.uqid);
+          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_req_seq_item_h.uqid), UVM_NONE);
+        end else begin
+          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not ent from the other side", dev_h2d_req_seq_item_h.uqid));
+        end
+      end
+    endtask
+
+    task host_d2h_req();
+      forever begin
+        host_d2h_req_fifo.get(host_d2h_req_seq_item_h);
+        if(dev_d2h_req_host_d2h_req_integ_aa.exists(host_d2h_req_seq_item_h.cqid)) begin
+          dev_d2h_req_host_d2h_req_integ_aa.delete(host_d2h_req_seq_item_h.cqid);
+          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", host_d2h_req_seq_item_h.cqid), UVM_NONE);
+        end else begin
+          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not ent from the other side", host_d2h_req_seq_item_h.cqid));
+        end
+      end
+    endtask
+
+    task host_d2h_rsp();
+      forever begin
+        host_d2h_rsp_fifo.get(host_d2h_rsp_seq_item_h);
+        if(dev_d2h_rsp_host_d2h_rsp_integ_aa.exists(host_d2h_rsp_seq_item_h.uqid)) begin
+          dev_d2h_rsp_host_d2h_rsp_integ_aa.delete(host_d2h_rsp_seq_item_h.uqid);
+          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", host_d2h_rsp_seq_item_h.uqid), UVM_NONE);
+        end else begin
+          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not ent from the other side", host_d2h_rsp_seq_item_h.uqid));
+        end
+        if(h2d_req_d2h_rsp_aa.exists(host_d2h_rsp_seq_item_h.uqid)) begin
+          if(host_d2h_rsp_seq_item_h.opcode inside{GEET_CXL_CACHE_OPCODE_RSPIHITI} && h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode inside {GEET_CXL_CACHE_OPCODE_SNPDATA,GEET_CXL_CACHE_OPCODE_SNPCURR, GEET_CXL_CACHE_OPCODE_SNPINV}) begin
+            `uvm_info(get_type_name(), $sformatf("legal combination match: d2h rsp opcode is %0s h2d req opcode is %0s", host_d2h_rsp_seq_item_h.opcode.name(), h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode.name()), UVM_NONE);  
+          end else if(host_d2h_rsp_seq_item_h.opcode inside{GEET_CXL_CACHE_OPCODE_RSPVHITV} && h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode inside {GEET_CXL_CACHE_OPCODE_SNPCURR}) begin
+            `uvm_info(get_type_name(), $sformatf("legal combination match: d2h rsp opcode is %0s h2d req opcode is %0s", host_d2h_rsp_seq_item_h.opcode.name(), h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode.name()), UVM_NONE);  
+          end else if(host_d2h_rsp_seq_item_h.opcode inside{GEET_CXL_CACHE_OPCODE_RSPSHITSE} && h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode inside {GEET_CXL_CACHE_OPCODE_SNPDATA, GEET_CXL_CACHE_OPCODE_SNPCURR}) begin
+            `uvm_info(get_type_name(), $sformatf("legal combination match: d2h rsp opcode is %0s h2d req opcode is %0s", host_d2h_rsp_seq_item_h.opcode.name(), h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode.name()), UVM_NONE);  
+          end else if(host_d2h_rsp_seq_item_h.opcode inside{GEET_CXL_CACHE_OPCODE_RSPIHITSE} && h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode inside {GEET_CXL_CACHE_OPCODE_SNPINV}) begin
+            `uvm_info(get_type_name(), $sformatf("legal combination match: d2h rsp opcode is %0s h2d req opcode is %0s", host_d2h_rsp_seq_item_h.opcode.name(), h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode.name()), UVM_NONE);  
+          end else if(host_d2h_rsp_seq_item_h.opcode inside{GEET_CXL_CACHE_OPCODE_RSPSFWDM} && h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode inside {GEET_CXL_CACHE_OPCODE_SNPDATA, GEET_CXL_CACHE_OPCODE_SNPCURR}) begin
+            `uvm_info(get_type_name(), $sformatf("legal combination match: d2h rsp opcode is %0s h2d req opcode is %0s", host_d2h_rsp_seq_item_h.opcode.name(), h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode.name()), UVM_NONE);  
+          end else if(host_d2h_rsp_seq_item_h.opcode inside{GEET_CXL_CACHE_OPCODE_RSPIFWDM} && h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode inside {GEET_CXL_CACHE_OPCODE_SNPDATA, GEET_CXL_CACHE_OPCODE_SNPINV, GEET_CXL_CACHE_OPCODE_SNPCURR}) begin
+            `uvm_info(get_type_name(), $sformatf("legal combination match: d2h rsp opcode is %0s h2d req opcode is %0s", host_d2h_rsp_seq_item_h.opcode.name(), h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode.name()), UVM_NONE);  
+          end else if(host_d2h_rsp_seq_item_h.opcode inside{GEET_CXL_CACHE_OPCODE_RSPVFWDV} && h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode inside {GEET_CXL_CACHE_OPCODE_SNPCURR}) begin
+            `uvm_info(get_type_name(), $sformatf("legal combination match: d2h rsp opcode is %0s h2d req opcode is %0s", host_d2h_rsp_seq_item_h.opcode.name(), h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode.name()), UVM_NONE);  
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("mismatch illegal combination: d2h rsp opcode is %0s h2d req opcode is %0s", host_d2h_rsp_seq_item_h.opcode.name(), h2d_req_d2h_rsp_aa[host_d2h_rsp_seq_item_h.uqid].opcode.name()));  
+          end
+        end
+      end
+    endtask
+
+    task host_m2s_req();
+      forever begin
+        host_m2s_req_fifo.get(host_m2s_req_seq_item_h);
+        m2s_req_d2h_rsp_aa[host_m2s_req_seq_item_h.tag] = host_m2s_req_seq_item_h;
+        host_m2s_req_dev_m2s_req_integ_aa[host_m2s_req_seq_item_h.tag] = host_m2s_req_seq_item_h;
+      end
+    endtask
+
+    task host_m2s_rwd();
+      forever begin
+        host_m2s_rwd_fifo.get(host_m2s_rwd_seq_item_h);
+        m2s_rwd_s2m_ndr_aa[host_m2s_rwd_seq_item_h.tag] = host_m2s_rwd_seq_item_h;
+        host_m2s_rwd_dev_m2s_rwd_integ_aa[host_m2s_rwd_seq_item_h.tag] = host_m2s_rwd_seq_item_h;
+      end
+    endtask
+
+    task dev_s2m_ndr();
+      forever begin
+        dev_s2m_ndr_fifo.get(dev_s2m_ndr_seq_item_h);
+        dev_s2m_ndr_host_s2m_ndr_integ_aa[dev_s2m_ndr_seq_item_h.tag] = dev_s2m_ndr_seq_item_h;
+      end
+    endtask
+
+    task dev_s2m_drs();
+      forever begin
+        dev_s2m_drs_fifo.get(dev_s2m_drs_seq_item_h);
+        dev_s2m_drs_host_s2m_drs_integ_aa[dev_s2m_drs_seq_item_h.tag] = dev_s2m_drs_seq_item_h;
+      end
+    endtask
+
+    task dev_m2s_req();
+      forever begin
+        dev_m2s_req_fifo.get(dev_m2s_req_seq_item_h);
+        if(host_m2s_req_dev_m2s_req_integ_aa.exists(dev_m2s_req_seq_item_h.tag)) begin
+          host_m2s_req_dev_m2s_req_integ_aa.delete(dev_m2s_req_seq_item_h.tag);
+          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_m2s_req_seq_item_h.tag), UVM_NONE);
+        end else if(memrdfwd_aa.exists(dev_m2s_req_seq_item_h.tag)) begin
+          `uvm_info(get_type_name(), $sformatf("matching tag for rd forward flows with uqid tag match = %0h", dev_m2s_req_seq_item_h.tag), UVM_NONE);
+          if((memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode inside {GEET_CXL_CACHE_OPCODE_RDCURR}) && (dev_m2s_req_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY, GEET_CXL_MEM_MV_METAVALUE_SHARED, GEET_CXL_MEM_MV_METAVALUE_INVALID})) begin
+            `uvm_info(get_type_name(), $sformatf("legal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()), UVM_NONE);
+            memrdfwd_aa.delete(dev_m2s_req_seq_item_h.tag)
+          end else if((memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode inside {GEET_CXL_CACHE_OPCODE_RDSHARED, GEET_CXL_CACHE_OPCODE_RDANY}) && (dev_m2s_req_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED, GEET_CXL_MEM_MV_METAVALUE_INVALID})) begin
+            `uvm_info(get_type_name(), $sformatf("legal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()), UVM_NONE);
+            memrdfwd_aa.delete(dev_m2s_req_seq_item_h.tag)
+          end else if((memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode inside {GEET_CXL_CACHE_OPCODE_RDOWN, GEET_CXL_CACHE_OPCODE_RDOWNNODATA, GEET_CXL_CACHE_OPCODE_CLFLUSH}) && (dev_m2s_req_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID})) begin
+            `uvm_info(get_type_name(), $sformatf("legal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()), UVM_NONE);
+            memrdfwd_aa.delete(dev_m2s_req_seq_item_h.tag)
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("illegal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()));
+          end
+        end else if(memwrfwd_aa.exists(dev_m2s_req_seq_item_h.tag)) begin
+          `uvm_info(get_type_name(), $sformatf("matching tag for wr forward flows with uqid tag match = %0h", dev_m2s_req_seq_item_h.tag), UVM_NONE);
+          if((memwrfwd_aa[dev_m2s_req_seq_item_h.tag].opcode inside {GEET_CXL_CACHE_OPCODE_WOWRINV, GEET_CXL_CACHE_OPCODE_WOWRINVF}) && (dev_m2s_req_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID})) begin
+            `uvm_info(get_type_name(), $sformatf("legal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()), UVM_NONE);
+            memwrfwd_aa.delete(dev_m2s_req_seq_item_h.tag)
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("illegal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()));
+          end
+        end else begin
+          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not ent from the other side", dev_m2s_req_seq_item_h.uqid));
+        end
+      end
+      m2s_req_s2m_ndr_aa[dev_m2s_req_seq_item_h.tag] = dev_m2s_req_seq_item_h;
+      m2s_req_s2m_drs_aa[dev_m2s_req_seq_item_h.tag] = dev_m2s_req_seq_item_h;
+    endtask
+
+    task dev_m2s_rwd();
+      forever begin
+        dev_m2s_rwd_fifo.get(dev_m2s_rwd_seq_item_h);
+        if(host_m2s_rwd_dev_m2s_rwd_integ_aa.exists(dev_m2s_rwd_seq_item_h.uqid)) begin
+          host_m2s_rwd_dev_m2s_rwd_integ_aa.delete(dev_m2s_rwd_seq_item_h.uqid);
+          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_m2s_rwd_seq_item_h.uqid), UVM_NONE);
+        end else begin
+          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not ent from the other side", dev_m2s_rwd_seq_item_h.uqid));
+        end
+        m2s_rwd_s2m_ndr_aa[dev_m2s_rwd_seq_item_h.tag] = dev_m2s_rwd_seq_item_h;
+      end
+    endtask
+
+    task host_s2m_ndr();
+      forever begin
+        host_s2m_ndr_fifo.get(host_s2m_ndr_seq_item_h);
+        if(dev_s2m_ndr_host_s2m_ndr_integ_aa.exists(host_s2m_ndr_seq_item_h.uqid)) begin
+          dev_s2m_ndr_host_s2m_ndr_integ_aa.delete(host_s2m_ndr_seq_item_h.uqid);
+          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", host_s2m_ndr_seq_item_h.uqid), UVM_NONE);
+        end else begin
+          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not ent from the other side", host_s2m_ndr_seq_item_h.uqid));
+        end
+        if(m2s_rwd_s2m_ndr_aa.exists(host_s2m_ndr_seq_item_h.tag)) begin
+          `uvm_info(get_type_name(), $sformatf("tag match %0h m2s rwd opcode %0s s2m ndr opcode %0s", host_s2m_ndr_seq_item_h.tag, m2s_rwd_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode.name(), host_s2m_ndr_seq_item_h.opcode.name()),UVM_NONE)
+          if(host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP} && host_s2m_ndr_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP}) begin
+            `uvm_info(get_type_name(), $sformatf("legal combination of s2m ndr opcode %0s and metafield %0s", host_s2m_ndr_seq_item_h.opcode.name(), host_s2m_ndr_seq_item_h.metafield.name()), UVM_NONE);
+            m2s_rwd_s2m_ndr_aa.delete(host_s2m_ndr_seq_item_h.tag);
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("illegal combination of s2m ndr opcode %0s and metafield %0s", host_s2m_ndr_seq_item_h.opcode.name(), host_s2m_ndr_seq_item_h.metafield.name()));
+          end
+        end else if(m2s_req_s2m_ndr_aa.exists(host_s2m_ndr_seq_item_h.tag)) begin
+          `uvm_info(get_type_name(), $sformatf("tag match %0h m2s rwd opcode %0s s2m ndr opcode %0s", host_s2m_ndr_seq_item_h.tag, m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode.name(), host_s2m_ndr_seq_item_h.opcode.name()),UVM_NONE)
+          if((cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3})) begin
+            if(
+               (
+                (
+                  (
+                    (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && 
+                      (
+                        ( 
+                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}) && 
+                          (
+                            (m2s_req_s2m_ndr_aad[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPE}) ||
+                            (m2s_req_s2m_ndr_aad[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPS})
+                            (m2s_req_s2m_ndr_aad[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP})
+                          )
+                        )
+                      ) || 
+                      (
+                        ( 
+                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP})
+                        )
+                      )
+                  ) || (
+                    (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && 
+                    (
+                      (
+                        (
+                          m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}
+                        ) && (
+                          (
+                            (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_CMPE})  &&
+                            (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY}) && 
+                            (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID})
+                          ) || (
+                            (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPS})  &&
+                            (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED}) 
+                          )
+                        )
+                      ) || (
+                        (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP}) && 
+                        ( 
+                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_CMPS, GEET_CXL_MEM_OPCODE_CMPE})
+                        )
+                      )
+                    )
+                  ) || (
+                    (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) &&
+                    (
+                      ((m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP})) 
+                    ) || (
+                      (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}) && (
+                        (
+                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPE})
+                        ) || (
+                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPS, GEET_CXL_MEM_OPCODE_CMPE})
+                        ) || (
+                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP})
+                        )
+                      )
+                    )
+                  )
+                )  
+               )
+              ) begin
+              `uvm_info(get_type_name(), $sformatf("legal combination for type 3 %0s opcode %0s", cxl_cfg_obj_h.cxl_type.name(), m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode.name()));
+              m2s_req_s2m_ndr_aa.delete(host_s2m_ndr_seq_item_h.tag);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal combination of s2m ndr opcode %0s and metafield %0s", host_s2m_ndr_seq_item_h.opcode.name(), host_s2m_ndr_seq_item_h.metafield.name()));
+            end
+          end else if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2}) begin
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("invalid opcode %0s", m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode.name()));
+          end
+        end else begin
+          `uvm_error(get_type_name(), $sformatf("no matching tag s2m ndr txn with tag %0h", host_s2m_ndr_seq_item_h.tag));
+        end
+      end
+    endtask
+
+    task host_s2m_drs();
+      forever begin
+        host_s2m_drs_fifo.get(host_s2m_drs_seq_item_h);
+        if(dev_s2m_drs_host_s2m_drs_integ_aa.exists(host_s2m_drs_seq_item_h.uqid)) begin
+          dev_s2m_drs_host_s2m_drs_integ_aa.delete(host_s2m_drs_seq_item_h.uqid);
+          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", host_s2m_drs_seq_item_h.uqid), UVM_NONE);
+        end else begin
+          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not ent from the other side", host_s2m_drs_seq_item_h.uqid));
+        end
+        if(m2s_req_s2m_drs_aa.exists(host_s2m_drs_seq_item_h.tag)) begin
+          `uvm_info(get_type_name(), $sformatf("tag match %0h m2s req opcode %0s s2m drs opcode %0s", host_s2m_drs_seq_item_h.tag, m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode.name(), host_s2m_drs_seq_item_h.opcode.name()),UVM_NONE)
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3}) begin
+            if(m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA}) begin
+              if((m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag] inside {GEET_CXL_MEM_OPCODE_MEMRD}) || ((m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && (((host_s2m_drs_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}) && host_s2m_drs_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID, GEET_CXL_MEM_MV_METAVALUE_SHARED, GEET_CXL_MEM_MV_METAVALUE_ANY}) || ( host_s2m_drs_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP})))) begin
+                `uvm_info(get_type_name(), $sformatf("legal combination for type 3 %0s m2s req", cxl_cfg_obj_h.cxl_type.name()))
+                m2s_req_s2m_drs_aa.delete(host_s2m_drs_seq_item_h.tag);
+              end else begin
+                `uvm_error(get_type_name(), $sformatf("illegal combination for type 3 %0s m2s req", cxl_cfg_obj_h.cxl_type.name()))
+              end
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal opcode %0s for type 3 %0s m2s req", m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode.name(), cxl_cfg_obj_h.cxl_type.name()))
+            end
+          end else if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2}) begin
+            if(m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA}) begin
+              if((m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag] inside {GEET_CXL_MEM_OPCODE_MEMRD}) || ((m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && (((host_s2m_drs_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}) && host_s2m_drs_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID, GEET_CXL_MEM_MV_METAVALUE_SHARED, GEET_CXL_MEM_MV_METAVALUE_ANY}) || ( host_s2m_drs_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP})))) begin
+                `uvm_info(get_type_name(), $sformatf("legal combination for type 2 %0s m2s req", cxl_cfg_obj_h.cxl_type.name()))
+                m2s_req_s2m_drs_aa.delete(host_s2m_drs_seq_item_h.tag);
+              end else begin
+                `uvm_error(get_type_name(), $sformatf("illegal combination for type 2 %0s m2s req", cxl_cfg_obj_h.cxl_type.name()))
+              end
+            end else begin  
+              `uvm_error(get_type_name(), $sformatf("illegal opcode %0s for type 2 %0s m2s req", m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode.name(), cxl_cfg_obj_h.cxl_type.name()))
+            end
+          end
+        end else begin
+          `uvm_error(get_type_name(), $sformatf("missing tag s2m drs opcode %0h", host_s2m_drs_seq_item_h.tag));
+        end
+      end
+    endtask
+
+  endclass
 
   class cxl_cm_vsequencer extends uvm_sequencer;
     `uvm_component_utils(cxl_cm_vsequencer)
@@ -13048,6 +13763,7 @@ module tb_top;
     dev_m2s_rwd_sequencer       dev_m2s_rwd_seqr;
     dev_s2m_ndr_sequencer       dev_s2m_ndr_seqr;
     dev_s2m_drs_sequencer       dev_s2m_drs_seqr;
+    cxl_cfg_obj                 cxl_cfg_obj_h;
 
     function new(string name = "cxl_cm_vsequencer", uvm_component parent = null);
       super.new(name, parent);
@@ -13057,26 +13773,33 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm virtual sequencer : %s", get_full_name()), UVM_HIGH)
-      dev_d2h_req_seqr    = dev_d2h_req_sequencer::type_id::create("dev_d2h_req_seqr", this);
-      dev_d2h_rsp_seqr    = dev_d2h_rsp_sequencer::type_id::create("dev_d2h_rsp_seqr", this);
-      dev_d2h_data_seqr   = dev_d2h_data_sequencer::type_id::create("dev_d2h_data_seqr", this);
-      dev_h2d_req_seqr    = dev_h2d_req_sequencer::type_id::create("dev_h2d_req_seqr", this);
-      dev_h2d_rsp_seqr    = dev_h2d_rsp_sequencer::type_id::create("dev_h2d_rsp_seqr", this);
-      dev_h2d_data_seqr   = dev_h2d_data_sequencer::type_id::create("dev_h2d_data_seqr", this);
-      dev_m2s_req_seqr    = dev_m2s_req_sequencer::type_id::create("dev_m2s_req_seqr", this);
-      dev_m2s_rwd_seqr    = dev_m2s_rwd_sequencer::type_id::create("dev_m2s_rwd_seqr", this);
-      dev_s2m_ndr_seqr    = dev_s2m_ndr_sequencer::type_id::create("dev_s2m_ndr_seqr", this);
-      dev_s2m_drs_seqr    = dev_s2m_drs_sequencer::type_id::create("dev_s2m_drs_seqr", this);
-      host_d2h_req_seqr   = host_d2h_req_sequencer::type_id::create("host_d2h_req_seqr", this);
-      host_d2h_rsp_seqr   = host_d2h_rsp_sequencer::type_id::create("host_d2h_rsp_seqr", this);
-      host_d2h_data_seqr  = host_d2h_data_sequencer::type_id::create("host_d2h_data_seqr", this);
-      host_h2d_req_seqr   = host_h2d_req_sequencer::type_id::create("host_h2d_req_seqr", this);
-      host_h2d_rsp_seqr   = host_h2d_rsp_sequencer::type_id::create("host_h2d_rsp_seqr", this);
-      host_h2d_data_seqr  = host_h2d_data_sequencer::type_id::create("host_h2d_data_seqr", this);
-      host_m2s_req_seqr   = host_m2s_req_sequencer::type_id::create("host_m2s_req_seqr", this);
-      host_m2s_rwd_seqr   = host_m2s_rwd_sequencer::type_id::create("host_m2s_rwd_seqr", this);
-      host_s2m_ndr_seqr   = host_s2m_ndr_sequencer::type_id::create("host_s2m_ndr_seqr", this);
-      host_s2m_drs_seqr   = host_s2m_drs_sequencer::type_id::create("host_s2m_drs_seqr", this);
+      if(!uvm_resource_db#(cxl_cfg_obj)::read_by_name("", "cxl_cfg_obj_h", cxl_cfg_obj_h)) begin
+        `uvm_fatal("CXL_CFG_OBJ", "cxl_cfg_obj not found")
+      end
+      if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+        dev_d2h_req_seqr    = dev_d2h_req_sequencer::type_id::create("dev_d2h_req_seqr", this);
+        dev_d2h_rsp_seqr    = dev_d2h_rsp_sequencer::type_id::create("dev_d2h_rsp_seqr", this);
+        dev_d2h_data_seqr   = dev_d2h_data_sequencer::type_id::create("dev_d2h_data_seqr", this);
+        dev_h2d_req_seqr    = dev_h2d_req_sequencer::type_id::create("dev_h2d_req_seqr", this);
+        dev_h2d_rsp_seqr    = dev_h2d_rsp_sequencer::type_id::create("dev_h2d_rsp_seqr", this);
+        dev_h2d_data_seqr   = dev_h2d_data_sequencer::type_id::create("dev_h2d_data_seqr", this);
+        host_d2h_req_seqr   = host_d2h_req_sequencer::type_id::create("host_d2h_req_seqr", this);
+        host_d2h_rsp_seqr   = host_d2h_rsp_sequencer::type_id::create("host_d2h_rsp_seqr", this);
+        host_d2h_data_seqr  = host_d2h_data_sequencer::type_id::create("host_d2h_data_seqr", this);
+        host_h2d_req_seqr   = host_h2d_req_sequencer::type_id::create("host_h2d_req_seqr", this);
+        host_h2d_rsp_seqr   = host_h2d_rsp_sequencer::type_id::create("host_h2d_rsp_seqr", this);
+        host_h2d_data_seqr  = host_h2d_data_sequencer::type_id::create("host_h2d_data_seqr", this);
+      end  
+      if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
+        host_m2s_req_seqr   = host_m2s_req_sequencer::type_id::create("host_m2s_req_seqr", this);
+        host_m2s_rwd_seqr   = host_m2s_rwd_sequencer::type_id::create("host_m2s_rwd_seqr", this);
+        host_s2m_ndr_seqr   = host_s2m_ndr_sequencer::type_id::create("host_s2m_ndr_seqr", this);
+        host_s2m_drs_seqr   = host_s2m_drs_sequencer::type_id::create("host_s2m_drs_seqr", this);
+        dev_m2s_req_seqr    = dev_m2s_req_sequencer::type_id::create("dev_m2s_req_seqr", this);
+        dev_m2s_rwd_seqr    = dev_m2s_rwd_sequencer::type_id::create("dev_m2s_rwd_seqr", this);
+        dev_s2m_ndr_seqr    = dev_s2m_ndr_sequencer::type_id::create("dev_s2m_ndr_seqr", this);
+        dev_s2m_drs_seqr    = dev_s2m_drs_sequencer::type_id::create("dev_s2m_drs_seqr", this);
+      end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm virtual sequencer : %s", get_full_name()), UVM_HIGH)
     endfunction
 
@@ -13105,6 +13828,7 @@ module tb_top;
     host_s2m_ndr_agent      host_s2m_ndr_agent_h;
     host_s2m_drs_agent      host_s2m_drs_agent_h;
     cxl_cm_vsequencer       cxl_cm_vseqr;
+    cxl_cm_scoreboard       cxl_cm_scoreboard_h;
     cxl_cfg_obj             cxl_cfg_obj_h;
 
     function new(string name = "cxl_cm_env", uvm_component parent = null);
@@ -13121,26 +13845,31 @@ module tb_top;
       end;
       `uvm_info(get_type_name(), $sformatf("cxl_cfg_obj_h addr = %0p", cxl_cfg_obj_h), UVM_NONE)
       uvm_resource_db#(cxl_cfg_obj)::set("*", "cxl_cfg_obj_h", cxl_cfg_obj_h);
-      host_d2h_req_agent_h  = host_d2h_req_agent::type_id::create("host_d2h_req_agent_h", this);
-      host_d2h_rsp_agent_h  = host_d2h_rsp_agent::type_id::create("host_d2h_rsp_agent_h", this);
-      host_d2h_data_agent_h = host_d2h_data_agent::type_id::create("host_d2h_data_agent_h", this);
-      dev_h2d_req_agent_h   = dev_h2d_req_agent::type_id::create("dev_h2d_req_agent_h", this);
-      dev_h2d_rsp_agent_h   = dev_h2d_rsp_agent::type_id::create("dev_h2d_rsp_agent_h", this);
-      dev_h2d_data_agent_h  = dev_h2d_data_agent::type_id::create("dev_h2d_data_agent_h", this);
-      dev_m2s_req_agent_h   = dev_m2s_req_agent::type_id::create("dev_m2s_req_agent_h", this);
-      dev_m2s_rwd_agent_h   = dev_m2s_rwd_agent::type_id::create("dev_m2s_rwd_agent_h", this);
-      host_s2m_ndr_agent_h  = host_s2m_ndr_agent::type_id::create("host_s2m_ndr_agent_h", this);
-      host_s2m_drs_agent_h  = host_s2m_drs_agent::type_id::create("host_s2m_drs_agent_h", this);
-      dev_d2h_req_agent_h   = dev_d2h_req_agent::type_id::create("dev_d2h_req_agent_h", this);
-      dev_d2h_rsp_agent_h   = dev_d2h_rsp_agent::type_id::create("dev_d2h_rsp_agent_h", this);
-      dev_d2h_data_agent_h  = dev_d2h_data_agent::type_id::create("dev_d2h_data_agent_h", this);
-      host_h2d_req_agent_h  = host_h2d_req_agent::type_id::create("host_h2d_req_agent_h", this);
-      host_h2d_rsp_agent_h  = host_h2d_rsp_agent::type_id::create("host_h2d_rsp_agent_h", this);
-      host_h2d_data_agent_h = host_h2d_data_agent::type_id::create("host_h2d_data_agent_h", this);
-      host_m2s_req_agent_h  = host_m2s_req_agent::type_id::create("host_m2s_req_agent_h", this);
-      host_m2s_rwd_agent_h  = host_m2s_rwd_agent::type_id::create("host_m2s_rwd_agent_h", this);
-      dev_s2m_ndr_agent_h   = dev_s2m_ndr_agent::type_id::create("dev_s2m_ndr_agent_h", this);
-      dev_s2m_drs_agent_h   = dev_s2m_drs_agent::type_id::create("dev_s2m_drs_agent_h", this);
+      if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+        host_d2h_req_agent_h  = host_d2h_req_agent::type_id::create("host_d2h_req_agent_h", this);
+        host_d2h_rsp_agent_h  = host_d2h_rsp_agent::type_id::create("host_d2h_rsp_agent_h", this);
+        host_d2h_data_agent_h = host_d2h_data_agent::type_id::create("host_d2h_data_agent_h", this);
+        dev_h2d_req_agent_h   = dev_h2d_req_agent::type_id::create("dev_h2d_req_agent_h", this);
+        dev_h2d_rsp_agent_h   = dev_h2d_rsp_agent::type_id::create("dev_h2d_rsp_agent_h", this);
+        dev_h2d_data_agent_h  = dev_h2d_data_agent::type_id::create("dev_h2d_data_agent_h", this);
+        dev_d2h_req_agent_h   = dev_d2h_req_agent::type_id::create("dev_d2h_req_agent_h", this);
+        dev_d2h_rsp_agent_h   = dev_d2h_rsp_agent::type_id::create("dev_d2h_rsp_agent_h", this);
+        dev_d2h_data_agent_h  = dev_d2h_data_agent::type_id::create("dev_d2h_data_agent_h", this);
+        host_h2d_req_agent_h  = host_h2d_req_agent::type_id::create("host_h2d_req_agent_h", this);
+        host_h2d_rsp_agent_h  = host_h2d_rsp_agent::type_id::create("host_h2d_rsp_agent_h", this);
+        host_h2d_data_agent_h = host_h2d_data_agent::type_id::create("host_h2d_data_agent_h", this);
+      end
+      if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
+        host_m2s_req_agent_h  = host_m2s_req_agent::type_id::create("host_m2s_req_agent_h", this);
+        host_m2s_rwd_agent_h  = host_m2s_rwd_agent::type_id::create("host_m2s_rwd_agent_h", this);
+        dev_s2m_ndr_agent_h   = dev_s2m_ndr_agent::type_id::create("dev_s2m_ndr_agent_h", this);
+        dev_s2m_drs_agent_h   = dev_s2m_drs_agent::type_id::create("dev_s2m_drs_agent_h", this);
+        dev_m2s_req_agent_h   = dev_m2s_req_agent::type_id::create("dev_m2s_req_agent_h", this);
+        dev_m2s_rwd_agent_h   = dev_m2s_rwd_agent::type_id::create("dev_m2s_rwd_agent_h", this);
+        host_s2m_ndr_agent_h  = host_s2m_ndr_agent::type_id::create("host_s2m_ndr_agent_h", this);
+        host_s2m_drs_agent_h  = host_s2m_drs_agent::type_id::create("host_s2m_drs_agent_h", this);
+      end
+      cxl_cm_scoreboard_h  = cxl_cm_scoreboard::type_id::create("cxl_cm_scoreboard_h", this);
       cxl_cm_vseqr          = cxl_cm_vsequencer::type_id::create("cxl_cm_vseqr", this);
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm environment : %s", get_full_name()), UVM_HIGH)
     endfunction 
@@ -13149,84 +13878,108 @@ module tb_top;
       super.connect_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter connect_phase in uvm environment : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("dev_d2h_req_agent_h is_active = %0s", dev_d2h_req_agent_h.is_active.name()), UVM_FULL)
-      if(dev_d2h_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_d2h_req_seqr   = dev_d2h_req_agent_h.dev_d2h_req_sequencer_h;
+      if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+        if(dev_d2h_req_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.dev_d2h_req_seqr   = dev_d2h_req_agent_h.dev_d2h_req_sequencer_h;
+        end
+        dev_d2h_req_agent_h.dev_d2h_req_monitor_h.d2h_req_port.connect(cxl_cm_scoreboard_h.dev_d2h_req_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("dev_d2h_rsp_agent_h is_active = %0s", dev_d2h_rsp_agent_h.is_active.name()), UVM_FULL)
+        if(dev_d2h_rsp_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.dev_d2h_rsp_seqr   = dev_d2h_rsp_agent_h.dev_d2h_rsp_sequencer_h;
+        end
+        dev_d2h_rsp_agent_h.dev_d2h_rsp_monitor_h.d2h_rsp_port.connect(cxl_cm_scoreboard_h.dev_d2h_rsp_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("dev_d2h_data_agent_h is_active = %0s", dev_d2h_data_agent_h.is_active.name()), UVM_FULL)
+        if(dev_d2h_data_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.dev_d2h_data_seqr  = dev_d2h_data_agent_h.dev_d2h_data_sequencer_h;
+        end
+        dev_d2h_data_agent_h.dev_d2h_data_monitor_h.d2h_data_port.connect(cxl_cm_scoreboard_h.dev_d2h_data_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("host_h2d_req_agent_h is_active = %0s", host_h2d_req_agent_h.is_active.name()), UVM_FULL)
+        if(host_h2d_req_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.host_h2d_req_seqr   = host_h2d_req_agent_h.host_h2d_req_sequencer_h;
+        end
+        host_h2d_req_agent_h.host_h2d_req_monitor_h.h2d_req_port.connect(cxl_cm_scoreboard_h.host_h2d_req_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("host_h2d_rsp_agent_h is_active = %0s", host_h2d_rsp_agent_h.is_active.name()), UVM_FULL)
+        if(host_h2d_rsp_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.host_h2d_rsp_seqr   = host_h2d_rsp_agent_h.host_h2d_rsp_sequencer_h;
+        end
+        host_h2d_rsp_agent_h.host_h2d_rsp_monitor_h.h2d_rsp_port.connect(cxl_cm_scoreboard_h.host_h2d_rsp_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("host_h2d_data_agent_h is_active = %0s", host_h2d_data_agent_h.is_active.name()), UVM_FULL)
+        if(host_h2d_data_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.host_h2d_data_seqr  = host_h2d_data_agent_h.host_h2d_data_sequencer_h;
+        end
+        host_h2d_data_agent_h.host_h2d_data_monitor_h.h2d_data_port.connect(cxl_cm_scoreboard_h.host_h2d_data_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("host_m2s_req_agent_h is_active = %0s", host_m2s_req_agent_h.is_active.name()), UVM_FULL)
+        if(host_m2s_req_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.host_m2s_req_seqr   = host_m2s_req_agent_h.host_m2s_req_sequencer_h;
+        end
+        host_d2h_req_agent_h.host_d2h_req_monitor_h.d2h_req_port.connect(cxl_cm_scoreboard_h.host_d2h_req_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("host_d2h_rsp_agent_h is_active = %0s", host_d2h_rsp_agent_h.is_active.name()), UVM_FULL)
+        if(host_d2h_rsp_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.host_d2h_rsp_seqr   = host_d2h_rsp_agent_h.host_d2h_rsp_sequencer_h;
+        end
+        host_d2h_rsp_agent_h.host_d2h_rsp_monitor_h.d2h_rsp_port.connect(cxl_cm_scoreboard_h.host_d2h_rsp_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("host_d2h_data_agent_h is_active = %0s", host_d2h_data_agent_h.is_active.name()), UVM_FULL)
+        if(host_d2h_data_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.host_d2h_data_seqr  = host_d2h_data_agent_h.host_d2h_data_sequencer_h;
+        end
+        host_d2h_data_agent_h.host_d2h_data_monitor_h.d2h_data_port.connect(cxl_cm_scoreboard_h.host_d2h_data_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("dev_h2d_req_agent_h is_active = %0s", dev_h2d_req_agent_h.is_active.name()), UVM_FULL)
+        if(dev_h2d_req_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.dev_h2d_req_seqr   = dev_h2d_req_agent_h.dev_h2d_req_sequencer_h;
+        end
+        dev_h2d_req_agent_h.dev_h2d_req_monitor_h.h2d_req_port.connect(cxl_cm_scoreboard_h.dev_h2d_req_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("dev_h2d_rsp_agent_h is_active = %0s", dev_h2d_rsp_agent_h.is_active.name()), UVM_FULL)
+        if(dev_h2d_rsp_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.dev_h2d_rsp_seqr   = dev_h2d_rsp_agent_h.dev_h2d_rsp_sequencer_h;
+        end
+        dev_h2d_rsp_agent_h.dev_h2d_rsp_monitor_h.h2d_rsp_port.connect(cxl_cm_scoreboard_h.dev_h2d_rsp_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("dev_h2d_data_agent_h is_active = %0s", dev_h2d_data_agent_h.is_active.name()), UVM_FULL)
+        if(dev_h2d_data_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.dev_h2d_data_seqr  = dev_h2d_data_agent_h.dev_h2d_data_sequencer_h;
+        end
+        dev_h2d_data_agent_h.dev_h2d_data_monitor_h.h2d_data_port.connect(cxl_cm_scoreboard_h.dev_h2d_data_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("dev_m2s_req_agent_h is_active = %0s", dev_m2s_req_agent_h.is_active.name()), UVM_FULL)
+        if(dev_m2s_req_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.dev_m2s_req_seqr   = dev_m2s_req_agent_h.dev_m2s_req_sequencer_h;
+        end
       end
-      `uvm_info(get_type_name(), $sformatf("dev_d2h_rsp_agent_h is_active = %0s", dev_d2h_rsp_agent_h.is_active.name()), UVM_FULL)
-      if(dev_d2h_rsp_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_d2h_rsp_seqr   = dev_d2h_rsp_agent_h.dev_d2h_rsp_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("dev_d2h_data_agent_h is_active = %0s", dev_d2h_data_agent_h.is_active.name()), UVM_FULL)
-      if(dev_d2h_data_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_d2h_data_seqr  = dev_d2h_data_agent_h.dev_d2h_data_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("host_h2d_req_agent_h is_active = %0s", host_h2d_req_agent_h.is_active.name()), UVM_FULL)
-      if(host_h2d_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_h2d_req_seqr   = host_h2d_req_agent_h.host_h2d_req_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("host_h2d_rsp_agent_h is_active = %0s", host_h2d_rsp_agent_h.is_active.name()), UVM_FULL)
-      if(host_h2d_rsp_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_h2d_rsp_seqr   = host_h2d_rsp_agent_h.host_h2d_rsp_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("host_h2d_data_agent_h is_active = %0s", host_h2d_data_agent_h.is_active.name()), UVM_FULL)
-      if(host_h2d_data_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_h2d_data_seqr  = host_h2d_data_agent_h.host_h2d_data_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("host_m2s_req_agent_h is_active = %0s", host_m2s_req_agent_h.is_active.name()), UVM_FULL)
-      if(host_m2s_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_m2s_req_seqr   = host_m2s_req_agent_h.host_m2s_req_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("host_m2s_rwd_agent_h is_active = %0s", host_m2s_rwd_agent_h.is_active.name()), UVM_FULL)
-      if(host_m2s_rwd_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_m2s_rwd_seqr   = host_m2s_rwd_agent_h.host_m2s_rwd_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("dev_s2m_ndr_agent_h is_active = %0s", dev_s2m_ndr_agent_h.is_active.name()), UVM_FULL)
-      if(dev_s2m_ndr_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_s2m_ndr_seqr   = dev_s2m_ndr_agent_h.dev_s2m_ndr_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("dev_s2m_drs_agent_h is_active = %0s", dev_s2m_drs_agent_h.is_active.name()), UVM_FULL)
-      if(dev_s2m_drs_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_s2m_drs_seqr   = dev_s2m_drs_agent_h.dev_s2m_drs_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("host_d2h_req_agent_h is_active = %0s", host_d2h_req_agent_h.is_active.name()), UVM_FULL)
-      if(host_d2h_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_d2h_req_seqr   = host_d2h_req_agent_h.host_d2h_req_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("host_d2h_rsp_agent_h is_active = %0s", host_d2h_rsp_agent_h.is_active.name()), UVM_FULL)
-      if(host_d2h_rsp_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_d2h_rsp_seqr   = host_d2h_rsp_agent_h.host_d2h_rsp_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("host_d2h_data_agent_h is_active = %0s", host_d2h_data_agent_h.is_active.name()), UVM_FULL)
-      if(host_d2h_data_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_d2h_data_seqr  = host_d2h_data_agent_h.host_d2h_data_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("dev_h2d_req_agent_h is_active = %0s", dev_h2d_req_agent_h.is_active.name()), UVM_FULL)
-      if(dev_h2d_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_h2d_req_seqr   = dev_h2d_req_agent_h.dev_h2d_req_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("dev_h2d_rsp_agent_h is_active = %0s", dev_h2d_rsp_agent_h.is_active.name()), UVM_FULL)
-      if(dev_h2d_rsp_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_h2d_rsp_seqr   = dev_h2d_rsp_agent_h.dev_h2d_rsp_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("dev_h2d_data_agent_h is_active = %0s", dev_h2d_data_agent_h.is_active.name()), UVM_FULL)
-      if(dev_h2d_data_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_h2d_data_seqr  = dev_h2d_data_agent_h.dev_h2d_data_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("dev_m2s_req_agent_h is_active = %0s", dev_m2s_req_agent_h.is_active.name()), UVM_FULL)
-      if(dev_m2s_req_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_m2s_req_seqr   = dev_m2s_req_agent_h.dev_m2s_req_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("dev_m2s_rwd_agent_h is_active = %0s", dev_m2s_rwd_agent_h.is_active.name()), UVM_FULL)
-      if(dev_m2s_rwd_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.dev_m2s_rwd_seqr   = dev_m2s_rwd_agent_h.dev_m2s_rwd_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("host_s2m_ndr_agent_h is_active = %0s", host_s2m_ndr_agent_h.is_active.name()), UVM_FULL)
-      if(host_s2m_ndr_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_s2m_ndr_seqr   = host_s2m_ndr_agent_h.host_s2m_ndr_sequencer_h;
-      end
-      `uvm_info(get_type_name(), $sformatf("host_s2m_drs_agent_h is_active = %0s", host_s2m_drs_agent_h.is_active.name()), UVM_FULL)
-      if(host_s2m_drs_agent_h.is_active == UVM_ACTIVE) begin
-        cxl_cm_vseqr.host_s2m_drs_seqr   = host_s2m_drs_agent_h.host_s2m_drs_sequencer_h;
+      if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
+        host_m2s_req_agent_h.host_m2s_req_monitor_h.m2s_req_port.connect(cxl_cm_scoreboard_h.host_m2s_req_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("host_m2s_rwd_agent_h is_active = %0s", host_m2s_rwd_agent_h.is_active.name()), UVM_FULL)
+        if(host_m2s_rwd_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.host_m2s_rwd_seqr   = host_m2s_rwd_agent_h.host_m2s_rwd_sequencer_h;
+        end
+        host_m2s_rwd_agent_h.host_m2s_rwd_monitor_h.m2s_rwd_port.connect(cxl_cm_scoreboard_h.host_m2s_rwd_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("dev_s2m_ndr_agent_h is_active = %0s", dev_s2m_ndr_agent_h.is_active.name()), UVM_FULL)
+        if(dev_s2m_ndr_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.dev_s2m_ndr_seqr   = dev_s2m_ndr_agent_h.dev_s2m_ndr_sequencer_h;
+        end
+        dev_s2m_ndr_agent_h.dev_s2m_ndr_monitor_h.s2m_ndr_port.connect(cxl_cm_scoreboard_h.dev_s2m_ndr_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("dev_s2m_drs_agent_h is_active = %0s", dev_s2m_drs_agent_h.is_active.name()), UVM_FULL)
+        if(dev_s2m_drs_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.dev_s2m_drs_seqr   = dev_s2m_drs_agent_h.dev_s2m_drs_sequencer_h;
+        end
+        dev_s2m_drs_agent_h.dev_s2m_drs_monitor_h.s2m_drs_port.connect(cxl_cm_scoreboard_h.dev_s2m_drs_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("host_d2h_req_agent_h is_active = %0s", host_d2h_req_agent_h.is_active.name()), UVM_FULL)
+        if(host_d2h_req_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.host_d2h_req_seqr   = host_d2h_req_agent_h.host_d2h_req_sequencer_h;
+        end
+        dev_m2s_req_agent_h.dev_m2s_req_monitor_h.m2s_req_port.connect(cxl_cm_scoreboard_h.dev_m2s_req_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("dev_m2s_rwd_agent_h is_active = %0s", dev_m2s_rwd_agent_h.is_active.name()), UVM_FULL)
+        if(dev_m2s_rwd_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.dev_m2s_rwd_seqr   = dev_m2s_rwd_agent_h.dev_m2s_rwd_sequencer_h;
+        end
+        dev_m2s_rwd_agent_h.dev_m2s_rwd_monitor_h.m2s_rwd_port.connect(cxl_cm_scoreboard_h.dev_m2s_rwd_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("host_s2m_ndr_agent_h is_active = %0s", host_s2m_ndr_agent_h.is_active.name()), UVM_FULL)
+        if(host_s2m_ndr_agent_h.is_active == UVM_ACTIVE) begin
+            cxl_cm_vseqr.host_s2m_ndr_seqr   = host_s2m_ndr_agent_h.host_s2m_ndr_sequencer_h;
+        end
+        host_s2m_ndr_agent_h.host_s2m_ndr_monitor_h.s2m_ndr_port.connect(cxl_cm_scoreboard_h.host_s2m_ndr_fifo.analysis_export);
+        `uvm_info(get_type_name(), $sformatf("host_s2m_drs_agent_h is_active = %0s", host_s2m_drs_agent_h.is_active.name()), UVM_FULL)
+        if(host_s2m_drs_agent_h.is_active == UVM_ACTIVE) begin
+          cxl_cm_vseqr.host_s2m_drs_seqr   = host_s2m_drs_agent_h.host_s2m_drs_sequencer_h;
+        end
+        host_s2m_drs_agent_h.host_s2m_drs_monitor_h.s2m_drs_port.connect(cxl_cm_scoreboard_h.host_s2m_drs_fifo.analysis_export);
       end
       `uvm_info(get_type_name(), $sformatf("exit connect_phase in uvm environment : %s", get_full_name()), UVM_HIGH)
     endfunction
@@ -13376,7 +14129,9 @@ module tb_top;
         end
         begin
           forever begin
-            h2d_req_responder_d2h_rsp_data();//understand this is applicable to both v1.1 and future gen for multidevice
+            if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+              h2d_req_responder_d2h_rsp_data();//understand this is applicable to both v1.1 and future gen for multidevice
+            end
           end
         end
         begin
@@ -13386,16 +14141,17 @@ module tb_top;
         end
         begin
           forever begin
-            d2h_req_responder_h2d_rsp_data();//understand this is only applicable to CXLv1.1
+            if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+              d2h_req_responder_h2d_rsp_data();//understand this is only applicable to CXLv1.1
+            end
           end
         end
         begin
-          //TODO: define the TYPE2 and TYPE3 macros in the uvm_config_db or somewhere else based on the env configuration
-          if(cxl_cfg_obj_h.cxl_type == GEET_CXL_TYPE_2) begin
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2}) begin
             forever begin
               type2_m2s_req_rwd_responder_s2m_ndr_drs();
             end
-          end else if (cxl_cfg_obj_h.cxl_type == GEET_CXL_TYPE_3)begin
+          end else if (cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3})begin
             forever begin
               type3_m2s_req_rwd_responder_s2m_ndr_drs();
             end
@@ -14148,6 +14904,7 @@ module tb_top;
     s2m_ndr_seq_item   dev_s2m_ndr_seq_item_h;
     s2m_drs_seq_item   host_s2m_drs_seq_item_h;
     s2m_drs_seq_item   dev_s2m_drs_seq_item_h;
+    cxl_cfg_obj        cxl_cfg_obj_h;
 
     constraint rst_cycles_c{
       soft rst_cycles == 10;
@@ -14160,27 +14917,30 @@ module tb_top;
 
     task body();
       `uvm_info(get_type_name(), $sformatf("starting reset_seq"), UVM_HIGH)
+      if(!uvm_resource_db#(cxl_cfg_obj)::read_by_name("", "cxl_cfg_obj_h", cxl_cfg_obj_h)) begin
+        `uvm_fatal("CXL_CFG_OBJ", "cxl_cfg_obj not found")
+      end
       fork
-        `uvm_do_on_with(dev_d2h_req_seq_item_h,    p_sequencer.dev_d2h_req_seqr,   {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(dev_d2h_rsp_seq_item_h,    p_sequencer.dev_d2h_rsp_seqr,   {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(dev_d2h_data_seq_item_h,   p_sequencer.dev_d2h_data_seqr,  {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(dev_h2d_req_seq_item_h,    p_sequencer.dev_h2d_req_seqr,   {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(dev_h2d_rsp_seq_item_h,    p_sequencer.dev_h2d_rsp_seqr,   {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(dev_h2d_data_seq_item_h,   p_sequencer.dev_h2d_data_seqr,  {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(host_d2h_req_seq_item_h,   p_sequencer.host_d2h_req_seqr,  {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(host_d2h_rsp_seq_item_h,   p_sequencer.host_d2h_rsp_seqr,  {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(host_d2h_data_seq_item_h,  p_sequencer.host_d2h_data_seqr, {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(host_h2d_req_seq_item_h,   p_sequencer.host_h2d_req_seqr,  {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(host_h2d_rsp_seq_item_h,   p_sequencer.host_h2d_rsp_seqr,  {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(host_h2d_data_seq_item_h,  p_sequencer.host_h2d_data_seqr, {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(host_m2s_req_seq_item_h,   p_sequencer.host_m2s_req_seqr,  {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(dev_m2s_req_seq_item_h,    p_sequencer.dev_m2s_req_seqr,   {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(host_m2s_rwd_seq_item_h,   p_sequencer.host_m2s_rwd_seqr,  {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(dev_m2s_rwd_seq_item_h,    p_sequencer.dev_m2s_rwd_seqr,   {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(host_s2m_ndr_seq_item_h,   p_sequencer.host_s2m_ndr_seqr,  {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(host_s2m_drs_seq_item_h,   p_sequencer.host_s2m_drs_seqr,  {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(dev_s2m_ndr_seq_item_h,    p_sequencer.dev_s2m_ndr_seqr,   {reset_cycles == rst_cycles;});
-        `uvm_do_on_with(dev_s2m_drs_seq_item_h,    p_sequencer.dev_s2m_drs_seqr,   {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_d2h_req_seq_item_h,    p_sequencer.dev_d2h_req_seqr,   {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_d2h_rsp_seq_item_h,    p_sequencer.dev_d2h_rsp_seqr,   {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_d2h_data_seq_item_h,   p_sequencer.dev_d2h_data_seqr,  {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_h2d_req_seq_item_h,    p_sequencer.dev_h2d_req_seqr,   {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_h2d_rsp_seq_item_h,    p_sequencer.dev_h2d_rsp_seqr,   {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_h2d_data_seq_item_h,   p_sequencer.dev_h2d_data_seqr,  {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_d2h_req_seq_item_h,   p_sequencer.host_d2h_req_seqr,  {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_d2h_rsp_seq_item_h,   p_sequencer.host_d2h_rsp_seqr,  {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_d2h_data_seq_item_h,  p_sequencer.host_d2h_data_seqr, {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_h2d_req_seq_item_h,   p_sequencer.host_h2d_req_seqr,  {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_h2d_rsp_seq_item_h,   p_sequencer.host_h2d_rsp_seqr,  {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_h2d_data_seq_item_h,  p_sequencer.host_h2d_data_seqr, {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_m2s_req_seq_item_h,   p_sequencer.host_m2s_req_seqr,  {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_m2s_req_seq_item_h,    p_sequencer.dev_m2s_req_seqr,   {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_m2s_rwd_seq_item_h,   p_sequencer.host_m2s_rwd_seqr,  {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_m2s_rwd_seq_item_h,    p_sequencer.dev_m2s_rwd_seqr,   {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_s2m_ndr_seq_item_h,   p_sequencer.host_s2m_ndr_seqr,  {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_s2m_drs_seq_item_h,   p_sequencer.host_s2m_drs_seqr,  {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_s2m_ndr_seq_item_h,    p_sequencer.dev_s2m_ndr_seqr,   {reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_s2m_drs_seq_item_h,    p_sequencer.dev_s2m_drs_seqr,   {reset_cycles == rst_cycles;});
       join
       `uvm_info(get_type_name(), $sformatf("stopping reset_seq"), UVM_HIGH)
     endtask
@@ -14201,6 +14961,7 @@ module tb_top;
     m2s_rwd_seq_item   host_m2s_rwd_seq_item_h;
     s2m_ndr_seq_item   dev_s2m_ndr_seq_item_h;
     s2m_drs_seq_item   dev_s2m_drs_seq_item_h;
+    cxl_cfg_obj        cxl_cfg_obj_h;
 
     function new(string name = "cxl_configure_seq");
       super.new(name);
@@ -14209,17 +14970,20 @@ module tb_top;
 
     task body();
       `uvm_info(get_type_name(), $sformatf("starting reset_seq"), UVM_HIGH)
+      if(!uvm_resource_db#(cxl_cfg_obj)::read_by_name("", "cxl_cfg_obj_h", cxl_cfg_obj_h)) begin
+        `uvm_fatal("CXL_CFG_OBJ", "cxl_cfg_obj not found")
+      end
       fork
-        `uvm_do_on(dev_d2h_req_seq_item_h,    p_sequencer.dev_d2h_req_seqr);
-        `uvm_do_on(dev_d2h_rsp_seq_item_h,    p_sequencer.dev_d2h_rsp_seqr);
-        `uvm_do_on(dev_d2h_data_seq_item_h,   p_sequencer.dev_d2h_data_seqr);
-        `uvm_do_on(host_h2d_req_seq_item_h,   p_sequencer.host_h2d_req_seqr);
-        `uvm_do_on(host_h2d_rsp_seq_item_h,   p_sequencer.host_h2d_rsp_seqr);
-        `uvm_do_on(host_h2d_data_seq_item_h,  p_sequencer.host_h2d_data_seqr);
-        `uvm_do_on(host_m2s_req_seq_item_h,   p_sequencer.host_m2s_req_seqr);
-        `uvm_do_on(host_m2s_rwd_seq_item_h,   p_sequencer.host_m2s_rwd_seqr);
-        `uvm_do_on(dev_s2m_ndr_seq_item_h,    p_sequencer.dev_s2m_ndr_seqr);
-        `uvm_do_on(dev_s2m_drs_seq_item_h,    p_sequencer.dev_s2m_drs_seqr);
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on(dev_d2h_req_seq_item_h,    p_sequencer.dev_d2h_req_seqr);
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on(dev_d2h_rsp_seq_item_h,    p_sequencer.dev_d2h_rsp_seqr);
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on(dev_d2h_data_seq_item_h,   p_sequencer.dev_d2h_data_seqr);
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on(host_h2d_req_seq_item_h,   p_sequencer.host_h2d_req_seqr);
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on(host_h2d_rsp_seq_item_h,   p_sequencer.host_h2d_rsp_seqr);
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on(host_h2d_data_seq_item_h,  p_sequencer.host_h2d_data_seqr);
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on(host_m2s_req_seq_item_h,   p_sequencer.host_m2s_req_seqr);
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on(host_m2s_rwd_seq_item_h,   p_sequencer.host_m2s_rwd_seqr);
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on(dev_s2m_ndr_seq_item_h,    p_sequencer.dev_s2m_ndr_seqr);
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on(dev_s2m_drs_seq_item_h,    p_sequencer.dev_s2m_drs_seqr);
       join
       `uvm_info(get_type_name(), $sformatf("stopping reset_seq"), UVM_HIGH)
 
@@ -14230,11 +14994,12 @@ module tb_top;
   class cxl_vseq extends uvm_sequence;
     `uvm_object_utils(cxl_vseq)
     `uvm_declare_p_sequencer(cxl_cm_vsequencer)
-    dev_d2h_req_seq   dev_d2h_req_seq_h;
-    host_h2d_req_seq  host_h2d_req_seq_h;
-    host_m2s_req_seq  host_m2s_req_seq_h;
-    host_m2s_rwd_seq  host_m2s_rwd_seq_h;
-    cxl_cm_responder_seq cxl_cm_responder_seq_h;
+    cxl_cfg_obj           cxl_cfg_obj_h;
+    dev_d2h_req_seq       dev_d2h_req_seq_h;
+    host_h2d_req_seq      host_h2d_req_seq_h;
+    host_m2s_req_seq      host_m2s_req_seq_h;
+    host_m2s_rwd_seq      host_m2s_rwd_seq_h;
+    cxl_cm_responder_seq  cxl_cm_responder_seq_h;
 
     function new(string name = "cxl_vseq");
       super.new(name);
@@ -14242,26 +15007,37 @@ module tb_top;
     endfunction
 
     task body();
+      if(!uvm_resource_db#(cxl_cfg_obj)::read_by_name("", "cxl_cfg_obj_h", cxl_cfg_obj_h)) begin
+        `uvm_fatal("CXL_CFG_OBJ", "cxl_cfg_obj not found")
+      end
       fork 
         begin
-          `uvm_info(get_type_name(), $sformatf("starting dev_d2h_req_seq"), UVM_HIGH)
-          `uvm_do_on_with(dev_d2h_req_seq_h, p_sequencer, {num_trans == 1;});
-          `uvm_info(get_type_name(), $sformatf("completed dev_d2h_req_seq"), UVM_HIGH)  
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+            `uvm_info(get_type_name(), $sformatf("starting dev_d2h_req_seq"), UVM_HIGH)
+            `uvm_do_on_with(dev_d2h_req_seq_h, p_sequencer, {num_trans == 1;});
+            `uvm_info(get_type_name(), $sformatf("completed dev_d2h_req_seq"), UVM_HIGH)  
+          end
         end
         begin
-          `uvm_info(get_type_name(), $sformatf("starting host_h2d_req_seq"), UVM_HIGH)
-          `uvm_do_on_with(host_h2d_req_seq_h, p_sequencer, {num_trans == 1;});
-          `uvm_info(get_type_name(), $sformatf("completed host_h2d_req_seq"), UVM_HIGH)
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+            `uvm_info(get_type_name(), $sformatf("starting host_h2d_req_seq"), UVM_HIGH)
+            `uvm_do_on_with(host_h2d_req_seq_h, p_sequencer, {num_trans == 1;});
+            `uvm_info(get_type_name(), $sformatf("completed host_h2d_req_seq"), UVM_HIGH)
+          end
         end
         begin
-          `uvm_info(get_type_name(), $sformatf("starting host_m2s_req_seq"), UVM_HIGH)
-          `uvm_do_on_with(host_m2s_req_seq_h, p_sequencer, {num_trans == 1;});
-          `uvm_info(get_type_name(), $sformatf("completed host_m2s_req_seq"), UVM_HIGH)
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
+            `uvm_info(get_type_name(), $sformatf("starting host_m2s_req_seq"), UVM_HIGH)
+            `uvm_do_on_with(host_m2s_req_seq_h, p_sequencer, {num_trans == 1;});
+            `uvm_info(get_type_name(), $sformatf("completed host_m2s_req_seq"), UVM_HIGH)
+          end
         end
         begin
-          `uvm_info(get_type_name(), $sformatf("starting host_m2s_rwd_seq"), UVM_HIGH)
-          `uvm_do_on_with(host_m2s_rwd_seq_h, p_sequencer, {num_trans == 1;});
-          `uvm_info(get_type_name(), $sformatf("completed host_m2s_rwd_seq"), UVM_HIGH)
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
+            `uvm_info(get_type_name(), $sformatf("starting host_m2s_rwd_seq"), UVM_HIGH)
+            `uvm_do_on_with(host_m2s_rwd_seq_h, p_sequencer, {num_trans == 1;});
+            `uvm_info(get_type_name(), $sformatf("completed host_m2s_rwd_seq"), UVM_HIGH)
+          end
         end
         begin
           `uvm_info(get_type_name(), $sformatf("starting cxl_cm_responder_seq"), UVM_HIGH)
