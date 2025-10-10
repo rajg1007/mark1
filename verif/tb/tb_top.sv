@@ -1,7 +1,10 @@
+//TODO: do you want to incorporate memwr from fig40/38?
+//TODO: do you want to incorporate bias flip flows? do you want bias table and assign mem regions specifying device mem and host mem?
 //TODO: add monitor checks if rsp is GO then MESI rspdata should be as per encoded this is missing check
+//TODO: (no need of this) - best way to find out if the uqid is a wrinv then save it in psequencer and refer to it through uqid and send that response that support needs to be added you can just rspd to go I/err just through this opcode you need to know if it is a write so we can send back the wr rsp
 //TODO: CXLv2.0 spec pg num 623 how do you relate to drs and ndr such as for memrddata rows, currently missing, need to add logic to relate these 
 //TODO: add static assertions to check legal combinations of m2s req/rwd opcode  snp and meta in the monitors itself
-//TODO: responder seq bug it is only doing req rsp it is not doing rsp rsp like wr pull should cause a copy uqid txn then send it back to h2d device path that is missing??
+//TODO: (fixed) - responder seq bug it is only doing req rsp it is not doing rsp rsp like wr pull should cause a copy uqid txn then send it back to h2d device path that is missing??
 //TODO: (done/pending/lowpri - lrsm/rrssm integration pending - low priority for now) connection of ack to retry buffer and entry of tx pkt and lrsmrrsm integration to be done
 //TODO: (TBD/lowpri) next focus on 32B size pkt logic 
 //TODO: bug in the design crc placement needs fix in tx and rx
@@ -20,105 +23,101 @@ parameter GEET_CXL_MEM_TAG_WIDTH = 16;
 parameter GEET_CXL_MEM_TC_WIDTH = 16;
 
 typedef enum {
-    GEET_CXL_CACHE_OPCODE_RDCURR, 
-    GEET_CXL_CACHE_OPCODE_RDOWN,
-    GEET_CXL_CACHE_OPCODE_RDSHARED,
-    GEET_CXL_CACHE_OPCODE_RDANY,
-    GEET_CXL_CACHE_OPCODE_RDOWNNODATA,
-    GEET_CXL_CACHE_OPCODE_ITOMWR,
-    GEET_CXL_CACHE_OPCODE_MEMWRI,
-    GEET_CXL_CACHE_OPCODE_CLFLUSH,
-    GEET_CXL_CACHE_OPCODE_CLEANEVICT,
-    GEET_CXL_CACHE_OPCODE_DIRTYEVICT,
-    GEET_CXL_CACHE_OPCODE_CLEANEVICTNODATA,
-    GEET_CXL_CACHE_OPCODE_WOWRINV,
-    GEET_CXL_CACHE_OPCODE_WOWRINVF,
-    GEET_CXL_CACHE_OPCODE_WRINV,
-    GEET_CXL_CACHE_OPCODE_CACHEFLUSHED
-    
+  GEET_CXL_CACHE_OPCODE_RDCURR, 
+  GEET_CXL_CACHE_OPCODE_RDOWN,
+  GEET_CXL_CACHE_OPCODE_RDSHARED,
+  GEET_CXL_CACHE_OPCODE_RDANY,
+  GEET_CXL_CACHE_OPCODE_RDOWNNODATA,
+  GEET_CXL_CACHE_OPCODE_ITOMWR,
+  GEET_CXL_CACHE_OPCODE_MEMWRI,
+  GEET_CXL_CACHE_OPCODE_CLFLUSH,
+  GEET_CXL_CACHE_OPCODE_CLEANEVICT,
+  GEET_CXL_CACHE_OPCODE_DIRTYEVICT,
+  GEET_CXL_CACHE_OPCODE_CLEANEVICTNODATA,
+  GEET_CXL_CACHE_OPCODE_WOWRINV,
+  GEET_CXL_CACHE_OPCODE_WOWRINVF,
+  GEET_CXL_CACHE_OPCODE_WRINV,
+  GEET_CXL_CACHE_OPCODE_CACHEFLUSHED    
 } d2h_req_opcode_t; 
 
 typedef enum {
-    GEET_CXL_CACHE_OPCODE_RSPIHITI,
-    GEET_CXL_CACHE_OPCODE_RSPVHITV,
-    GEET_CXL_CACHE_OPCODE_RSPIHITSE,
-    GEET_CXL_CACHE_OPCODE_RSPSHITSE,
-    GEET_CXL_CACHE_OPCODE_RSPSFWDM,
-    GEET_CXL_CACHE_OPCODE_RSPIFWDM,
-    GEET_CXL_CACHE_OPCODE_RSPVFWDV
-
+  GEET_CXL_CACHE_OPCODE_RSPIHITI,
+  GEET_CXL_CACHE_OPCODE_RSPVHITV,
+  GEET_CXL_CACHE_OPCODE_RSPIHITSE,
+  GEET_CXL_CACHE_OPCODE_RSPSHITSE,
+  GEET_CXL_CACHE_OPCODE_RSPSFWDM,
+  GEET_CXL_CACHE_OPCODE_RSPIFWDM,
+  GEET_CXL_CACHE_OPCODE_RSPVFWDV
 } d2h_rsp_opcode_t; 
 
 typedef enum {
-    GEET_CXL_CACHE_OPCODE_SNPDATA,
-    GEET_CXL_CACHE_OPCODE_SNPINV,
-    GEET_CXL_CACHE_OPCODE_SNPCURR
-
+  GEET_CXL_CACHE_OPCODE_SNPDATA,
+  GEET_CXL_CACHE_OPCODE_SNPINV,
+  GEET_CXL_CACHE_OPCODE_SNPCURR
 } h2d_req_opcode_t; 
 
 typedef enum {
-    GEET_CXL_CACHE_MESI_I   = 'h3,
-    GEET_CXL_CACHE_MESI_S   = 'h1,
-    GEET_CXL_CACHE_MESI_E   = 'h2,
-    GEET_CXL_CACHE_MESI_M   = 'h6,
-    GEET_CXL_CACHE_MESI_ERR = 'h4
+  GEET_CXL_CACHE_MESI_I   = 'h3,
+  GEET_CXL_CACHE_MESI_S   = 'h1,
+  GEET_CXL_CACHE_MESI_E   = 'h2,
+  GEET_CXL_CACHE_MESI_M   = 'h6,
+  GEET_CXL_CACHE_MESI_ERR = 'h4
 } h2d_rsp_data_opcode_t; 
 
 typedef enum {
-    GEET_CXL_CACHE_OPCODE_WRITEPULL,
-    GEET_CXL_CACHE_OPCODE_GO,
-    GEET_CXL_CACHE_OPCODE_GOWRITEPULL,
-    GEET_CXL_CACHE_OPCODE_EXTCMP,
-    GEET_CXL_CACHE_OPCODE_GOWRPULLDROP,
-    GEET_CXL_CACHE_OPCODE_FASTGO,
-    GEET_CXL_CACHE_OPCODE_FASTGOWRPULL,
-    GEET_CXL_CACHE_OPCODE_GOERRWRPULL
-
+  GEET_CXL_CACHE_OPCODE_WRITEPULL,
+  GEET_CXL_CACHE_OPCODE_GO,
+  GEET_CXL_CACHE_OPCODE_GOWRITEPULL,
+  GEET_CXL_CACHE_OPCODE_EXTCMP,
+  GEET_CXL_CACHE_OPCODE_GOWRPULLDROP,
+  GEET_CXL_CACHE_OPCODE_FASTGO,
+  GEET_CXL_CACHE_OPCODE_FASTGOWRPULL,
+  GEET_CXL_CACHE_OPCODE_GOERRWRPULL
 } h2d_rsp_opcode_t; 
 
 typedef enum {
-    GEET_CXL_MEM_OPCODE_MEMINV,
-    GEET_CXL_MEM_OPCODE_MEMRD,
-    GEET_CXL_MEM_OPCODE_MEMRDDATA,
-    GEET_CXL_MEM_OPCODE_MEMRDFWD,
-    GEET_CXL_MEM_OPCODE_MEMWRFWD,
-    GEET_CXL_MEM_OPCODE_MEMINVNT
+  GEET_CXL_MEM_OPCODE_MEMINV,
+  GEET_CXL_MEM_OPCODE_MEMRD,
+  GEET_CXL_MEM_OPCODE_MEMRDDATA,
+  GEET_CXL_MEM_OPCODE_MEMRDFWD,
+  GEET_CXL_MEM_OPCODE_MEMWRFWD,
+  GEET_CXL_MEM_OPCODE_MEMINVNT
 } m2s_req_opcode_t;
 
 typedef enum {
-    GEET_CXL_MEM_OPCODE_MEMWR,
-    GEET_CXL_MEM_OPCODE_MEMWRPTL
+  GEET_CXL_MEM_OPCODE_MEMWR,
+  GEET_CXL_MEM_OPCODE_MEMWRPTL
 } m2s_rwd_opcode_t;
 
 typedef enum {
-    GEET_CXL_MEM_OPCODE_CMP,
-    GEET_CXL_MEM_OPCODE_CMPS,
-    GEET_CXL_MEM_OPCODE_CMPE
+  GEET_CXL_MEM_OPCODE_CMP,
+  GEET_CXL_MEM_OPCODE_CMPS,
+  GEET_CXL_MEM_OPCODE_CMPE
 } s2m_ndr_opcode_t;
 
 typedef enum {
-    GEET_CXL_MEM_OPCODE_MEMDATA
+  GEET_CXL_MEM_OPCODE_MEMDATA
 } s2m_drs_opcode_t;
 
 typedef enum {
-    GEET_CXL_MEM_MF_METAFIELD_META0STATE,
-    GEET_CXL_MEM_MF_METAFIELD_RSVD1,
-    GEET_CXL_MEM_MF_METAFIELD_RSVD2,
-    GEET_CXL_MEM_MF_METAFIELD_NOOP
+  GEET_CXL_MEM_MF_METAFIELD_META0STATE,
+  GEET_CXL_MEM_MF_METAFIELD_RSVD1,
+  GEET_CXL_MEM_MF_METAFIELD_RSVD2,
+  GEET_CXL_MEM_MF_METAFIELD_NOOP
 } metafield_t;
 
 typedef enum {
-    GEET_CXL_MEM_MV_METAVALUE_INVALID,
-    GEET_CXL_MEM_MV_METAVALUE_RSVD,
-    GEET_CXL_MEM_MV_METAVALUE_ANY,
-    GEET_CXL_MEM_MV_METAVALUE_SHARED
+  GEET_CXL_MEM_MV_METAVALUE_INVALID,
+  GEET_CXL_MEM_MV_METAVALUE_RSVD,
+  GEET_CXL_MEM_MV_METAVALUE_ANY,
+  GEET_CXL_MEM_MV_METAVALUE_SHARED
 } metavalue_t;
 
 typedef enum {
-    GEET_CXL_MEM_SNPTYP_MEMSNPNOOP,
-    GEET_CXL_MEM_SNPTYP_MEMSNPDATA,
-    GEET_CXL_MEM_SNPTYP_MEMSNPCUR,
-    GEET_CXL_MEM_SNPTYP_MEMSNPINV
+  GEET_CXL_MEM_SNPTYP_MEMSNPNOOP,
+  GEET_CXL_MEM_SNPTYP_MEMSNPDATA,
+  GEET_CXL_MEM_SNPTYP_MEMSNPCUR,
+  GEET_CXL_MEM_SNPTYP_MEMSNPINV
 } snptype_t;
 
 typedef enum {
@@ -9269,6 +9268,11 @@ module tb_top;
       soft valid == 1;
     }
 
+    constraint go_rspdata_c{
+      (opcode == GEET_CXL_CACHE_OPCODE_GO) -> (rspdata inside {GEET_CXL_CACHE_MESI_I, GEET_CXL_CACHE_MESI_S, GEET_CXL_CACHE_MESI_E, GEET_CXL_CACHE_MESI_M, GEET_CXL_CACHE_MESI_ERR});
+      solve opcode before rspdata;
+    }
+
     constraint ignore_do_later_c{
       soft rspdata == 'h0;
       soft rsppre == 'h0;
@@ -13042,17 +13046,19 @@ module tb_top;
     m2s_rwd_seq_item  host_m2s_rwd_dev_m2s_rwd_integ_aa   [logic[11:0]];
     s2m_ndr_seq_item  dev_s2m_ndr_host_s2m_ndr_integ_aa   [logic[11:0]];
     s2m_drs_seq_item  dev_s2m_drs_host_s2m_drs_integ_aa   [logic[11:0]];
-    d2h_req_seq_item  memrdfwd_aa         [logic[11:0]];
-    d2h_req_seq_item  memwrfwd_aa         [logic[11:0]];
-    d2h_req_seq_item  d2h_req_h2d_rsp_aa  [logic[11:0]];
-    d2h_req_seq_item  d2h_req_h2d_data_aa [logic[11:0]];
-    h2d_rsp_seq_item  h2d_rsp_h2d_rsp_aa  [logic[11:0]];
-    h2d_rsp_seq_item  h2d_rsp_d2h_data_aa [logic[11:0]];
-    h2d_req_seq_item  h2d_req_d2h_rsp_aa  [logic[11:0]];
-    h2d_req_seq_item  h2d_req_d2h_data_aa [logic[11:0]];
-    m2s_req_seq_item  m2s_req_s2m_ndr_aa  [logic[11:0]];
-    m2s_req_seq_item  m2s_req_s2m_drs_aa  [logic[11:0]];
-    m2s_rwd_seq_item  m2s_rwd_s2m_ndr_aa  [logic[11:0]];
+    d2h_req_seq_item  memrdfwd_aa             [logic[11:0]];
+    d2h_req_seq_item  memwrfwd_aa             [logic[11:0]];
+    d2h_req_seq_item  d2h_req_h2d_rsp_aa      [logic[11:0]];
+    d2h_req_seq_item  d2h_req_h2d_data_aa     [logic[11:0]];
+    h2d_rsp_seq_item  h2d_rsp_h2d_rsp_aa      [logic[11:0]];
+    h2d_rsp_seq_item  h2d_rsp_d2h_data_aa     [logic[11:0]];
+    h2d_rsp_seq_item  h2d_rsp_d2h_errdata_aa  [logic[11:0]];
+    h2d_rsp_seq_item  h2d_rsp_h2d_errdata_aa  [logic[11:0]];
+    h2d_req_seq_item  h2d_req_d2h_rsp_aa      [logic[11:0]];
+    h2d_req_seq_item  h2d_req_d2h_data_aa     [logic[11:0]];
+    m2s_req_seq_item  m2s_req_s2m_ndr_aa      [logic[11:0]];
+    m2s_req_seq_item  m2s_req_s2m_drs_aa      [logic[11:0]];
+    m2s_rwd_seq_item  m2s_rwd_s2m_ndr_aa      [logic[11:0]];
     h2d_req_seq_item  host_h2d_req_seq_item_h;
     h2d_rsp_seq_item  host_h2d_rsp_seq_item_h;
     h2d_data_seq_item host_h2d_data_seq_item_h;
@@ -13381,21 +13387,28 @@ module tb_top;
     task dev_h2d_data();
       forever begin
         dev_h2d_data_fifo.get(dev_h2d_data_seq_item_h);
-        if(host_d2h_data_dev_d2h_data_integ_aa.exists(dev_h2d_data_seq_item_h.uqid)) begin
-          host_d2h_data_dev_d2h_data_integ_aa.delete(dev_h2d_data_seq_item_h.uqid);
-          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_h2d_data_seq_item_h.uqid), UVM_NONE);
+        if(host_h2d_data_dev_h2d_data_integ_aa.exists(dev_h2d_data_seq_item_h.cqid)) begin
+          host_h2d_data_dev_h2d_data_integ_aa.delete(dev_h2d_data_seq_item_h.cqid);
+          `uvm_info(get_type_name(), $sformatf("cqid = %0h match sent from the other side", dev_h2d_data_seq_item_h.cqid), UVM_NONE);
         end else begin
-          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_data_seq_item_h.uqid));
+          `uvm_error(get_type_name(), $sformatf("spurious txn with cqid = %0h not sent from the other side", dev_h2d_data_seq_item_h.cqid));
         end
         if(d2h_req_h2d_data_aa.exists(dev_h2d_data_seq_item_h.cqid)) begin
           if(d2h_req_h2d_data_aa[dev_h2d_data_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_RDCURR, GEET_CXL_CACHE_OPCODE_RDSHARED, GEET_CXL_CACHE_OPCODE_RDANY, GEET_CXL_CACHE_OPCODE_RDOWN}) begin
-            `uvm_info(get_type_name(), $sformatf("legal txn d2h_req_opcode %0s and h2d_data_opcode %0s", d2h_req_h2d_data_aa[dev_h2d_data_seq_item_h.cqid].opcode.name(), dev_h2d_data_seq_item_h.opcode.name()));
+            `uvm_info(get_type_name(), $sformatf("legal txn d2h_req_opcode %0s", d2h_req_h2d_data_aa[dev_h2d_data_seq_item_h.cqid].opcode.name()), UVM_NONE);
             d2h_req_h2d_data_aa.delete(dev_h2d_data_seq_item_h.cqid);
           end else begin
-            `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s and h2d_data_opcode %0s", d2h_req_h2d_data_aa[dev_h2d_data_seq_item_h.cqid].opcode.name(), dev_h2d_data_seq_item_h.opcode.name()));
+            `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s", d2h_req_h2d_data_aa[dev_h2d_data_seq_item_h.cqid].opcode.name()));
+          end 
+        end else if(h2d_rsp_h2d_errdata_aa.exists(dev_h2d_data_seq_item_h.cqid)) begin
+          if((h2d_rsp_h2d_errdata_aa[dev_h2d_data_seq_item_h.cqid].opcode inside {GEET_CXL_CACHE_OPCODE_GO}) && (h2d_rsp_h2d_errdata_aa[dev_h2d_data_seq_item_h.cqid].rspdata inside {GEET_CXL_CACHE_MESI_I, GEET_CXL_CACHE_MESI_ERR}) && (dev_h2d_data_seq_item_h.data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff)) begin
+            `uvm_info(get_type_name(), $sformatf("legal txn h2d_rsp_opcode %0s with all 1s data", h2d_rsp_h2d_errdata_aa[dev_h2d_data_seq_item_h.cqid].opcode.name()), UVM_NONE);
+            h2d_rsp_h2d_errdata_aa.delete(dev_h2d_data_seq_item_h.cqid);
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("illegal txn d2h_req_opcode %0s", h2d_rsp_h2d_errdata_aa[dev_h2d_data_seq_item_h.cqid].opcode.name()));
           end 
         end else begin
-            `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_data_seq_item_h.uqid));
+          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", dev_h2d_data_seq_item_h.cqid));
         end
       end
     endtask
@@ -13411,20 +13424,20 @@ module tb_top;
         end
         if(h2d_rsp_d2h_data_aa.exists(host_d2h_data_seq_item_h.uqid)) begin
           if(h2d_rsp_d2h_data_aa[host_d2h_data_seq_item_h.uqid].opcode inside{GEET_CXL_CACHE_OPCODE_WRITEPULL, GEET_CXL_CACHE_OPCODE_GOWRITEPULL, GEET_CXL_CACHE_OPCODE_FASTGOWRPULL}) begin
-            `uvm_info(get_type_name(), $sformatf("match txn h2d_rsp_opcode %0s and d2h_data_opcode %0s", h2d_rsp_d2h_data_aa[host_d2h_data_seq_item_h.uqid].opcode.name(), host_d2h_data_seq_item_h.opcode.name()), UVM_NONE);
+            `uvm_info(get_type_name(), $sformatf("match txn h2d_rsp_opcode %0s", h2d_rsp_d2h_data_aa[host_d2h_data_seq_item_h.uqid].opcode.name()), UVM_NONE);
             h2d_rsp_d2h_data_aa.delete(host_d2h_data_seq_item_h.uqid);
           end else begin
-            `uvm_error(get_type_name(), $sformatf("illegal txn h2d_rsp_opcode %0s and d2h_data_opcode %0s", h2d_rsp_d2h_data_aa[host_d2h_data_seq_item_h.uqid].opcode.name(), host_d2h_data_seq_item_h.opcode.name()));
+            `uvm_error(get_type_name(), $sformatf("illegal txn h2d_rsp_opcode %0s", h2d_rsp_d2h_data_aa[host_d2h_data_seq_item_h.uqid].opcode.name()));
           end
         end else if(h2d_rsp_d2h_errdata_aa.exists(host_d2h_data_seq_item_h.uqid)) begin
           if(h2d_rsp_d2h_errdata_aa[host_d2h_data_seq_item_h.uqid].opcode inside{GEET_CXL_CACHE_OPCODE_GOERRWRPULL}) begin
-            `uvm_info(get_type_name(), $sformatf("match txn h2d_rsp_opcode %0s and d2h_data_opcode %0s", h2d_rsp_d2h_errdata_aa[host_d2h_data_seq_item_h.uqid].opcode.name(), host_d2h_data_seq_item_h.opcode.name()), UVM_NONE);
+            `uvm_info(get_type_name(), $sformatf("match txn h2d_rsp_opcode %0s", h2d_rsp_d2h_errdata_aa[host_d2h_data_seq_item_h.uqid].opcode.name()), UVM_NONE);
             h2d_rsp_d2h_errdata_aa.delete(host_d2h_data_seq_item_h.uqid);
           end else begin
-            `uvm_error(get_type_name(), $sformatf("illegal txn h2d_rsp_opcode %0s and d2h_data_opcode %0s", h2d_rsp_d2h_errdata_aa[host_d2h_data_seq_item_h.uqid].opcode.name(), host_d2h_data_seq_item_h.opcode.name()));
+            `uvm_error(get_type_name(), $sformatf("illegal txn h2d_rsp_opcode %0s", h2d_rsp_d2h_errdata_aa[host_d2h_data_seq_item_h.uqid].opcode.name()));
           end
         end else if(h2d_req_d2h_data_aa.exists(host_d2h_data_seq_item_h.uqid)) begin
-          `uvm_info(get_type_name(), $sformatf("match txn h2d_req_opcode %0s and d2h_data_opcode %0s", h2d_req_d2h_data_aa[host_d2h_data_seq_item_h.uqid].opcode.name(), host_d2h_data_seq_item_h.opcode.name()), UVM_NONE);
+          `uvm_info(get_type_name(), $sformatf("match txn h2d_req_opcode %0s", h2d_req_d2h_data_aa[host_d2h_data_seq_item_h.uqid].opcode.name()), UVM_NONE);
           h2d_req_d2h_data_aa.delete(host_d2h_data_seq_item_h.uqid);
         end else begin
           `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not sent from the other side", host_d2h_data_seq_item_h.uqid));
@@ -13435,14 +13448,14 @@ module tb_top;
     task host_h2d_rsp();
       forever begin
         host_h2d_rsp_fifo.get(host_h2d_rsp_seq_item_h);
-        host_h2d_rsp_dev_h2d_rsp_integ_aa[host_h2d_rsp_seq_item_h.uqid] = host_h2d_rsp_seq_item_h;
+        host_h2d_rsp_dev_h2d_rsp_integ_aa[host_h2d_rsp_seq_item_h.cqid] = host_h2d_rsp_seq_item_h;
       end
     endtask
 
     task host_h2d_data();
       forever begin
         host_h2d_data_fifo.get(host_h2d_data_seq_item_h);
-        host_h2d_data_dev_h2d_data_integ_aa[host_h2d_data_seq_item_h.uqid] = host_h2d_data_seq_item_h;
+        host_h2d_data_dev_h2d_data_integ_aa[host_h2d_data_seq_item_h.cqid] = host_h2d_data_seq_item_h;
       end
     endtask
 
@@ -13527,7 +13540,6 @@ module tb_top;
     task host_m2s_req();
       forever begin
         host_m2s_req_fifo.get(host_m2s_req_seq_item_h);
-        m2s_req_d2h_rsp_aa[host_m2s_req_seq_item_h.tag] = host_m2s_req_seq_item_h;
         host_m2s_req_dev_m2s_req_integ_aa[host_m2s_req_seq_item_h.tag] = host_m2s_req_seq_item_h;
       end
     endtask
@@ -13535,7 +13547,6 @@ module tb_top;
     task host_m2s_rwd();
       forever begin
         host_m2s_rwd_fifo.get(host_m2s_rwd_seq_item_h);
-        m2s_rwd_s2m_ndr_aa[host_m2s_rwd_seq_item_h.tag] = host_m2s_rwd_seq_item_h;
         host_m2s_rwd_dev_m2s_rwd_integ_aa[host_m2s_rwd_seq_item_h.tag] = host_m2s_rwd_seq_item_h;
       end
     endtask
@@ -13559,31 +13570,36 @@ module tb_top;
         dev_m2s_req_fifo.get(dev_m2s_req_seq_item_h);
         if(host_m2s_req_dev_m2s_req_integ_aa.exists(dev_m2s_req_seq_item_h.tag)) begin
           host_m2s_req_dev_m2s_req_integ_aa.delete(dev_m2s_req_seq_item_h.tag);
-          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_m2s_req_seq_item_h.tag), UVM_NONE);
-        end else if(memrdfwd_aa.exists(dev_m2s_req_seq_item_h.tag)) begin
-          `uvm_info(get_type_name(), $sformatf("matching tag for rd forward flows with uqid tag match = %0h", dev_m2s_req_seq_item_h.tag), UVM_NONE);
-          if((memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode inside {GEET_CXL_CACHE_OPCODE_RDCURR}) && (dev_m2s_req_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY, GEET_CXL_MEM_MV_METAVALUE_SHARED, GEET_CXL_MEM_MV_METAVALUE_INVALID})) begin
-            `uvm_info(get_type_name(), $sformatf("legal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()), UVM_NONE);
-            memrdfwd_aa.delete(dev_m2s_req_seq_item_h.tag)
-          end else if((memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode inside {GEET_CXL_CACHE_OPCODE_RDSHARED, GEET_CXL_CACHE_OPCODE_RDANY}) && (dev_m2s_req_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED, GEET_CXL_MEM_MV_METAVALUE_INVALID})) begin
-            `uvm_info(get_type_name(), $sformatf("legal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()), UVM_NONE);
-            memrdfwd_aa.delete(dev_m2s_req_seq_item_h.tag)
-          end else if((memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode inside {GEET_CXL_CACHE_OPCODE_RDOWN, GEET_CXL_CACHE_OPCODE_RDOWNNODATA, GEET_CXL_CACHE_OPCODE_CLFLUSH}) && (dev_m2s_req_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID})) begin
-            `uvm_info(get_type_name(), $sformatf("legal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()), UVM_NONE);
-            memrdfwd_aa.delete(dev_m2s_req_seq_item_h.tag)
-          end else begin
-            `uvm_error(get_type_name(), $sformatf("illegal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()));
-          end
-        end else if(memwrfwd_aa.exists(dev_m2s_req_seq_item_h.tag)) begin
-          `uvm_info(get_type_name(), $sformatf("matching tag for wr forward flows with uqid tag match = %0h", dev_m2s_req_seq_item_h.tag), UVM_NONE);
-          if((memwrfwd_aa[dev_m2s_req_seq_item_h.tag].opcode inside {GEET_CXL_CACHE_OPCODE_WOWRINV, GEET_CXL_CACHE_OPCODE_WOWRINVF}) && (dev_m2s_req_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID})) begin
-            `uvm_info(get_type_name(), $sformatf("legal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()), UVM_NONE);
-            memwrfwd_aa.delete(dev_m2s_req_seq_item_h.tag)
-          end else begin
-            `uvm_error(get_type_name(), $sformatf("illegal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()));
-          end
+          `uvm_info(get_type_name(), $sformatf("tag = %0h match sent from the other side", dev_m2s_req_seq_item_h.tag), UVM_NONE);
         end else begin
-          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not ent from the other side", dev_m2s_req_seq_item_h.uqid));
+          `uvm_error(get_type_name(), $sformatf("spurious txn with tag = %0h not sent from the other side", dev_m2s_rwd_seq_item_h.tag));
+        end
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2} && cxl_cfg_obj_h.hdm inside {GEET_CXL_HDM_D}) begin
+          if(memrdfwd_aa.exists(dev_m2s_req_seq_item_h.tag)) begin
+            `uvm_info(get_type_name(), $sformatf("matching tag for rd forward flows with uqid tag match = %0h", dev_m2s_req_seq_item_h.tag), UVM_NONE);
+            if((memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode inside {GEET_CXL_CACHE_OPCODE_RDCURR}) && (dev_m2s_req_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY, GEET_CXL_MEM_MV_METAVALUE_SHARED, GEET_CXL_MEM_MV_METAVALUE_INVALID})) begin
+              `uvm_info(get_type_name(), $sformatf("legal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()), UVM_NONE);
+              memrdfwd_aa.delete(dev_m2s_req_seq_item_h.tag);
+            end else if((memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode inside {GEET_CXL_CACHE_OPCODE_RDSHARED, GEET_CXL_CACHE_OPCODE_RDANY}) && (dev_m2s_req_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED, GEET_CXL_MEM_MV_METAVALUE_INVALID})) begin
+              `uvm_info(get_type_name(), $sformatf("legal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()), UVM_NONE);
+              memrdfwd_aa.delete(dev_m2s_req_seq_item_h.tag);
+            end else if((memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode inside {GEET_CXL_CACHE_OPCODE_RDOWN, GEET_CXL_CACHE_OPCODE_RDOWNNODATA, GEET_CXL_CACHE_OPCODE_CLFLUSH}) && (dev_m2s_req_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID})) begin
+              `uvm_info(get_type_name(), $sformatf("legal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()), UVM_NONE);
+              memrdfwd_aa.delete(dev_m2s_req_seq_item_h.tag);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()));
+            end
+          end else if(memwrfwd_aa.exists(dev_m2s_req_seq_item_h.tag)) begin
+            `uvm_info(get_type_name(), $sformatf("matching tag for wr forward flows with uqid tag match = %0h", dev_m2s_req_seq_item_h.tag), UVM_NONE);
+            if((memwrfwd_aa[dev_m2s_req_seq_item_h.tag].opcode inside {GEET_CXL_CACHE_OPCODE_WOWRINV, GEET_CXL_CACHE_OPCODE_WOWRINVF}) && (dev_m2s_req_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID})) begin
+              `uvm_info(get_type_name(), $sformatf("legal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()), UVM_NONE);
+              memwrfwd_aa.delete(dev_m2s_req_seq_item_h.tag);
+            end else begin
+              `uvm_error(get_type_name(), $sformatf("illegal combination for opcode %0s and metavalue %0s", memrdfwd_aa[dev_m2s_req_seq_item_h.tag].opcode.name(), dev_m2s_req_seq_item_h.metavalue.name()));
+            end
+          end else begin
+            `uvm_error(get_type_name(), $sformatf("spurious txn with tag= %0h not sent from the other side", dev_m2s_req_seq_item_h.tag));
+          end
         end
       end
       m2s_req_s2m_ndr_aa[dev_m2s_req_seq_item_h.tag] = dev_m2s_req_seq_item_h;
@@ -13593,11 +13609,11 @@ module tb_top;
     task dev_m2s_rwd();
       forever begin
         dev_m2s_rwd_fifo.get(dev_m2s_rwd_seq_item_h);
-        if(host_m2s_rwd_dev_m2s_rwd_integ_aa.exists(dev_m2s_rwd_seq_item_h.uqid)) begin
-          host_m2s_rwd_dev_m2s_rwd_integ_aa.delete(dev_m2s_rwd_seq_item_h.uqid);
-          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", dev_m2s_rwd_seq_item_h.uqid), UVM_NONE);
+        if(host_m2s_rwd_dev_m2s_rwd_integ_aa.exists(dev_m2s_rwd_seq_item_h.tag)) begin
+          host_m2s_rwd_dev_m2s_rwd_integ_aa.delete(dev_m2s_rwd_seq_item_h.tag);
+          `uvm_info(get_type_name(), $sformatf("tag = %0h match sent from the other side", dev_m2s_rwd_seq_item_h.tag), UVM_NONE);
         end else begin
-          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not ent from the other side", dev_m2s_rwd_seq_item_h.uqid));
+          `uvm_error(get_type_name(), $sformatf("spurious txn with tag = %0h not sent from the other side", dev_m2s_rwd_seq_item_h.tag));
         end
         m2s_rwd_s2m_ndr_aa[dev_m2s_rwd_seq_item_h.tag] = dev_m2s_rwd_seq_item_h;
       end
@@ -13606,14 +13622,14 @@ module tb_top;
     task host_s2m_ndr();
       forever begin
         host_s2m_ndr_fifo.get(host_s2m_ndr_seq_item_h);
-        if(dev_s2m_ndr_host_s2m_ndr_integ_aa.exists(host_s2m_ndr_seq_item_h.uqid)) begin
-          dev_s2m_ndr_host_s2m_ndr_integ_aa.delete(host_s2m_ndr_seq_item_h.uqid);
-          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", host_s2m_ndr_seq_item_h.uqid), UVM_NONE);
+        if(dev_s2m_ndr_host_s2m_ndr_integ_aa.exists(host_s2m_ndr_seq_item_h.tag)) begin
+          dev_s2m_ndr_host_s2m_ndr_integ_aa.delete(host_s2m_ndr_seq_item_h.tag);
+          `uvm_info(get_type_name(), $sformatf("tag = %0h match sent from the other side", host_s2m_ndr_seq_item_h.tag), UVM_NONE);
         end else begin
-          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not ent from the other side", host_s2m_ndr_seq_item_h.uqid));
+          `uvm_error(get_type_name(), $sformatf("spurious txn with tag = %0h not sent from the other side", host_s2m_ndr_seq_item_h.tag));
         end
         if(m2s_rwd_s2m_ndr_aa.exists(host_s2m_ndr_seq_item_h.tag)) begin
-          `uvm_info(get_type_name(), $sformatf("tag match %0h m2s rwd opcode %0s s2m ndr opcode %0s", host_s2m_ndr_seq_item_h.tag, m2s_rwd_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode.name(), host_s2m_ndr_seq_item_h.opcode.name()),UVM_NONE)
+          `uvm_info(get_type_name(), $sformatf("tag match %0h m2s rwd opcode %0s s2m ndr opcode %0s", host_s2m_ndr_seq_item_h.tag, m2s_rwd_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].memopcode.name(), host_s2m_ndr_seq_item_h.opcode.name()),UVM_NONE)
           if(host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP} && host_s2m_ndr_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP}) begin
             `uvm_info(get_type_name(), $sformatf("legal combination of s2m ndr opcode %0s and metafield %0s", host_s2m_ndr_seq_item_h.opcode.name(), host_s2m_ndr_seq_item_h.metafield.name()), UVM_NONE);
             m2s_rwd_s2m_ndr_aa.delete(host_s2m_ndr_seq_item_h.tag);
@@ -13621,78 +13637,69 @@ module tb_top;
             `uvm_error(get_type_name(), $sformatf("illegal combination of s2m ndr opcode %0s and metafield %0s", host_s2m_ndr_seq_item_h.opcode.name(), host_s2m_ndr_seq_item_h.metafield.name()));
           end
         end else if(m2s_req_s2m_ndr_aa.exists(host_s2m_ndr_seq_item_h.tag)) begin
-          `uvm_info(get_type_name(), $sformatf("tag match %0h m2s rwd opcode %0s s2m ndr opcode %0s", host_s2m_ndr_seq_item_h.tag, m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode.name(), host_s2m_ndr_seq_item_h.opcode.name()),UVM_NONE)
+          `uvm_info(get_type_name(), $sformatf("tag match %0h m2s rwd opcode %0s s2m ndr opcode %0s", host_s2m_ndr_seq_item_h.tag, m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].memopcode.name(), host_s2m_ndr_seq_item_h.opcode.name()),UVM_NONE);
           if((cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3})) begin
             if(
-               (
                 (
+                  (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && 
                   (
-                    (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && 
-                      (
-                        ( 
-                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}) && 
-                          (
-                            (m2s_req_s2m_ndr_aad[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPE}) ||
-                            (m2s_req_s2m_ndr_aad[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPS})
-                            (m2s_req_s2m_ndr_aad[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP})
-                          )
-                        )
-                      ) || 
-                      (
-                        ( 
-                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP})
-                        )
-                      )
-                  ) || (
-                    (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && 
                     (
+                      (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}) && 
+                      (
+                        ((m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPE})) ||
+                        ((m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPS})) ||
+                        ((m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP}))
+                      )
+                    ) || 
+                    (
+                      (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP})
+                    )
+                  )  
+                ) || (
+                  (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && 
+                  (
+                    (
+                      (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}) && 
                       (
                         (
-                          m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}
-                        ) && (
-                          (
-                            (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_CMPE})  &&
-                            (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY}) && 
-                            (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID})
-                          ) || (
-                            (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPS})  &&
-                            (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED}) 
-                          )
+                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].memopcode inside {GEET_CXL_MEM_OPCODE_CMPE})  &&
+                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY}) && 
+                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID})
+                        ) || (
+                          (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPS})  &&
+                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED}) 
                         )
-                      ) || (
-                        (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP}) && 
-                        ( 
-                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_CMPS, GEET_CXL_MEM_OPCODE_CMPE})
-                        )
+                      )
+                    ) || (
+                      (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP}) && 
+                      ( 
+                        (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].memopcode inside {GEET_CXL_MEM_OPCODE_CMPS, GEET_CXL_MEM_OPCODE_CMPE})
                       )
                     )
-                  ) || (
-                    (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) &&
+                  )
+                ) || (
+                  (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) &&
+                  (
+                    ((m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP})) ||
                     (
-                      ((m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP})) 
-                    ) || (
-                      (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}) && (
-                        (
-                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPE})
-                        ) || (
-                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPS, GEET_CXL_MEM_OPCODE_CMPE})
-                        ) || (
-                          (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP})
-                        )
+                      (m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}) && 
+                      (
+                        ((m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPE})) || 
+                        ((m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMPS, GEET_CXL_MEM_OPCODE_CMPE})) || 
+                        ((m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID}) && (host_s2m_ndr_seq_item_h.opcode inside {GEET_CXL_MEM_OPCODE_CMP}))
                       )
                     )
                   )
                 )  
-               )
               ) begin
-              `uvm_info(get_type_name(), $sformatf("legal combination for type 3 %0s opcode %0s", cxl_cfg_obj_h.cxl_type.name(), m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode.name()));
+              `uvm_info(get_type_name(), $sformatf("legal combination for type 3 %0s opcode %0s", cxl_cfg_obj_h.cxl_type.name(), m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].memopcode.name()), UVM_NONE);
               m2s_req_s2m_ndr_aa.delete(host_s2m_ndr_seq_item_h.tag);
             end else begin
               `uvm_error(get_type_name(), $sformatf("illegal combination of s2m ndr opcode %0s and metafield %0s", host_s2m_ndr_seq_item_h.opcode.name(), host_s2m_ndr_seq_item_h.metafield.name()));
             end
           end else if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2}) begin
           end else begin
-            `uvm_error(get_type_name(), $sformatf("invalid opcode %0s", m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].opcode.name()));
+            `uvm_error(get_type_name(), $sformatf("invalid opcode %0s", m2s_req_s2m_ndr_aa[host_s2m_ndr_seq_item_h.tag].memopcode.name()));
           end
         end else begin
           `uvm_error(get_type_name(), $sformatf("no matching tag s2m ndr txn with tag %0h", host_s2m_ndr_seq_item_h.tag));
@@ -13703,35 +13710,59 @@ module tb_top;
     task host_s2m_drs();
       forever begin
         host_s2m_drs_fifo.get(host_s2m_drs_seq_item_h);
-        if(dev_s2m_drs_host_s2m_drs_integ_aa.exists(host_s2m_drs_seq_item_h.uqid)) begin
-          dev_s2m_drs_host_s2m_drs_integ_aa.delete(host_s2m_drs_seq_item_h.uqid);
-          `uvm_info(get_type_name(), $sformatf("uqid = %0h match sent from the other side", host_s2m_drs_seq_item_h.uqid), UVM_NONE);
+        if(dev_s2m_drs_host_s2m_drs_integ_aa.exists(host_s2m_drs_seq_item_h.tag)) begin
+          dev_s2m_drs_host_s2m_drs_integ_aa.delete(host_s2m_drs_seq_item_h.tag);
+          `uvm_info(get_type_name(), $sformatf("tag = %0h match sent from the other side", host_s2m_drs_seq_item_h.tag), UVM_NONE);
         end else begin
-          `uvm_error(get_type_name(), $sformatf("spurious txn with uqid = %0h not ent from the other side", host_s2m_drs_seq_item_h.uqid));
+          `uvm_error(get_type_name(), $sformatf("spurious txn with tag = %0h not sent from the other side", host_s2m_drs_seq_item_h.tag));
         end
         if(m2s_req_s2m_drs_aa.exists(host_s2m_drs_seq_item_h.tag)) begin
-          `uvm_info(get_type_name(), $sformatf("tag match %0h m2s req opcode %0s s2m drs opcode %0s", host_s2m_drs_seq_item_h.tag, m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode.name(), host_s2m_drs_seq_item_h.opcode.name()),UVM_NONE)
+          `uvm_info(get_type_name(), $sformatf("tag match %0h m2s req opcode %0s s2m drs opcode %0s", host_s2m_drs_seq_item_h.tag, m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].memopcode.name(), host_s2m_drs_seq_item_h.opcode.name()),UVM_NONE);
           if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3}) begin
-            if(m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA}) begin
-              if((m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag] inside {GEET_CXL_MEM_OPCODE_MEMRD}) || ((m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && (((host_s2m_drs_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}) && host_s2m_drs_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID, GEET_CXL_MEM_MV_METAVALUE_SHARED, GEET_CXL_MEM_MV_METAVALUE_ANY}) || ( host_s2m_drs_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP})))) begin
-                `uvm_info(get_type_name(), $sformatf("legal combination for type 3 %0s m2s req", cxl_cfg_obj_h.cxl_type.name()))
+            if(m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA}) begin
+              if(
+                  (m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) || 
+                  (
+                    (m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && 
+                    (
+                      (
+                        (host_s2m_drs_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}) && (host_s2m_drs_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID, GEET_CXL_MEM_MV_METAVALUE_SHARED, GEET_CXL_MEM_MV_METAVALUE_ANY})
+                      ) || 
+                      ( 
+                        host_s2m_drs_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP}
+                      )
+                    )
+                  )
+                ) begin
+                `uvm_info(get_type_name(), $sformatf("legal combination for type 3 %0s m2s req", cxl_cfg_obj_h.cxl_type.name()), UVM_NONE);
                 m2s_req_s2m_drs_aa.delete(host_s2m_drs_seq_item_h.tag);
               end else begin
                 `uvm_error(get_type_name(), $sformatf("illegal combination for type 3 %0s m2s req", cxl_cfg_obj_h.cxl_type.name()))
               end
             end else begin
-              `uvm_error(get_type_name(), $sformatf("illegal opcode %0s for type 3 %0s m2s req", m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode.name(), cxl_cfg_obj_h.cxl_type.name()))
+              `uvm_error(get_type_name(), $sformatf("illegal opcode %0s for type 3 %0s m2s req", m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].memopcode.name(), cxl_cfg_obj_h.cxl_type.name()))
             end
           end else if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2}) begin
-            if(m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA}) begin
-              if((m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag] inside {GEET_CXL_MEM_OPCODE_MEMRD}) || ((m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && (((host_s2m_drs_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}) && host_s2m_drs_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID, GEET_CXL_MEM_MV_METAVALUE_SHARED, GEET_CXL_MEM_MV_METAVALUE_ANY}) || ( host_s2m_drs_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP})))) begin
-                `uvm_info(get_type_name(), $sformatf("legal combination for type 2 %0s m2s req", cxl_cfg_obj_h.cxl_type.name()))
+            if(m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA}) begin
+              if(
+                  (m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) || 
+                  (
+                    (m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && 
+                    (
+                      (
+                        ((host_s2m_drs_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_META0STATE}) && (host_s2m_drs_seq_item_h.metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID, GEET_CXL_MEM_MV_METAVALUE_SHARED, GEET_CXL_MEM_MV_METAVALUE_ANY})) || 
+                        ( host_s2m_drs_seq_item_h.metafield inside {GEET_CXL_MEM_MF_METAFIELD_NOOP})
+                      )
+                    )
+                  )
+                ) begin
+                `uvm_info(get_type_name(), $sformatf("legal combination for type 2 %0s m2s req", cxl_cfg_obj_h.cxl_type.name()), UVM_NONE)
                 m2s_req_s2m_drs_aa.delete(host_s2m_drs_seq_item_h.tag);
               end else begin
                 `uvm_error(get_type_name(), $sformatf("illegal combination for type 2 %0s m2s req", cxl_cfg_obj_h.cxl_type.name()))
               end
             end else begin  
-              `uvm_error(get_type_name(), $sformatf("illegal opcode %0s for type 2 %0s m2s req", m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].opcode.name(), cxl_cfg_obj_h.cxl_type.name()))
+              `uvm_error(get_type_name(), $sformatf("illegal opcode %0s for type 2 %0s m2s req", m2s_req_s2m_drs_aa[host_s2m_drs_seq_item_h.tag].memopcode.name(), cxl_cfg_obj_h.cxl_type.name()))
             end
           end
         end else begin
@@ -14092,26 +14123,25 @@ module tb_top;
   class cxl_cm_responder_seq extends uvm_sequence;
     `uvm_object_utils(cxl_cm_responder_seq)
     `uvm_declare_p_sequencer(cxl_cm_vsequencer)
-    cxl_cfg_obj cxl_cfg_obj_h;
-    h2d_req_seq_item h2d_req_seq_item_h;
-    h2d_rsp_seq_item h2d_rsp_seq_item_h;
+    cxl_cfg_obj       cxl_cfg_obj_h;
+    h2d_req_seq_item  h2d_req_seq_item_h;
+    h2d_rsp_seq_item  h2d_rsp_seq_item_h;
     h2d_data_seq_item h2d_data_seq_item_h;
-    d2h_req_seq_item d2h_req_seq_item_h;
-    d2h_rsp_seq_item d2h_rsp_seq_item_h;
+    d2h_rsp_seq_item  d2h_rsp_seq_item_h;
     d2h_data_seq_item d2h_data_seq_item_h;
-    h2d_req_seq_item h2d_req_seq_item_rcvd;
-    h2d_rsp_seq_item h2d_rsp_seq_item_rcvd;
+    h2d_req_seq_item  h2d_req_seq_item_rcvd;
+    h2d_rsp_seq_item  h2d_rsp_seq_item_rcvd;
     h2d_data_seq_item h2d_data_seq_item_rcvd;
-    d2h_req_seq_item d2h_req_seq_item_rcvd;
-    d2h_rsp_seq_item d2h_rsp_seq_item_rcvd;
+    d2h_req_seq_item  d2h_req_seq_item_rcvd;
+    d2h_rsp_seq_item  d2h_rsp_seq_item_rcvd;
     d2h_data_seq_item d2h_data_seq_item_rcvd;
-    m2s_req_seq_item m2s_req_seq_item_h;
-    m2s_req_seq_item m2s_req_seq_item_rcvd;
-    m2s_rwd_seq_item m2s_rwd_seq_item_rcvd;
-    s2m_ndr_seq_item s2m_req_ndr_seq_item_h;
-    s2m_drs_seq_item s2m_req_drs_seq_item_h;
-    s2m_ndr_seq_item s2m_rwd_ndr_seq_item_h;
-    h2d_req_opcode_t h2d_req_id_aa[int];// this will be useful in future gen
+    m2s_req_seq_item  m2s_req_seq_item_h;
+    m2s_req_seq_item  m2s_req_seq_item_rcvd;
+    m2s_rwd_seq_item  m2s_rwd_seq_item_rcvd;
+    s2m_ndr_seq_item  s2m_req_ndr_seq_item_h;
+    s2m_drs_seq_item  s2m_req_drs_seq_item_h;
+    s2m_ndr_seq_item  s2m_rwd_ndr_seq_item_h;
+    h2d_req_opcode_t  h2d_req_id_aa[int];// this will be useful in future gen
     bit unset_set;
 
     function new(string name = "cxl_cm_responder_seq");
@@ -14126,6 +14156,13 @@ module tb_top;
         begin
           forever begin
             //d2h_req_responder_h2d_req(); understand why this is not possible in CXLv1.1 we can rearchitect for multiple devices in next version but v1.1 is 1 to one connection
+          end
+        end
+        begin
+          forever begin
+            if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+              d2h_req_responder_h2d_rsp_data();//understand this is only applicable to CXLv1.1
+            end
           end
         end
         begin
@@ -14146,13 +14183,6 @@ module tb_top;
           forever begin
             if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
               h2d_rsp_responder_h2d_rsp_data(); //understand this is going to be useful in multidevice not in CXL v1.1
-            end
-          end
-        end
-        begin
-          forever begin
-            if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
-              d2h_req_responder_h2d_rsp_data();//understand this is only applicable to CXLv1.1
             end
           end
         end
@@ -14180,13 +14210,13 @@ module tb_top;
             uqid == h2d_rsp_seq_item_rcvd.cqid;
           }
         );
-      end else if(GEET_CXL_CACHE_OPCODE_GOERRWRPULL) begin
+        //not an issue writepull can only trigger wr rsp not just GO-ERR/Ibest way to find out if the uqid is a wrinv then save it in psequencer and refer to it through uqid and send that response that support needs to be added,
+      end else if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_GOERRWRPULL}) begin
         `uvm_do_on_with(
           d2h_data_seq_item_h,
           p_sequencer.dev_d2h_data_seqr,
           {
             uqid == h2d_rsp_seq_item_rcvd.cqid;
-            goerr == 'h1;
             data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff;
           }
         );
@@ -14194,20 +14224,21 @@ module tb_top;
     endtask
     
     task  h2d_rsp_responder_h2d_rsp_data(); 
+      automatic d2h_data_seq_item d2h_data_seq_item_rcvd_a;
       fork 
         begin
           p_sequencer.host_d2h_data_seqr.host_d2h_data_fifo.get(d2h_data_seq_item_rcvd_a);
         end
         begin
           p_sequencer.dev_h2d_rsp_seqr.dev_h2d_rsp_fifo.get(h2d_rsp_seq_item_rcvd);
-          wait(d2h_data_seq_item_item_rcvd_a.uqid == h2d_rsp_seq_item_rcvd.cqid);
+          wait(d2h_data_seq_item_rcvd_a.uqid == h2d_rsp_seq_item_rcvd.cqid);
           if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_FASTGOWRPULL}) begin
             `uvm_do_on_with(
               h2d_rsp_seq_item_h,
               p_sequencer.host_h2d_rsp_seqr,
               {
-                opcode == GEET_CXL_CACHE_OPCODE_EXTCMP;
-                uqid == h2d_rsp_seq_item_rcvd.cqid;
+                opcode inside {GEET_CXL_CACHE_OPCODE_EXTCMP};
+                cqid == h2d_rsp_seq_item_rcvd.cqid;
               }
             );
           end else if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL}) begin
@@ -14215,9 +14246,9 @@ module tb_top;
               h2d_rsp_seq_item_h,
               p_sequencer.host_h2d_rsp_seqr,
               {
-                opcode == GEET_CXL_CACHE_OPCODE_GO;
-                rspdata inside {4'b0011, 4'b0001, 4'b0010, 4'b0110, 4'b0100};
-                uqid == h2d_rsp_seq_item_rcvd.cqid;
+                opcode inside {GEET_CXL_CACHE_OPCODE_GO};
+                rspdata inside {GEET_CXL_CACHE_MESI_I, GEET_CXL_CACHE_MESI_ERR};
+                cqid == h2d_rsp_seq_item_rcvd.cqid;
               }
             );
           end
@@ -14502,7 +14533,7 @@ module tb_top;
             p_sequencer.host_m2s_req_seqr,
             {
               valid == 'h1;
-              address == d2h_req_seq_item_h.address;
+              address == d2h_req_seq_item_rcvd.address;
               memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
               tag == d2h_req_seq_item_rcvd.cqid;
               snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
@@ -14542,7 +14573,7 @@ module tb_top;
             p_sequencer.host_m2s_req_seqr,
             {
               valid == 'h1;
-              address == d2h_req_seq_item_h.address;
+              address == d2h_req_seq_item_rcvd.address;
               memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
               tag == d2h_req_seq_item_rcvd.cqid;
               snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
@@ -14583,7 +14614,7 @@ module tb_top;
             p_sequencer.host_m2s_req_seqr,
             {
               valid == 'h1;
-              address == d2h_req_seq_item_h.address;
+              address == d2h_req_seq_item_rcvd.address;
               memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
               tag == d2h_req_seq_item_rcvd.cqid;
               snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
@@ -14630,7 +14661,7 @@ module tb_top;
             p_sequencer.host_m2s_req_seqr,
             {
               valid == 'h1;
-              address == d2h_req_seq_item_h.address;
+              address == d2h_req_seq_item_rcvd.address;
               memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
               tag == d2h_req_seq_item_rcvd.cqid;
               snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
@@ -14674,7 +14705,7 @@ module tb_top;
             p_sequencer.host_m2s_req_seqr,
             {
               valid == 'h1;
-              address == d2h_req_seq_item_h.address;
+              address == d2h_req_seq_item_rcvd.address;
               memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
               tag == d2h_req_seq_item_rcvd.cqid;
               snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
@@ -14718,7 +14749,7 @@ module tb_top;
             p_sequencer.host_m2s_req_seqr,
             {
               valid == 'h1;
-              address == d2h_req_seq_item_h.address;
+              address == d2h_req_seq_item_rcvd.address;
               memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
               tag == d2h_req_seq_item_rcvd.cqid;
               snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
@@ -14872,7 +14903,7 @@ module tb_top;
             p_sequencer.host_m2s_req_seqr,
             {
               valid == 'h1;
-              address == d2h_req_seq_item_h.address;
+              address == d2h_req_seq_item_rcvd.address;
               memopcode inside {GEET_CXL_MEM_OPCODE_MEMWRFWD};
               tag == d2h_req_seq_item_rcvd.cqid;
               snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
