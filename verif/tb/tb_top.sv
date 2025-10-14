@@ -1190,7 +1190,10 @@ module host_tx_path#(
   logic host_tx_dl_if_pre_valid;
   logic [15:0] host_tx_dl_if_pre_crc;
   logic [511:0] host_tx_dl_if_pre_data;
-  virtual cxl_host_tx_dl_if host_tx_dl_if_d;
+  logic host_tx_dl_if_rstn_d;
+  logic host_tx_dl_if_valid_d;
+  logic [15:0] host_tx_dl_if_crc_d;
+  logic [511:0] host_tx_dl_if_data_d;
   //IMP INFO:consider s2m ndr as rsp credits and s2m drs as data credits
 
   ASSERT_ONEHOT_SLOT_SEL:assert property (@(posedge host_tx_dl_if.clk) disable iff (!host_tx_dl_if.rstn) $onehot(slot_sel));
@@ -2964,14 +2967,17 @@ module host_tx_path#(
       host_tx_dl_if_pre_valid <= 'h0;
       host_tx_dl_if_pre_data <= 'h0;
       host_tx_dl_if.valid <= 'h0;
-      host_tx_dl_if_d.valid <= 'h0;
+      host_tx_dl_if_rstn_d <= 'h0;
+      host_tx_dl_if_valid_d <= 'h0;
       host_tx_dl_if.data <= 'h0;
-      host_tx_dl_if_d.data <= 'h0;
+      host_tx_dl_if_data_d <= 'h0;
       holding_rdptr <= 'h0;
       ack_cnt_tbs <= 'h0;
       ack_cnt_snt <= 'h0;
     end else begin
-      host_tx_dl_if_d <= host_tx_dl_if;
+      host_tx_dl_if_rstn_d <= host_tx_dl_if.rstn;
+      host_tx_dl_if_valid_d <= host_tx_dl_if_pre_valid;
+      host_tx_dl_if_data_d <= host_tx_dl_if_pre_data;
       host_tx_dl_if.valid <= host_tx_dl_if_pre_valid;
       host_tx_dl_if.data <= {host_tx_dl_if_pre_data[511:0], host_tx_dl_if_pre_crc[15:0]};
       if(ack) begin
@@ -2982,7 +2988,7 @@ module host_tx_path#(
         host_tx_dl_if_pre_data <= holding_q[holding_rdptr].data;
         holding_rdptr <= holding_rdptr + 1;
       end else begin//TODO: this is wrong this is operating on a different clock and I am unsure need to analyze more if there is any cdc issues
-        if((host_tx_dl_if_d.rstn == 'h1) && (host_tx_dl_if.rstn == 'h0)) begin
+        if((host_tx_dl_if_rstn_d == 'h1) && (host_tx_dl_if.rstn == 'h0)) begin
           host_tx_dl_if_pre_valid          <= 'h1;
           host_tx_dl_if_pre_data[35:32]    <= 'b1100;
           host_tx_dl_if_pre_data[39:36]    <= 'b1000;
@@ -3187,7 +3193,9 @@ module device_tx_path#(
   logic dev_tx_dl_if_pre_valid;
   logic [15:0] dev_tx_dl_if_pre_crc;
   logic [511:0] dev_tx_dl_if_pre_data;
-  virtual cxl_dev_tx_dl_if dev_tx_dl_if_d;
+  logic dev_tx_dl_if_valid_d;
+  logic dev_tx_dl_if_rstn_d;
+  logic [511:0] dev_tx_dl_if_data_d;
 //IMP INFO: consider m2s req as rsp credits and m2s rwd as data credits
 
   ASSERT_DEVSIDE_ONEHOT_SLOT_SEL: assert property (@(posedge dev_tx_dl_if.clk) disable iff (!dev_tx_dl_if.rstn) $onehot(slot_sel));
@@ -5158,14 +5166,17 @@ module device_tx_path#(
       dev_tx_dl_if_pre_valid <= 'h0;
       dev_tx_dl_if_pre_data <= 'h0;
       dev_tx_dl_if.valid <= 'h0;
-      dev_tx_dl_if_d.valid <= 'h0;
+      dev_tx_dl_if_valid_d <= 'h0;
+      dev_tx_dl_if_rstn_d <= 'h0;
       dev_tx_dl_if.data <= 'h0;
-      dev_tx_dl_if_d.data <= 'h0;
+      dev_tx_dl_if_data_d <= 'h0;
       holding_rdptr <= 'h0;
       ack_cnt_tbs <= 'h0;
       ack_cnt_snt <= 'h0;
     end else begin
-      dev_tx_dl_if_d <= dev_tx_dl_if;
+      dev_tx_dl_if_valid_d <= dev_tx_dl_if_pre_valid;
+      dev_tx_dl_if_rstn_d <= dev_tx_dl_if.rstn;
+      dev_tx_dl_if_data_d <= dev_tx_dl_if_pre_data;
       dev_tx_dl_if.valid <= dev_tx_dl_if_pre_valid;
       dev_tx_dl_if.data <= {dev_tx_dl_if_pre_data[511:0], dev_tx_dl_if_pre_crc[15:0]};
       if(ack) begin
@@ -5176,7 +5187,7 @@ module device_tx_path#(
         dev_tx_dl_if_pre_data <= holding_q[holding_rdptr].data;
         holding_rdptr <= holding_rdptr + 1;
       end else begin
-        if((dev_tx_dl_if_d.rstn == 'h1) && (dev_tx_dl_if.rstn == 'h0)) begin
+        if((dev_tx_dl_if_rstn_d == 'h1) && (dev_tx_dl_if.rstn == 'h0)) begin
           dev_tx_dl_if_pre_valid          <= 'h1;
           dev_tx_dl_if_pre_data[35:32]    <= 'b1100;
           dev_tx_dl_if_pre_data[39:36]    <= 'b1000;
@@ -9171,17 +9182,14 @@ module tb_top;
   );
 
   initial begin
-
     clk = 0;
+    forever begin
+      #5 clk = ~clk; 
+    end  
+  end  
 
-    fork 
-        begin
-          forever begin
-            #5 clk = ~clk; 
-          end  
-        end 
-    join_none 
-    
+  initial begin
+
     uvm_config_db#(virtual cxl_cache_d2h_req_if)::set(null, "*", "host_d2h_req_if", host_d2h_req_if);
     uvm_config_db#(virtual cxl_cache_d2h_rsp_if)::set(null, "*", "host_d2h_rsp_if", host_d2h_rsp_if);
     uvm_config_db#(virtual cxl_cache_d2h_data_if)::set(null, "*", "host_d2h_data_if", host_d2h_data_if);
@@ -9192,6 +9200,28 @@ module tb_top;
     uvm_config_db#(virtual cxl_mem_m2s_rwd_if)::set(null, "*", "host_m2s_rwd_if", host_m2s_rwd_if);
     uvm_config_db#(virtual cxl_mem_s2m_ndr_if)::set(null, "*", "host_s2m_ndr_if", host_s2m_ndr_if);
     uvm_config_db#(virtual cxl_mem_s2m_drs_if)::set(null, "*", "host_s2m_drs_if", host_s2m_drs_if);
+    
+    uvm_config_db#(virtual cxl_cache_d2h_req_if.mon)::set(null, "*", "host_d2h_req_if_mon", host_d2h_req_if.mon);
+    uvm_config_db#(virtual cxl_cache_d2h_rsp_if.mon)::set(null, "*", "host_d2h_rsp_if_mon", host_d2h_rsp_if.mon);
+    uvm_config_db#(virtual cxl_cache_d2h_data_if.mon)::set(null, "*", "host_d2h_data_if_mon", host_d2h_data_if.mon);
+    uvm_config_db#(virtual cxl_cache_h2d_req_if.mon)::set(null, "*", "host_h2d_req_if_mon", host_h2d_req_if.mon);
+    uvm_config_db#(virtual cxl_cache_h2d_rsp_if.mon)::set(null, "*", "host_h2d_rsp_if_mon", host_h2d_rsp_if.mon);
+    uvm_config_db#(virtual cxl_cache_h2d_data_if.mon)::set(null, "*", "host_h2d_data_if_mon", host_h2d_data_if.mon);
+    uvm_config_db#(virtual cxl_mem_m2s_req_if.mon)::set(null, "*", "host_m2s_req_if_mon", host_m2s_req_if.mon);
+    uvm_config_db#(virtual cxl_mem_m2s_rwd_if.mon)::set(null, "*", "host_m2s_rwd_if_mon", host_m2s_rwd_if.mon);
+    uvm_config_db#(virtual cxl_mem_s2m_ndr_if.mon)::set(null, "*", "host_s2m_ndr_if_mon", host_s2m_ndr_if.mon);
+    uvm_config_db#(virtual cxl_mem_s2m_drs_if.mon)::set(null, "*", "host_s2m_drs_if_mon", host_s2m_drs_if.mon);
+    
+    uvm_config_db#(virtual cxl_cache_d2h_req_if.host_pasv_drvr_mp)::set(null, "*", "host_d2h_req_if_host_pasv_drvr_mp", host_d2h_req_if.host_pasv_drvr_mp);
+    uvm_config_db#(virtual cxl_cache_d2h_rsp_if.host_pasv_drvr_mp)::set(null, "*", "host_d2h_rsp_if_host_pasv_drvr_mp", host_d2h_rsp_if.host_pasv_drvr_mp);
+    uvm_config_db#(virtual cxl_cache_d2h_data_if.host_pasv_drvr_mp)::set(null, "*", "host_d2h_data_if_host_pasv_drvr_mp", host_d2h_data_if.host_pasv_drvr_mp);
+    uvm_config_db#(virtual cxl_cache_h2d_req_if.host_actv_drvr_mp)::set(null, "*", "host_h2d_req_if_host_actv_drvr_mp", host_h2d_req_if.host_actv_drvr_mp);
+    uvm_config_db#(virtual cxl_cache_h2d_rsp_if.host_actv_drvr_mp)::set(null, "*", "host_h2d_rsp_if_host_actv_drvr_mp", host_h2d_rsp_if.host_actv_drvr_mp);
+    uvm_config_db#(virtual cxl_cache_h2d_data_if.host_actv_drvr_mp)::set(null, "*", "host_h2d_data_if_host_actv_drvr_mp", host_h2d_data_if.host_actv_drvr_mp);
+    uvm_config_db#(virtual cxl_mem_m2s_req_if.host_actv_drvr_mp)::set(null, "*", "host_m2s_req_if_host_actv_drvr_mp", host_m2s_req_if.host_actv_drvr_mp);
+    uvm_config_db#(virtual cxl_mem_m2s_rwd_if.host_actv_drvr_mp)::set(null, "*", "host_m2s_rwd_if_host_actv_drvr_mp", host_m2s_rwd_if.host_actv_drvr_mp);
+    uvm_config_db#(virtual cxl_mem_s2m_ndr_if.host_pasv_drvr_mp)::set(null, "*", "host_s2m_ndr_if_host_pasv_drvr_mp", host_s2m_ndr_if.host_pasv_drvr_mp);
+    uvm_config_db#(virtual cxl_mem_s2m_drs_if.host_pasv_drvr_mp)::set(null, "*", "host_s2m_drs_if_host_pasv_drvr_mp", host_s2m_drs_if.host_pasv_drvr_mp);
 
     uvm_config_db#(virtual cxl_cache_d2h_req_if)::set(null, "*", "dev_d2h_req_if", dev_d2h_req_if);
     uvm_config_db#(virtual cxl_cache_d2h_rsp_if)::set(null, "*", "dev_d2h_rsp_if", dev_d2h_rsp_if);
@@ -9203,6 +9233,28 @@ module tb_top;
     uvm_config_db#(virtual cxl_mem_m2s_rwd_if)::set(null, "*", "dev_m2s_rwd_if", dev_m2s_rwd_if);
     uvm_config_db#(virtual cxl_mem_s2m_ndr_if)::set(null, "*", "dev_s2m_ndr_if", dev_s2m_ndr_if);
     uvm_config_db#(virtual cxl_mem_s2m_drs_if)::set(null, "*", "dev_s2m_drs_if", dev_s2m_drs_if);
+    
+    uvm_config_db#(virtual cxl_cache_d2h_req_if.mon)::set(null, "*", "dev_d2h_req_if_mon", dev_d2h_req_if.mon);
+    uvm_config_db#(virtual cxl_cache_d2h_rsp_if.mon)::set(null, "*", "dev_d2h_rsp_if_mon", dev_d2h_rsp_if.mon);
+    uvm_config_db#(virtual cxl_cache_d2h_data_if.mon)::set(null, "*", "dev_d2h_data_if_mon", dev_d2h_data_if.mon);
+    uvm_config_db#(virtual cxl_cache_h2d_req_if.mon)::set(null, "*", "dev_h2d_req_if_mon", dev_h2d_req_if.mon);
+    uvm_config_db#(virtual cxl_cache_h2d_rsp_if.mon)::set(null, "*", "dev_h2d_rsp_if_mon", dev_h2d_rsp_if.mon);
+    uvm_config_db#(virtual cxl_cache_h2d_data_if.mon)::set(null, "*", "dev_h2d_data_if_mon", dev_h2d_data_if.mon);
+    uvm_config_db#(virtual cxl_mem_m2s_req_if.mon)::set(null, "*", "dev_m2s_req_if_mon", dev_m2s_req_if.mon);
+    uvm_config_db#(virtual cxl_mem_m2s_rwd_if.mon)::set(null, "*", "dev_m2s_rwd_if_mon", dev_m2s_rwd_if.mon);
+    uvm_config_db#(virtual cxl_mem_s2m_ndr_if.mon)::set(null, "*", "dev_s2m_ndr_if_mon", dev_s2m_ndr_if.mon);
+    uvm_config_db#(virtual cxl_mem_s2m_drs_if.mon)::set(null, "*", "dev_s2m_drs_if_mon", dev_s2m_drs_if.mon);
+    
+    uvm_config_db#(virtual cxl_cache_d2h_req_if.dev_actv_drvr_mp)::set(null, "*", "dev_d2h_req_if_dev_actv_drvr_mp", dev_d2h_req_if.dev_actv_drvr_mp);
+    uvm_config_db#(virtual cxl_cache_d2h_rsp_if.dev_actv_drvr_mp)::set(null, "*", "dev_d2h_rsp_if_dev_actv_drvr_mp", dev_d2h_rsp_if.dev_actv_drvr_mp);
+    uvm_config_db#(virtual cxl_cache_d2h_data_if.dev_actv_drvr_mp)::set(null, "*", "dev_d2h_data_if_dev_actv_drvr_mp", dev_d2h_data_if.dev_actv_drvr_mp);
+    uvm_config_db#(virtual cxl_cache_h2d_req_if.dev_pasv_drvr_mp)::set(null, "*", "dev_h2d_req_if_dev_pasv_drvr_mp", dev_h2d_req_if.dev_pasv_drvr_mp);
+    uvm_config_db#(virtual cxl_cache_h2d_rsp_if.dev_pasv_drvr_mp)::set(null, "*", "dev_h2d_rsp_if_dev_pasv_drvr_mp", dev_h2d_rsp_if.dev_pasv_drvr_mp);
+    uvm_config_db#(virtual cxl_cache_h2d_data_if.dev_pasv_drvr_mp)::set(null, "*", "dev_h2d_data_if_dev_pasv_drvr_mp", dev_h2d_data_if.dev_pasv_drvr_mp);
+    uvm_config_db#(virtual cxl_mem_m2s_req_if.dev_pasv_drvr_mp)::set(null, "*", "dev_m2s_req_if_dev_pasv_drvr_mp", dev_m2s_req_if.dev_pasv_drvr_mp);
+    uvm_config_db#(virtual cxl_mem_m2s_rwd_if.dev_pasv_drvr_mp)::set(null, "*", "dev_m2s_rwd_if_dev_pasv_drvr_mp", dev_m2s_rwd_if.dev_pasv_drvr_mp);
+    uvm_config_db#(virtual cxl_mem_s2m_ndr_if.dev_actv_drvr_mp)::set(null, "*", "dev_s2m_ndr_if_dev_actv_drvr_mp", dev_s2m_ndr_if.dev_actv_drvr_mp);
+    uvm_config_db#(virtual cxl_mem_s2m_drs_if.dev_actv_drvr_mp)::set(null, "*", "dev_s2m_drs_if_dev_actv_drvr_mp", dev_s2m_drs_if.dev_actv_drvr_mp);
     run_test("cxl_base_test");
   end
 
@@ -9250,7 +9302,7 @@ module tb_top;
     }
 
     constraint reset_cycles_c {
-      reset_cycles == 10;
+      soft reset_cycles == 10;
     }
 
     function new(string name = "cxl_base_txn_seq_item");
@@ -9592,7 +9644,7 @@ module tb_top;
     }
 
     constraint illegal_ndr_opcode_c{
-      opcode == 'h3;
+      soft opcode inside {GEET_CXL_MEM_OPCODE_CMP, GEET_CXL_MEM_OPCODE_CMPE, GEET_CXL_MEM_OPCODE_CMPS};
     }
 
     constraint metafield_rsvd_illegal_c{
@@ -9605,7 +9657,6 @@ module tb_top;
 
     constraint solve_ordrer_c{
       solve opcode before metafield;
-      solve opcode before metavalue;
       solve metafield before metavalue;
     }
 
@@ -9801,8 +9852,8 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
       /*fork 
         begin
           forever begin
@@ -9844,8 +9895,8 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
       /*fork 
         begin
           forever begin
@@ -9886,8 +9937,8 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
       /*fork 
         begin
           forever begin
@@ -9928,8 +9979,8 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
       /*fork 
         begin
           forever begin
@@ -9970,8 +10021,8 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
       /*fork 
         begin
           forever begin
@@ -10012,8 +10063,8 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
       /*fork 
         begin
           forever begin
@@ -10054,8 +10105,8 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
       /*fork 
         begin
           forever begin
@@ -10097,8 +10148,8 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
       /*fork 
         begin
           forever begin
@@ -10139,8 +10190,8 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
       /*fork 
         begin
           forever begin
@@ -10181,8 +10232,8 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
       /*fork 
         begin
           forever begin
@@ -10219,10 +10270,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.mon)::get(this, "", "dev_d2h_req_if", dev_d2h_req_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.mon)::get(this, "", "dev_d2h_req_if_mon", dev_d2h_req_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_req_if"));
       end
       fork
@@ -10258,10 +10309,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.mon)::get(this, "", "dev_d2h_rsp_if", dev_d2h_rsp_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.mon)::get(this, "", "dev_d2h_rsp_if_mon", dev_d2h_rsp_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_rsp_if"));
       end
       fork
@@ -10296,10 +10347,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.mon)::get(this, "", "dev_d2h_data_if", dev_d2h_data_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.mon)::get(this, "", "dev_d2h_data_if_mon", dev_d2h_data_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_data_if"));
       end
       fork
@@ -10337,10 +10388,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.mon)::get(this, "", "host_h2d_req_if", host_h2d_req_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.mon)::get(this, "", "host_h2d_req_if_mon", host_h2d_req_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_req_if"));
       end
       fork
@@ -10376,10 +10427,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.mon)::get(this, "", "host_h2d_rsp_if", host_h2d_rsp_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.mon)::get(this, "", "host_h2d_rsp_if_mon", host_h2d_rsp_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_rsp_if"));
       end
       fork
@@ -10416,10 +10467,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.mon)::get(this, "", "host_h2d_data_if", host_h2d_data_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.mon)::get(this, "", "host_h2d_data_if_mon", host_h2d_data_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_data_if"));
       end
       fork
@@ -10457,10 +10508,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.mon)::get(this, "", "host_m2s_req_if", host_m2s_req_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.mon)::get(this, "", "host_m2s_req_if_mon", host_m2s_req_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_req_if"));
       end
       fork
@@ -10500,10 +10551,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.mon)::get(this, "", "host_m2s_rwd_if", host_m2s_rwd_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.mon)::get(this, "", "host_m2s_rwd_if_mon", host_m2s_rwd_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_rwd_if"));
       end
       fork
@@ -10545,10 +10596,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.mon)::get(this, "", "dev_s2m_ndr_if", dev_s2m_ndr_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.mon)::get(this, "", "dev_s2m_ndr_if_mon", dev_s2m_ndr_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_ndr_if"));
       end
       fork
@@ -10585,10 +10636,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.mon)::get(this, "", "dev_s2m_drs_if", dev_s2m_drs_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.mon)::get(this, "", "dev_s2m_drs_if_mon", dev_s2m_drs_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_drs_if"));
       end
       fork
@@ -10627,10 +10678,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.mon)::get(this, "", "host_d2h_req_if", host_d2h_req_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.mon)::get(this, "", "host_d2h_req_if_mon", host_d2h_req_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_req_if"));
       end
       fork
@@ -10666,10 +10717,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.mon)::get(this, "", "host_d2h_rsp_if", host_d2h_rsp_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.mon)::get(this, "", "host_d2h_rsp_if_mon", host_d2h_rsp_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_rsp_if"));
       end
       fork
@@ -10704,10 +10755,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.mon)::get(this, "", "host_d2h_data_if", host_d2h_data_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.mon)::get(this, "", "host_d2h_data_if_mon", host_d2h_data_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_data_if"));
       end
       fork
@@ -10745,10 +10796,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.mon)::get(this, "", "dev_h2d_req_if", dev_h2d_req_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.mon)::get(this, "", "dev_h2d_req_if_mon", dev_h2d_req_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_req_if"));
       end
       fork
@@ -10784,10 +10835,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.mon)::get(this, "", "dev_h2d_rsp_if", dev_h2d_rsp_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.mon)::get(this, "", "dev_h2d_rsp_if_mon", dev_h2d_rsp_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_rsp_if"));
       end
       fork
@@ -10824,10 +10875,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.mon)::get(this, "", "dev_h2d_data_if", dev_h2d_data_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.mon)::get(this, "", "dev_h2d_data_if_mon", dev_h2d_data_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_data_if"));
       end
       fork
@@ -10865,10 +10916,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.mon)::get(this, "", "dev_m2s_req_if", dev_m2s_req_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.mon)::get(this, "", "dev_m2s_req_if_mon", dev_m2s_req_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_req_if"));
       end
       fork
@@ -10908,10 +10959,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.mon)::get(this, "", "dev_m2s_rwd_if", dev_m2s_rwd_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.mon)::get(this, "", "dev_m2s_rwd_if_mon", dev_m2s_rwd_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_rwd_if"));
       end
       fork
@@ -10953,10 +11004,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.mon)::get(this, "", "host_s2m_ndr_if", host_s2m_ndr_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.mon)::get(this, "", "host_s2m_ndr_if_mon", host_s2m_ndr_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_ndr_if"));
       end
       fork
@@ -10993,10 +11044,10 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.mon)::get(this, "", "host_s2m_drs_if", host_s2m_drs_if))) begin
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.mon)::get(this, "", "host_s2m_drs_if_mon", host_s2m_drs_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_drs_if"));
       end
       fork
@@ -11036,7 +11087,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.host_pasv_drvr_mp)::get(this, "", "host_d2h_req_if", host_d2h_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.host_pasv_drvr_mp)::get(this, "", "host_d2h_req_if_host_pasv_drvr_mp", host_d2h_req_if.host_pasv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_req_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11054,14 +11105,14 @@ module tb_top;
         repeat(d2h_req_seq_item_h.reset_cycles) @(negedge host_d2h_req_if.clk) host_d2h_req_if.rstn <= 'h0;
         host_d2h_req_if.rstn <= 'h1;
         seq_item_port.item_done(d2h_req_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(d2h_req_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11080,7 +11131,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11099,7 +11150,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.host_pasv_drvr_mp)::get(this, "", "host_d2h_rsp_if", host_d2h_rsp_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.host_pasv_drvr_mp)::get(this, "", "host_d2h_rsp_if_host_pasv_drvr_mp", host_d2h_rsp_if.host_pasv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_rsp_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11117,14 +11168,14 @@ module tb_top;
         repeat(d2h_rsp_seq_item_h.reset_cycles) @(negedge host_d2h_rsp_if.clk) host_d2h_rsp_if.rstn <= 'h0;
         host_d2h_rsp_if.rstn <= 'h1;
         seq_item_port.item_done(d2h_rsp_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(d2h_rsp_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11143,7 +11194,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11162,7 +11213,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.host_pasv_drvr_mp)::get(this, "", "host_d2h_data_if", host_d2h_data_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.host_pasv_drvr_mp)::get(this, "", "host_d2h_data_if_host_pasv_drvr_mp", host_d2h_data_if.host_pasv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_data_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11180,14 +11231,14 @@ module tb_top;
         repeat(d2h_data_seq_item_h.reset_cycles) @(negedge host_d2h_data_if.clk) host_d2h_data_if.rstn <= 'h0;
         host_d2h_data_if.rstn <= 'h1;
         seq_item_port.item_done(d2h_data_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(d2h_data_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11206,7 +11257,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11225,7 +11276,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.host_pasv_drvr_mp)::get(this, "", "host_s2m_ndr_if", host_s2m_ndr_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.host_pasv_drvr_mp)::get(this, "", "host_s2m_ndr_if_host_pasv_drvr_mp", host_s2m_ndr_if.host_pasv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_ndr_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11243,14 +11294,14 @@ module tb_top;
         repeat(s2m_ndr_seq_item_h.reset_cycles) @(negedge host_s2m_ndr_if.clk) host_s2m_ndr_if.rstn <= 'h0;
         host_s2m_ndr_if.rstn <= 'h1;
         seq_item_port.item_done(s2m_ndr_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(s2m_ndr_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11269,7 +11320,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11288,7 +11339,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.host_pasv_drvr_mp)::get(this, "", "host_s2m_drs_if", host_s2m_drs_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.host_pasv_drvr_mp)::get(this, "", "host_s2m_drs_if_host_pasv_drvr_mp", host_s2m_drs_if.host_pasv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_drs_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11306,14 +11357,14 @@ module tb_top;
         repeat(s2m_drs_seq_item_h.reset_cycles) @(negedge host_s2m_drs_if.clk) host_s2m_drs_if.rstn <= 'h0;
         host_s2m_drs_if.rstn <= 'h1;
         seq_item_port.item_done(s2m_drs_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(s2m_drs_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11332,7 +11383,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11351,7 +11402,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.dev_pasv_drvr_mp)::get(this, "", "dev_h2d_req_if", dev_h2d_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.dev_pasv_drvr_mp)::get(this, "", "dev_h2d_req_if_dev_pasv_drvr_mp", dev_h2d_req_if.dev_pasv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_req_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11369,14 +11420,14 @@ module tb_top;
         repeat(h2d_req_seq_item_h.reset_cycles) @(negedge dev_h2d_req_if.clk) dev_h2d_req_if.rstn <= 'h0;
         dev_h2d_req_if.rstn <= 'h1;
         seq_item_port.item_done(h2d_req_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(h2d_req_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11395,7 +11446,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11414,7 +11465,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.dev_pasv_drvr_mp)::get(this, "", "dev_h2d_rsp_if", dev_h2d_rsp_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.dev_pasv_drvr_mp)::get(this, "", "dev_h2d_rsp_if_dev_pasv_drvr_mp", dev_h2d_rsp_if.dev_pasv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_rsp_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11432,14 +11483,14 @@ module tb_top;
         repeat(h2d_rsp_seq_item_h.reset_cycles) @(negedge dev_h2d_rsp_if.clk) dev_h2d_rsp_if.rstn <= 'h0;
         dev_h2d_rsp_if.rstn <= 'h1;
         seq_item_port.item_done(h2d_rsp_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(h2d_rsp_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11458,7 +11509,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11477,7 +11528,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.dev_pasv_drvr_mp)::get(this, "", "dev_h2d_data_if", dev_h2d_data_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.dev_pasv_drvr_mp)::get(this, "", "dev_h2d_data_if_dev_pasv_drvr_mp", dev_h2d_data_if.dev_pasv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_data_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11495,14 +11546,14 @@ module tb_top;
         repeat(h2d_data_seq_item_h.reset_cycles) @(negedge dev_h2d_data_if.clk) dev_h2d_data_if.rstn <= 'h0;
         dev_h2d_data_if.rstn <= 'h1;
         seq_item_port.item_done(h2d_data_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(h2d_data_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11521,7 +11572,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11540,7 +11591,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.dev_pasv_drvr_mp)::get(this, "", "dev_m2s_req_if", dev_m2s_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.dev_pasv_drvr_mp)::get(this, "", "dev_m2s_req_if_dev_pasv_drvr_mp", dev_m2s_req_if.dev_pasv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_req_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11558,14 +11609,14 @@ module tb_top;
         repeat(m2s_req_seq_item_h.reset_cycles) @(negedge dev_m2s_req_if.clk) dev_m2s_req_if.rstn <= 'h0;
         dev_m2s_req_if.rstn <= 'h1;
         seq_item_port.item_done(m2s_req_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(m2s_req_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11584,7 +11635,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11603,7 +11654,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.dev_pasv_drvr_mp)::get(this, "", "dev_m2s_rwd_if", dev_m2s_rwd_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.dev_pasv_drvr_mp)::get(this, "", "dev_m2s_rwd_if_dev_pasv_drvr_mp", dev_m2s_rwd_if.dev_pasv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_rwd_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11621,14 +11672,14 @@ module tb_top;
         repeat(m2s_rwd_seq_item_h.reset_cycles) @(negedge dev_m2s_rwd_if.clk) dev_m2s_rwd_if.rstn <= 'h0;
         dev_m2s_rwd_if.rstn <= 'h1;
         seq_item_port.item_done(m2s_rwd_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
     
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(m2s_rwd_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11647,7 +11698,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11666,7 +11717,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.dev_actv_drvr_mp)::get(this, "", "dev_d2h_req_if", dev_d2h_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.dev_actv_drvr_mp)::get(this, "", "dev_d2h_req_if_dev_actv_drvr_mp", dev_d2h_req_if.dev_actv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_req_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11684,7 +11735,7 @@ module tb_top;
         repeat(d2h_req_seq_item_h.reset_cycles) @(negedge dev_d2h_req_if.clk) dev_d2h_req_if.rstn <= 'h0;
         dev_d2h_req_if.rstn <= 'h1;
         seq_item_port.item_done(d2h_req_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
@@ -11698,14 +11749,14 @@ module tb_top;
       phase.raise_objection(this);  
       wait(dev_d2h_req_if.ready);
       seq_item_port.item_done(d2h_req_seq_item_h);  
-      phase.drop_objection(phase);
+      phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(d2h_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11727,7 +11778,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
   endclass
 
@@ -11745,7 +11796,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.dev_actv_drvr_mp)::get(this, "", "dev_d2h_rsp_if", dev_d2h_rsp_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.dev_actv_drvr_mp)::get(this, "", "dev_d2h_rsp_if_dev_actv_drvr_mp", dev_d2h_rsp_if.dev_actv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_rsp_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11763,7 +11814,7 @@ module tb_top;
         repeat(d2h_rsp_seq_item_h.reset_cycles) @(negedge dev_d2h_rsp_if.clk) dev_d2h_rsp_if.rstn <= 'h0;
         dev_d2h_rsp_if.rstn <= 'h1;
         seq_item_port.item_done(d2h_rsp_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
@@ -11777,14 +11828,14 @@ module tb_top;
       phase.raise_objection(this);  
       wait(dev_d2h_rsp_if.ready);
       seq_item_port.item_done(d2h_rsp_seq_item_h);  
-      phase.drop_objection(phase);
+      phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(d2h_rsp_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11804,7 +11855,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11822,7 +11873,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.dev_actv_drvr_mp)::get(this, "", "dev_d2h_data_if", dev_d2h_data_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.dev_actv_drvr_mp)::get(this, "", "dev_d2h_data_if_dev_actv_drvr_mp", dev_d2h_data_if.dev_actv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_data_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11840,7 +11891,7 @@ module tb_top;
         repeat(d2h_data_seq_item_h.reset_cycles) @(negedge dev_d2h_data_if.clk) dev_d2h_data_if.rstn <= 'h0;
         dev_d2h_data_if.rstn <= 'h1;
         seq_item_port.item_done(d2h_data_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
@@ -11854,14 +11905,14 @@ module tb_top;
       phase.raise_objection(this);  
       wait(dev_d2h_data_if.ready);
       seq_item_port.item_done(d2h_data_seq_item_h);  
-      phase.drop_objection(phase);
+      phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(d2h_data_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11884,7 +11935,7 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
         seq_item_port.item_done(d2h_data_seq_item_h);
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11902,7 +11953,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.host_actv_drvr_mp)::get(this, "", "host_h2d_req_if", host_h2d_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.host_actv_drvr_mp)::get(this, "", "host_h2d_req_if_host_actv_drvr_mp", host_h2d_req_if.host_actv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_req_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11920,7 +11971,7 @@ module tb_top;
         repeat(h2d_req_seq_item_h.reset_cycles) @(negedge host_h2d_req_if.clk) host_h2d_req_if.rstn <= 'h0;
         host_h2d_req_if.rstn <= 'h1;
         seq_item_port.item_done(h2d_req_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
@@ -11934,14 +11985,14 @@ module tb_top;
       phase.raise_objection(this);  
       wait(host_h2d_req_if.ready);
       seq_item_port.item_done(h2d_req_seq_item_h);  
-      phase.drop_objection(phase);
+      phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(h2d_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11962,7 +12013,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -11980,7 +12031,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.host_actv_drvr_mp)::get(this, "", "host_h2d_rsp_if", host_h2d_rsp_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.host_actv_drvr_mp)::get(this, "", "host_h2d_rsp_if_host_actv_drvr_mp", host_h2d_rsp_if.host_actv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_rsp_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -11998,7 +12049,7 @@ module tb_top;
         repeat(h2d_rsp_seq_item_h.reset_cycles) @(negedge host_h2d_rsp_if.clk) host_h2d_rsp_if.rstn <= 'h0;
         host_h2d_rsp_if.rstn <= 'h1;
         seq_item_port.item_done(h2d_rsp_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
@@ -12012,14 +12063,14 @@ module tb_top;
       phase.raise_objection(this);  
       wait(host_h2d_rsp_if.ready);
       seq_item_port.item_done(h2d_rsp_seq_item_h);  
-      phase.drop_objection(phase);
+      phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(h2d_rsp_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12041,7 +12092,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -12059,7 +12110,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.host_actv_drvr_mp)::get(this, "", "host_h2d_data_if", host_h2d_data_if))) begin
+      if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.host_actv_drvr_mp)::get(this, "", "host_h2d_data_if_host_actv_drvr_mp", host_h2d_data_if.host_actv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_data_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12077,7 +12128,7 @@ module tb_top;
         repeat(h2d_data_seq_item_h.reset_cycles) @(negedge host_h2d_data_if.clk) host_h2d_data_if.rstn <= 'h0;
         host_h2d_data_if.rstn <= 'h1;
         seq_item_port.item_done(h2d_data_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
@@ -12091,14 +12142,14 @@ module tb_top;
       phase.raise_objection(this);  
       wait(host_h2d_data_if.ready);
       seq_item_port.item_done(h2d_data_seq_item_h);  
-      phase.drop_objection(phase);
+      phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(h2d_data_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12121,7 +12172,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -12139,7 +12190,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.host_actv_drvr_mp)::get(this, "", "host_m2s_req_if", host_m2s_req_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.host_actv_drvr_mp)::get(this, "", "host_m2s_req_if_host_actv_drvr_mp", host_m2s_req_if.host_actv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_req_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12157,7 +12208,7 @@ module tb_top;
         repeat(m2s_req_seq_item_h.reset_cycles) @(negedge host_m2s_req_if.clk) host_m2s_req_if.rstn <= 'h0;
         host_m2s_req_if.rstn <= 'h1;
         seq_item_port.item_done(m2s_req_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
@@ -12171,14 +12222,14 @@ module tb_top;
       phase.raise_objection(this);  
       wait(host_m2s_req_if.ready);
       seq_item_port.item_done(m2s_req_seq_item_h);  
-      phase.drop_objection(phase);
+      phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin  
         seq_item_port.get_next_item(m2s_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12220,7 +12271,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.host_actv_drvr_mp)::get(this, "", "host_m2s_rwd_if", host_m2s_rwd_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.host_actv_drvr_mp)::get(this, "", "host_m2s_rwd_if_host_actv_drvr_mp", host_m2s_rwd_if.host_actv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_rwd_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12238,7 +12289,7 @@ module tb_top;
         repeat(m2s_rwd_seq_item_h.reset_cycles) @(negedge host_m2s_rwd_if.clk) host_m2s_rwd_if.rstn <= 'h0;
         host_m2s_rwd_if.rstn <= 'h1;
         seq_item_port.item_done(m2s_rwd_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
@@ -12252,14 +12303,14 @@ module tb_top;
       phase.raise_objection(this);  
       wait(host_m2s_rwd_if.ready);
       seq_item_port.item_done(m2s_rwd_seq_item_h);  
-      phase.drop_objection(phase);
+      phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin  
         seq_item_port.get_next_item(m2s_rwd_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12286,7 +12337,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -12304,7 +12355,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.dev_actv_drvr_mp)::get(this, "", "dev_s2m_ndr_if", dev_s2m_ndr_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.dev_actv_drvr_mp)::get(this, "", "dev_s2m_ndr_if_dev_actv_drvr_mp", dev_s2m_ndr_if.dev_actv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_ndr_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12322,7 +12373,7 @@ module tb_top;
         repeat(s2m_ndr_seq_item_h.reset_cycles) @(negedge dev_s2m_ndr_if.clk) dev_s2m_ndr_if.rstn <= 'h0;
         dev_s2m_ndr_if.rstn <= 'h1;
         seq_item_port.item_done(s2m_ndr_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
@@ -12336,14 +12387,14 @@ module tb_top;
       phase.raise_objection(this);  
       wait(dev_s2m_ndr_if.ready);
       seq_item_port.item_done(s2m_ndr_seq_item_h);  
-      phase.drop_objection(phase);
+      phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin  
         seq_item_port.get_next_item(s2m_ndr_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12365,7 +12416,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)  
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)  
     endtask
 
   endclass
@@ -12383,7 +12434,7 @@ module tb_top;
     virtual function void build_phase(uvm_phase phase);
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.dev_actv_drvr_mp)::get(this, "", "dev_s2m_drs_if", dev_s2m_drs_if))) begin
+      if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.dev_actv_drvr_mp)::get(this, "", "dev_s2m_drs_if_dev_actv_drvr_mp", dev_s2m_drs_if.dev_actv_drvr_mp))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_drs_if"));
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12401,7 +12452,7 @@ module tb_top;
         repeat(s2m_drs_seq_item_h.reset_cycles) @(negedge dev_s2m_drs_if.clk) dev_s2m_drs_if.rstn <= 'h0;
         dev_s2m_drs_if.rstn <= 'h1;
         seq_item_port.item_done(s2m_drs_seq_item_h);  
-        phase.drop_objection(phase);
+        phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
@@ -12415,14 +12466,14 @@ module tb_top;
       phase.raise_objection(this);  
       wait(dev_s2m_drs_if.ready);
       seq_item_port.item_done(s2m_drs_seq_item_h);  
-      phase.drop_objection(phase);
+      phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin  
         seq_item_port.get_next_item(s2m_drs_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12446,7 +12497,7 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit run_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
@@ -13268,9 +13319,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("enter build_phase in uvm scoreboard : %s", get_full_name()), UVM_HIGH)
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm scoreboard: %s", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm scoreboard: %s", get_full_name()), UVM_HIGH)
       if(!uvm_resource_db#(cxl_cfg_obj)::read_by_name("", "cxl_cfg_obj_h", cxl_cfg_obj_h)) begin
         `uvm_fatal("CXL_CFG_OBJ", "cxl_cfg_obj not found")
       end
@@ -13296,7 +13347,7 @@ module tb_top;
         if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) dev_s2m_ndr();
         if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) dev_s2m_drs();
       join_none
-      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm scoreboard: %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm scoreboard: %s", get_full_name()), UVM_HIGH)
     endtask
 
     task dev_d2h_req();
@@ -14047,125 +14098,125 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("dev_d2h_req_agent_h is_active = %0s", dev_d2h_req_agent_h.is_active.name()), UVM_FULL)
       if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
         if(dev_d2h_req_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.dev_d2h_req_seqr   = dev_d2h_req_agent_h.dev_d2h_req_sequencer_h;
-          $cast(cxl_cm_vseqr.dev_d2h_req_seqr   , dev_d2h_req_agent_h.dev_d2h_req_sequencer_h);
+          cxl_cm_vseqr.dev_d2h_req_seqr   = dev_d2h_req_agent_h.dev_d2h_req_sequencer_h;
+          //$cast(cxl_cm_vseqr.dev_d2h_req_seqr   , dev_d2h_req_agent_h.dev_d2h_req_sequencer_h);
         end
         dev_d2h_req_agent_h.dev_d2h_req_monitor_h.d2h_req_port.connect(cxl_cm_scoreboard_h.dev_d2h_req_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("dev_d2h_rsp_agent_h is_active = %0s", dev_d2h_rsp_agent_h.is_active.name()), UVM_FULL)
         if(dev_d2h_rsp_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.dev_d2h_rsp_seqr   = dev_d2h_rsp_agent_h.dev_d2h_rsp_sequencer_h;
-          $cast(cxl_cm_vseqr.dev_d2h_rsp_seqr   , dev_d2h_rsp_agent_h.dev_d2h_rsp_sequencer_h);
+          cxl_cm_vseqr.dev_d2h_rsp_seqr   = dev_d2h_rsp_agent_h.dev_d2h_rsp_sequencer_h;
+          //$cast(cxl_cm_vseqr.dev_d2h_rsp_seqr   , dev_d2h_rsp_agent_h.dev_d2h_rsp_sequencer_h);
         end
         dev_d2h_rsp_agent_h.dev_d2h_rsp_monitor_h.d2h_rsp_port.connect(cxl_cm_scoreboard_h.dev_d2h_rsp_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("dev_d2h_data_agent_h is_active = %0s", dev_d2h_data_agent_h.is_active.name()), UVM_FULL)
         if(dev_d2h_data_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.dev_d2h_data_seqr  = dev_d2h_data_agent_h.dev_d2h_data_sequencer_h;
-          $cast(cxl_cm_vseqr.dev_d2h_data_seqr  , dev_d2h_data_agent_h.dev_d2h_data_sequencer_h);
+          cxl_cm_vseqr.dev_d2h_data_seqr  = dev_d2h_data_agent_h.dev_d2h_data_sequencer_h;
+          //$cast(cxl_cm_vseqr.dev_d2h_data_seqr  , dev_d2h_data_agent_h.dev_d2h_data_sequencer_h);
         end
           $cast(cxl_cm_vseqr.dev_d2h_data_seqr  , dev_d2h_data_agent_h.dev_d2h_data_sequencer_h);
         dev_d2h_data_agent_h.dev_d2h_data_monitor_h.d2h_data_port.connect(cxl_cm_scoreboard_h.dev_d2h_data_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("host_h2d_req_agent_h is_active = %0s", host_h2d_req_agent_h.is_active.name()), UVM_FULL)
         if(host_h2d_req_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.host_h2d_req_seqr   = host_h2d_req_agent_h.host_h2d_req_sequencer_h;
-          $cast(cxl_cm_vseqr.host_h2d_req_seqr   , host_h2d_req_agent_h.host_h2d_req_sequencer_h);
+          cxl_cm_vseqr.host_h2d_req_seqr   = host_h2d_req_agent_h.host_h2d_req_sequencer_h;
+          //$cast(cxl_cm_vseqr.host_h2d_req_seqr   , host_h2d_req_agent_h.host_h2d_req_sequencer_h);
         end
         host_h2d_req_agent_h.host_h2d_req_monitor_h.h2d_req_port.connect(cxl_cm_scoreboard_h.host_h2d_req_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("host_h2d_rsp_agent_h is_active = %0s", host_h2d_rsp_agent_h.is_active.name()), UVM_FULL)
         if(host_h2d_rsp_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.host_h2d_rsp_seqr   = host_h2d_rsp_agent_h.host_h2d_rsp_sequencer_h;
-          $cast(cxl_cm_vseqr.host_h2d_rsp_seqr   , host_h2d_rsp_agent_h.host_h2d_rsp_sequencer_h);
+          cxl_cm_vseqr.host_h2d_rsp_seqr   = host_h2d_rsp_agent_h.host_h2d_rsp_sequencer_h;
+          //$cast(cxl_cm_vseqr.host_h2d_rsp_seqr   , host_h2d_rsp_agent_h.host_h2d_rsp_sequencer_h);
         end
         host_h2d_rsp_agent_h.host_h2d_rsp_monitor_h.h2d_rsp_port.connect(cxl_cm_scoreboard_h.host_h2d_rsp_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("host_h2d_data_agent_h is_active = %0s", host_h2d_data_agent_h.is_active.name()), UVM_FULL)
         if(host_h2d_data_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.host_h2d_data_seqr  = host_h2d_data_agent_h.host_h2d_data_sequencer_h;
-          $cast(cxl_cm_vseqr.host_h2d_data_seqr  , host_h2d_data_agent_h.host_h2d_data_sequencer_h);
+          cxl_cm_vseqr.host_h2d_data_seqr  = host_h2d_data_agent_h.host_h2d_data_sequencer_h;
+          //$cast(cxl_cm_vseqr.host_h2d_data_seqr  , host_h2d_data_agent_h.host_h2d_data_sequencer_h);
         end
         host_h2d_data_agent_h.host_h2d_data_monitor_h.h2d_data_port.connect(cxl_cm_scoreboard_h.host_h2d_data_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("host_m2s_req_agent_h is_active = %0s", host_m2s_req_agent_h.is_active.name()), UVM_FULL)
         if(host_m2s_req_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.host_m2s_req_seqr   = host_m2s_req_agent_h.host_m2s_req_sequencer_h;
-          $cast(cxl_cm_vseqr.host_m2s_req_seqr   , host_m2s_req_agent_h.host_m2s_req_sequencer_h);
+          cxl_cm_vseqr.host_m2s_req_seqr   = host_m2s_req_agent_h.host_m2s_req_sequencer_h;
+          //$cast(cxl_cm_vseqr.host_m2s_req_seqr   , host_m2s_req_agent_h.host_m2s_req_sequencer_h);
         end
         host_d2h_req_agent_h.host_d2h_req_monitor_h.d2h_req_port.connect(cxl_cm_scoreboard_h.host_d2h_req_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("host_d2h_rsp_agent_h is_active = %0s", host_d2h_rsp_agent_h.is_active.name()), UVM_FULL)
         if(host_d2h_rsp_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.host_d2h_rsp_seqr   = host_d2h_rsp_agent_h.host_d2h_rsp_sequencer_h;
-          $cast(cxl_cm_vseqr.host_d2h_rsp_seqr   , host_d2h_rsp_agent_h.host_d2h_rsp_sequencer_h);
+          cxl_cm_vseqr.host_d2h_rsp_seqr   = host_d2h_rsp_agent_h.host_d2h_rsp_sequencer_h;
+          //$cast(cxl_cm_vseqr.host_d2h_rsp_seqr   , host_d2h_rsp_agent_h.host_d2h_rsp_sequencer_h);
         end
         host_d2h_rsp_agent_h.host_d2h_rsp_monitor_h.d2h_rsp_port.connect(cxl_cm_scoreboard_h.host_d2h_rsp_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("host_d2h_data_agent_h is_active = %0s", host_d2h_data_agent_h.is_active.name()), UVM_FULL)
         if(host_d2h_data_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.host_d2h_data_seqr  = host_d2h_data_agent_h.host_d2h_data_sequencer_h;
-          $cast(cxl_cm_vseqr.host_d2h_data_seqr  , host_d2h_data_agent_h.host_d2h_data_sequencer_h);
+          cxl_cm_vseqr.host_d2h_data_seqr  = host_d2h_data_agent_h.host_d2h_data_sequencer_h;
+          //$cast(cxl_cm_vseqr.host_d2h_data_seqr  , host_d2h_data_agent_h.host_d2h_data_sequencer_h);
         end
         host_d2h_data_agent_h.host_d2h_data_monitor_h.d2h_data_port.connect(cxl_cm_scoreboard_h.host_d2h_data_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("dev_h2d_req_agent_h is_active = %0s", dev_h2d_req_agent_h.is_active.name()), UVM_FULL)
         if(dev_h2d_req_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.dev_h2d_req_seqr   = dev_h2d_req_agent_h.dev_h2d_req_sequencer_h;
-          $cast(cxl_cm_vseqr.dev_h2d_req_seqr   , dev_h2d_req_agent_h.dev_h2d_req_sequencer_h);
+          cxl_cm_vseqr.dev_h2d_req_seqr   = dev_h2d_req_agent_h.dev_h2d_req_sequencer_h;
+          //$cast(cxl_cm_vseqr.dev_h2d_req_seqr   , dev_h2d_req_agent_h.dev_h2d_req_sequencer_h);
         end
         dev_h2d_req_agent_h.dev_h2d_req_monitor_h.h2d_req_port.connect(cxl_cm_scoreboard_h.dev_h2d_req_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("dev_h2d_rsp_agent_h is_active = %0s", dev_h2d_rsp_agent_h.is_active.name()), UVM_FULL)
         if(dev_h2d_rsp_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.dev_h2d_rsp_seqr   = dev_h2d_rsp_agent_h.dev_h2d_rsp_sequencer_h;
-          $cast(cxl_cm_vseqr.dev_h2d_rsp_seqr   , dev_h2d_rsp_agent_h.dev_h2d_rsp_sequencer_h);
+          cxl_cm_vseqr.dev_h2d_rsp_seqr   = dev_h2d_rsp_agent_h.dev_h2d_rsp_sequencer_h;
+          //$cast(cxl_cm_vseqr.dev_h2d_rsp_seqr   , dev_h2d_rsp_agent_h.dev_h2d_rsp_sequencer_h);
         end
         dev_h2d_rsp_agent_h.dev_h2d_rsp_monitor_h.h2d_rsp_port.connect(cxl_cm_scoreboard_h.dev_h2d_rsp_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("dev_h2d_data_agent_h is_active = %0s", dev_h2d_data_agent_h.is_active.name()), UVM_FULL)
         if(dev_h2d_data_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.dev_h2d_data_seqr  = dev_h2d_data_agent_h.dev_h2d_data_sequencer_h;
-          $cast(cxl_cm_vseqr.dev_h2d_data_seqr  , dev_h2d_data_agent_h.dev_h2d_data_sequencer_h);
+          cxl_cm_vseqr.dev_h2d_data_seqr  = dev_h2d_data_agent_h.dev_h2d_data_sequencer_h;
+          //$cast(cxl_cm_vseqr.dev_h2d_data_seqr  , dev_h2d_data_agent_h.dev_h2d_data_sequencer_h);
         end
         dev_h2d_data_agent_h.dev_h2d_data_monitor_h.h2d_data_port.connect(cxl_cm_scoreboard_h.dev_h2d_data_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("dev_m2s_req_agent_h is_active = %0s", dev_m2s_req_agent_h.is_active.name()), UVM_FULL)
         if(dev_m2s_req_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.dev_m2s_req_seqr   = dev_m2s_req_agent_h.dev_m2s_req_sequencer_h;
-          $cast(cxl_cm_vseqr.dev_m2s_req_seqr   , dev_m2s_req_agent_h.dev_m2s_req_sequencer_h);
+          cxl_cm_vseqr.dev_m2s_req_seqr   = dev_m2s_req_agent_h.dev_m2s_req_sequencer_h;
+          //$cast(cxl_cm_vseqr.dev_m2s_req_seqr   , dev_m2s_req_agent_h.dev_m2s_req_sequencer_h);
         end
       end
       if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
         host_m2s_req_agent_h.host_m2s_req_monitor_h.m2s_req_port.connect(cxl_cm_scoreboard_h.host_m2s_req_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("host_m2s_rwd_agent_h is_active = %0s", host_m2s_rwd_agent_h.is_active.name()), UVM_FULL)
         if(host_m2s_rwd_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.host_m2s_rwd_seqr   = host_m2s_rwd_agent_h.host_m2s_rwd_sequencer_h;
-          $cast(cxl_cm_vseqr.host_m2s_rwd_seqr   , host_m2s_rwd_agent_h.host_m2s_rwd_sequencer_h);
+          cxl_cm_vseqr.host_m2s_rwd_seqr   = host_m2s_rwd_agent_h.host_m2s_rwd_sequencer_h;
+          //$cast(cxl_cm_vseqr.host_m2s_rwd_seqr   , host_m2s_rwd_agent_h.host_m2s_rwd_sequencer_h);
         end
         host_m2s_rwd_agent_h.host_m2s_rwd_monitor_h.m2s_rwd_port.connect(cxl_cm_scoreboard_h.host_m2s_rwd_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("dev_s2m_ndr_agent_h is_active = %0s", dev_s2m_ndr_agent_h.is_active.name()), UVM_FULL)
         if(dev_s2m_ndr_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.dev_s2m_ndr_seqr   = dev_s2m_ndr_agent_h.dev_s2m_ndr_sequencer_h;
-          $cast(cxl_cm_vseqr.dev_s2m_ndr_seqr   , dev_s2m_ndr_agent_h.dev_s2m_ndr_sequencer_h);
+          cxl_cm_vseqr.dev_s2m_ndr_seqr   = dev_s2m_ndr_agent_h.dev_s2m_ndr_sequencer_h;
+          //$cast(cxl_cm_vseqr.dev_s2m_ndr_seqr   , dev_s2m_ndr_agent_h.dev_s2m_ndr_sequencer_h);
         end
         dev_s2m_ndr_agent_h.dev_s2m_ndr_monitor_h.s2m_ndr_port.connect(cxl_cm_scoreboard_h.dev_s2m_ndr_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("dev_s2m_drs_agent_h is_active = %0s", dev_s2m_drs_agent_h.is_active.name()), UVM_FULL)
         if(dev_s2m_drs_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.dev_s2m_drs_seqr   = dev_s2m_drs_agent_h.dev_s2m_drs_sequencer_h;
-          $cast(cxl_cm_vseqr.dev_s2m_drs_seqr   , dev_s2m_drs_agent_h.dev_s2m_drs_sequencer_h);
+          cxl_cm_vseqr.dev_s2m_drs_seqr   = dev_s2m_drs_agent_h.dev_s2m_drs_sequencer_h;
+          //$cast(cxl_cm_vseqr.dev_s2m_drs_seqr   , dev_s2m_drs_agent_h.dev_s2m_drs_sequencer_h);
         end
         dev_s2m_drs_agent_h.dev_s2m_drs_monitor_h.s2m_drs_port.connect(cxl_cm_scoreboard_h.dev_s2m_drs_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("host_d2h_req_agent_h is_active = %0s", host_d2h_req_agent_h.is_active.name()), UVM_FULL)
         if(host_d2h_req_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.host_d2h_req_seqr   = host_d2h_req_agent_h.host_d2h_req_sequencer_h;
-          $cast(cxl_cm_vseqr.host_d2h_req_seqr   , host_d2h_req_agent_h.host_d2h_req_sequencer_h);
+          cxl_cm_vseqr.host_d2h_req_seqr   = host_d2h_req_agent_h.host_d2h_req_sequencer_h;
+          //$cast(cxl_cm_vseqr.host_d2h_req_seqr   , host_d2h_req_agent_h.host_d2h_req_sequencer_h);
         end
         dev_m2s_req_agent_h.dev_m2s_req_monitor_h.m2s_req_port.connect(cxl_cm_scoreboard_h.dev_m2s_req_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("dev_m2s_rwd_agent_h is_active = %0s", dev_m2s_rwd_agent_h.is_active.name()), UVM_FULL)
         if(dev_m2s_rwd_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.dev_m2s_rwd_seqr   = dev_m2s_rwd_agent_h.dev_m2s_rwd_sequencer_h;
-          $cast(cxl_cm_vseqr.dev_m2s_rwd_seqr   , dev_m2s_rwd_agent_h.dev_m2s_rwd_sequencer_h);
+          cxl_cm_vseqr.dev_m2s_rwd_seqr   = dev_m2s_rwd_agent_h.dev_m2s_rwd_sequencer_h;
+          //$cast(cxl_cm_vseqr.dev_m2s_rwd_seqr   , dev_m2s_rwd_agent_h.dev_m2s_rwd_sequencer_h);
         end
         dev_m2s_rwd_agent_h.dev_m2s_rwd_monitor_h.m2s_rwd_port.connect(cxl_cm_scoreboard_h.dev_m2s_rwd_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("host_s2m_ndr_agent_h is_active = %0s", host_s2m_ndr_agent_h.is_active.name()), UVM_FULL)
         if(host_s2m_ndr_agent_h.is_active == UVM_ACTIVE) begin
-            //cxl_cm_vseqr.host_s2m_ndr_seqr   = host_s2m_ndr_agent_h.host_s2m_ndr_sequencer_h;
-            $cast(cxl_cm_vseqr.host_s2m_ndr_seqr   , host_s2m_ndr_agent_h.host_s2m_ndr_sequencer_h);
+          cxl_cm_vseqr.host_s2m_ndr_seqr   = host_s2m_ndr_agent_h.host_s2m_ndr_sequencer_h;
+          //$cast(cxl_cm_vseqr.host_s2m_ndr_seqr   , host_s2m_ndr_agent_h.host_s2m_ndr_sequencer_h);
         end
         host_s2m_ndr_agent_h.host_s2m_ndr_monitor_h.s2m_ndr_port.connect(cxl_cm_scoreboard_h.host_s2m_ndr_fifo.analysis_export);
         `uvm_info(get_type_name(), $sformatf("host_s2m_drs_agent_h is_active = %0s", host_s2m_drs_agent_h.is_active.name()), UVM_FULL)
         if(host_s2m_drs_agent_h.is_active == UVM_ACTIVE) begin
-          //cxl_cm_vseqr.host_s2m_drs_seqr   = host_s2m_drs_agent_h.host_s2m_drs_sequencer_h;
-          $cast(cxl_cm_vseqr.host_s2m_drs_seqr   , host_s2m_drs_agent_h.host_s2m_drs_sequencer_h);
+          cxl_cm_vseqr.host_s2m_drs_seqr   = host_s2m_drs_agent_h.host_s2m_drs_sequencer_h;
+          //$cast(cxl_cm_vseqr.host_s2m_drs_seqr   , host_s2m_drs_agent_h.host_s2m_drs_sequencer_h);
         end
         host_s2m_drs_agent_h.host_s2m_drs_monitor_h.s2m_drs_port.connect(cxl_cm_scoreboard_h.host_s2m_drs_fifo.analysis_export);
       end
@@ -14176,13 +14227,15 @@ module tb_top;
     
   class dev_d2h_req_seq#(type ITEM_TYPE = d2h_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_d2h_req_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(dev_d2h_req_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE d2h_req_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       d2h_req_seq_item_h.size == num_trans;
+      solve num_trans before d2h_req_seq_item_h.size;
     }
 
     function new(string name = "dev_d2h_req_seq");
@@ -14190,23 +14243,31 @@ module tb_top;
     endfunction
 
     task body();
-      foreach(d2h_req_seq_item_h[i]) begin
-        d2h_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_h[%0d]",i));
-        `uvm_do_on(d2h_req_seq_item_h[i], p_sequencer.dev_d2h_req_seqr);
-      end
+      //foreach(d2h_req_seq_item_h[i]) begin
+        //d2h_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_h[%0d]",i));
+        //d2h_req_seq_item_h[0] = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_h"));
+        `uvm_do_on_with(d2h_req_seq_item_h[0], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(d2h_req_seq_item_h[i]);
+        if(!d2h_req_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(d2h_req_seq_item_h[i]);
+*/      //end
     endtask
 
   endclass
 
   class dev_d2h_rsp_seq#(type ITEM_TYPE = d2h_rsp_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_d2h_rsp_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(dev_d2h_rsp_sequencer)
     rand ITEM_TYPE d2h_rsp_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       d2h_rsp_seq_item_h.size == num_trans;
+      solve num_trans before d2h_rsp_seq_item_h.size;
     }
 
     function new(string name = "dev_d2h_rsp_seq");
@@ -14215,22 +14276,29 @@ module tb_top;
 
     task body();
       foreach(d2h_rsp_seq_item_h[i]) begin
-        d2h_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_rsp_seq_item_h[%0d]",i));
-        `uvm_do_on(d2h_rsp_seq_item_h[i], p_sequencer.dev_d2h_rsp_seqr);
-      end
+        //d2h_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_rsp_seq_item_h[%0d]",i));
+        `uvm_do_on_with(d2h_rsp_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(d2h_rsp_seq_item_h[i]);
+        if(!d2h_rsp_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(d2h_rsp_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
 
   class dev_d2h_data_seq#(type ITEM_TYPE = d2h_data_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_d2h_data_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(dev_d2h_data_sequencer)
     rand ITEM_TYPE d2h_data_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       d2h_data_seq_item_h.size == num_trans;
+      solve num_trans before d2h_data_seq_item_h.size;
     }
 
     function new(string name = "dev_d2h_data_seq");
@@ -14239,22 +14307,29 @@ module tb_top;
 
     task body();
       foreach(d2h_data_seq_item_h[i]) begin
-        d2h_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_data_seq_item_h[%0d]",i));
-        `uvm_do_on(d2h_data_seq_item_h[i], p_sequencer.dev_d2h_data_seqr);
-      end
+        //d2h_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_data_seq_item_h[%0d]",i));
+        `uvm_do_on_with(d2h_data_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(d2h_data_seq_item_h[i]);
+        if(!d2h_data_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(d2h_data_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
 
   class dev_h2d_req_seq#(type ITEM_TYPE = h2d_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_h2d_req_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(dev_h2d_req_sequencer)
     rand ITEM_TYPE h2d_req_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       h2d_req_seq_item_h.size == num_trans;
+      solve num_trans before h2d_req_seq_item_h.size;
     }
 
     function new(string name = "dev_h2d_req_seq");
@@ -14262,23 +14337,33 @@ module tb_top;
     endfunction
 
     task body();
+    if(p_sequencer == null) begin
+      `uvm_fatal(get_type_name,$sformatf("p_sequencer is null"))
+    end
       foreach(h2d_req_seq_item_h[i]) begin
-        h2d_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_req_seq_item_h[%0d]",i));
-        `uvm_do_on(h2d_req_seq_item_h[i], p_sequencer.dev_h2d_req_seqr);
-      end
+        //h2d_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_req_seq_item_h[%0d]",i));
+        `uvm_do_on_with(h2d_req_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(h2d_req_seq_item_h[i]);
+        if(!h2d_req_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(h2d_req_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
 
   class dev_h2d_rsp_seq#(type ITEM_TYPE = h2d_rsp_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_h2d_rsp_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(dev_h2d_rsp_sequencer)
     rand ITEM_TYPE h2d_rsp_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       h2d_rsp_seq_item_h.size == num_trans;
+      solve num_trans before h2d_rsp_seq_item_h.size;
     }
 
     function new(string name = "dev_h2d_rsp_seq");
@@ -14287,22 +14372,29 @@ module tb_top;
 
     task body();
       foreach(h2d_rsp_seq_item_h[i]) begin
-        h2d_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_rsp_seq_item_h[%0d]",i));
-        `uvm_do_on(h2d_rsp_seq_item_h[i], p_sequencer.dev_h2d_rsp_seqr);
-      end
+        //h2d_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_rsp_seq_item_h[%0d]",i));
+        `uvm_do_on_with(h2d_rsp_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(h2d_rsp_seq_item_h[i]);
+        if(!h2d_rsp_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(h2d_rsp_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
   
   class dev_h2d_data_seq#(type ITEM_TYPE = h2d_data_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_h2d_data_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(dev_h2d_data_sequencer)
     rand ITEM_TYPE h2d_data_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       h2d_data_seq_item_h.size == num_trans;
+      solve num_trans before h2d_data_seq_item_h.size;
     }
 
     function new(string name = "dev_h2d_data_seq");
@@ -14311,22 +14403,29 @@ module tb_top;
 
     task body();
       foreach(h2d_data_seq_item_h[i]) begin
-        h2d_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_data_seq_item_h[%0d]",i));
-        `uvm_do_on(h2d_data_seq_item_h[i], p_sequencer.dev_h2d_data_seqr);
-      end
+        //h2d_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_data_seq_item_h[%0d]",i));
+        `uvm_do_on_with(h2d_data_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(h2d_data_seq_item_h[i]);
+        if(!h2d_data_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(h2d_data_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
   
   class dev_m2s_req_seq#(type ITEM_TYPE = m2s_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_m2s_req_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(dev_m2s_req_sequencer)
     rand ITEM_TYPE m2s_req_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       m2s_req_seq_item_h.size == num_trans;
+      solve num_trans before m2s_req_seq_item_h.size;
     }
 
     function new(string name = "dev_m2s_req_seq");
@@ -14335,22 +14434,29 @@ module tb_top;
 
     task body();
       foreach(m2s_req_seq_item_h[i]) begin
-        m2s_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_req_seq_item_h[%0d]",i));
-        `uvm_do_on(m2s_req_seq_item_h[i], p_sequencer.dev_m2s_req_seqr);
-      end
+        //m2s_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_req_seq_item_h[%0d]",i));
+        `uvm_do_on_with(m2s_req_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(m2s_req_seq_item_h[i]);
+        if(!m2s_req_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(m2s_req_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
 
   class dev_m2s_rwd_seq#(type ITEM_TYPE = m2s_rwd_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_m2s_rwd_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(dev_m2s_rwd_sequencer)
     rand ITEM_TYPE m2s_rwd_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       m2s_rwd_seq_item_h.size == num_trans;
+      solve num_trans before m2s_rwd_seq_item_h.size;
     }
 
     function new(string name = "dev_m2s_rwd_seq");
@@ -14359,22 +14465,29 @@ module tb_top;
 
     task body();
       foreach(m2s_rwd_seq_item_h[i]) begin
-        m2s_rwd_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_rwd_seq_item_h[%0d]",i));
-        `uvm_do_on(m2s_rwd_seq_item_h[i], p_sequencer.dev_m2s_rwd_seqr);
-      end
+        //m2s_rwd_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_rwd_seq_item_h[%0d]",i));
+        `uvm_do_on_with(m2s_rwd_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(m2s_rwd_seq_item_h[i]);
+        if(!m2s_rwd_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(m2s_rwd_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
   
   class dev_s2m_ndr_seq#(type ITEM_TYPE = s2m_ndr_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_s2m_ndr_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(dev_s2m_ndr_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE s2m_ndr_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       s2m_ndr_seq_item_h.size == num_trans;
+      solve num_trans before s2m_ndr_seq_item_h.size;
     }
 
     function new(string name = "dev_s2m_ndr_seq");
@@ -14383,22 +14496,29 @@ module tb_top;
 
     task body();
       foreach(s2m_ndr_seq_item_h[i]) begin
-        s2m_ndr_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_ndr_seq_item_h[%0d]",i));
-        `uvm_do_on(s2m_ndr_seq_item_h[i], p_sequencer.dev_s2m_ndr_seqr);
-      end
+        //s2m_ndr_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_ndr_seq_item_h[%0d]",i));
+        `uvm_do_on_with(s2m_ndr_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(s2m_ndr_seq_item_h[i]);
+        if(!s2m_ndr_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(s2m_ndr_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
   
   class dev_s2m_drs_seq#(type ITEM_TYPE = uvm_sequence_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_s2m_drs_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(dev_s2m_drs_sequencer)
     rand ITEM_TYPE s2m_drs_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       s2m_drs_seq_item_h.size == num_trans;
+      solve num_trans before s2m_drs_seq_item_h.size;
     }
 
     function new(string name = "dev_s2m_drs_seq");
@@ -14407,22 +14527,29 @@ module tb_top;
 
     task body();
       foreach(s2m_drs_seq_item_h[i]) begin
-        s2m_drs_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_drs_seq_item_h[%0d]",i));
-        `uvm_do_on(s2m_drs_seq_item_h[i], p_sequencer.dev_s2m_drs_seqr);
-      end
+        //s2m_drs_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_drs_seq_item_h[%0d]",i));
+        `uvm_do_on_with(s2m_drs_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(s2m_drs_seq_item_h[i]);
+        if(!s2m_drs_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(s2m_drs_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
 
   class host_h2d_req_seq#(type ITEM_TYPE = h2d_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_h2d_req_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(host_h2d_req_sequencer)
     rand ITEM_TYPE h2d_req_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       h2d_req_seq_item_h.size == num_trans;
+      solve num_trans before h2d_req_seq_item_h.size;
     }
 
     function new(string name = "host_h2d_req_seq");
@@ -14431,22 +14558,29 @@ module tb_top;
 
     task body();
       foreach(h2d_req_seq_item_h[i]) begin
-        h2d_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_req_seq_item_h[%0d]",i));
-        `uvm_do_on(h2d_req_seq_item_h[i], p_sequencer.host_h2d_req_seqr);
-      end
+        //h2d_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_req_seq_item_h[%0d]",i));
+        `uvm_do_on_with(h2d_req_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(h2d_req_seq_item_h[i]);
+        if(!h2d_req_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(h2d_req_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
 
   class host_h2d_rsp_seq#(type ITEM_TYPE = h2d_rsp_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_h2d_rsp_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(host_h2d_rsp_sequencer)
     rand ITEM_TYPE h2d_rsp_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       h2d_rsp_seq_item_h.size == num_trans;
+      solve num_trans before h2d_rsp_seq_item_h.size;
     }
 
     function new(string name = "host_h2d_rsp_seq");
@@ -14455,22 +14589,29 @@ module tb_top;
 
     task body();
       foreach(h2d_rsp_seq_item_h[i]) begin
-        h2d_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_rsp_seq_item_h[%0d]",i));
-        `uvm_do_on(h2d_rsp_seq_item_h[i], p_sequencer.host_h2d_rsp_seqr);
-      end
+        //h2d_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_rsp_seq_item_h[%0d]",i));
+        `uvm_do_on_with(h2d_rsp_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(h2d_rsp_seq_item_h[i]);
+        if(!h2d_rsp_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(h2d_rsp_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
   
   class host_h2d_data_seq#(type ITEM_TYPE = h2d_data_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_h2d_data_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(host_h2d_data_sequencer)
     rand ITEM_TYPE h2d_data_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       h2d_data_seq_item_h.size == num_trans;
+      solve num_trans before h2d_data_seq_item_h.size;
     }
 
     function new(string name = "host_h2d_data_seq");
@@ -14479,22 +14620,29 @@ module tb_top;
 
     task body();
       foreach(h2d_data_seq_item_h[i]) begin
-        h2d_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_data_seq_item_h[%0d]",i));
-        `uvm_do_on(h2d_data_seq_item_h[i], p_sequencer.host_h2d_data_seqr);
-      end
+        //h2d_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_data_seq_item_h[%0d]",i));
+        `uvm_do_on_with(h2d_data_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(h2d_data_seq_item_h[i]);
+        if(!h2d_data_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(h2d_data_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
   
   class host_d2h_req_seq#(type ITEM_TYPE = d2h_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_d2h_req_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(host_d2h_req_sequencer)
     rand ITEM_TYPE d2h_req_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       d2h_req_seq_item_h.size == num_trans;
+      solve num_trans before d2h_req_seq_item_h.size;
     }
 
     function new(string name = "host_d2h_req_seq");
@@ -14503,22 +14651,29 @@ module tb_top;
 
     task body();
       foreach(d2h_req_seq_item_h[i]) begin
-        d2h_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_h[%0d]",i));
-        `uvm_do_on(d2h_req_seq_item_h[i], p_sequencer.host_d2h_req_seqr);
-      end
+        //d2h_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_h[%0d]",i));
+        `uvm_do_on_with(d2h_req_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(d2h_req_seq_item_h[i]);
+        if(!d2h_req_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(d2h_req_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
   
   class host_d2h_rsp_seq#(type ITEM_TYPE = d2h_rsp_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_d2h_rsp_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(host_d2h_rsp_sequencer)
     rand ITEM_TYPE d2h_rsp_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       d2h_rsp_seq_item_h.size == num_trans;
+      solve num_trans before d2h_rsp_seq_item_h.size;
     }
 
     function new(string name = "host_d2h_rsp_seq");
@@ -14527,22 +14682,29 @@ module tb_top;
 
     task body();
       foreach(d2h_rsp_seq_item_h[i]) begin
-        d2h_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_rsp_seq_item_h[%0d]",i));
-        `uvm_do_on(d2h_rsp_seq_item_h[i], p_sequencer.host_d2h_rsp_seqr);
-      end
+        //d2h_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_rsp_seq_item_h[%0d]",i));
+        `uvm_do_on_with(d2h_rsp_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(d2h_rsp_seq_item_h[i]);
+        if(!d2h_rsp_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(d2h_rsp_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
 
   class host_d2h_data_seq#(type ITEM_TYPE = d2h_data_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_d2h_data_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(host_d2h_data_sequencer)
     rand ITEM_TYPE d2h_data_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       d2h_data_seq_item_h.size == num_trans;
+      solve num_trans before d2h_data_seq_item_h.size;
     }
 
     function new(string name = "host_d2h_data_seq");
@@ -14551,22 +14713,29 @@ module tb_top;
 
     task body();
       foreach(d2h_data_seq_item_h[i]) begin
-        d2h_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_data_seq_item_h[%0d]",i));
-        `uvm_do_on(d2h_data_seq_item_h[i], p_sequencer.host_d2h_data_seqr);
-      end
+        //d2h_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_data_seq_item_h[%0d]",i));
+        `uvm_do_on_with(d2h_data_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(d2h_data_seq_item_h[i]);
+        if(!d2h_data_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(d2h_data_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
 
   class host_m2s_req_seq#(type ITEM_TYPE = m2s_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_m2s_req_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(host_m2s_req_sequencer)
     rand ITEM_TYPE m2s_req_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       m2s_req_seq_item_h.size == num_trans;
+      solve num_trans before m2s_req_seq_item_h.size;
     }
 
     function new(string name = "host_m2s_req_seq");
@@ -14575,22 +14744,29 @@ module tb_top;
 
     task body();
       foreach(m2s_req_seq_item_h[i]) begin
-        m2s_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_req_seq_item_h[%0d]",i));
-        `uvm_do_on(m2s_req_seq_item_h[i], p_sequencer.host_m2s_req_seqr);
-      end
+        //m2s_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_req_seq_item_h[%0d]",i));
+        `uvm_do_on_with(m2s_req_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(m2s_req_seq_item_h[i]);
+        if(!m2s_req_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(m2s_req_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
 
   class host_m2s_rwd_seq#(type ITEM_TYPE = m2s_rwd_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_m2s_rwd_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(host_m2s_rwd_sequencer)
     rand ITEM_TYPE m2s_rwd_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       m2s_rwd_seq_item_h.size == num_trans;
+      solve num_trans before m2s_rwd_seq_item_h.size;
     }
 
     function new(string name = "host_m2s_rwd_seq");
@@ -14599,22 +14775,29 @@ module tb_top;
 
     task body();
       foreach(m2s_rwd_seq_item_h[i]) begin
-        m2s_rwd_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_rwd_seq_item_h[%0d]",i));
-        `uvm_do_on(m2s_rwd_seq_item_h[i], p_sequencer.host_m2s_rwd_seqr);
-      end
+        //m2s_rwd_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_rwd_seq_item_h[%0d]",i));
+        `uvm_do_on_with(m2s_rwd_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+/*        start_item(m2s_rwd_seq_item_h[i]);
+        if(!m2s_rwd_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(m2s_rwd_seq_item_h[i]);
+*/      end
     endtask
 
   endclass
 
   class host_s2m_ndr_seq#(type ITEM_TYPE = s2m_ndr_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_s2m_ndr_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(host_s2m_ndr_sequencer)
     rand ITEM_TYPE s2m_ndr_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       s2m_ndr_seq_item_h.size == num_trans;
+      solve num_trans before s2m_ndr_seq_item_h.size;
     }
 
     function new(string name = "host_s2m_ndr_seq");
@@ -14623,22 +14806,29 @@ module tb_top;
 
     task body();
       foreach(s2m_ndr_seq_item_h[i]) begin
-        s2m_ndr_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_ndr_seq_item_h[%0d]",i));
-        `uvm_do_on(s2m_ndr_seq_item_h[i], p_sequencer.host_s2m_ndr_seqr);
-      end
+        //s2m_ndr_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_ndr_seq_item_h[%0d]",i));
+        `uvm_do_on_with(s2m_ndr_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+        /*start_item(s2m_ndr_seq_item_h[i]);
+        if(!s2m_ndr_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(s2m_ndr_seq_item_h[i]);
+      */end
     endtask
 
   endclass
 
   class host_s2m_drs_seq#(type ITEM_TYPE = s2m_drs_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_s2m_drs_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    `uvm_declare_p_sequencer(host_s2m_drs_sequencer)
     rand ITEM_TYPE s2m_drs_seq_item_h[];
     rand int num_trans;
+    rand int cycles_rst;
 
     constraint num_of_trans_c{
       soft num_trans inside {1};
       s2m_drs_seq_item_h.size == num_trans;
+      solve num_trans before s2m_drs_seq_item_h.size;
     }
 
     function new(string name = "host_s2m_drs_seq");
@@ -14647,9 +14837,14 @@ module tb_top;
 
     task body();
       foreach(s2m_drs_seq_item_h[i]) begin
-        s2m_drs_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_drs_seq_item_h[%0d]",i));
-        `uvm_do_on(s2m_drs_seq_item_h[i], p_sequencer.host_s2m_drs_seqr);
-      end
+        //s2m_drs_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_drs_seq_item_h[%0d]",i));
+        `uvm_do_on_with(s2m_drs_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
+      /*  start_item(s2m_drs_seq_item_h[i]);
+        if(!s2m_drs_seq_item_h[i].randomize()) begin
+          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+        end
+        finish_item(s2m_drs_seq_item_h[i]);
+      */end
     endtask
 
   endclass
@@ -15614,26 +15809,26 @@ module tb_top;
       host_s2m_drs_seq_h   = host_s2m_drs_seq#(s2m_drs_seq_item)::type_id::create ("host_s2m_drs_seq_h") ;
       dev_s2m_drs_seq_h    = dev_s2m_drs_seq#(s2m_drs_seq_item)::type_id::create ("dev_s2m_drs_seq_h")  ;
       fork
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_d2h_req_seq_h,    p_sequencer.dev_d2h_req_seqr,   {d2h_req_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_d2h_rsp_seq_h,    p_sequencer.dev_d2h_rsp_seqr,   {d2h_rsp_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_d2h_data_seq_h,   p_sequencer.dev_d2h_data_seqr,  {d2h_data_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_h2d_req_seq_h,    p_sequencer.dev_h2d_req_seqr,   {h2d_req_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_h2d_rsp_seq_h,    p_sequencer.dev_h2d_rsp_seqr,   {h2d_rsp_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_h2d_data_seq_h,   p_sequencer.dev_h2d_data_seqr,  {h2d_data_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_d2h_req_seq_h,   p_sequencer.host_d2h_req_seqr,  {d2h_req_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_d2h_rsp_seq_h,   p_sequencer.host_d2h_rsp_seqr,  {d2h_rsp_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_d2h_data_seq_h,  p_sequencer.host_d2h_data_seqr, {d2h_data_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_h2d_req_seq_h,   p_sequencer.host_h2d_req_seqr,  {h2d_req_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_h2d_rsp_seq_h,   p_sequencer.host_h2d_rsp_seqr,  {h2d_rsp_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_h2d_data_seq_h,  p_sequencer.host_h2d_data_seqr, {h2d_data_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_m2s_req_seq_h,   p_sequencer.host_m2s_req_seqr,  {m2s_req_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_m2s_req_seq_h,    p_sequencer.dev_m2s_req_seqr,   {m2s_req_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_m2s_rwd_seq_h,   p_sequencer.host_m2s_rwd_seqr,  {m2s_rwd_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_m2s_rwd_seq_h,    p_sequencer.dev_m2s_rwd_seqr,   {m2s_rwd_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_s2m_ndr_seq_h,   p_sequencer.host_s2m_ndr_seqr,  {s2m_ndr_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_s2m_drs_seq_h,   p_sequencer.host_s2m_drs_seqr,  {s2m_drs_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_s2m_ndr_seq_h,    p_sequencer.dev_s2m_ndr_seqr,   {s2m_ndr_seq_item_h[0].reset_cycles == rst_cycles;});
-        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_s2m_drs_seq_h,    p_sequencer.dev_s2m_drs_seqr,   {s2m_drs_seq_item_h[0].reset_cycles == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_d2h_req_seq_h,    p_sequencer.dev_d2h_req_seqr,   {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_d2h_rsp_seq_h,    p_sequencer.dev_d2h_rsp_seqr,   {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_d2h_data_seq_h,   p_sequencer.dev_d2h_data_seqr,  {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_h2d_req_seq_h,    p_sequencer.dev_h2d_req_seqr,   {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_h2d_rsp_seq_h,    p_sequencer.dev_h2d_rsp_seqr,   {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_h2d_data_seq_h,   p_sequencer.dev_h2d_data_seqr,  {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_d2h_req_seq_h,   p_sequencer.host_d2h_req_seqr,  {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_d2h_rsp_seq_h,   p_sequencer.host_d2h_rsp_seqr,  {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_d2h_data_seq_h,  p_sequencer.host_d2h_data_seqr, {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_h2d_req_seq_h,   p_sequencer.host_h2d_req_seqr,  {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_h2d_rsp_seq_h,   p_sequencer.host_h2d_rsp_seqr,  {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_h2d_data_seq_h,  p_sequencer.host_h2d_data_seqr, {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_m2s_req_seq_h,   p_sequencer.host_m2s_req_seqr,  {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_m2s_req_seq_h,    p_sequencer.dev_m2s_req_seqr,   {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_m2s_rwd_seq_h,   p_sequencer.host_m2s_rwd_seqr,  {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_m2s_rwd_seq_h,    p_sequencer.dev_m2s_rwd_seqr,   {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_s2m_ndr_seq_h,   p_sequencer.host_s2m_ndr_seqr,  {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(host_s2m_drs_seq_h,   p_sequencer.host_s2m_drs_seqr,  {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_s2m_ndr_seq_h,    p_sequencer.dev_s2m_ndr_seqr,   {cycles_rst == rst_cycles;});
+        if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_s2m_drs_seq_h,    p_sequencer.dev_s2m_drs_seqr,   {cycles_rst == rst_cycles;});
       join
       `uvm_info(get_type_name(), $sformatf("stopping reset_seq"), UVM_HIGH)
     endtask
@@ -15662,7 +15857,8 @@ module tb_top;
     endfunction
 
     task body();
-      `uvm_info(get_type_name(), $sformatf("starting reset_seq"), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("starting configure_seq"), UVM_HIGH)
+      `uvm_fatal(get_type_name,$sformatf("reached configure"))
       if(!uvm_resource_db#(cxl_cfg_obj)::read_by_name("", "cxl_cfg_obj_h", cxl_cfg_obj_h)) begin
         `uvm_fatal("CXL_CFG_OBJ", "cxl_cfg_obj not found")
       end
@@ -15688,7 +15884,7 @@ module tb_top;
         if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on(dev_s2m_ndr_seq_h,    p_sequencer.dev_s2m_ndr_seqr);
         if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on(dev_s2m_drs_seq_h,    p_sequencer.dev_s2m_drs_seqr);
       join
-      `uvm_info(get_type_name(), $sformatf("stopping reset_seq"), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("stopping configure_seq"), UVM_HIGH)
 
     endtask
 
@@ -15802,14 +15998,14 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("exiting %s configure_phase", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task run_phase(uvm_phase phase);
-      super.run_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("entering %s run_phase", get_full_name()), UVM_HIGH)
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("entering %s main_phase", get_full_name()), UVM_HIGH)
       phase.raise_objection(this);
       cxl_vseq_h = cxl_vseq::type_id::create("cxl_vseq_h", this);
       cxl_vseq_h.start(cxl_cm_env_h.cxl_cm_vseqr);
       phase.drop_objection(this);
-      `uvm_info(get_type_name(), $sformatf("exiting %s run_phase", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("exiting %s main_phase", get_full_name()), UVM_HIGH)
     endtask
 
   endclass
