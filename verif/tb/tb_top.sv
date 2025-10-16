@@ -1191,6 +1191,7 @@ module host_tx_path#(
   logic [15:0] host_tx_dl_if_pre_crc;
   logic [511:0] host_tx_dl_if_pre_data;
   logic host_tx_dl_if_rstn_d;
+  logic host_tx_dl_if_rstn_dd;
   logic host_tx_dl_if_valid_d;
   logic [15:0] host_tx_dl_if_crc_d;
   logic [511:0] host_tx_dl_if_data_d;
@@ -1209,7 +1210,7 @@ module host_tx_path#(
   assign g_val[3] = (h2d_data_occ > 3) && (h2d_rsp_occ > 0);
   assign g_val[4] = (m2s_req_occ > 0) && (h2d_data_occ > 0);
   assign g_val[5] = (m2s_rwd_occ > 0) && (h2d_rsp_occ > 0);
-
+  
   assign h2d_req_rval   = (h_gnt[0] || h_gnt[2] || g_gnt[2])? 'h1: 'h0;
   assign h2d_rsp_rval   = (h_gnt[0] || g_gnt[2] || g_gnt[3] || g_gnt[5])? 'h1: 'h0;
   assign h2d_rsp_drval  = (h_gnt[1])? 'h1: 'h0;
@@ -1225,7 +1226,61 @@ module host_tx_path#(
 
   assign insert_ack = (((ack_cnt_tbs - ack_cnt_snt) > 16) || init_done)? 1'h1: 1'h0;
 
-  always_comb begin
+  always_comb begin/*
+    $display(
+      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+      {"  assign h_val 0 is %0h = (h2d_req_occ is %0d  > 0) && (h2d_rsp_occ is %0d > 0);\n"},
+      h_val[0], h2d_req_occ, h2d_rsp_occ,
+      {"  assign h_val[1](%0h) = (h2d_data_occ(%0d) > 0) && (h2d_rsp_occ(%0d) > 1);\n"},
+      h_val[1], h2d_data_occ, h2d_rsp_occ,
+      {"  assign h_val[2](%0h) = (h2d_req_occ(%0d)  > 0) && (h2d_data_occ(%0d) > 0);\n"},
+      h_val[2], h2d_req_occ, h2d_data_occ,
+      {"  assign h_val[3](%0h) = (h2d_data_occ(%0d) > 3);\n"},
+      h_val[3], h2d_data_occ,
+      {"  assign h_val[4](%0h) = (m2s_rwd_occ(%0d)  > 0);\n"},
+      h_val[4], m2s_rwd_occ,
+      {"  assign h_val[5](%0h) = (m2s_req_occ(%0d)  > 0);\n"},
+      h_val[5], m2s_req_occ,
+      {"  assign g_val[1](%0h) = (h2d_rsp_occ(%0d)  > 3);\n"},
+      g_val[1], h2d_rsp_occ,
+      {"  assign g_val[2](%0h) = (h2d_req_occ(%0d)  > 0) && (h2d_data_occ(%0d) > 0) && (h2d_rsp_occ(%0d) > 0);\n"},
+      g_val[2], h2d_req_occ, h2d_data_occ, h2d_rsp_occ,
+      {"  assign g_val[3](%0h) = (h2d_data_occ(%0d) > 3) && (h2d_rsp_occ(%0d) > 0);\n"},
+      g_val[3], h2d_data_occ, h2d_rsp_occ,
+      {"  assign g_val[4](%0h) = (m2s_req_occ(%0d)  > 0) && (h2d_data_occ(%0d) > 0);\n"},
+      g_val[4], m2s_req_occ, h2d_data_occ,
+      {"  assign g_val[5](%0h) = (m2s_rwd_occ(%0d)  > 0) && (h2d_rsp_occ(%0d) > 0);\n"},
+      g_val[5], m2s_rwd_occ, h2d_rsp_occ
+    );
+    
+  
+    $display(
+      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+      {"  assign h2d_req_rval(%0h)   = (h_gnt[0](%0h) || h_gnt[2](%0h) || g_gnt[2](%0h))? 'h1: 'h0;\n"},
+      {"  assign h2d_rsp_rval(%0h)   = (h_gnt[0](%0h) || g_gnt[2](%0h) || g_gnt[3](%0h) || g_gnt[5](%0h))? 'h1: 'h0;\n"},
+      {"  assign h2d_rsp_drval(%0h)  = (h_gnt[1](%0h))? 'h1: 'h0;\n"},
+      {"  assign h2d_data_rval(%0h)  = (h_gnt[1](%0h) || h_gnt[2](%0h) || g_gnt[2](%0h) || g_gnt[4](%0h))? 'h1: 'h0;\n"},
+      {"  assign h2d_data_drval(%0h) = (h_gnt[3](%0h))? 'h1: 'h0;\n"},
+      {"  assign m2s_req_rval(%0h)   = (h_gnt[5](%0h) || g_gnt[4](%0h))? 'h1: 'h0;\n"},
+      {"  assign m2s_rwd_rval(%0h)   = (h_gnt[4](%0h) || g_gnt[5](%0h))? 'h1: 'h0;\n"},
+      {"  assign h2d_req_qrval(%0h)  = (g_gnt[1](%0h))? 'h1: 'h0;\n"},
+      {"  assign h2d_data_qrval(%0h) = (g_gnt[3](%0h))? 'h1: 'h0;\n"},
+      {"  assign h_req(%0h) = ((slot_sel(%0h)>1) || (data_slot[0](%0h) == 'hf)) ? 'h0: h_val(%0h);\n"},
+      {"  assign g_req(%0h) = ((slot_sel[0](%0h)) || ((data_slot[0](%0h) == 'hf) || (data_slot[0](%0h) == 'he)))? 'h0: g_val;\n"},
+      {"  assign insert_ack(%0h) = (((ack_cnt_tbs(%0h) - ack_cnt_snt(%0h)) > 16) || init_done(%0h))? 1'h1: 1'h0;\n"},
+      {"****************************DEBUG_INFO_END*********************************************************\n"}
+    ,
+      h2d_req_rval, h_gnt[0], h_gnt[2], g_gnt[2],
+      h2d_rsp_rval, h_gnt[0], g_gnt[2], g_gnt[3], g_gnt[5],
+      h2d_rsp_drval, h_gnt[1],
+      h2d_data_rval, h_gnt[1], h_gnt[2], g_gnt[2], g_gnt[4],
+      h2d_data_drval, h_gnt[3],
+      m2s_req_rval, h_gnt[5], g_gnt[4],
+      m2s_rwd_rval, h_gnt[4], g_gnt[5],
+      h2d_req_qrval, g_gnt[1],
+      h2d_data_qrval, g_gnt[3]
+    );
+*/
     d2h_req_outstanding_credits   = (d2h_req_occ_d  > d2h_req_occ ) ? (d2h_req_occ_d  - d2h_req_occ   ) : 'h0;
     d2h_rsp_outstanding_credits   = (d2h_rsp_occ_d  > d2h_rsp_occ ) ? (d2h_rsp_occ_d  - d2h_rsp_occ   ) : 'h0;
     d2h_data_outstanding_credits  = (d2h_data_occ_d > d2h_data_occ) ? (d2h_data_occ_d - d2h_data_occ  ) : 'h0;
@@ -1236,7 +1291,33 @@ module host_tx_path#(
     d2h_data_consumed_credits     = (d2h_data_occ_d < d2h_data_occ) ? (d2h_data_occ   - d2h_data_occ_d) : 'h0;
     s2m_ndr_consumed_credits      = (s2m_ndr_occ_d  < s2m_ndr_occ ) ? (s2m_ndr_occ    - s2m_ndr_occ_d ) : 'h0;
     s2m_drs_consumed_credits      = (s2m_drs_occ_d  < s2m_drs_occ ) ? (s2m_drs_occ    - s2m_drs_occ_d ) : 'h0;
-   
+ /*  
+    $display(
+    {"  ****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+    {"  d2h_req_outstanding_credits is  %0d   = d2h_req_occ_d is  %0d - d2h_req_occ is    %0d\n"},
+    {"  d2h_rsp_outstanding_credits is  %0d   = d2h_rsp_occ_d is  %0d - d2h_rsp_occ is    %0d\n"},
+    {"  d2h_data_outstanding_credits is %0d   = d2h_data_occ_d is %0d - d2h_data_occ is   %0d\n"},
+    {"  s2m_ndr_outstanding_credits is  %0d   = s2m_ndr_occ_d is  %0d - s2m_ndr_occ is    %0d\n"},
+    {"  s2m_drs_outstanding_credits is  %0d   = s2m_drs_occ_d is  %0d - s2m_drs_occ is    %0d\n"},
+    {"  d2h_req_consumed_credits is     %0d   = d2h_req_occ is    %0d - d2h_req_occ_d is  %0d\n"},
+    {"  d2h_rsp_consumed_credits is     %0d   = d2h_rsp_occ is    %0d - d2h_rsp_occ_d is  %0d\n"},
+    {"  d2h_data_consumed_credits is    %0d   = d2h_data_occ is   %0d - d2h_data_occ_d is %0d\n"},
+    {"  s2m_ndr_consumed_credits is     %0d   = s2m_ndr_occ is    %0d - s2m_ndr_occ_d is  %0d\n"},
+    {"  s2m_drs_consumed_credits is     %0d   = s2m_drs_occ is    %0d - s2m_drs_occ_d is  %0d\n"},
+    {"  ****************************DEBUG_INFO_END*********************************************************\n"}
+    , 
+      d2h_req_outstanding_credits,  d2h_req_occ_d,  d2h_req_occ,
+      d2h_rsp_outstanding_credits,  d2h_rsp_occ_d,  d2h_rsp_occ,
+      d2h_data_outstanding_credits, d2h_data_occ_d, d2h_data_occ,
+      s2m_ndr_outstanding_credits,  s2m_ndr_occ_d,  s2m_ndr_occ, 
+      s2m_drs_outstanding_credits,  s2m_drs_occ_d,  s2m_drs_occ,
+      d2h_req_consumed_credits,     d2h_req_occ,    d2h_req_occ_d,
+      d2h_rsp_consumed_credits,     d2h_rsp_occ,    d2h_rsp_occ_d,
+      d2h_data_consumed_credits,    d2h_data_occ,   d2h_data_occ_d,
+      s2m_ndr_consumed_credits,     s2m_ndr_occ,    s2m_ndr_occ_d, 
+      s2m_drs_consumed_credits,     s2m_drs_occ,    s2m_drs_occ_d
+    );
+   */ 
     if(d2h_req_crdt_tbs[3].pending) begin
       if(d2h_req_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         d2h_req_crdt_send = 'h7;
@@ -1286,19 +1367,19 @@ module host_tx_path#(
                 d2h_req_crdt_send = 'h1;
               end else begin
                 if(d2h_req_crdt_tbs[0].pending) begin
-                  if(d2h_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                  if(d2h_req_crdt_tbs[0].credit_to_be_sent == 'd64) begin
                     d2h_req_crdt_send = 'h7;
-                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd32) begin
+                  end else if(d2h_req_crdt_tbs[0].credit_to_be_sent > 'd32) begin
                     d2h_req_crdt_send = 'h6;
-                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd16) begin
+                  end else if(d2h_req_crdt_tbs[0].credit_to_be_sent > 'd16) begin
                     d2h_req_crdt_send = 'h5;
-                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd8) begin
+                  end else if(d2h_req_crdt_tbs[0].credit_to_be_sent > 'd8) begin
                     d2h_req_crdt_send = 'h4;
-                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd4) begin
+                  end else if(d2h_req_crdt_tbs[0].credit_to_be_sent > 'd4) begin
                     d2h_req_crdt_send = 'h3;
-                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                  end else if(d2h_req_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
                     d2h_req_crdt_send = 'h2;
-                  end else if(d2h_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                  end else if(d2h_req_crdt_tbs[0].credit_to_be_sent == 'd1) begin
                     d2h_req_crdt_send = 'h1;
                   end else begin
                     d2h_req_crdt_send = 'h0;
@@ -1318,7 +1399,17 @@ module host_tx_path#(
     end else begin
       d2h_req_crdt_send = 'h0;
     end
-
+ /*
+    $display(
+      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+      {"d2h_req_crdt_tbs is %0p\n"},
+      {"d2h_req_crdt_send is %0d\n"},
+      {"****************************DEBUG_INFO_END*********************************************************\n"}
+    ,
+    d2h_req_crdt_tbs, 
+    d2h_req_crdt_send
+    );
+*/
     if(d2h_rsp_crdt_tbs[3].pending) begin
       if(d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         d2h_rsp_crdt_send = 'h7;
@@ -1368,19 +1459,19 @@ module host_tx_path#(
                 d2h_rsp_crdt_send = 'h1;
               end else begin
                 if(d2h_rsp_crdt_tbs[0].pending) begin
-                  if(d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                  if(d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd64) begin
                     d2h_rsp_crdt_send = 'h7;
-                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd32) begin
+                  end else if(d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd32) begin
                     d2h_rsp_crdt_send = 'h6;
-                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd16) begin
+                  end else if(d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd16) begin
                     d2h_rsp_crdt_send = 'h5;
-                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd8) begin
+                  end else if(d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd8) begin
                     d2h_rsp_crdt_send = 'h4;
-                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd4) begin
+                  end else if(d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd4) begin
                     d2h_rsp_crdt_send = 'h3;
-                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                  end else if(d2h_rsp_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
                     d2h_rsp_crdt_send = 'h2;
-                  end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                  end else if(d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd1) begin
                     d2h_rsp_crdt_send = 'h1;
                   end else begin
                     d2h_rsp_crdt_send = 'h0;
@@ -1400,7 +1491,17 @@ module host_tx_path#(
     end else begin
       d2h_rsp_crdt_send = 'h0;
     end
-
+ /*
+    $display(
+      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+      {"d2h_rsp_crdt_tbs is %0p\n"},
+      {"d2h_rsp_crdt_send is %0d\n"},
+      {"****************************DEBUG_INFO_END*********************************************************\n"}
+    ,
+    d2h_rsp_crdt_tbs, 
+    d2h_rsp_crdt_send
+    );
+*/
     if(d2h_data_crdt_tbs[3].pending) begin
       if(d2h_data_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         d2h_data_crdt_send = 'h7;
@@ -1450,19 +1551,19 @@ module host_tx_path#(
                 d2h_data_crdt_send = 'h1;
               end else begin
                 if(d2h_data_crdt_tbs[0].pending) begin
-                  if(d2h_data_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                  if(d2h_data_crdt_tbs[0].credit_to_be_sent == 'd64) begin
                     d2h_data_crdt_send = 'h7;
-                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd32) begin
+                  end else if(d2h_data_crdt_tbs[0].credit_to_be_sent > 'd32) begin
                     d2h_data_crdt_send = 'h6;
-                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd16) begin
+                  end else if(d2h_data_crdt_tbs[0].credit_to_be_sent > 'd16) begin
                     d2h_data_crdt_send = 'h5;
-                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd8) begin
+                  end else if(d2h_data_crdt_tbs[0].credit_to_be_sent > 'd8) begin
                     d2h_data_crdt_send = 'h4;
-                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd4) begin
+                  end else if(d2h_data_crdt_tbs[0].credit_to_be_sent > 'd4) begin
                     d2h_data_crdt_send = 'h3;
-                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                  end else if(d2h_data_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
                     d2h_data_crdt_send = 'h2;
-                  end else if(d2h_data_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                  end else if(d2h_data_crdt_tbs[0].credit_to_be_sent == 'd1) begin
                     d2h_data_crdt_send = 'h1;
                   end else begin
                     d2h_data_crdt_send = 'h0;
@@ -1482,7 +1583,17 @@ module host_tx_path#(
     end else begin
       d2h_data_crdt_send = 'h0;
     end
- 
+ /*
+    $display(
+      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+      {"d2h_data_crdt_tbs is %0p\n"},
+      {"d2h_data_crdt_send is %0d\n"},
+      {"****************************DEBUG_INFO_END*********************************************************\n"}
+    ,
+    d2h_data_crdt_tbs, 
+    d2h_data_crdt_send
+    );
+   */ 
     if(s2m_ndr_crdt_tbs[3].pending) begin
       if(s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         s2m_ndr_crdt_send = 'h7;
@@ -1532,19 +1643,19 @@ module host_tx_path#(
                 s2m_ndr_crdt_send = 'h1;
               end else begin
                 if(s2m_ndr_crdt_tbs[0].pending) begin
-                  if(s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                  if(s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd64) begin
                     s2m_ndr_crdt_send = 'h7;
-                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd32) begin
+                  end else if(s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd32) begin
                     s2m_ndr_crdt_send = 'h6;
-                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd16) begin
+                  end else if(s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd16) begin
                     s2m_ndr_crdt_send = 'h5;
-                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd8) begin
+                  end else if(s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd8) begin
                     s2m_ndr_crdt_send = 'h4;
-                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd4) begin
+                  end else if(s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd4) begin
                     s2m_ndr_crdt_send = 'h3;
-                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                  end else if(s2m_ndr_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
                     s2m_ndr_crdt_send = 'h2;
-                  end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                  end else if(s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd1) begin
                     s2m_ndr_crdt_send = 'h1;
                   end else begin
                     s2m_ndr_crdt_send = 'h0;
@@ -1564,7 +1675,17 @@ module host_tx_path#(
     end else begin
       s2m_ndr_crdt_send = 'h0;
     end
-
+/*
+    $display(
+    {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+    {"  s2m_ndr_crdt_tbs is %0p\n"},
+    {"  s2m_ndr_crdt_send is %0d\n"},
+    {"****************************DEBUG_INFO_END*********************************************************\n"}
+    ,
+    s2m_ndr_crdt_tbs, 
+    s2m_ndr_crdt_send
+    );
+*/    
     if(s2m_drs_crdt_tbs[3].pending) begin
       if(s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         s2m_drs_crdt_send = 'h7;
@@ -1616,17 +1737,17 @@ module host_tx_path#(
                 if(s2m_drs_crdt_tbs[0].pending) begin
                   if(s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd64) begin
                     s2m_drs_crdt_send = 'h7;
-                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd32) begin
+                  end else if(s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd32) begin
                     s2m_drs_crdt_send = 'h6;
-                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd16) begin
+                  end else if(s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd16) begin
                     s2m_drs_crdt_send = 'h5;
-                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd8) begin
+                  end else if(s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd8) begin
                     s2m_drs_crdt_send = 'h4;
-                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd4) begin
+                  end else if(s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd4) begin
                     s2m_drs_crdt_send = 'h3;
-                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                  end else if(s2m_drs_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
                     s2m_drs_crdt_send = 'h2;
-                  end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                  end else if(s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd1) begin
                     s2m_drs_crdt_send = 'h1;
                   end else begin
                     s2m_drs_crdt_send = 'h0;
@@ -1646,7 +1767,17 @@ module host_tx_path#(
     end else begin
       s2m_drs_crdt_send = 'h0;
     end
-
+/*    
+    $display(
+      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+      {"s2m_drs_crdt_tbs is %0p\n"},
+      {"s2m_drs_crdt_send is %0d\n"},
+      {"****************************DEBUG_INFO_END*********************************************************\n"}
+    ,
+    s2m_drs_crdt_tbs, 
+    s2m_drs_crdt_send
+    );
+*/
 /*    d2h_req_crdt_send             = (d2h_req_crdt_tbs[3].pending)? (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
                                   : (d2h_req_crdt_tbs[2].pending)? (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
                                   : (d2h_req_crdt_tbs[1].pending)? (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
@@ -2962,12 +3093,17 @@ module host_tx_path#(
     end
   end
 
-  always@(host_tx_dl_if.clk) begin
+  always@(posedge host_tx_dl_if.clk) begin
     if(!host_tx_dl_if.rstn) begin
+      foreach(holding_q[i]) begin
+        holding_q[i].valid <= 'h0;
+        holding_q[i].data <= 'h0;
+      end
       host_tx_dl_if_pre_valid <= 'h0;
       host_tx_dl_if_pre_data <= 'h0;
       host_tx_dl_if.valid <= 'h0;
       host_tx_dl_if_rstn_d <= 'h0;
+      host_tx_dl_if_rstn_dd <= 'h0;
       host_tx_dl_if_valid_d <= 'h0;
       host_tx_dl_if.data <= 'h0;
       host_tx_dl_if_data_d <= 'h0;
@@ -2976,10 +3112,11 @@ module host_tx_path#(
       ack_cnt_snt <= 'h0;
     end else begin
       host_tx_dl_if_rstn_d <= host_tx_dl_if.rstn;
+      host_tx_dl_if_rstn_dd <= host_tx_dl_if_rstn_d;
       host_tx_dl_if_valid_d <= host_tx_dl_if_pre_valid;
       host_tx_dl_if_data_d <= host_tx_dl_if_pre_data;
       host_tx_dl_if.valid <= host_tx_dl_if_pre_valid;
-      host_tx_dl_if.data <= {host_tx_dl_if_pre_data[511:0], host_tx_dl_if_pre_crc[15:0]};
+      host_tx_dl_if.data <= {host_tx_dl_if_pre_crc[15:0], host_tx_dl_if_pre_data[511:0]};
       if(ack) begin
         ack_cnt_tbs <= ack_cnt_tbs + 1;
       end
@@ -2988,34 +3125,37 @@ module host_tx_path#(
         host_tx_dl_if_pre_data <= holding_q[holding_rdptr].data;
         holding_rdptr <= holding_rdptr + 1;
       end else begin//TODO: this is wrong this is operating on a different clock and I am unsure need to analyze more if there is any cdc issues
-        if((host_tx_dl_if_rstn_d == 'h1) && (host_tx_dl_if.rstn == 'h0)) begin
+        if((host_tx_dl_if_rstn_dd == 'h0) && (host_tx_dl_if_rstn_d == 'h1)) begin
           host_tx_dl_if_pre_valid          <= 'h1;
+          host_tx_dl_if_pre_data[0]        <= 'h1;
           host_tx_dl_if_pre_data[35:32]    <= 'b1100;
           host_tx_dl_if_pre_data[39:36]    <= 'b1000;
           host_tx_dl_if_pre_data[67:64]    <= 'h1;
-        end
-        if(insert_ack) begin
-          host_tx_dl_if_pre_valid          <= 'h1;
-          host_tx_dl_if_pre_data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
-          host_tx_dl_if_pre_data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-          host_tx_dl_if_pre_data[2]        <= 'h1;//TBD: logic for crdt ack to be added later
-          host_tx_dl_if_pre_data[3]        <= 'h0;//non data header so 0
-          host_tx_dl_if_pre_data[4]        <= 'h0;//non data header so 0
-          host_tx_dl_if_pre_data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
-          host_tx_dl_if_pre_data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-          host_tx_dl_if_pre_data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-          host_tx_dl_if_pre_data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-          host_tx_dl_if_pre_data[19:17]    <= 'h0;//reserved must be 0
-          host_tx_dl_if_pre_data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-          host_tx_dl_if_pre_data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-          host_tx_dl_if_pre_data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
-          host_tx_dl_if_pre_data[35:32]    <= 4'b0000;
-          host_tx_dl_if_pre_data[39:36]    <= 4'b0001;
-          host_tx_dl_if_pre_data[63:40]    <= 'h0;
-          host_tx_dl_if_pre_data[71:64]    <= ({ack_cnt_tbs[7:4], 1'b0, ack_cnt_tbs[2:0]});
-          ack_cnt_snt                      <= ack_cnt_tbs;
         end else begin
-          host_tx_dl_if_pre_valid          <= 'h0;
+          if(insert_ack) begin
+            host_tx_dl_if_pre_valid          <= 'h1;
+            host_tx_dl_if_pre_data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
+            host_tx_dl_if_pre_data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+            host_tx_dl_if_pre_data[2]        <= 'h1;//TBD: logic for crdt ack to be added later
+            host_tx_dl_if_pre_data[3]        <= 'h0;//non data header so 0
+            host_tx_dl_if_pre_data[4]        <= 'h0;//non data header so 0
+            host_tx_dl_if_pre_data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
+            host_tx_dl_if_pre_data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+            host_tx_dl_if_pre_data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+            host_tx_dl_if_pre_data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+            host_tx_dl_if_pre_data[19:17]    <= 'h0;//reserved must be 0
+            host_tx_dl_if_pre_data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
+            host_tx_dl_if_pre_data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+            host_tx_dl_if_pre_data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+            host_tx_dl_if_pre_data[35:32]    <= 4'b0000;
+            host_tx_dl_if_pre_data[39:36]    <= 4'b0001;
+            host_tx_dl_if_pre_data[63:40]    <= 'h0;
+            host_tx_dl_if_pre_data[71:64]    <= ({ack_cnt_tbs[7:4], 1'b0, ack_cnt_tbs[2:0]});
+            ack_cnt_snt                      <= ack_cnt_tbs;
+          end else begin
+            host_tx_dl_if_pre_valid          <= 'h0;
+            host_tx_dl_if_pre_data           <= 'h0;
+          end
         end
       end
    end
@@ -3045,8 +3185,8 @@ module host_tx_path#(
   ip_6_rra #(
    .NO_OF_REQ(6)
   ) h_slot_rra_inst (
-    .clk(clk),
-    .rstn(rstn),
+    .clk(host_tx_dl_if.clk),
+    .rstn(host_tx_dl_if.rstn),
     .req(h_req),
     .gnt(h_gnt)
   );
@@ -3054,8 +3194,8 @@ module host_tx_path#(
   ip_6_rra #( 
    .NO_OF_REQ(6)
   ) g_slot_rra_inst (
-    .clk(clk),
-    .rstn(rstn),
+    .clk(host_tx_dl_if.clk),
+    .rstn(host_tx_dl_if.rstn),
     .req(g_req),
     .gnt(g_gnt)
   );
@@ -3195,6 +3335,7 @@ module device_tx_path#(
   logic [511:0] dev_tx_dl_if_pre_data;
   logic dev_tx_dl_if_valid_d;
   logic dev_tx_dl_if_rstn_d;
+  logic dev_tx_dl_if_rstn_dd;
   logic [511:0] dev_tx_dl_if_data_d;
 //IMP INFO: consider m2s req as rsp credits and m2s rwd as data credits
 
@@ -3232,6 +3373,73 @@ module device_tx_path#(
   assign insert_ack = (((ack_cnt_tbs - ack_cnt_snt) > 16) || init_done)? 1'h1: 1'h0;
   
   always_comb begin
+ /* 
+  $display(
+    {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+    {"  h_val[0](%0h) = (d2h_data_occ(%0d)  > 0) && (d2h_rsp_occ(%0d) > 1);\n"},
+    {"  h_val[1](%0h) = (d2h_req_occ(%0d)   > 0) && (d2h_data_occ(%0d) > 0);\n"},
+    {"  h_val[2](%0h) = (d2h_data_occ(%0d)  > 3) && (d2h_rsp_occ(%0d) > 0);\n"},
+    {"  h_val[3](%0h) = (s2m_drs_occ(%0d)   > 0) && (s2m_ndr_occ(%0d) > 0);\n"},
+    {"  h_val[4](%0h) = (s2m_ndr_occ(%0d)   > 1);\n"},
+    {"  h_val[5](%0h) = (s2m_drs_occ(%0d)   > 1);\n"},
+    {"  g_val[1](%0h) = (d2h_req_occ(%0d)   > 0) && (d2h_rsp_occ(%0d) > 1);\n"},
+    {"  g_val[2](%0h) = (d2h_req_occ(%0d)   > 0) && (d2h_data_occ(%0d) > 0) && (d2h_rsp_occ(%0d) > 0);\n"},
+    {"  g_val[3](%0h) = (d2h_data_occ(%0d)  > 4);\n"},
+    {"  g_val[4](%0h) = (s2m_drs_occ(%0d)   > 0) && (s2m_ndr_occ(%0d) > 1);\n"},
+    {"  g_val[5](%0h) = (s2m_ndr_occ(%0d)   > 2);\n"},
+    {"  g_val[6](%0h) = (s2m_drs_occ(%0d)   > 2);\n"},
+    {"  ****************************DEBUG_INFO_END*********************************************************\n"}
+    ,
+    h_val[0], d2h_data_occ, d2h_rsp_occ,
+    h_val[1], d2h_req_occ, d2h_data_occ,
+    h_val[2], d2h_data_occ, d2h_rsp_occ,
+    h_val[3], s2m_drs_occ,
+    h_val[4], s2m_ndr_occ,
+    h_val[5], s2m_drs_occ,
+    g_val[1], d2h_req_occ, d2h_rsp_occ,
+    g_val[2], d2h_req_occ, d2h_data_occ, d2h_rsp_occ,
+    g_val[3], d2h_data_occ,
+    g_val[4], s2m_drs_occ, s2m_ndr_occ,
+    g_val[5], s2m_ndr_occ,
+    g_val[6], s2m_drs_occ
+    );
+
+  $display(
+      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+      {"d2h_data_rval(%0h)  = (h_gnt[0](%0h) || h_gnt[1](%0h) || h_gnt[2](%0h) || g_gnt[2](%0h) || g_gnt[3](%0h))? 'h1: 'h0;\n"},
+      {"d2h_rsp_rval(%0h)   = (h_gnt[0](%0h) || h_gnt[2](%0h) || g_gnt[2](%0h))? 'h1: 'h0;\n"},
+      {"s2m_ndr_rval(%0h)   = (h_gnt[0](%0h) || h_gnt[3](%0h) || h_gnt[4](%0h) || g_gnt[4](%0h) || g_gnt[5](%0h))? 'h1: 'h0;\n"},
+      {"d2h_req_rval(%0h)   = (h_gnt[1](%0h) || g_gnt[2](%0h))? 'h1: 'h0;\n"},
+      {"d2h_data_drval(%0h) = (h_gnt[2](%0h) || g_gnt[3](%0h))? 'h1: 'h0;\n"},
+      {"d2h_data_trval(%0h) = (h_gnt[2](%0h) || g_gnt[3](%0h))? 'h1: 'h0;\n"},
+      {"d2h_data_qrval(%0h) = (h_gnt[2](%0h) || g_gnt[3](%0h))? 'h1: 'h0;\n"},
+      {"s2m_drs_rval(%0h)   = (h_gnt[3](%0h) || h_gnt[5](%0h) || g_gnt[4](%0h) || g_gnt[6](%0h))? 'h1: 'h0;\n"},
+      {"s2m_ndr_drval(%0h)  = (h_gnt[4](%0h) || g_gnt[4](%0h) || g_gnt[5](%0h))? 'h1: 'h0;\n"},
+      {"s2m_drs_drval(%0h)  = (h_gnt[5](%0h) || g_gnt[6](%0h))? 'h1: 'h0;\n"},
+      {"s2m_ndr_trval(%0h)  = (g_gnt[5](%0h))? 'h1: 'h0;\n"},
+      {"s2m_drs_trval(%0h)  = (g_gnt[6](%0h))? 'h1: 'h0;\n"},
+      {"h_req(%0h) = ((slot_sel(%0h)>1) || (data_slot[0](%0h) == 'hf))? 'h0: h_val;\n"},
+      {"g_req(%0h) = ((slot_sel[0](%0h)) || (data_slot[0](%0h) == 'hf))? 'h0: g_val;\n"},
+      {"insert_ack(%0h) = (((ack_cnt_tbs(%0h) - ack_cnt_snt(%0h)) > 16) || init_done(%0h))? 1'h1: 1'h0;\n"},
+      {"****************************DEBUG_INFO_END*********************************************************\n"}
+    ,
+      d2h_data_rval, h_gnt[0], h_gnt[1], h_gnt[2], g_gnt[2], g_gnt[3],
+      d2h_rsp_rval, h_gnt[0], h_gnt[2], g_gnt[2], 
+      s2m_ndr_rval, h_gnt[0], h_gnt[3], h_gnt[3], h_gnt[4], g_gnt[4], g_gnt[5],
+      d2h_req_rval, h_gnt[1], g_gnt[2],
+      d2h_data_drval, h_gnt[2], g_gnt[3],
+      d2h_data_trval, h_gnt[2], g_gnt[3],
+      d2h_data_qrval, h_gnt[2], g_gnt[3],
+      s2m_drs_rval, h_gnt[3], h_gnt[5], g_gnt[4], g_gnt[6],
+      s2m_ndr_drval, h_gnt[4], g_gnt[4], g_gnt[5],
+      s2m_drs_drval, h_gnt[5], g_gnt[6],
+      s2m_ndr_trval, g_gnt[5],
+      s2m_drs_trval, g_gnt[6],
+      h_req, slot_sel, data_slot[0], 
+      g_req, slot_sel[0], data_slot[0], 
+      insert_ack, ack_cnt_tbs, ack_cnt_snt, init_done
+    ); 
+*/
     h2d_req_outstanding_credits   = (h2d_req_occ_d  > h2d_req_occ ) ? (h2d_req_occ_d  - h2d_req_occ   ) : 'h0;
     h2d_rsp_outstanding_credits   = (h2d_rsp_occ_d  > h2d_rsp_occ ) ? (h2d_rsp_occ_d  - h2d_rsp_occ   ) : 'h0;
     h2d_data_outstanding_credits  = (h2d_data_occ_d > h2d_data_occ) ? (h2d_data_occ_d - h2d_data_occ  ) : 'h0;
@@ -3242,7 +3450,33 @@ module device_tx_path#(
     h2d_data_consumed_credits     = (h2d_data_occ_d < h2d_data_occ) ? (h2d_data_occ   - h2d_data_occ_d) : 'h0;
     m2s_req_consumed_credits      = (m2s_req_occ_d  < m2s_req_occ ) ? (m2s_req_occ    - m2s_req_occ_d ) : 'h0;
     m2s_rwd_consumed_credits      = (m2s_rwd_occ_d  < m2s_rwd_occ ) ? (m2s_rwd_occ    - m2s_rwd_occ_d ) : 'h0;
-  
+  /*
+    $display(
+      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+      {"h2d_req_outstanding_credits is  %0d   = h2d_req_occ_d is  %0d - h2d_req_occ is    %0d\n"},
+      {"h2d_rsp_outstanding_credits is  %0d   = h2d_rsp_occ_d is  %0d - h2d_rsp_occ is    %0d\n"},
+      {"h2d_data_outstanding_credits is %0d   = h2d_data_occ_d is %0d - h2d_data_occ is   %0d\n"},
+      {"m2s_req_outstanding_credits is  %0d   = m2s_req_occ_d is  %0d - m2s_req_occ is    %0d\n"},
+      {"m2s_rwd_outstanding_credits is  %0d   = m2s_rwd_occ_d is  %0d - m2s_rwd_occ is    %0d\n"},
+      {"h2d_req_consumed_credits is     %0d   = h2d_req_occ is    %0d - h2d_req_occ_d is  %0d\n"},
+      {"h2d_rsp_consumed_credits is     %0d   = h2d_rsp_occ is    %0d - h2d_rsp_occ_d is  %0d\n"},
+      {"h2d_data_consumed_credits is    %0d   = h2d_data_occ is   %0d - h2d_data_occ_d is %0d\n"},
+      {"m2s_req_consumed_credits is     %0d   = m2s_req_occ is    %0d - m2s_req_occ_d is  %0d\n"},
+      {"m2s_rwd_consumed_credits is     %0d   = m2s_rwd_occ is    %0d - m2s_rwd_occ_d is  %0d\n"},
+      {"****************************DEBUG_INFO_END*********************************************************\n"}
+    , 
+      h2d_req_outstanding_credits, h2d_req_occ_d, h2d_req_occ,
+      h2d_rsp_outstanding_credits, h2d_rsp_occ_d, h2d_rsp_occ,
+      h2d_data_outstanding_credits, h2d_data_occ_d, h2d_data_occ,
+      m2s_req_outstanding_credits,  m2s_req_occ_d, m2s_req_occ, 
+      m2s_rwd_outstanding_credits,  m2s_rwd_occ_d, m2s_rwd_occ,
+      h2d_req_consumed_credits, h2d_req_occ, h2d_req_occ_d,
+      h2d_rsp_consumed_credits, h2d_rsp_occ, h2d_rsp_occ_d,
+      h2d_data_consumed_credits, h2d_data_occ, h2d_data_occ_d,
+      m2s_req_consumed_credits,  m2s_req_occ, m2s_req_occ_d, 
+      m2s_rwd_consumed_credits,  m2s_rwd_occ, m2s_rwd_occ_d
+    );
+    */
     if(h2d_data_crdt_tbs[3].pending) begin
       if(h2d_data_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         h2d_data_crdt_send = 'h7;
@@ -3292,19 +3526,19 @@ module device_tx_path#(
                 h2d_data_crdt_send = 'h1;
               end else begin
                 if(h2d_data_crdt_tbs[0].pending) begin
-                  if(h2d_data_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                  if(h2d_data_crdt_tbs[0].credit_to_be_sent == 'd64) begin
                     h2d_data_crdt_send = 'h7;
-                  end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                  end else if(h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd32) begin
                     h2d_data_crdt_send = 'h6;
-                  end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                  end else if(h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd16) begin
                     h2d_data_crdt_send = 'h5;
-                  end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                  end else if(h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd8) begin
                     h2d_data_crdt_send = 'h4;
-                  end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                  end else if(h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd4) begin
                     h2d_data_crdt_send = 'h3;
-                  end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                  end else if(h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
                     h2d_data_crdt_send = 'h2;
-                  end else if(h2d_data_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                  end else if(h2d_data_crdt_tbs[0].credit_to_be_sent == 'd1) begin
                     h2d_data_crdt_send = 'h1;
                   end else begin
                     h2d_data_crdt_send = 'h0;
@@ -3324,7 +3558,17 @@ module device_tx_path#(
     end else begin
       h2d_data_crdt_send = 'h0;
     end
-
+    /*
+    $display(
+      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+      {"h2d_data_crdt_tbs is %0p \n"},
+      {"h2d_data_crdt_send is %0d \n"},
+      {"****************************DEBUG_INFO_END*********************************************************\n"},
+    ,
+    h2d_data_crdt_tbs, 
+    h2d_data_crdt_send
+    );
+*/
     if(h2d_rsp_crdt_tbs[3].pending) begin
       if(h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         h2d_rsp_crdt_send = 'h7;
@@ -3374,19 +3618,19 @@ module device_tx_path#(
                 h2d_rsp_crdt_send = 'h1;
               end else begin
                 if(h2d_rsp_crdt_tbs[0].pending) begin
-                  if(h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                  if(h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd64) begin
                     h2d_rsp_crdt_send = 'h7;
-                  end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                  end else if(h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd32) begin
                     h2d_rsp_crdt_send = 'h6;
-                  end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                  end else if(h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd16) begin
                     h2d_rsp_crdt_send = 'h5;
-                  end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                  end else if(h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd8) begin
                     h2d_rsp_crdt_send = 'h4;
-                  end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                  end else if(h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd4) begin
                     h2d_rsp_crdt_send = 'h3;
-                  end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                  end else if(h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
                     h2d_rsp_crdt_send = 'h2;
-                  end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                  end else if(h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd1) begin
                     h2d_rsp_crdt_send = 'h1;
                   end else begin
                     h2d_rsp_crdt_send = 'h0;
@@ -3406,7 +3650,17 @@ module device_tx_path#(
     end else begin
       h2d_rsp_crdt_send = 'h0;
     end
-
+/*
+    $display(
+      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+      {"h2d_rsp_crdt_tbs is %0p \n"},
+      {"h2d_rsp_crdt_send is %0d \n"},
+      {"****************************DEBUG_INFO_END*********************************************************\n"},
+    ,
+    h2d_rsp_crdt_tbs, 
+    h2d_rsp_crdt_send
+    );
+*/
     if(h2d_req_crdt_tbs[3].pending) begin
       if(h2d_req_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         h2d_req_crdt_send = 'h7;
@@ -3456,19 +3710,19 @@ module device_tx_path#(
                 h2d_req_crdt_send = 'h1;
               end else begin
                 if(h2d_req_crdt_tbs[0].pending) begin
-                  if(h2d_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                  if(h2d_req_crdt_tbs[0].credit_to_be_sent == 'd64) begin
                     h2d_req_crdt_send = 'h7;
-                  end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                  end else if(h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd32) begin
                     h2d_req_crdt_send = 'h6;
-                  end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                  end else if(h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd16) begin
                     h2d_req_crdt_send = 'h5;
-                  end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                  end else if(h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd8) begin
                     h2d_req_crdt_send = 'h4;
-                  end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                  end else if(h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd4) begin
                     h2d_req_crdt_send = 'h3;
-                  end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                  end else if(h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
                     h2d_req_crdt_send = 'h2;
-                  end else if(h2d_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                  end else if(h2d_req_crdt_tbs[0].credit_to_be_sent == 'd1) begin
                     h2d_req_crdt_send = 'h1;
                   end else begin
                     h2d_req_crdt_send = 'h0;
@@ -3488,7 +3742,17 @@ module device_tx_path#(
     end else begin
       h2d_req_crdt_send = 'h0;
     end
-
+/*
+    $display(
+      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+      {"h2d_req_crdt_tbs is %0p \n"},
+      {"h2d_req_crdt_send is %0d \n"},
+      {"****************************DEBUG_INFO_END*********************************************************\n"},
+    ,
+    h2d_req_crdt_tbs, 
+    h2d_req_crdt_send
+    );
+*/
     if(m2s_req_crdt_tbs[3].pending) begin
       if(m2s_req_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         m2s_req_crdt_send = 'h7;
@@ -3538,19 +3802,19 @@ module device_tx_path#(
                 m2s_req_crdt_send = 'h1;
               end else begin
                 if(m2s_req_crdt_tbs[0].pending) begin
-                  if(m2s_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                  if(m2s_req_crdt_tbs[0].credit_to_be_sent == 'd64) begin
                     m2s_req_crdt_send = 'h7;
-                  end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                  end else if(m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd32) begin
                     m2s_req_crdt_send = 'h6;
-                  end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                  end else if(m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd16) begin
                     m2s_req_crdt_send = 'h5;
-                  end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                  end else if(m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd8) begin
                     m2s_req_crdt_send = 'h4;
-                  end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                  end else if(m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd4) begin
                     m2s_req_crdt_send = 'h3;
-                  end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                  end else if(m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
                     m2s_req_crdt_send = 'h2;
-                  end else if(m2s_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                  end else if(m2s_req_crdt_tbs[0].credit_to_be_sent == 'd1) begin
                     m2s_req_crdt_send = 'h1;
                   end else begin
                     m2s_req_crdt_send = 'h0;
@@ -3570,7 +3834,17 @@ module device_tx_path#(
     end else begin
       m2s_req_crdt_send = 'h0;
     end
- 
+/*
+    $display(
+      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+      {"m2s_req_crdt_tbs is %0p \n"},
+      {"m2s_req_crdt_send is %0d \n"},
+      {"****************************DEBUG_INFO_END*********************************************************\n"},
+    ,
+    m2s_req_crdt_tbs, 
+    m2s_req_crdt_send
+    );
+*/
     if(m2s_rwd_crdt_tbs[3].pending) begin
       if(m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd64) begin
         m2s_rwd_crdt_send = 'h7;
@@ -3620,19 +3894,19 @@ module device_tx_path#(
                 m2s_rwd_crdt_send = 'h1;
               end else begin
                 if(m2s_rwd_crdt_tbs[0].pending) begin
-                  if(m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+                  if(m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd64) begin
                     m2s_rwd_crdt_send = 'h7;
-                  end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+                  end else if(m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd32) begin
                     m2s_rwd_crdt_send = 'h6;
-                  end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+                  end else if(m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd16) begin
                     m2s_rwd_crdt_send = 'h5;
-                  end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+                  end else if(m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd8) begin
                     m2s_rwd_crdt_send = 'h4;
-                  end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+                  end else if(m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd4) begin
                     m2s_rwd_crdt_send = 'h3;
-                  end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+                  end else if(m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
                     m2s_rwd_crdt_send = 'h2;
-                  end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+                  end else if(m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd1) begin
                     m2s_rwd_crdt_send = 'h1;
                   end else begin
                     m2s_rwd_crdt_send = 'h0;
@@ -3652,7 +3926,17 @@ module device_tx_path#(
     end else begin
       m2s_rwd_crdt_send = 'h0;
     end
-
+/*
+    $display(
+      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
+      {"m2s_rwd_crdt_tbs is %0p \n"},
+      {"m2s_rwd_crdt_send is %0d \n"},
+      {"****************************DEBUG_INFO_END*********************************************************\n"},
+    ,
+    m2s_rwd_crdt_tbs, 
+    m2s_rwd_crdt_send
+    );
+*/
 /*
     h2d_req_crdt_send             = (h2d_req_crdt_tbs[3].pending)? (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
                                   : (h2d_req_crdt_tbs[2].pending)? (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
@@ -5161,13 +5445,18 @@ module device_tx_path#(
     end
   end
 
-  always@(dev_tx_dl_if.clk) begin
+  always@(posedge dev_tx_dl_if.clk) begin
     if(!dev_tx_dl_if.rstn) begin
+      foreach(holding_q[i]) begin
+        holding_q[i].valid <= 'h0;
+        holding_q[i].data <= 'h0;
+      end
       dev_tx_dl_if_pre_valid <= 'h0;
       dev_tx_dl_if_pre_data <= 'h0;
       dev_tx_dl_if.valid <= 'h0;
       dev_tx_dl_if_valid_d <= 'h0;
       dev_tx_dl_if_rstn_d <= 'h0;
+      dev_tx_dl_if_rstn_dd <= 'h0;
       dev_tx_dl_if.data <= 'h0;
       dev_tx_dl_if_data_d <= 'h0;
       holding_rdptr <= 'h0;
@@ -5176,9 +5465,10 @@ module device_tx_path#(
     end else begin
       dev_tx_dl_if_valid_d <= dev_tx_dl_if_pre_valid;
       dev_tx_dl_if_rstn_d <= dev_tx_dl_if.rstn;
+      dev_tx_dl_if_rstn_dd <= dev_tx_dl_if_rstn_d;
       dev_tx_dl_if_data_d <= dev_tx_dl_if_pre_data;
       dev_tx_dl_if.valid <= dev_tx_dl_if_pre_valid;
-      dev_tx_dl_if.data <= {dev_tx_dl_if_pre_data[511:0], dev_tx_dl_if_pre_crc[15:0]};
+      dev_tx_dl_if.data <= {dev_tx_dl_if_pre_crc[15:0], dev_tx_dl_if_pre_data[511:0]};
       if(ack) begin
         ack_cnt_tbs <= ack_cnt_tbs + 1;
       end
@@ -5187,34 +5477,37 @@ module device_tx_path#(
         dev_tx_dl_if_pre_data <= holding_q[holding_rdptr].data;
         holding_rdptr <= holding_rdptr + 1;
       end else begin
-        if((dev_tx_dl_if_rstn_d == 'h1) && (dev_tx_dl_if.rstn == 'h0)) begin
+        if((dev_tx_dl_if_rstn_dd == 'h0) && (dev_tx_dl_if_rstn_d == 'h1)) begin
           dev_tx_dl_if_pre_valid          <= 'h1;
+          dev_tx_dl_if_pre_data[0]        <= 'h1;
           dev_tx_dl_if_pre_data[35:32]    <= 'b1100;
           dev_tx_dl_if_pre_data[39:36]    <= 'b1000;
           dev_tx_dl_if_pre_data[67:64]    <= 'h1;
-        end
-        if(insert_ack) begin
-          dev_tx_dl_if_pre_valid          <= 'h1;
-          dev_tx_dl_if_pre_data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
-          dev_tx_dl_if_pre_data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-          dev_tx_dl_if_pre_data[2]        <= ack_cnt_tbs[3];//TBD: logic for crdt ack to be added later
-          dev_tx_dl_if_pre_data[3]        <= 'h0;//non data header so 0
-          dev_tx_dl_if_pre_data[4]        <= 'h0;//non data header so 0
-          dev_tx_dl_if_pre_data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
-          dev_tx_dl_if_pre_data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-          dev_tx_dl_if_pre_data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-          dev_tx_dl_if_pre_data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-          dev_tx_dl_if_pre_data[19:17]    <= 'h0;//reserved must be 0
-          dev_tx_dl_if_pre_data[23:20]    <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
-          dev_tx_dl_if_pre_data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
-          dev_tx_dl_if_pre_data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
-          dev_tx_dl_if_pre_data[35:32]    <= 4'b0000;
-          dev_tx_dl_if_pre_data[39:36]    <= 4'b0001;
-          dev_tx_dl_if_pre_data[63:40]    <= 'h0;
-          dev_tx_dl_if_pre_data[71:64]    <= ({ack_cnt_tbs[7:4], 1'b0, ack_cnt_tbs[2:0]});
-          ack_cnt_snt                     <= ack_cnt_tbs;
         end else begin
-          dev_tx_dl_if_pre_valid          <= 'h0;
+          if(insert_ack) begin
+            dev_tx_dl_if_pre_valid          <= 'h1;
+            dev_tx_dl_if_pre_data[0]        <= 'h1;//protocol flit encoding is 0 & for control type is 1
+            dev_tx_dl_if_pre_data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+            dev_tx_dl_if_pre_data[2]        <= ack_cnt_tbs[3];//TBD: logic for crdt ack to be added later
+            dev_tx_dl_if_pre_data[3]        <= 'h0;//non data header so 0
+            dev_tx_dl_if_pre_data[4]        <= 'h0;//non data header so 0
+            dev_tx_dl_if_pre_data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
+            dev_tx_dl_if_pre_data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
+            dev_tx_dl_if_pre_data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
+            dev_tx_dl_if_pre_data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
+            dev_tx_dl_if_pre_data[19:17]    <= 'h0;//reserved must be 0
+            dev_tx_dl_if_pre_data[23:20]    <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
+            dev_tx_dl_if_pre_data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
+            dev_tx_dl_if_pre_data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+            dev_tx_dl_if_pre_data[35:32]    <= 4'b0000;
+            dev_tx_dl_if_pre_data[39:36]    <= 4'b0001;
+            dev_tx_dl_if_pre_data[63:40]    <= 'h0;
+            dev_tx_dl_if_pre_data[71:64]    <= ({ack_cnt_tbs[7:4], 1'b0, ack_cnt_tbs[2:0]});
+            ack_cnt_snt                     <= ack_cnt_tbs;
+          end else begin
+            dev_tx_dl_if_pre_valid          <= 'h0;
+            dev_tx_dl_if_pre_data           <= 'h0;
+          end
         end
       end
     end
@@ -5243,8 +5536,8 @@ module device_tx_path#(
   ip_6_rra #(
     .NO_OF_REQ(6)
   ) h_slot_rra_inst(
-    .clk(clk),
-    .rstn(rstn),
+    .clk(dev_tx_dl_if.clk),
+    .rstn(dev_tx_dl_if.rstn),
     .req(h_req),
     .gnt(h_gnt)
   );
@@ -5252,8 +5545,8 @@ module device_tx_path#(
   ip_7_rra #(
     .NO_OF_REQ(7)
   ) g_slot_rra_inst(
-    .clk(clk),
-    .rstn(rstn),
+    .clk(dev_tx_dl_if.clk),
+    .rstn(dev_tx_dl_if.rstn),
     .req(g_req),
     .gnt(g_gnt)
   );
@@ -5458,7 +5751,7 @@ module crc_check#(
 
 )(
   output logic crc_pass,
-  output logic c2c_fail,
+  output logic crc_fail,
   input logic [527:0] data
 );
 
@@ -5499,8 +5792,8 @@ module crc_check#(
   assign crc[1] = ^(DM[1] & data[511:0]);
   assign crc[0] = ^(DM[0] & data[511:0]);
 
-  assign crc_pass = (crc == data[15:0])? 'h1: 'h0;
-  assign crc_fail = (crc != data[15:0])? 'h1: 'h0;
+  assign crc_pass = (crc == data[527:512])? 'h1: 'h0;
+  assign crc_fail = (crc != data[527:512])? 'h1: 'h0;
 
 endmodule
 
@@ -6592,7 +6885,7 @@ module host_rx_path #(
   );
 
   crc_check #(
-  ) c2c_check_inst (
+  ) crc_check_inst (
     .data(host_rx_dl_if.data),
     .*
   );
@@ -6609,7 +6902,7 @@ module host_rx_path #(
       crc_pass_d <= crc_pass;
       crc_fail_d <= crc_fail;
       host_rx_dl_if_d_valid <= host_rx_dl_if.valid;
-      host_rx_dl_if_d_data <= host_rx_dl_if.data[527:16];
+      host_rx_dl_if_d_data <= host_rx_dl_if.data[511:0];
       if(host_rx_dl_if_d_valid) begin
         case(retry_frame_states) 
         RETRY_NOFRAME: begin
@@ -7834,7 +8127,7 @@ module device_rx_path #(
   );
 
   crc_check #( 
-  ) c2c_check_inst (
+  ) crc_check_inst (
     .data(dev_rx_dl_if.data),
     .*
   );
@@ -7851,7 +8144,7 @@ module device_rx_path #(
       crc_pass_d <= crc_pass;
       crc_fail_d <= crc_fail;
       dev_rx_dl_if_d_valid <= dev_rx_dl_if.valid;
-      dev_rx_dl_if_d_data <= dev_rx_dl_if.data[527:16];
+      dev_rx_dl_if_d_data <= dev_rx_dl_if.data[511:0];
       if(dev_rx_dl_if_d_valid) begin
         case(retry_frame_states) 
         RETRY_NOFRAME: begin
@@ -7945,7 +8238,7 @@ module replay_buffer#(
   logic [REPLAY_BUFFER_IDX_WIDTH:0] replay_rdptr;
   logic [REPLAY_BUFFER_IDX_WIDTH-1:0] replay_cnt;  
 
-  always@(replay_inbuff_if.clk) begin
+  always@(posedge replay_inbuff_if.clk) begin
     if(!replay_inbuff_if.rstn) begin
       replay_outbuff_if.valid <= 'h0;
       replay_outbuff_if.data  <= 'h0;
@@ -8000,7 +8293,7 @@ endmodule
 
 module buffer#(
   parameter DEPTH = 256,
-  parameter ADDR_WIDTH = $clog2(DEPTH),
+  parameter ADDR_WIDTH = 8,
   type FIFO_DATA_TYPE = int
  )(
 	  input logic clk,
@@ -8042,12 +8335,34 @@ module buffer#(
     if(!rstn) begin
      	rdptr <= 0;
      	wrptr <= 0;
-     	empty <= 0;
+     	empty <= 1;
      	full <= 0;
      	ovrflw <= 'h0;
      	undrflw <= 'h0;
      	eseq <= 'h0;
+     	occupancy <= 'd0;
     end else begin
+      occupancy <= (wrptr - rdptr);
+      if(rdptr == wrptr) begin
+       	empty <= 'h1;
+      end else begin 
+       	empty <= 'h0;
+      end
+      if((rdptr[ADDR_WIDTH] != wrptr[ADDR_WIDTH]) && (rdptr[(ADDR_WIDTH-1):0] == wrptr[(ADDR_WIDTH-1):0])) begin
+       	full <= 'h1;
+      end else begin
+       	full <= 'h0;
+      end
+      if((empty && rval) || ((occupancy<2) && drval) || ((occupancy<3) && trval) || ((occupancy<4) && qrval)) begin
+       	undrflw <= 'h1;
+      end else begin
+       	undrflw <= 'h0;
+      end
+      if((full == 'h1) && wval) begin
+       	ovrflw <= 'h1;
+      end else begin
+       	ovrflw <= 'h0;
+      end
      	if(rval || wval) begin
         if((wval && !full) || (dwval && (occupancy < (DEPTH-3))) || (twval && (occupancy < (DEPTH-4))) || (qwval && (occupancy < (DEPTH-5)))) begin
          	casez({qwval,twval,dwval,wval})
@@ -8114,27 +8429,6 @@ module buffer#(
             end
           endcase
         end
-       	occupancy <= (DEPTH - (wrptr - rdptr));
-        if(rdptr == wrptr) begin
-         	empty <= 'h1;
-        end else begin 
-         	empty <= 'h0;
-        end
-        if((rdptr[ADDR_WIDTH] != wrptr[ADDR_WIDTH]) && (rdptr[(ADDR_WIDTH-1):0] == wrptr[(ADDR_WIDTH-1):0])) begin
-         	full <= 'h1;
-        end else begin
-         	full <= 'h0;
-        end
-        if((empty && rval) || ((occupancy<2) && drval) || ((occupancy<3) && trval) || ((occupancy<4) && qrval)) begin
-         	undrflw <= 'h1;
-        end else begin
-         	undrflw <= 'h0;
-        end
-        if((full == 'h1) && wval) begin
-         	ovrflw <= 'h1;
-        end else begin
-         	ovrflw <= 'h0;
-        end
      	end
     end
  	end
@@ -8160,7 +8454,7 @@ module cxl_host
   );
 
   localparam BUFFER_DEPTH = 32;
-  localparam BUFFER_ADDR_WIDTH = $clog2(BUFFER_DEPTH);
+  localparam BUFFER_ADDR_WIDTH = 5;//$clog2(BUFFER_DEPTH);
   logic crdt_val;
   logic crdt_rsp_cm;
   logic crdt_req_cm;
@@ -9118,6 +9412,11 @@ module tb_top;
   cxl_host_rx_dl_if   host_rx_dl_if(clk);
   cxl_dev_tx_dl_if    dev_tx_dl_if(clk);
   cxl_dev_rx_dl_if    dev_rx_dl_if(clk);
+
+  assign dev_tx_dl_if.rstn = (dev_d2h_req_if.rstn || dev_d2h_rsp_if.rstn || dev_d2h_data_if.rstn || dev_s2m_ndr_if.rstn || dev_s2m_drs_if.rstn);
+  assign dev_rx_dl_if.rstn = (dev_h2d_req_if.rstn || dev_h2d_rsp_if.rstn || dev_h2d_data_if.rstn || dev_m2s_req_if.rstn || dev_m2s_rwd_if.rstn);
+  assign host_tx_dl_if.rstn = (host_h2d_req_if.rstn || host_h2d_rsp_if.rstn || host_h2d_data_if.rstn || host_m2s_req_if.rstn || host_m2s_rwd_if.rstn);
+  assign host_rx_dl_if.rstn = (host_d2h_req_if.rstn || host_d2h_rsp_if.rstn || host_d2h_data_if.rstn || host_s2m_ndr_if.rstn || host_s2m_drs_if.rstn);
 
 //  assign dev_rx_dl_if.valid   = host_tx_dl_if.valid;
 //  assign dev_rx_dl_if.data    = host_tx_dl_if.data;
@@ -10270,9 +10569,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.mon)::get(this, "", "dev_d2h_req_if_mon", dev_d2h_req_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_req_if"));
       end
@@ -10309,9 +10608,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.mon)::get(this, "", "dev_d2h_rsp_if_mon", dev_d2h_rsp_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_rsp_if"));
       end
@@ -10347,9 +10646,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.mon)::get(this, "", "dev_d2h_data_if_mon", dev_d2h_data_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_d2h_data_if"));
       end
@@ -10388,9 +10687,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.mon)::get(this, "", "host_h2d_req_if_mon", host_h2d_req_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_req_if"));
       end
@@ -10427,9 +10726,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.mon)::get(this, "", "host_h2d_rsp_if_mon", host_h2d_rsp_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_rsp_if"));
       end
@@ -10467,9 +10766,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.mon)::get(this, "", "host_h2d_data_if_mon", host_h2d_data_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_h2d_data_if"));
       end
@@ -10508,9 +10807,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.mon)::get(this, "", "host_m2s_req_if_mon", host_m2s_req_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_req_if"));
       end
@@ -10551,9 +10850,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.mon)::get(this, "", "host_m2s_rwd_if_mon", host_m2s_rwd_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_m2s_rwd_if"));
       end
@@ -10596,9 +10895,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.mon)::get(this, "", "dev_s2m_ndr_if_mon", dev_s2m_ndr_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_ndr_if"));
       end
@@ -10636,9 +10935,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.mon)::get(this, "", "dev_s2m_drs_if_mon", dev_s2m_drs_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_s2m_drs_if"));
       end
@@ -10678,9 +10977,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_req_if.mon)::get(this, "", "host_d2h_req_if_mon", host_d2h_req_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_req_if"));
       end
@@ -10717,9 +11016,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_rsp_if.mon)::get(this, "", "host_d2h_rsp_if_mon", host_d2h_rsp_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_rsp_if"));
       end
@@ -10755,9 +11054,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_d2h_data_if.mon)::get(this, "", "host_d2h_data_if_mon", host_d2h_data_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_d2h_data_if"));
       end
@@ -10796,9 +11095,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_req_if.mon)::get(this, "", "dev_h2d_req_if_mon", dev_h2d_req_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_req_if"));
       end
@@ -10835,9 +11134,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_rsp_if.mon)::get(this, "", "dev_h2d_rsp_if_mon", dev_h2d_rsp_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_rsp_if"));
       end
@@ -10875,9 +11174,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_cache_h2d_data_if.mon)::get(this, "", "dev_h2d_data_if_mon", dev_h2d_data_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_h2d_data_if"));
       end
@@ -10916,9 +11215,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_m2s_req_if.mon)::get(this, "", "dev_m2s_req_if_mon", dev_m2s_req_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_req_if"));
       end
@@ -10959,9 +11258,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_m2s_rwd_if.mon)::get(this, "", "dev_m2s_rwd_if_mon", dev_m2s_rwd_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface dev_m2s_rwd_if"));
       end
@@ -11004,9 +11303,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_s2m_ndr_if.mon)::get(this, "", "host_s2m_ndr_if_mon", host_s2m_ndr_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_ndr_if"));
       end
@@ -11044,9 +11343,9 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("constructed uvm monitor : %s", name), UVM_DEBUG)
     endfunction
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
+    virtual task run_phase(uvm_phase phase);
+      super.run_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_phase in uvm monitor : %s", get_full_name()), UVM_HIGH)
       if(!(uvm_config_db#(virtual cxl_mem_s2m_drs_if.mon)::get(this, "", "host_s2m_drs_if_mon", host_s2m_drs_if.mon))) begin
         `uvm_fatal(get_type_name(), $sformatf("failed to get virtual interface host_s2m_drs_if"));
       end
@@ -11093,9 +11392,7 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(d2h_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11109,10 +11406,23 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
+    
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(d2h_req_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11131,9 +11441,30 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
-      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          run_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
   endclass
 
   class host_d2h_rsp_driver#(type ITEM_TYPE = d2h_rsp_seq_item) extends uvm_driver#(ITEM_TYPE);
@@ -11156,9 +11487,8 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task reset_task(uvm_phase phase);
+      `uvm_info(get_type_name(), $sformatf("enter run_task in uvm driver : %s", get_full_name()), UVM_HIGH)
       forever begin
         seq_item_port.get_next_item(d2h_rsp_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11173,9 +11503,22 @@ module tb_top;
       end
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(d2h_rsp_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11194,6 +11537,27 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+    
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          run_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -11218,10 +11582,8 @@ module tb_top;
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
-
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(d2h_data_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11236,9 +11598,22 @@ module tb_top;
       end
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(d2h_data_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11257,6 +11632,27 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          run_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -11282,9 +11678,7 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(s2m_ndr_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11299,9 +11693,22 @@ module tb_top;
       end
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(s2m_ndr_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11320,6 +11727,27 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+    
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -11345,10 +11773,8 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      forever begin
+    task reset_task(uvm_phase phase);
+     forever begin
         seq_item_port.get_next_item(s2m_drs_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_drs_seq_item_h.sprint()), UVM_DEBUG)
@@ -11362,9 +11788,22 @@ module tb_top;
       end
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(s2m_drs_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11383,6 +11822,27 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          run_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -11407,10 +11867,8 @@ module tb_top;
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
-
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(h2d_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11425,9 +11883,22 @@ module tb_top;
       end
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(h2d_req_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11446,6 +11917,27 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          run_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -11471,9 +11963,7 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(h2d_rsp_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11488,9 +11978,22 @@ module tb_top;
       end
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(h2d_rsp_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11509,6 +12012,27 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          run_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -11534,9 +12058,7 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(h2d_data_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11551,9 +12073,22 @@ module tb_top;
       end
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(h2d_data_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11572,6 +12107,27 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          run_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -11596,10 +12152,8 @@ module tb_top;
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
-
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(m2s_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11614,9 +12168,22 @@ module tb_top;
       end
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(m2s_req_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11635,6 +12202,27 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          run_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -11660,9 +12248,7 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(m2s_rwd_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11676,10 +12262,23 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
+
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
     
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(m2s_rwd_seq_item_h);  
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11698,6 +12297,27 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          run_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -11722,10 +12342,8 @@ module tb_top;
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
-
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      
+    task reset_task(uvm_phase phase);  
       forever begin
         seq_item_port.get_next_item(d2h_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11739,10 +12357,23 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
+
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
     
-    virtual task configure_phase(uvm_phase phase);
-      super.configure_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task configure_task(uvm_phase phase);
       seq_item_port.get_next_item(d2h_req_seq_item_h);
       `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_req_seq_item_h.sprint()), UVM_DEBUG)
@@ -11751,12 +12382,9 @@ module tb_top;
       seq_item_port.item_done(d2h_req_seq_item_h);  
       phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(d2h_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11778,6 +12406,27 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          configure_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
   endclass
@@ -11801,10 +12450,8 @@ module tb_top;
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
-
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(d2h_rsp_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11818,10 +12465,23 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
+
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
     
-    virtual task configure_phase(uvm_phase phase);
-      super.configure_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task configure_task(uvm_phase phase);
       seq_item_port.get_next_item(d2h_rsp_seq_item_h);
       `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_rsp_seq_item_h.sprint()), UVM_DEBUG)
@@ -11830,12 +12490,24 @@ module tb_top;
       seq_item_port.item_done(d2h_rsp_seq_item_h);  
       phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          configure_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(d2h_rsp_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11855,6 +12527,12 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask 
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -11879,9 +12557,7 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(d2h_data_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11895,10 +12571,23 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-    
-    virtual task configure_phase(uvm_phase phase);
-      super.configure_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    task configure_task(uvm_phase phase);
       seq_item_port.get_next_item(d2h_data_seq_item_h);
       `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_data_seq_item_h.sprint()), UVM_DEBUG)
@@ -11907,12 +12596,24 @@ module tb_top;
       seq_item_port.item_done(d2h_data_seq_item_h);  
       phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          configure_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(d2h_data_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11935,6 +12636,12 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
         seq_item_port.item_done(d2h_data_seq_item_h);
       end
+    endtask
+    
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -11958,10 +12665,8 @@ module tb_top;
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
-
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(h2d_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -11975,10 +12680,23 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
+
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
     
-    virtual task configure_phase(uvm_phase phase);
-      super.configure_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task configure_task(uvm_phase phase);
       seq_item_port.get_next_item(h2d_req_seq_item_h);
       `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_req_seq_item_h.sprint()), UVM_DEBUG)
@@ -11987,12 +12705,24 @@ module tb_top;
       seq_item_port.item_done(h2d_req_seq_item_h);  
       phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          configure_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(h2d_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12013,6 +12743,12 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+    
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -12036,10 +12772,8 @@ module tb_top;
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
-
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(h2d_rsp_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12053,10 +12787,23 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-    
-    virtual task configure_phase(uvm_phase phase);
-      super.configure_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
+    task configure_task(uvm_phase phase);
       seq_item_port.get_next_item(h2d_rsp_seq_item_h);
       `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_rsp_seq_item_h.sprint()), UVM_DEBUG)
@@ -12065,12 +12812,24 @@ module tb_top;
       seq_item_port.item_done(h2d_rsp_seq_item_h);  
       phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          configure_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(h2d_rsp_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12092,6 +12851,12 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -12115,10 +12880,8 @@ module tb_top;
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
-
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(h2d_data_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12132,9 +12895,23 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
+
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
     
-    virtual task configure_phase(uvm_phase phase);
-      super.configure_phase(phase);
+    task configure_task(uvm_phase phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
       seq_item_port.get_next_item(h2d_data_seq_item_h);
       `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12144,13 +12921,25 @@ module tb_top;
       seq_item_port.item_done(h2d_data_seq_item_h);  
       phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      forever begin
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          configure_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
+     forever begin
         seq_item_port.get_next_item(h2d_data_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_data_seq_item_h.sprint()), UVM_DEBUG)
@@ -12172,6 +12961,12 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -12195,10 +12990,8 @@ module tb_top;
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction 
-
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(m2s_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12213,9 +13006,22 @@ module tb_top;
       end
     endtask
     
-    virtual task configure_phase(uvm_phase phase);
-      super.configure_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task configure_task(uvm_phase phase);
       seq_item_port.get_next_item(m2s_req_seq_item_h);
       `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_req_seq_item_h.sprint()), UVM_DEBUG)
@@ -12224,12 +13030,24 @@ module tb_top;
       seq_item_port.item_done(m2s_req_seq_item_h);  
       phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          configure_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin  
         seq_item_port.get_next_item(m2s_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12256,6 +13074,13 @@ module tb_top;
       end
     endtask
 
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
+      `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+
   endclass
 
   class host_m2s_rwd_driver#(type ITEM_TYPE = m2s_rwd_seq_item) extends uvm_driver#(ITEM_TYPE);
@@ -12276,10 +13101,8 @@ module tb_top;
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
-
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(m2s_rwd_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12294,9 +13117,22 @@ module tb_top;
       end
     endtask
     
-    virtual task configure_phase(uvm_phase phase);
-      super.configure_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task configure_task(uvm_phase phase);
       seq_item_port.get_next_item(m2s_rwd_seq_item_h);
       `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_rwd_seq_item_h.sprint()), UVM_DEBUG)
@@ -12305,12 +13141,24 @@ module tb_top;
       seq_item_port.item_done(m2s_rwd_seq_item_h);  
       phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          configure_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin  
         seq_item_port.get_next_item(m2s_rwd_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12337,6 +13185,12 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -12361,9 +13215,7 @@ module tb_top;
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
 
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(s2m_ndr_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12378,9 +13230,22 @@ module tb_top;
       end
     endtask
     
-    virtual task configure_phase(uvm_phase phase);
-      super.configure_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task configure_task(uvm_phase phase);
       seq_item_port.get_next_item(s2m_ndr_seq_item_h);
       `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_ndr_seq_item_h.sprint()), UVM_DEBUG)
@@ -12389,12 +13254,28 @@ module tb_top;
       seq_item_port.item_done(s2m_ndr_seq_item_h);  
       phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          configure_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+        begin
+        #10000;
+          `uvm_fatal(get_type_name(), $sformatf("stopping sim here"));
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin  
         seq_item_port.get_next_item(s2m_ndr_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12416,6 +13297,12 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)  
     endtask
 
@@ -12439,10 +13326,8 @@ module tb_top;
       end
       `uvm_info(get_type_name(), $sformatf("exit build_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endfunction
-
-    virtual task reset_phase(uvm_phase phase);
-      super.reset_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    
+    task reset_task(uvm_phase phase);
       forever begin
         seq_item_port.get_next_item(s2m_drs_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12456,10 +13341,24 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
+
+    virtual task reset_phase(uvm_phase phase);
+      super.reset_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          reset_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+
+    endtask
     
-    virtual task configure_phase(uvm_phase phase);
-      super.configure_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    task configure_task(uvm_phase phase);
       seq_item_port.get_next_item(s2m_drs_seq_item_h);
       `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
       `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_drs_seq_item_h.sprint()), UVM_DEBUG)
@@ -12468,12 +13367,24 @@ module tb_top;
       seq_item_port.item_done(s2m_drs_seq_item_h);  
       phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
-    virtual task main_phase(uvm_phase phase);
-      super.main_phase(phase);
-      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    virtual task configure_phase(uvm_phase phase);
+      super.configure_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      fork 
+        begin
+          configure_task(phase);
+        end
+        begin
+          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
+        end
+      join_any
+      disable fork;
+      `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+    endtask
+    
+    task run_task(uvm_phase phase);
       forever begin  
         seq_item_port.get_next_item(s2m_drs_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12497,6 +13408,12 @@ module tb_top;
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
+    endtask
+
+    virtual task main_phase(uvm_phase phase);
+      super.main_phase(phase);
+      `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
+      run_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -15858,7 +16775,6 @@ module tb_top;
 
     task body();
       `uvm_info(get_type_name(), $sformatf("starting configure_seq"), UVM_HIGH)
-      `uvm_fatal(get_type_name,$sformatf("reached configure"))
       if(!uvm_resource_db#(cxl_cfg_obj)::read_by_name("", "cxl_cfg_obj_h", cxl_cfg_obj_h)) begin
         `uvm_fatal("CXL_CFG_OBJ", "cxl_cfg_obj not found")
       end
