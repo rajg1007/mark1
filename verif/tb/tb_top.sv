@@ -763,165 +763,878 @@ module ip_7_rra#(
   output logic [NO_OF_REQ-1:0] gnt
 );
 
-logic [NO_OF_REQ-1:0] hdr;
-typedef enum {
-  IDLE,
-  GNT0,
-  GNT1,
-  GNT2,
-  GNT3,
-  GNT4,
-  GNT5,
-  GNT6
-} rra_state_t;
-rra_state_t st;
+  logic [NO_OF_REQ-1:0] hdr;
+  typedef enum {
+    IDLE,
+    GNT0,
+    GNT1,
+    GNT2,
+    GNT3,
+    GNT4,
+    GNT5,
+    GNT6
+  } rra_state_t;
+  rra_state_t st;
 
-//implementation tbd
-always@(posedge clk) begin
-  if(!rstn) begin
-    gnt <= 'h0;
-    hdr <= 'h1;
-  end else begin
-    if(req == 'h0) begin
-      gnt <= 'h0;
-      hdr <= hdr;
-    end else if((req[0]) && (hdr[0])) begin
-      gnt <= 'h1;
-      casez(req)
-        7'b0000000: hdr <= hdr;
-        7'b0000001: hdr <= 'h1;
-        7'b?????11: hdr <= 'h2;
-        7'b????101: hdr <= 'h4;
-        7'b???1001: hdr <= 'h8;
-        7'b??10001: hdr <= 'h10;
-        7'b?100001: hdr <= 'h20;
-        7'b1000001: hdr <= 'h40;
-        7'b?????10: hdr <= 'h2;
-        7'b????100: hdr <= 'h4;
-        7'b???1000: hdr <= 'h8;
-        7'b??10000: hdr <= 'h10;
-        7'b?100000: hdr <= 'h20;
-        7'b1000000: hdr <= 'h40;
-        default: hdr <= 'hX;
-      endcase
-    end else if((req[1]) && (hdr[1])) begin
-      gnt <= 'h2;
-      casez({req[0], req[6:1]})
-        7'b0000000: hdr <= hdr;
-        7'b0000001: hdr <= 'h1;
-        7'b?????11: hdr <= 'h2;
-        7'b????101: hdr <= 'h4;
-        7'b???1001: hdr <= 'h8;
-        7'b??10001: hdr <= 'h10;
-        7'b?100001: hdr <= 'h20;
-        7'b1000001: hdr <= 'h40;
-        7'b?????10: hdr <= 'h2;
-        7'b????100: hdr <= 'h4;
-        7'b???1000: hdr <= 'h8;
-        7'b??10000: hdr <= 'h10;
-        7'b?100000: hdr <= 'h20;
-        7'b1000000: hdr <= 'h40;
-        default: hdr <= 'hX;
-      endcase
-    end else if((req[2]) && (hdr[2])) begin
-      gnt <= 'h4;
-      casez({req[1:0], req[6:2]})
-        7'b0000000: hdr <= hdr;
-        7'b0000001: hdr <= 'h1;
-        7'b?????11: hdr <= 'h2;
-        7'b????101: hdr <= 'h4;
-        7'b???1001: hdr <= 'h8;
-        7'b??10001: hdr <= 'h10;
-        7'b?100001: hdr <= 'h20;
-        7'b1000001: hdr <= 'h40;
-        7'b?????10: hdr <= 'h2;
-        7'b????100: hdr <= 'h4;
-        7'b???1000: hdr <= 'h8;
-        7'b??10000: hdr <= 'h10;
-        7'b?100000: hdr <= 'h20;
-        7'b1000000: hdr <= 'h40;
-        default: hdr <= 'hX;
-      endcase
-    end else if((req[3]) && (hdr[3])) begin
-      gnt <= 'h8;
-      casez({req[2:0], req[6:3]})
-        7'b0000000: hdr <= hdr;
-        7'b0000001: hdr <= 'h1;
-        7'b?????11: hdr <= 'h2;
-        7'b????101: hdr <= 'h4;
-        7'b???1001: hdr <= 'h8;
-        7'b??10001: hdr <= 'h10;
-        7'b?100001: hdr <= 'h20;
-        7'b1000001: hdr <= 'h40;
-        7'b?????10: hdr <= 'h2;
-        7'b????100: hdr <= 'h4;
-        7'b???1000: hdr <= 'h8;
-        7'b??10000: hdr <= 'h10;
-        7'b?100000: hdr <= 'h20;
-        7'b1000000: hdr <= 'h40;
-        default: hdr <= 'hX;
-      endcase
-    end else if((req[4]) && (hdr[4])) begin
-      gnt <= 'h10;
-      casez({req[3:0], req[6:4]})
-        7'b0000000: hdr <= hdr;
-        7'b0000001: hdr <= 'h1;
-        7'b?????11: hdr <= 'h2;
-        7'b????101: hdr <= 'h4;
-        7'b???1001: hdr <= 'h8;
-        7'b??10001: hdr <= 'h10;
-        7'b?100001: hdr <= 'h20;
-        7'b1000001: hdr <= 'h40;
-        7'b?????10: hdr <= 'h2;
-        7'b????100: hdr <= 'h4;
-        7'b???1000: hdr <= 'h8;
-        7'b??10000: hdr <= 'h10;
-        7'b?100000: hdr <= 'h20;
-        7'b1000000: hdr <= 'h40;
-        default: hdr <= 'hX;
-      endcase
-    end else if((req[5]) && (hdr[5])) begin
-      gnt <= 'h20;
-      casez({req[4:0], req[6:5]})
-        7'b0000000: hdr <= hdr;
-        7'b0000001: hdr <= 'h1;
-        7'b?????11: hdr <= 'h2;
-        7'b????101: hdr <= 'h4;
-        7'b???1001: hdr <= 'h8;
-        7'b??10001: hdr <= 'h10;
-        7'b?100001: hdr <= 'h20;
-        7'b1000001: hdr <= 'h40;
-        7'b?????10: hdr <= 'h2;
-        7'b????100: hdr <= 'h4;
-        7'b???1000: hdr <= 'h8;
-        7'b??10000: hdr <= 'h10;
-        7'b?100000: hdr <= 'h20;
-        7'b1000000: hdr <= 'h40;
-        default: hdr <= 'hX;
-      endcase
-    end else if((req[6]) && (hdr[6])) begin
-      gnt <= 'h40;
-      casez({req[5:0], req[6]})
-        7'b0000000: hdr <= hdr;
-        7'b0000001: hdr <= 'h1;
-        7'b?????11: hdr <= 'h2;
-        7'b????101: hdr <= 'h4;
-        7'b???1001: hdr <= 'h8;
-        7'b??10001: hdr <= 'h10;
-        7'b?100001: hdr <= 'h20;
-        7'b1000001: hdr <= 'h40;
-        7'b?????10: hdr <= 'h2;
-        7'b????100: hdr <= 'h4;
-        7'b???1000: hdr <= 'h8;
-        7'b??10000: hdr <= 'h10;
-        7'b?100000: hdr <= 'h20;
-        7'b1000000: hdr <= 'h40;
-        default: hdr <= 'hX;
-      endcase
+  always@(rstn or req) begin
+    if(!rstn) begin
+      gnt = 'h0;
+      hdr = 'h1;
+    end else begin
+      if(hdr[0]) begin
+        casez(req)
+          7'b0000000: begin
+            hdr = 'h1;
+            gnt = 'h0;
+          end
+          7'b0000001: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          7'b?????11: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          7'b????101: begin 
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          7'b???1001: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          7'b??10001: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          7'b?100001: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          7'b1000001: begin
+            hdr = 'h40;
+            gnt = 'h40;
+          end
+          7'b?????10: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          7'b????100: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          7'b???1000: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          7'b??10000: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          7'b?100000: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          7'b1000000: begin
+            hdr = 'h40;
+            gnt = 'h40;
+          end
+          default: hdr = 'hX;
+        endcase
+      end else if(hdr[1]) begin
+        casez({req[0], req[6:1]})
+          7'b0000000: begin
+            hdr = 'h2;
+            gnt = 'h0;
+          end
+          7'b0000001: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          7'b?????11: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          7'b????101: begin 
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          7'b???1001: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          7'b??10001: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          7'b?100001: begin
+            hdr = 'h40;
+            gnt = 'h40;
+          end
+          7'b1000001: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          7'b?????10: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          7'b????100: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          7'b???1000: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          7'b??10000: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          7'b?100000: begin
+            hdr = 'h40;
+            gnt = 'h40;
+          end
+          7'b1000000: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          default: hdr = 'hX;
+        endcase
+      end else if(hdr[2]) begin
+        casez({req[1:0], req[6:2]})
+          7'b0000000: begin
+            hdr = 'h4;
+            gnt = 'h0;
+          end
+          7'b0000001: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          7'b?????11: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          7'b????101: begin 
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          7'b???1001: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          7'b??10001: begin
+            hdr = 'h40;
+            gnt = 'h40;
+          end
+          7'b?100001: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          7'b1000001: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          7'b?????10: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          7'b????100: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          7'b???1000: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          7'b??10000: begin
+            hdr = 'h40;
+            gnt = 'h40;
+          end
+          7'b?100000: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          7'b1000000: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          default: hdr = 'hX;
+        endcase
+      end else if(hdr[3]) begin
+        casez({req[2:0], req[6:3]})
+          7'b0000000: begin
+            hdr = 'h8;
+            gnt = 'h0;
+          end
+          7'b0000001: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          7'b?????11: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          7'b????101: begin 
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          7'b???1001: begin
+            hdr = 'h40;
+            gnt = 'h40;
+          end
+          7'b??10001: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          7'b?100001: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          7'b1000001: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          7'b?????10: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          7'b????100: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          7'b???1000: begin
+            hdr = 'h40;
+            gnt = 'h40;
+          end
+          7'b??10000: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          7'b?100000: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          7'b1000000: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          default: hdr = 'hX;
+        endcase
+      end else if(hdr[4]) begin
+        casez({req[3:0], req[6:4]})
+          7'b0000000: begin
+            hdr = 'h10;
+            gnt = 'h0;
+          end
+          7'b0000001: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          7'b?????11: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          7'b????101: begin 
+            hdr = 'h40;
+            gnt = 'h40;
+          end
+          7'b???1001: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          7'b??10001: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          7'b?100001: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          7'b1000001: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          7'b?????10: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          7'b????100: begin
+            hdr = 'h40;
+            gnt = 'h40;
+          end
+          7'b???1000: begin
+            hdr = 'h80;
+            gnt = 'h80;
+          end
+          7'b??10000: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          7'b?100000: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          7'b1000000: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          default: hdr = 'hX;
+        endcase
+      end else if(hdr[5]) begin
+        casez({req[4:0], req[6:5]})
+          7'b0000000: begin
+            hdr = 'h20;
+            gnt = 'h0;
+          end
+          7'b0000001: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          7'b?????11: begin
+            hdr = 'h40;
+            gnt = 'h40;
+          end
+          7'b????101: begin 
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          7'b???1001: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          7'b??10001: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          7'b?100001: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          7'b1000001: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          7'b?????10: begin
+            hdr = 'h40;
+            gnt = 'h40;
+          end
+          7'b????100: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          7'b???1000: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          7'b??10000: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          7'b?100000: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          7'b1000000: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          default: hdr = 'hX;
+        endcase
+      end else if(hdr[6]) begin
+        casez({req[5:0], req[6]})
+          7'b0000000: begin
+            hdr = 'h40;
+            gnt = 'h0;
+          end
+          7'b0000001: begin
+            hdr = 'h40;
+            gnt = 'h40;
+          end
+          7'b?????11: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          7'b????101: begin 
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          7'b???1001: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          7'b??10001: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          7'b?100001: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          7'b1000001: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          7'b?????10: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          7'b????100: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          7'b???1000: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          7'b??10000: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          7'b?100000: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          7'b1000000: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          default: hdr = 'hX;
+        endcase
+      end
     end
   end
-end
-
+  /*
+  //implementation tbd
+  always@(posedge clk) begin
+    if(!rstn) begin
+      gnt <= 'h0;
+      hdr <= 'h1;
+    end else begin
+      if(hdr[0]) begin
+        casez(req)
+          7'b0000000: begin
+            hdr <= hdr;
+            gnt <= 'h0;
+          end
+          7'b0000001: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          7'b?????11: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          7'b????101: begin 
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          7'b???1001: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          7'b??10001: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          7'b?100001: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          7'b1000001: begin
+            hdr <= 'h40;
+            gnt <= 'h40;
+          end
+          7'b?????10: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          7'b????100: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          7'b???1000: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          7'b??10000: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          7'b?100000: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          7'b1000000: begin
+            hdr <= 'h40;
+            gnt <= 'h40;
+          end
+          default: hdr <= 'hX;
+        endcase
+      end else if(hdr[1]) begin
+        casez({req[0], req[6:1]})
+          7'b0000000: begin
+            hdr <= hdr;
+            gnt <= 'h0;
+          end
+          7'b0000001: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          7'b?????11: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          7'b????101: begin 
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          7'b???1001: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          7'b??10001: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          7'b?100001: begin
+            hdr <= 'h40;
+            gnt <= 'h40;
+          end
+          7'b1000001: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          7'b?????10: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          7'b????100: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          7'b???1000: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          7'b??10000: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          7'b?100000: begin
+            hdr <= 'h40;
+            gnt <= 'h40;
+          end
+          7'b1000000: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          default: hdr <= 'hX;
+        endcase
+      end else if(hdr[2]) begin
+        casez({req[1:0], req[6:2]})
+          7'b0000000: begin
+            hdr <= hdr;
+            gnt <= 'h0;
+          end
+          7'b0000001: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          7'b?????11: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          7'b????101: begin 
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          7'b???1001: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          7'b??10001: begin
+            hdr <= 'h40;
+            gnt <= 'h40;
+          end
+          7'b?100001: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          7'b1000001: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          7'b?????10: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          7'b????100: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          7'b???1000: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          7'b??10000: begin
+            hdr <= 'h40;
+            gnt <= 'h40;
+          end
+          7'b?100000: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          7'b1000000: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          default: hdr <= 'hX;
+        endcase
+      end else if(hdr[3]) begin
+        casez({req[2:0], req[6:3]})
+          7'b0000000: begin
+            hdr <= hdr;
+            gnt <= 'h0;
+          end
+          7'b0000001: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          7'b?????11: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          7'b????101: begin 
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          7'b???1001: begin
+            hdr <= 'h40;
+            gnt <= 'h40;
+          end
+          7'b??10001: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          7'b?100001: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          7'b1000001: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          7'b?????10: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          7'b????100: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          7'b???1000: begin
+            hdr <= 'h40;
+            gnt <= 'h40;
+          end
+          7'b??10000: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          7'b?100000: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          7'b1000000: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          default: hdr <= 'hX;
+        endcase
+      end else if(hdr[4]) begin
+        casez({req[3:0], req[6:4]})
+          7'b0000000: begin
+            hdr <= hdr;
+            gnt <= 'h0;
+          end
+          7'b0000001: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          7'b?????11: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          7'b????101: begin 
+            hdr <= 'h40;
+            gnt <= 'h40;
+          end
+          7'b???1001: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          7'b??10001: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          7'b?100001: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          7'b1000001: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          7'b?????10: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          7'b????100: begin
+            hdr <= 'h40;
+            gnt <= 'h40;
+          end
+          7'b???1000: begin
+            hdr <= 'h80;
+            gnt <= 'h80;
+          end
+          7'b??10000: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          7'b?100000: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          7'b1000000: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          default: hdr <= 'hX;
+        endcase
+      end else if(hdr[5]) begin
+        casez({req[4:0], req[6:5]})
+          7'b0000000: begin
+            hdr <= hdr;
+            gnt <= 'h0;
+          end
+          7'b0000001: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          7'b?????11: begin
+            hdr <= 'h40;
+            gnt <= 'h40;
+          end
+          7'b????101: begin 
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          7'b???1001: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          7'b??10001: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          7'b?100001: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          7'b1000001: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          7'b?????10: begin
+            hdr <= 'h40;
+            gnt <= 'h40;
+          end
+          7'b????100: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          7'b???1000: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          7'b??10000: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          7'b?100000: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          7'b1000000: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          default: hdr <= 'hX;
+        endcase
+      end else if(hdr[6]) begin
+        casez({req[5:0], req[6]})
+          7'b0000000: begin
+            hdr <= hdr;
+            gnt <= 'h0;
+          end
+          7'b0000001: begin
+            hdr <= 'h40;
+            gnt <= 'h40;
+          end
+          7'b?????11: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          7'b????101: begin 
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          7'b???1001: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          7'b??10001: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          7'b?100001: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          7'b1000001: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          7'b?????10: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          7'b????100: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          7'b???1000: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          7'b??10000: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          7'b?100000: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          7'b1000000: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          default: hdr <= 'hX;
+        endcase
+      end
+    end
+  end
+  */
 endmodule
 
 module ip_6_rra#(
@@ -933,133 +1646,661 @@ module ip_6_rra#(
   output logic [NO_OF_REQ-1:0] gnt
 );
 
-logic [NO_OF_REQ-1:0] hdr;
-typedef enum {
-  IDLE,
-  GNT0,
-  GNT1,
-  GNT2,
-  GNT3,
-  GNT4,
-  GNT5
-} rra_state_t;
-rra_state_t st;
+  logic [NO_OF_REQ-1:0] hdr;
+  typedef enum {
+    IDLE,
+    GNT0,
+    GNT1,
+    GNT2,
+    GNT3,
+    GNT4,
+    GNT5
+  } rra_state_t;
+  rra_state_t st;
 
-//implementation tbd
-always@(posedge clk) begin
-  if(!rstn) begin
-    gnt <= 'h0;
-    hdr <= 'h1;
-  end else begin
-    if(req == 'h0) begin
-      gnt <= 'h0;
-      hdr <= hdr;
-    end else if((req[0]) && (hdr[0])) begin
-      gnt <= 'h1;
-      casez(req)
-        6'b000000: hdr <= hdr;
-        6'b000001: hdr <= 'h1;
-        6'b????11: hdr <= 'h2;
-        6'b???101: hdr <= 'h4;
-        6'b??1001: hdr <= 'h8;
-        6'b?10001: hdr <= 'h10;
-        6'b100001: hdr <= 'h20;
-        6'b????10: hdr <= 'h2;
-        6'b???100: hdr <= 'h4;
-        6'b??1000: hdr <= 'h8;
-        6'b?10000: hdr <= 'h10;
-        6'b100000: hdr <= 'h20;
-        default: hdr <= 'hX;
-      endcase
-    end else if((req[1]) && (hdr[1])) begin
-      gnt <= 'h2;
-      casez({req[0], req[5:1]})
-        6'b000000: hdr <= hdr;
-        6'b000001: hdr <= 'h1;
-        6'b????11: hdr <= 'h2;
-        6'b???101: hdr <= 'h4;
-        6'b??1001: hdr <= 'h8;
-        6'b?10001: hdr <= 'h10;
-        6'b100001: hdr <= 'h20;
-        6'b????10: hdr <= 'h2;
-        6'b???100: hdr <= 'h4;
-        6'b??1000: hdr <= 'h8;
-        6'b?10000: hdr <= 'h10;
-        6'b100000: hdr <= 'h20;
-        default: hdr <= 'hX;
-      endcase
-    end else if((req[2]) && (hdr[2])) begin
-      gnt <= 'h4;
-      casez({req[1:0], req[5:2]})
-        6'b000000: hdr <= hdr;
-        6'b000001: hdr <= 'h1;
-        6'b????11: hdr <= 'h2;
-        6'b???101: hdr <= 'h4;
-        6'b??1001: hdr <= 'h8;
-        6'b?10001: hdr <= 'h10;
-        6'b100001: hdr <= 'h20;
-        6'b????10: hdr <= 'h2;
-        6'b???100: hdr <= 'h4;
-        6'b??1000: hdr <= 'h8;
-        6'b?10000: hdr <= 'h10;
-        6'b100000: hdr <= 'h20;
-        default: hdr <= 'hX;
-      endcase
-    end else if((req[3]) && (hdr[3])) begin
-      gnt <= 'h8;
-      casez({req[2:0], req[5:3]})
-        6'b000000: hdr <= hdr;
-        6'b000001: hdr <= 'h1;
-        6'b????11: hdr <= 'h2;
-        6'b???101: hdr <= 'h4;
-        6'b??1001: hdr <= 'h8;
-        6'b?10001: hdr <= 'h10;
-        6'b100001: hdr <= 'h20;
-        6'b????10: hdr <= 'h2;
-        6'b???100: hdr <= 'h4;
-        6'b??1000: hdr <= 'h8;
-        6'b?10000: hdr <= 'h10;
-        6'b100000: hdr <= 'h20;
-        default: hdr <= 'hX;
-      endcase
-    end else if((req[4]) && (hdr[4])) begin
-      gnt <= 'h10;
-      casez({req[3:0], req[5:4]})
-        6'b000000: hdr <= hdr;
-        6'b000001: hdr <= 'h1;
-        6'b????11: hdr <= 'h2;
-        6'b???101: hdr <= 'h4;
-        6'b??1001: hdr <= 'h8;
-        6'b?10001: hdr <= 'h10;
-        6'b100001: hdr <= 'h20;
-        6'b????10: hdr <= 'h2;
-        6'b???100: hdr <= 'h4;
-        6'b??1000: hdr <= 'h8;
-        6'b?10000: hdr <= 'h10;
-        6'b100000: hdr <= 'h20;
-        default: hdr <= 'hX;
-      endcase
-    end else if((req[5]) && (hdr[5])) begin
-      gnt <= 'h20;
-      casez({req[4:0], req[5]})
-        6'b000000: hdr <= hdr;
-        6'b000001: hdr <= 'h1;
-        6'b????11: hdr <= 'h2;
-        6'b???101: hdr <= 'h4;
-        6'b??1001: hdr <= 'h8;
-        6'b?10001: hdr <= 'h10;
-        6'b100001: hdr <= 'h20;
-        6'b????10: hdr <= 'h2;
-        6'b???100: hdr <= 'h4;
-        6'b??1000: hdr <= 'h8;
-        6'b?10000: hdr <= 'h10;
-        6'b100000: hdr <= 'h20;
-        default: hdr <= 'hX;
-      endcase
+  always@(rstn or req) begin
+    if(!rstn) begin
+      gnt = 'h0;
+      hdr = 'h1;
+    end else begin
+      if(hdr[0]) begin
+        casez(req)
+          6'b000000: begin
+            hdr = 'h1;
+            gnt = 'h0;
+          end
+          6'b000001: begin 
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          6'b????11: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          6'b???101: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          6'b??1001: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          6'b?10001: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          6'b100001: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          6'b????10: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          6'b???100: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          6'b??1000: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          6'b?10000: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          6'b100000: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          default: hdr = 'hX;
+        endcase
+      end else if(hdr[1]) begin
+        casez({req[0], req[5:1]})
+          6'b000000: begin
+            hdr = 'h2;
+            gnt = 'h0;
+          end
+          6'b000001: begin 
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          6'b????11: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          6'b???101: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          6'b??1001: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          6'b?10001: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          6'b100001: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          6'b????10: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          6'b???100: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          6'b??1000: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          6'b?10000: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          6'b100000: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          default: hdr = 'hX;
+        endcase
+      end else if(hdr[2]) begin
+        casez({req[1:0], req[5:2]})
+          6'b000000: begin
+            hdr = 'h4;
+            gnt = 'h0;
+          end
+          6'b000001: begin 
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          6'b????11: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          6'b???101: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          6'b??1001: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          6'b?10001: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          6'b100001: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          6'b????10: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          6'b???100: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          6'b??1000: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          6'b?10000: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          6'b100000: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          default: hdr = 'hX;
+        endcase
+      end else if(hdr[3]) begin
+        casez({req[2:0], req[5:3]})
+          6'b000000: begin
+            hdr = 'h8;
+            gnt = 'h0;
+          end
+          6'b000001: begin 
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          6'b????11: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          6'b???101: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          6'b??1001: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          6'b?10001: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          6'b100001: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          6'b????10: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          6'b???100: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          6'b??1000: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          6'b?10000: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          6'b100000: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          default: hdr = 'hX;
+        endcase
+      end else if(hdr[4]) begin
+        casez({req[3:0], req[5:4]})
+          6'b000000: begin
+            hdr = 'h10;
+            gnt = 'h0;
+          end
+          6'b000001: begin 
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          6'b????11: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          6'b???101: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          6'b??1001: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          6'b?10001: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          6'b100001: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          6'b????10: begin
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          6'b???100: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          6'b??1000: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          6'b?10000: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          6'b100000: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          default: hdr = 'hX;
+        endcase
+      end else if(hdr[5]) begin
+        casez({req[4:0], req[5]})
+          6'b000000: begin
+            hdr = 'h20;
+            gnt = 'h0;
+          end
+          6'b000001: begin 
+            hdr = 'h20;
+            gnt = 'h20;
+          end
+          6'b????11: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          6'b???101: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          6'b??1001: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          6'b?10001: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          6'b100001: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          6'b????10: begin
+            hdr = 'h1;
+            gnt = 'h1;
+          end
+          6'b???100: begin
+            hdr = 'h2;
+            gnt = 'h2;
+          end
+          6'b??1000: begin
+            hdr = 'h4;
+            gnt = 'h4;
+          end
+          6'b?10000: begin
+            hdr = 'h8;
+            gnt = 'h8;
+          end
+          6'b100000: begin
+            hdr = 'h10;
+            gnt = 'h10;
+          end
+          default: hdr = 'hX;
+        endcase
+      end
     end
   end
-end
-
+  /*
+  //implementation tbd
+  always@(posedge clk) begin
+    if(!rstn) begin
+      gnt <= 'h0;
+      hdr <= 'h1;
+    end else begin
+      if(hdr[0]) begin
+        casez(req)
+          6'b000000: begin
+            hdr <= hdr;
+            gnt <= 'h0;
+          end
+          6'b000001: begin 
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          6'b????11: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          6'b???101: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          6'b??1001: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          6'b?10001: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          6'b100001: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          6'b????10: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          6'b???100: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          6'b??1000: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          6'b?10000: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          6'b100000: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          default: hdr <= 'hX;
+        endcase
+      end else if(hdr[1]) begin
+        casez({req[0], req[5:1]})
+          6'b000000: begin
+            hdr <= hdr;
+            gnt <= 'h0;
+          end
+          6'b000001: begin 
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          6'b????11: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          6'b???101: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          6'b??1001: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          6'b?10001: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          6'b100001: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          6'b????10: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          6'b???100: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          6'b??1000: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          6'b?10000: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          6'b100000: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          default: hdr <= 'hX;
+        endcase
+      end else if(hdr[2]) begin
+        casez({req[1:0], req[5:2]})
+          6'b000000: begin
+            hdr <= hdr;
+            gnt <= 'h0;
+          end
+          6'b000001: begin 
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          6'b????11: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          6'b???101: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          6'b??1001: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          6'b?10001: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          6'b100001: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          6'b????10: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          6'b???100: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          6'b??1000: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          6'b?10000: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          6'b100000: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          default: hdr <= 'hX;
+        endcase
+      end else if(hdr[3]) begin
+        casez({req[2:0], req[5:3]})
+          6'b000000: begin
+            hdr <= hdr;
+            gnt <= 'h0;
+          end
+          6'b000001: begin 
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          6'b????11: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          6'b???101: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          6'b??1001: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          6'b?10001: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          6'b100001: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          6'b????10: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          6'b???100: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          6'b??1000: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          6'b?10000: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          6'b100000: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          default: hdr <= 'hX;
+        endcase
+      end else if(hdr[4]) begin
+        casez({req[3:0], req[5:4]})
+          6'b000000: begin
+            hdr <= hdr;
+            gnt <= 'h0;
+          end
+          6'b000001: begin 
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          6'b????11: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          6'b???101: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          6'b??1001: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          6'b?10001: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          6'b100001: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          6'b????10: begin
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          6'b???100: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          6'b??1000: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          6'b?10000: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          6'b100000: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          default: hdr <= 'hX;
+        endcase
+      end else if(hdr[5]) begin
+        casez({req[4:0], req[5]})
+          6'b000000: begin
+            hdr <= hdr;
+            gnt <= 'h0;
+          end
+          6'b000001: begin 
+            hdr <= 'h20;
+            gnt <= 'h20;
+          end
+          6'b????11: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          6'b???101: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          6'b??1001: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          6'b?10001: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          6'b100001: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          6'b????10: begin
+            hdr <= 'h1;
+            gnt <= 'h1;
+          end
+          6'b???100: begin
+            hdr <= 'h2;
+            gnt <= 'h2;
+          end
+          6'b??1000: begin
+            hdr <= 'h4;
+            gnt <= 'h4;
+          end
+          6'b?10000: begin
+            hdr <= 'h8;
+            gnt <= 'h8;
+          end
+          6'b100000: begin
+            hdr <= 'h10;
+            gnt <= 'h10;
+          end
+          default: hdr <= 'hX;
+        endcase
+      end
+    end
+  end
+  */
 endmodule
 
 module host_tx_path#(
@@ -1145,6 +2386,7 @@ module host_tx_path#(
   } slot_sel_t;
   slot_sel_t slot_sel;
   slot_sel_t slot_sel_d;
+  slot_sel_t slot_sel_d_d;
   logic [7:0] holding_rdptr;
   logic [7:0] holding_wrptr;
   typedef struct {
@@ -1220,32 +2462,70 @@ module host_tx_path#(
 
   ASSERT_ONEHOT_SLOT_SEL:assert property (@(posedge host_tx_dl_if.clk) disable iff (!host_tx_dl_if.rstn) $onehot(slot_sel));
 
-  assign h_val[0] = (h2d_req_occ > 0) && (h2d_rsp_occ > 0);
-  assign h_val[1] = (h2d_data_occ > 0) && (h2d_rsp_occ > 1);
-  assign h_val[2] = (h2d_req_occ > 0) && (h2d_data_occ > 0);
-  assign h_val[3] = (h2d_data_occ > 3);
-  assign h_val[4] = (m2s_rwd_occ > 0);
-  assign h_val[5] = (m2s_req_occ > 0);
-  assign g_val[1] = (h2d_rsp_occ > 3);
-  assign g_val[2] = (h2d_req_occ > 0) && (h2d_data_occ > 0) && (h2d_rsp_occ > 0);
-  assign g_val[3] = (h2d_data_occ > 3) && (h2d_rsp_occ > 0);
-  assign g_val[4] = (m2s_req_occ > 0) && (h2d_data_occ > 0);
-  assign g_val[5] = (m2s_rwd_occ > 0) && (h2d_rsp_occ > 0);
+  assign h_val[0] = (h2d_req_occ  > 0) && (h2d_rsp_occ  > 0)                      ;
+  assign h_val[1] = (h2d_data_occ > 0) && (h2d_rsp_occ  > 1)                      ;
+  assign h_val[2] = (h2d_req_occ  > 0) && (h2d_data_occ > 0)                      ;
+  assign h_val[3] = (h2d_data_occ > 3)                                            ;
+  assign h_val[4] = (m2s_rwd_occ  > 0)                                            ;
+  assign h_val[5] = (m2s_req_occ  > 0)                                            ;
+  assign g_val[1] = (h2d_rsp_occ  > 3)                                            ;
+  assign g_val[2] = (h2d_req_occ  > 0) && (h2d_data_occ > 0) && (h2d_rsp_occ > 0) ;
+  assign g_val[3] = (h2d_data_occ > 3) && (h2d_rsp_occ  > 0)                      ;
+  assign g_val[4] = (m2s_req_occ  > 0) && (h2d_data_occ > 0)                      ;
+  assign g_val[5] = (m2s_rwd_occ  > 0) && (h2d_rsp_occ  > 0)                      ;
   
-  assign h2d_req_rval   = (h_gnt[0] || h_gnt[2] || g_gnt[2])? 'h1: 'h0;
-  assign h2d_rsp_rval   = (h_gnt[0] || g_gnt[2] || g_gnt[3] || g_gnt[5])? 'h1: 'h0;
-  assign h2d_rsp_drval  = (h_gnt[1])? 'h1: 'h0;
-  assign h2d_data_rval  = (h_gnt[1] || h_gnt[2] || g_gnt[2] || g_gnt[4])? 'h1: 'h0;
-  assign h2d_data_drval = (h_gnt[3])? 'h1: 'h0;
-  assign m2s_req_rval   = (h_gnt[5] || g_gnt[4])? 'h1: 'h0;
-  assign m2s_rwd_rval   = (h_gnt[4] || g_gnt[5])? 'h1: 'h0;
-  assign h2d_req_qrval  = (g_gnt[1])? 'h1: 'h0;
-  assign h2d_data_qrval = (g_gnt[3])? 'h1: 'h0;
-
-  assign h_req = ((slot_sel>1) || (data_slot[0] == 'hf)) ? 'h0: h_val;
+  assign h_req = ((slot_sel>1)  || (data_slot[0] == 'hf)) ? 'h0: h_val;
   assign g_req = ((slot_sel[0]) || ((data_slot[0] == 'hf) || (data_slot[0] == 'he)))? 'h0: g_val;
 
   assign insert_ack = (((ack_cnt_tbs - ack_cnt_snt) > 16) || init_done)? 1'h1: 1'h0;
+
+  assign h2d_req_drval   = 'h0;
+  assign h2d_rsp_qrval   = 'h0;
+  assign m2s_req_drval   = 'h0;
+  assign m2s_req_qrval   = 'h0;
+  assign m2s_rwd_drval   = 'h0;
+  assign m2s_rwd_qrval   = 'h0;
+  assign h2d_req_rval    = (h_gnt[0] || h_gnt[2] || g_gnt[2])?             'h1: 'h0;
+  assign h2d_rsp_rval    = (h_gnt[0] || g_gnt[2] || g_gnt[3] || g_gnt[5])? 'h1: 'h0;
+  assign h2d_rsp_drval   = (h_gnt[1])?                                     'h1: 'h0;
+  assign h2d_data_rval   = (h_gnt[1] || h_gnt[2] || g_gnt[2] || g_gnt[4])? 'h1: 'h0;
+  assign h2d_data_drval  = (h_gnt[3])?                                     'h1: 'h0;
+  assign m2s_req_rval    = (h_gnt[5] || g_gnt[4])?                         'h1: 'h0;
+  assign m2s_rwd_rval    = (h_gnt[4] || g_gnt[5])?                         'h1: 'h0;
+  assign h2d_req_qrval   = (g_gnt[1])?                                     'h1: 'h0;
+  assign h2d_data_qrval  = (g_gnt[3])?                                     'h1: 'h0;
+  
+/*
+  always@(posedge host_tx_dl_if.clk) begin
+    if(!host_tx_dl_if.rstn) begin
+      h2d_req_rval    <= 'h0;
+      h2d_req_drval   <= 'h0;
+      h2d_req_qrval   <= 'h0;
+      h2d_rsp_rval    <= 'h0;
+      h2d_rsp_drval   <= 'h0;
+      h2d_rsp_qrval   <= 'h0;
+      h2d_data_rval   <= 'h0;
+      h2d_data_drval  <= 'h0;
+      h2d_data_qrval  <= 'h0;
+      m2s_req_rval    <= 'h0;
+      m2s_req_drval   <= 'h0;
+      m2s_req_qrval   <= 'h0;
+      m2s_rwd_rval    <= 'h0;
+      m2s_rwd_drval   <= 'h0;
+      m2s_rwd_qrval   <= 'h0;
+    end else begin
+      h2d_req_rval    <= (h_gnt[0] || h_gnt[2] || g_gnt[2])?             'h1: 'h0;
+      h2d_rsp_rval    <= (h_gnt[0] || g_gnt[2] || g_gnt[3] || g_gnt[5])? 'h1: 'h0;
+      h2d_rsp_drval   <= (h_gnt[1])?                                     'h1: 'h0;
+      h2d_data_rval   <= (h_gnt[1] || h_gnt[2] || g_gnt[2] || g_gnt[4])? 'h1: 'h0;
+      h2d_data_drval  <= (h_gnt[3])?                                     'h1: 'h0;
+      m2s_req_rval    <= (h_gnt[5] || g_gnt[4])?                         'h1: 'h0;
+      m2s_rwd_rval    <= (h_gnt[4] || g_gnt[5])?                         'h1: 'h0;
+      h2d_req_qrval   <= (g_gnt[1])?                                     'h1: 'h0;
+      h2d_data_qrval  <= (g_gnt[3])?                                     'h1: 'h0;
+    end
+  end
+*/
 
   always_comb begin
     /*
@@ -1303,116 +2583,156 @@ module host_tx_path#(
       h2d_data_qrval, g_gnt[3]
     );
 */
-    d2h_req_outstanding_credits   = (d2h_req_occ_d  > d2h_req_occ ) ? (d2h_req_occ_d  - d2h_req_occ   ) : 'h0;
-    d2h_rsp_outstanding_credits   = (d2h_rsp_occ_d  > d2h_rsp_occ ) ? (d2h_rsp_occ_d  - d2h_rsp_occ   ) : 'h0;
-    d2h_data_outstanding_credits  = (d2h_data_occ_d > d2h_data_occ) ? (d2h_data_occ_d - d2h_data_occ  ) : 'h0;
-    s2m_ndr_outstanding_credits   = (s2m_ndr_occ_d  > s2m_ndr_occ ) ? (s2m_ndr_occ_d  - s2m_ndr_occ   ) : 'h0;
-    s2m_drs_outstanding_credits   = (s2m_drs_occ_d  > s2m_drs_occ ) ? (s2m_drs_occ_d  - s2m_drs_occ   ) : 'h0;
-    d2h_rsp_outstanding_credits_0   = (d2h_rsp_crdt_tbs[0].credit_to_be_sent > d2h_rsp_outstanding_credits)?
-                                      (d2h_rsp_crdt_tbs[0].credit_to_be_sent - d2h_rsp_outstanding_credits): 
-                                      (d2h_rsp_crdt_tbs[0].credit_to_be_sent < d2h_rsp_outstanding_credits)?
-                                      (d2h_rsp_outstanding_credits - d2h_rsp_crdt_tbs[0].credit_to_be_sent): 
-                                      (d2h_rsp_crdt_tbs[0].credit_to_be_sent);
-    d2h_rsp_outstanding_credits_1   = (d2h_rsp_crdt_tbs[1].credit_to_be_sent > d2h_rsp_outstanding_credits_0)?
-                                      (d2h_rsp_crdt_tbs[1].credit_to_be_sent - d2h_rsp_outstanding_credits_0): 
-                                      (d2h_rsp_crdt_tbs[1].credit_to_be_sent < d2h_rsp_outstanding_credits_0)?
-                                      (d2h_rsp_outstanding_credits_0 - d2h_rsp_crdt_tbs[1].credit_to_be_sent): 
-                                      (d2h_rsp_crdt_tbs[1].credit_to_be_sent);
-    d2h_rsp_outstanding_credits_2   = (d2h_rsp_crdt_tbs[2].credit_to_be_sent > d2h_rsp_outstanding_credits_1)?
-                                      (d2h_rsp_crdt_tbs[2].credit_to_be_sent - d2h_rsp_outstanding_credits_1): 
-                                      (d2h_rsp_crdt_tbs[2].credit_to_be_sent < d2h_rsp_outstanding_credits_1)?
-                                      (d2h_rsp_outstanding_credits_1 - d2h_rsp_crdt_tbs[2].credit_to_be_sent): 
-                                      (d2h_rsp_crdt_tbs[2].credit_to_be_sent);
-    d2h_rsp_outstanding_credits_3   = (d2h_rsp_crdt_tbs[3].credit_to_be_sent > d2h_rsp_outstanding_credits_2)?
-                                      (d2h_rsp_crdt_tbs[3].credit_to_be_sent - d2h_rsp_outstanding_credits_2): 
-                                      (d2h_rsp_crdt_tbs[3].credit_to_be_sent < d2h_rsp_outstanding_credits_2)?
-                                      (d2h_rsp_outstanding_credits_2 - d2h_rsp_crdt_tbs[3].credit_to_be_sent): 
-                                      (d2h_rsp_crdt_tbs[3].credit_to_be_sent);
-    d2h_req_outstanding_credits_0   = (d2h_req_crdt_tbs[0].credit_to_be_sent > d2h_req_outstanding_credits)? 
-                                      (d2h_req_crdt_tbs[0].credit_to_be_sent - d2h_req_outstanding_credits): 
-                                      (d2h_req_crdt_tbs[0].credit_to_be_sent < d2h_req_outstanding_credits)?
-                                      (d2h_req_outstanding_credits - d2h_req_crdt_tbs[0].credit_to_be_sent): 
-                                      (d2h_req_crdt_tbs[0].credit_to_be_sent);
-    d2h_req_outstanding_credits_1   = (d2h_req_crdt_tbs[1].credit_to_be_sent > d2h_req_outstanding_credits_0)?
-                                      (d2h_req_crdt_tbs[1].credit_to_be_sent - d2h_req_outstanding_credits_0): 
-                                      (d2h_req_crdt_tbs[1].credit_to_be_sent < d2h_req_outstanding_credits_0)?
-                                      (d2h_req_outstanding_credits_0 - d2h_req_crdt_tbs[1].credit_to_be_sent): 
-                                      (d2h_req_crdt_tbs[1].credit_to_be_sent);
-    d2h_req_outstanding_credits_2   = (d2h_req_crdt_tbs[2].credit_to_be_sent > d2h_req_outstanding_credits_1)?
-                                      (d2h_req_crdt_tbs[2].credit_to_be_sent - d2h_req_outstanding_credits_1): 
-                                      (d2h_req_crdt_tbs[2].credit_to_be_sent < d2h_req_outstanding_credits_1)?
-                                      (d2h_req_outstanding_credits_1 - d2h_req_crdt_tbs[2].credit_to_be_sent): 
-                                      (d2h_req_crdt_tbs[2].credit_to_be_sent);
-    d2h_req_outstanding_credits_3   = (d2h_req_crdt_tbs[3].credit_to_be_sent > d2h_req_outstanding_credits_2)?
-                                      (d2h_req_crdt_tbs[3].credit_to_be_sent - d2h_req_outstanding_credits_2): 
-                                      (d2h_req_crdt_tbs[3].credit_to_be_sent < d2h_req_outstanding_credits_2)?
-                                      (d2h_req_outstanding_credits_2 - d2h_req_crdt_tbs[3].credit_to_be_sent): 
-                                      (d2h_req_crdt_tbs[3].credit_to_be_sent);
-    d2h_data_outstanding_credits_0  = (d2h_data_crdt_tbs[0].credit_to_be_sent > d2h_data_outstanding_credits)?
-                                      (d2h_data_crdt_tbs[0].credit_to_be_sent - d2h_data_outstanding_credits): 
-                                      (d2h_data_crdt_tbs[0].credit_to_be_sent < d2h_data_outstanding_credits)?
-                                      (d2h_data_outstanding_credits - d2h_data_crdt_tbs[0].credit_to_be_sent): 
-                                      (d2h_data_crdt_tbs[0].credit_to_be_sent);
-    d2h_data_outstanding_credits_1  = (d2h_data_crdt_tbs[1].credit_to_be_sent > d2h_data_outstanding_credits_0)?
-                                      (d2h_data_crdt_tbs[1].credit_to_be_sent - d2h_data_outstanding_credits_0): 
-                                      (d2h_data_crdt_tbs[1].credit_to_be_sent < d2h_data_outstanding_credits_0)?
-                                      (d2h_data_outstanding_credits_0 - d2h_data_crdt_tbs[1].credit_to_be_sent): 
-                                      (d2h_data_crdt_tbs[1].credit_to_be_sent);
-    d2h_data_outstanding_credits_2  = (d2h_data_crdt_tbs[2].credit_to_be_sent > d2h_data_outstanding_credits_1)?
-                                      (d2h_data_crdt_tbs[2].credit_to_be_sent - d2h_data_outstanding_credits_1): 
-                                      (d2h_data_crdt_tbs[2].credit_to_be_sent < d2h_data_outstanding_credits_1)?
-                                      (d2h_data_outstanding_credits_1 - d2h_data_crdt_tbs[2].credit_to_be_sent): 
-                                      (d2h_data_crdt_tbs[2].credit_to_be_sent);
-    d2h_data_outstanding_credits_3  = (d2h_data_crdt_tbs[3].credit_to_be_sent > d2h_data_outstanding_credits_2)?
-                                      (d2h_data_crdt_tbs[3].credit_to_be_sent - d2h_data_outstanding_credits_2): 
-                                      (d2h_data_crdt_tbs[3].credit_to_be_sent < d2h_data_outstanding_credits_2)?
-                                      (d2h_data_outstanding_credits_2 - d2h_data_crdt_tbs[3].credit_to_be_sent): 
-                                      (d2h_data_crdt_tbs[3].credit_to_be_sent);
-    s2m_ndr_outstanding_credits_0   = (s2m_ndr_crdt_tbs[0].credit_to_be_sent > s2m_ndr_outstanding_credits)?
-                                      (s2m_ndr_crdt_tbs[0].credit_to_be_sent - s2m_ndr_outstanding_credits): 
-                                      (s2m_ndr_crdt_tbs[0].credit_to_be_sent < s2m_ndr_outstanding_credits)?
-                                      (s2m_ndr_outstanding_credits - s2m_ndr_crdt_tbs[0].credit_to_be_sent): 
-                                      (s2m_ndr_crdt_tbs[0].credit_to_be_sent);
-    s2m_ndr_outstanding_credits_1   = (s2m_ndr_crdt_tbs[1].credit_to_be_sent > s2m_ndr_outstanding_credits_0)?
-                                      (s2m_ndr_crdt_tbs[1].credit_to_be_sent - s2m_ndr_outstanding_credits_0): 
-                                      (s2m_ndr_crdt_tbs[1].credit_to_be_sent < s2m_ndr_outstanding_credits_0)?
-                                      (s2m_ndr_outstanding_credits_0 - s2m_ndr_crdt_tbs[1].credit_to_be_sent): 
-                                      (s2m_ndr_crdt_tbs[1].credit_to_be_sent);
-    s2m_ndr_outstanding_credits_2   = (s2m_ndr_crdt_tbs[2].credit_to_be_sent > s2m_ndr_outstanding_credits_1)?
-                                      (s2m_ndr_crdt_tbs[2].credit_to_be_sent - s2m_ndr_outstanding_credits_1): 
-                                      (s2m_ndr_crdt_tbs[2].credit_to_be_sent < s2m_ndr_outstanding_credits_1)?
-                                      (s2m_ndr_outstanding_credits_1 - s2m_ndr_crdt_tbs[2].credit_to_be_sent): 
-                                      (s2m_ndr_crdt_tbs[2].credit_to_be_sent);
-    s2m_ndr_outstanding_credits_3   = (s2m_ndr_crdt_tbs[3].credit_to_be_sent > s2m_ndr_outstanding_credits_2)?
-                                      (s2m_ndr_crdt_tbs[3].credit_to_be_sent - s2m_ndr_outstanding_credits_2): 
-                                      (s2m_ndr_crdt_tbs[3].credit_to_be_sent < s2m_ndr_outstanding_credits_2)?
-                                      (s2m_ndr_outstanding_credits_2 - s2m_ndr_crdt_tbs[3].credit_to_be_sent): 
-                                      (s2m_ndr_crdt_tbs[3].credit_to_be_sent);
-    s2m_drs_outstanding_credits_0   = (s2m_drs_crdt_tbs[0].credit_to_be_sent > s2m_drs_outstanding_credits)?
-                                      (s2m_drs_crdt_tbs[0].credit_to_be_sent - s2m_drs_outstanding_credits): 
-                                      (s2m_drs_crdt_tbs[0].credit_to_be_sent < s2m_drs_outstanding_credits)?
-                                      (s2m_drs_outstanding_credits - s2m_drs_crdt_tbs[0].credit_to_be_sent): 
-                                      (s2m_drs_crdt_tbs[0].credit_to_be_sent);
-    s2m_drs_outstanding_credits_1   = (s2m_drs_crdt_tbs[1].credit_to_be_sent > s2m_drs_outstanding_credits_0)?
-                                      (s2m_drs_crdt_tbs[1].credit_to_be_sent - s2m_drs_outstanding_credits_0): 
-                                      (s2m_drs_crdt_tbs[1].credit_to_be_sent < s2m_drs_outstanding_credits_0)?
-                                      (s2m_drs_outstanding_credits_0 - s2m_drs_crdt_tbs[1].credit_to_be_sent): 
-                                      (s2m_drs_crdt_tbs[1].credit_to_be_sent);
-    s2m_drs_outstanding_credits_2   = (s2m_drs_crdt_tbs[2].credit_to_be_sent > s2m_drs_outstanding_credits_1)?
-                                      (s2m_drs_crdt_tbs[2].credit_to_be_sent - s2m_drs_outstanding_credits_1): 
-                                      (s2m_drs_crdt_tbs[2].credit_to_be_sent < s2m_drs_outstanding_credits_1)?
-                                      (s2m_drs_outstanding_credits_1 - s2m_drs_crdt_tbs[2].credit_to_be_sent): 
-                                      (s2m_drs_crdt_tbs[2].credit_to_be_sent);
-    s2m_drs_outstanding_credits_3   = (s2m_drs_crdt_tbs[3].credit_to_be_sent > s2m_drs_outstanding_credits_2)?
-                                      (s2m_drs_crdt_tbs[3].credit_to_be_sent - s2m_drs_outstanding_credits_2): 
-                                      (s2m_drs_crdt_tbs[3].credit_to_be_sent < s2m_drs_outstanding_credits_2)?
-                                      (s2m_drs_outstanding_credits_2 - s2m_drs_crdt_tbs[3].credit_to_be_sent): 
-                                      (s2m_drs_crdt_tbs[3].credit_to_be_sent);
-    d2h_req_consumed_credits      = (d2h_req_occ_d  < d2h_req_occ ) ? (d2h_req_occ    - d2h_req_occ_d ) : 'h0;
-    d2h_rsp_consumed_credits      = (d2h_rsp_occ_d  < d2h_rsp_occ ) ? (d2h_rsp_occ    - d2h_rsp_occ_d ) : 'h0;
-    d2h_data_consumed_credits     = (d2h_data_occ_d < d2h_data_occ) ? (d2h_data_occ   - d2h_data_occ_d) : 'h0;
-    s2m_ndr_consumed_credits      = (s2m_ndr_occ_d  < s2m_ndr_occ ) ? (s2m_ndr_occ    - s2m_ndr_occ_d ) : 'h0;
-    s2m_drs_consumed_credits      = (s2m_drs_occ_d  < s2m_drs_occ ) ? (s2m_drs_occ    - s2m_drs_occ_d ) : 'h0;
+    d2h_req_outstanding_credits     = (d2h_req_occ_d  > d2h_req_occ ) ? (d2h_req_occ_d  - d2h_req_occ   ) : 'h0;
+    d2h_rsp_outstanding_credits     = (d2h_rsp_occ_d  > d2h_rsp_occ ) ? (d2h_rsp_occ_d  - d2h_rsp_occ   ) : 'h0;
+    d2h_data_outstanding_credits    = (d2h_data_occ_d > d2h_data_occ) ? (d2h_data_occ_d - d2h_data_occ  ) : 'h0;
+    s2m_ndr_outstanding_credits     = (s2m_ndr_occ_d  > s2m_ndr_occ ) ? (s2m_ndr_occ_d  - s2m_ndr_occ   ) : 'h0;
+    s2m_drs_outstanding_credits     = (s2m_drs_occ_d  > s2m_drs_occ ) ? (s2m_drs_occ_d  - s2m_drs_occ   ) : 'h0;
+    d2h_rsp_outstanding_credits_0   = (d2h_rsp_outstanding_credits > 0)? (
+                                        (d2h_rsp_crdt_tbs[0].credit_to_be_sent > d2h_rsp_outstanding_credits)?
+                                        (d2h_rsp_crdt_tbs[0].credit_to_be_sent - d2h_rsp_outstanding_credits): 
+                                        (d2h_rsp_crdt_tbs[0].credit_to_be_sent < d2h_rsp_outstanding_credits)?
+                                        (d2h_rsp_outstanding_credits - d2h_rsp_crdt_tbs[0].credit_to_be_sent): 
+                                        (d2h_rsp_crdt_tbs[0].credit_to_be_sent)
+                                      ) : 'h0;
+    d2h_rsp_outstanding_credits_1   = (d2h_rsp_outstanding_credits_0 > 0)? (
+                                        (d2h_rsp_crdt_tbs[1].credit_to_be_sent > d2h_rsp_outstanding_credits_0)?
+                                        (d2h_rsp_crdt_tbs[1].credit_to_be_sent - d2h_rsp_outstanding_credits_0): 
+                                        (d2h_rsp_crdt_tbs[1].credit_to_be_sent < d2h_rsp_outstanding_credits_0)?
+                                        (d2h_rsp_outstanding_credits_0 - d2h_rsp_crdt_tbs[1].credit_to_be_sent): 
+                                        (d2h_rsp_crdt_tbs[1].credit_to_be_sent)
+                                      ) : 'h0;
+    d2h_rsp_outstanding_credits_2   = (d2h_rsp_outstanding_credits_1 > 0)? (
+                                        (d2h_rsp_crdt_tbs[2].credit_to_be_sent > d2h_rsp_outstanding_credits_1)?
+                                        (d2h_rsp_crdt_tbs[2].credit_to_be_sent - d2h_rsp_outstanding_credits_1): 
+                                        (d2h_rsp_crdt_tbs[2].credit_to_be_sent < d2h_rsp_outstanding_credits_1)?
+                                        (d2h_rsp_outstanding_credits_1 - d2h_rsp_crdt_tbs[2].credit_to_be_sent): 
+                                        (d2h_rsp_crdt_tbs[2].credit_to_be_sent)
+                                      ) : 'h0;
+    d2h_rsp_outstanding_credits_3   = (d2h_rsp_outstanding_credits_2 > 0)? (
+                                        (d2h_rsp_crdt_tbs[3].credit_to_be_sent > d2h_rsp_outstanding_credits_2)?
+                                        (d2h_rsp_crdt_tbs[3].credit_to_be_sent - d2h_rsp_outstanding_credits_2): 
+                                        (d2h_rsp_crdt_tbs[3].credit_to_be_sent < d2h_rsp_outstanding_credits_2)?
+                                        (d2h_rsp_outstanding_credits_2 - d2h_rsp_crdt_tbs[3].credit_to_be_sent): 
+                                        (d2h_rsp_crdt_tbs[3].credit_to_be_sent)
+                                      ) : 'h0;
+    d2h_req_outstanding_credits_0   = (d2h_req_outstanding_credits > 0)? (
+                                        (d2h_req_crdt_tbs[0].credit_to_be_sent > d2h_req_outstanding_credits)? 
+                                        (d2h_req_crdt_tbs[0].credit_to_be_sent - d2h_req_outstanding_credits): 
+                                        (d2h_req_crdt_tbs[0].credit_to_be_sent < d2h_req_outstanding_credits)?
+                                        (d2h_req_outstanding_credits - d2h_req_crdt_tbs[0].credit_to_be_sent): 
+                                        (d2h_req_crdt_tbs[0].credit_to_be_sent)
+                                      ) : 'h0;
+    d2h_req_outstanding_credits_1   = (d2h_req_outstanding_credits_0 > 0)? (
+                                        (d2h_req_crdt_tbs[1].credit_to_be_sent > d2h_req_outstanding_credits_0)?
+                                        (d2h_req_crdt_tbs[1].credit_to_be_sent - d2h_req_outstanding_credits_0): 
+                                        (d2h_req_crdt_tbs[1].credit_to_be_sent < d2h_req_outstanding_credits_0)?
+                                        (d2h_req_outstanding_credits_0 - d2h_req_crdt_tbs[1].credit_to_be_sent): 
+                                        (d2h_req_crdt_tbs[1].credit_to_be_sent)
+                                      ) : 'h0;
+    d2h_req_outstanding_credits_2   = (d2h_req_outstanding_credits_1 > 0)? (
+                                        (d2h_req_crdt_tbs[2].credit_to_be_sent > d2h_req_outstanding_credits_1)?
+                                        (d2h_req_crdt_tbs[2].credit_to_be_sent - d2h_req_outstanding_credits_1): 
+                                        (d2h_req_crdt_tbs[2].credit_to_be_sent < d2h_req_outstanding_credits_1)?
+                                        (d2h_req_outstanding_credits_1 - d2h_req_crdt_tbs[2].credit_to_be_sent): 
+                                        (d2h_req_crdt_tbs[2].credit_to_be_sent)
+                                      ) : 'h0;
+    d2h_req_outstanding_credits_3   = (d2h_req_outstanding_credits_2 > 0)? (
+                                        (d2h_req_crdt_tbs[3].credit_to_be_sent > d2h_req_outstanding_credits_2)?
+                                        (d2h_req_crdt_tbs[3].credit_to_be_sent - d2h_req_outstanding_credits_2): 
+                                        (d2h_req_crdt_tbs[3].credit_to_be_sent < d2h_req_outstanding_credits_2)?
+                                        (d2h_req_outstanding_credits_2 - d2h_req_crdt_tbs[3].credit_to_be_sent): 
+                                        (d2h_req_crdt_tbs[3].credit_to_be_sent)
+                                      ) : 'h0;
+    d2h_data_outstanding_credits_0  = (d2h_data_outstanding_credits > 0)? (
+                                        (d2h_data_crdt_tbs[0].credit_to_be_sent > d2h_data_outstanding_credits)?
+                                        (d2h_data_crdt_tbs[0].credit_to_be_sent - d2h_data_outstanding_credits): 
+                                        (d2h_data_crdt_tbs[0].credit_to_be_sent < d2h_data_outstanding_credits)?
+                                        (d2h_data_outstanding_credits - d2h_data_crdt_tbs[0].credit_to_be_sent): 
+                                        (d2h_data_crdt_tbs[0].credit_to_be_sent)
+                                      ) : 'h0;
+    d2h_data_outstanding_credits_1  = (d2h_data_outstanding_credits_0 > 0)? (
+                                        (d2h_data_crdt_tbs[1].credit_to_be_sent > d2h_data_outstanding_credits_0)?
+                                        (d2h_data_crdt_tbs[1].credit_to_be_sent - d2h_data_outstanding_credits_0): 
+                                        (d2h_data_crdt_tbs[1].credit_to_be_sent < d2h_data_outstanding_credits_0)?
+                                        (d2h_data_outstanding_credits_0 - d2h_data_crdt_tbs[1].credit_to_be_sent): 
+                                        (d2h_data_crdt_tbs[1].credit_to_be_sent)
+                                      ) : 'h0;
+    d2h_data_outstanding_credits_2  = (d2h_data_outstanding_credits_1 > 0)? (
+                                        (d2h_data_crdt_tbs[2].credit_to_be_sent > d2h_data_outstanding_credits_1)?
+                                        (d2h_data_crdt_tbs[2].credit_to_be_sent - d2h_data_outstanding_credits_1): 
+                                        (d2h_data_crdt_tbs[2].credit_to_be_sent < d2h_data_outstanding_credits_1)?
+                                        (d2h_data_outstanding_credits_1 - d2h_data_crdt_tbs[2].credit_to_be_sent): 
+                                        (d2h_data_crdt_tbs[2].credit_to_be_sent)
+                                      ) : 'h0;
+    d2h_data_outstanding_credits_3  = (d2h_data_outstanding_credits_2 > 0)? (
+                                        (d2h_data_crdt_tbs[3].credit_to_be_sent > d2h_data_outstanding_credits_2)?
+                                        (d2h_data_crdt_tbs[3].credit_to_be_sent - d2h_data_outstanding_credits_2): 
+                                        (d2h_data_crdt_tbs[3].credit_to_be_sent < d2h_data_outstanding_credits_2)?
+                                        (d2h_data_outstanding_credits_2 - d2h_data_crdt_tbs[3].credit_to_be_sent): 
+                                        (d2h_data_crdt_tbs[3].credit_to_be_sent)
+                                      ) : 'h0;
+    s2m_ndr_outstanding_credits_0   = (s2m_ndr_outstanding_credits > 0)? (
+                                        (s2m_ndr_crdt_tbs[0].credit_to_be_sent > s2m_ndr_outstanding_credits)?
+                                        (s2m_ndr_crdt_tbs[0].credit_to_be_sent - s2m_ndr_outstanding_credits): 
+                                        (s2m_ndr_crdt_tbs[0].credit_to_be_sent < s2m_ndr_outstanding_credits)?
+                                        (s2m_ndr_outstanding_credits - s2m_ndr_crdt_tbs[0].credit_to_be_sent): 
+                                        (s2m_ndr_crdt_tbs[0].credit_to_be_sent)
+                                      ) : 'h0;
+    s2m_ndr_outstanding_credits_1   = (s2m_ndr_outstanding_credits_0 > 0)? (
+                                        (s2m_ndr_crdt_tbs[1].credit_to_be_sent > s2m_ndr_outstanding_credits_0)?
+                                        (s2m_ndr_crdt_tbs[1].credit_to_be_sent - s2m_ndr_outstanding_credits_0): 
+                                        (s2m_ndr_crdt_tbs[1].credit_to_be_sent < s2m_ndr_outstanding_credits_0)?
+                                        (s2m_ndr_outstanding_credits_0 - s2m_ndr_crdt_tbs[1].credit_to_be_sent): 
+                                        (s2m_ndr_crdt_tbs[1].credit_to_be_sent)
+                                      ) : 'h0;
+    s2m_ndr_outstanding_credits_2   = (s2m_ndr_outstanding_credits_1 > 0)? (
+                                        (s2m_ndr_crdt_tbs[2].credit_to_be_sent > s2m_ndr_outstanding_credits_1)?
+                                        (s2m_ndr_crdt_tbs[2].credit_to_be_sent - s2m_ndr_outstanding_credits_1): 
+                                        (s2m_ndr_crdt_tbs[2].credit_to_be_sent < s2m_ndr_outstanding_credits_1)?
+                                        (s2m_ndr_outstanding_credits_1 - s2m_ndr_crdt_tbs[2].credit_to_be_sent): 
+                                        (s2m_ndr_crdt_tbs[2].credit_to_be_sent)
+                                      ) : 'h0;
+    s2m_ndr_outstanding_credits_3   = (s2m_ndr_outstanding_credits_2 > 0)? (
+                                        (s2m_ndr_crdt_tbs[3].credit_to_be_sent > s2m_ndr_outstanding_credits_2)?
+                                        (s2m_ndr_crdt_tbs[3].credit_to_be_sent - s2m_ndr_outstanding_credits_2): 
+                                        (s2m_ndr_crdt_tbs[3].credit_to_be_sent < s2m_ndr_outstanding_credits_2)?
+                                        (s2m_ndr_outstanding_credits_2 - s2m_ndr_crdt_tbs[3].credit_to_be_sent): 
+                                        (s2m_ndr_crdt_tbs[3].credit_to_be_sent)
+                                      ) : 'h0;
+    s2m_drs_outstanding_credits_0   = (s2m_drs_outstanding_credits > 0)? (
+                                        (s2m_drs_crdt_tbs[0].credit_to_be_sent > s2m_drs_outstanding_credits)?
+                                        (s2m_drs_crdt_tbs[0].credit_to_be_sent - s2m_drs_outstanding_credits): 
+                                        (s2m_drs_crdt_tbs[0].credit_to_be_sent < s2m_drs_outstanding_credits)?
+                                        (s2m_drs_outstanding_credits - s2m_drs_crdt_tbs[0].credit_to_be_sent): 
+                                        (s2m_drs_crdt_tbs[0].credit_to_be_sent)
+                                      ) : 'h0;
+    s2m_drs_outstanding_credits_1   = (s2m_drs_outstanding_credits_0 > 0)? (
+                                        (s2m_drs_crdt_tbs[1].credit_to_be_sent > s2m_drs_outstanding_credits_0)?
+                                        (s2m_drs_crdt_tbs[1].credit_to_be_sent - s2m_drs_outstanding_credits_0): 
+                                        (s2m_drs_crdt_tbs[1].credit_to_be_sent < s2m_drs_outstanding_credits_0)?
+                                        (s2m_drs_outstanding_credits_0 - s2m_drs_crdt_tbs[1].credit_to_be_sent): 
+                                        (s2m_drs_crdt_tbs[1].credit_to_be_sent)
+                                      ) : 'h0;
+    s2m_drs_outstanding_credits_2   = (s2m_drs_outstanding_credits_1 > 0)? (
+                                        (s2m_drs_crdt_tbs[2].credit_to_be_sent > s2m_drs_outstanding_credits_1)?
+                                        (s2m_drs_crdt_tbs[2].credit_to_be_sent - s2m_drs_outstanding_credits_1): 
+                                        (s2m_drs_crdt_tbs[2].credit_to_be_sent < s2m_drs_outstanding_credits_1)?
+                                        (s2m_drs_outstanding_credits_1 - s2m_drs_crdt_tbs[2].credit_to_be_sent): 
+                                        (s2m_drs_crdt_tbs[2].credit_to_be_sent)
+                                      ) : 'h0;
+    s2m_drs_outstanding_credits_3   = (s2m_drs_outstanding_credits_2 > 0)? (
+                                        (s2m_drs_crdt_tbs[3].credit_to_be_sent > s2m_drs_outstanding_credits_2)?
+                                        (s2m_drs_crdt_tbs[3].credit_to_be_sent - s2m_drs_outstanding_credits_2): 
+                                        (s2m_drs_crdt_tbs[3].credit_to_be_sent < s2m_drs_outstanding_credits_2)?
+                                        (s2m_drs_outstanding_credits_2 - s2m_drs_crdt_tbs[3].credit_to_be_sent): 
+                                        (s2m_drs_crdt_tbs[3].credit_to_be_sent)
+                                      ) : 'h0;
+    d2h_req_consumed_credits        = (d2h_req_occ_d  < d2h_req_occ ) ? (d2h_req_occ    - d2h_req_occ_d ) : 'h0;
+    d2h_rsp_consumed_credits        = (d2h_rsp_occ_d  < d2h_rsp_occ ) ? (d2h_rsp_occ    - d2h_rsp_occ_d ) : 'h0;
+    d2h_data_consumed_credits       = (d2h_data_occ_d < d2h_data_occ) ? (d2h_data_occ   - d2h_data_occ_d) : 'h0;
+    s2m_ndr_consumed_credits        = (s2m_ndr_occ_d  < s2m_ndr_occ ) ? (s2m_ndr_occ    - s2m_ndr_occ_d ) : 'h0;
+    s2m_drs_consumed_credits        = (s2m_drs_occ_d  < s2m_drs_occ ) ? (s2m_drs_occ    - s2m_drs_occ_d ) : 'h0;
  /*  
     $display(
     {"  ****************************DEBUG_INFO_BEGIN*********************************************************\n"},
@@ -1442,85 +2762,85 @@ module host_tx_path#(
    */ 
 
     if(d2h_rsp_crdt_tbs[3].pending) begin
-      if(d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+      if(d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         d2h_rsp_crdt_send = 'h7;
-      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd32) begin
+      end else if((d2h_rsp_crdt_tbs[3].credit_to_be_sent <= 'd63) && (d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd32)) begin
         d2h_rsp_crdt_send = 'h6;
-      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd16) begin
+      end else if((d2h_rsp_crdt_tbs[3].credit_to_be_sent <= 'd31) && (d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd16)) begin
         d2h_rsp_crdt_send = 'h5;
-      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd8) begin
+      end else if((d2h_rsp_crdt_tbs[3].credit_to_be_sent <= 'd15) && (d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd8))  begin
         d2h_rsp_crdt_send = 'h4;
-      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd4) begin
+      end else if((d2h_rsp_crdt_tbs[3].credit_to_be_sent <= 'd7 ) && (d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd4))  begin
         d2h_rsp_crdt_send = 'h3;
-      end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+      end else if((d2h_rsp_crdt_tbs[3].credit_to_be_sent <= 'd3 ) && (d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd2))  begin
         d2h_rsp_crdt_send = 'h2;
       end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd1) begin
         d2h_rsp_crdt_send = 'h1;
       end else begin
-        if(d2h_rsp_crdt_tbs[2].pending) begin
-          if(d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+        $display("zero pending: design issue");
+      end
+    end else begin
+      if(d2h_rsp_crdt_tbs[2].pending) begin
+        if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd64) begin
+          d2h_rsp_crdt_send = 'h7;
+        end else if((d2h_rsp_crdt_tbs[2].credit_to_be_sent <= 'd63) && (d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd32)) begin
+          d2h_rsp_crdt_send = 'h6;
+        end else if((d2h_rsp_crdt_tbs[2].credit_to_be_sent <= 'd31) && (d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd16)) begin
+          d2h_rsp_crdt_send = 'h5;
+        end else if((d2h_rsp_crdt_tbs[2].credit_to_be_sent <= 'd15) && (d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd8))  begin
+          d2h_rsp_crdt_send = 'h4;
+        end else if((d2h_rsp_crdt_tbs[2].credit_to_be_sent <= 'd7)  && (d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd4))  begin
+          d2h_rsp_crdt_send = 'h3;
+        end else if((d2h_rsp_crdt_tbs[2].credit_to_be_sent <= 'd3)  && (d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd2))  begin
+          d2h_rsp_crdt_send = 'h2;
+        end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          d2h_rsp_crdt_send = 'h1;
+        end else begin
+          $display("zero pending: design issue");
+        end
+      end else begin
+        if(d2h_rsp_crdt_tbs[1].pending) begin
+          if(d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd64) begin
             d2h_rsp_crdt_send = 'h7;
-          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd32) begin
+          end else if((d2h_rsp_crdt_tbs[1].credit_to_be_sent <= 'd63) && (d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd32)) begin
             d2h_rsp_crdt_send = 'h6;
-          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd16) begin
+          end else if((d2h_rsp_crdt_tbs[1].credit_to_be_sent <= 'd31) && (d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd16)) begin
             d2h_rsp_crdt_send = 'h5;
-          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd8) begin
+          end else if((d2h_rsp_crdt_tbs[1].credit_to_be_sent <= 'd15) && (d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd8))  begin
             d2h_rsp_crdt_send = 'h4;
-          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd4) begin
+          end else if((d2h_rsp_crdt_tbs[1].credit_to_be_sent <= 'd7 ) && (d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd4))  begin
             d2h_rsp_crdt_send = 'h3;
-          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+          end else if((d2h_rsp_crdt_tbs[1].credit_to_be_sent <= 'd3 ) && (d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd2))  begin
             d2h_rsp_crdt_send = 'h2;
-          end else if(d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd1) begin
             d2h_rsp_crdt_send = 'h1;
           end else begin
-            if(d2h_rsp_crdt_tbs[1].pending) begin
-              if(d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd64) begin
-                d2h_rsp_crdt_send = 'h7;
-              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd32) begin
-                d2h_rsp_crdt_send = 'h6;
-              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd16) begin
-               d2h_rsp_crdt_send = 'h5;
-              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd8) begin
-                d2h_rsp_crdt_send = 'h4;
-              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd4) begin
-                d2h_rsp_crdt_send = 'h3;
-              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
-                d2h_rsp_crdt_send = 'h2;
-              end else if(d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd1) begin
-                d2h_rsp_crdt_send = 'h1;
-              end else begin
-                if(d2h_rsp_crdt_tbs[0].pending) begin
-                  if(d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd64) begin
-                    d2h_rsp_crdt_send = 'h7;
-                  end else if(d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd32) begin
-                    d2h_rsp_crdt_send = 'h6;
-                  end else if(d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd16) begin
-                    d2h_rsp_crdt_send = 'h5;
-                  end else if(d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd8) begin
-                    d2h_rsp_crdt_send = 'h4;
-                  end else if(d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd4) begin
-                    d2h_rsp_crdt_send = 'h3;
-                  end else if(d2h_rsp_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
-                    d2h_rsp_crdt_send = 'h2;
-                  end else if(d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd1) begin
-                    d2h_rsp_crdt_send = 'h1;
-                  end else begin
-                    d2h_rsp_crdt_send = 'h0;
-                  end
-                end else begin
-                  d2h_rsp_crdt_send = 'h0;
-                end
-              end
-            end else begin
-              d2h_rsp_crdt_send = 'h0;
-            end
+            $display("zero pending: design issue");
           end
         end else begin
-          d2h_rsp_crdt_send = 'h0;
+          if(d2h_rsp_crdt_tbs[0].pending) begin
+            if(d2h_rsp_crdt_tbs[0].credit_to_be_sent >= 'd64) begin
+              d2h_rsp_crdt_send = 'h7;
+            end else if((d2h_rsp_crdt_tbs[0].credit_to_be_sent <= 'd63) && (d2h_rsp_crdt_tbs[0].credit_to_be_sent >= 'd32)) begin
+              d2h_rsp_crdt_send = 'h6;
+            end else if((d2h_rsp_crdt_tbs[0].credit_to_be_sent <= 'd31) && (d2h_rsp_crdt_tbs[0].credit_to_be_sent >= 'd16)) begin
+              d2h_rsp_crdt_send = 'h5;
+            end else if((d2h_rsp_crdt_tbs[0].credit_to_be_sent <= 'd15) && (d2h_rsp_crdt_tbs[0].credit_to_be_sent >= 'd8))  begin
+              d2h_rsp_crdt_send = 'h4;
+            end else if((d2h_rsp_crdt_tbs[0].credit_to_be_sent <= 'd7 ) && (d2h_rsp_crdt_tbs[0].credit_to_be_sent >= 'd4))  begin
+              d2h_rsp_crdt_send = 'h3;
+            end else if((d2h_rsp_crdt_tbs[0].credit_to_be_sent <= 'd3 ) && (d2h_rsp_crdt_tbs[0].credit_to_be_sent >= 'd2))  begin
+              d2h_rsp_crdt_send = 'h2;
+            end else if(d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd1) begin
+              d2h_rsp_crdt_send = 'h1;
+            end else begin
+              $display("zero pending: design issue");
+            end
+          end else begin
+              d2h_rsp_crdt_send = 'h0;
+          end
         end
       end 
-    end else begin
-      d2h_rsp_crdt_send = 'h0;
     end
  /*
     $display(
@@ -1533,86 +2853,87 @@ module host_tx_path#(
     d2h_rsp_crdt_send
     );
 */    
+//TODO: make sure if pending is set it should not have to be sent as 0, improper use will result in garbage out
     if(s2m_ndr_crdt_tbs[3].pending) begin
-      if(s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+      if(s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         s2m_ndr_crdt_send = 'h7;
-      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd32) begin
+      end else if((s2m_ndr_crdt_tbs[3].credit_to_be_sent <= 'd63) && (s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd32)) begin
         s2m_ndr_crdt_send = 'h6;
-      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd16) begin
+      end else if((s2m_ndr_crdt_tbs[3].credit_to_be_sent <= 'd31) && (s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd16)) begin
         s2m_ndr_crdt_send = 'h5;
-      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd8) begin
+      end else if((s2m_ndr_crdt_tbs[3].credit_to_be_sent <= 'd15) && (s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd8))  begin
         s2m_ndr_crdt_send = 'h4;
-      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd4) begin
+      end else if((s2m_ndr_crdt_tbs[3].credit_to_be_sent <= 'd7 ) && (s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd4))  begin
         s2m_ndr_crdt_send = 'h3;
-      end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+      end else if((s2m_ndr_crdt_tbs[3].credit_to_be_sent <= 'd3 ) && (s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd2))  begin
         s2m_ndr_crdt_send = 'h2;
       end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd1) begin
         s2m_ndr_crdt_send = 'h1;
       end else begin
-        if(s2m_ndr_crdt_tbs[2].pending) begin
-          if(s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+        $display("zero pending: design issue");
+      end
+    end else begin
+      if(s2m_ndr_crdt_tbs[2].pending) begin
+        if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd64) begin
+          s2m_ndr_crdt_send = 'h7;
+        end else if((s2m_ndr_crdt_tbs[2].credit_to_be_sent <= 'd63) && (s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd32)) begin
+          s2m_ndr_crdt_send = 'h6;
+        end else if((s2m_ndr_crdt_tbs[2].credit_to_be_sent <= 'd31) && (s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd16)) begin
+          s2m_ndr_crdt_send = 'h5;
+        end else if((s2m_ndr_crdt_tbs[2].credit_to_be_sent <= 'd15) && (s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd8))  begin
+          s2m_ndr_crdt_send = 'h4;
+        end else if((s2m_ndr_crdt_tbs[2].credit_to_be_sent <= 'd7)  && (s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd4))  begin
+          s2m_ndr_crdt_send = 'h3;
+        end else if((s2m_ndr_crdt_tbs[2].credit_to_be_sent <= 'd3)  && (s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd2))  begin
+          s2m_ndr_crdt_send = 'h2;
+        end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          s2m_ndr_crdt_send = 'h1;
+        end else begin
+          $display("zero pending: design issue");
+        end
+      end else begin
+        if(s2m_ndr_crdt_tbs[1].pending) begin
+          if(s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd64) begin
             s2m_ndr_crdt_send = 'h7;
-          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd32) begin
+          end else if((s2m_ndr_crdt_tbs[1].credit_to_be_sent <= 'd63) && (s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd32)) begin
             s2m_ndr_crdt_send = 'h6;
-          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd16) begin
+          end else if((s2m_ndr_crdt_tbs[1].credit_to_be_sent <= 'd31) && (s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd16)) begin
             s2m_ndr_crdt_send = 'h5;
-          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd8) begin
+          end else if((s2m_ndr_crdt_tbs[1].credit_to_be_sent <= 'd15) && (s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd8))  begin
             s2m_ndr_crdt_send = 'h4;
-          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd4) begin
+          end else if((s2m_ndr_crdt_tbs[1].credit_to_be_sent <= 'd7 ) && (s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd4))  begin
             s2m_ndr_crdt_send = 'h3;
-          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+          end else if((s2m_ndr_crdt_tbs[1].credit_to_be_sent <= 'd3 ) && (s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd2))  begin
             s2m_ndr_crdt_send = 'h2;
-          end else if(s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd1) begin
             s2m_ndr_crdt_send = 'h1;
           end else begin
-            if(s2m_ndr_crdt_tbs[1].pending) begin
-              if(s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd64) begin
-                s2m_ndr_crdt_send = 'h7;
-              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd32) begin
-                s2m_ndr_crdt_send = 'h6;
-              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd16) begin
-               s2m_ndr_crdt_send = 'h5;
-              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd8) begin
-                s2m_ndr_crdt_send = 'h4;
-              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd4) begin
-                s2m_ndr_crdt_send = 'h3;
-              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
-                s2m_ndr_crdt_send = 'h2;
-              end else if(s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd1) begin
-                s2m_ndr_crdt_send = 'h1;
-              end else begin
-                if(s2m_ndr_crdt_tbs[0].pending) begin
-                  if(s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd64) begin
-                    s2m_ndr_crdt_send = 'h7;
-                  end else if(s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd32) begin
-                    s2m_ndr_crdt_send = 'h6;
-                  end else if(s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd16) begin
-                    s2m_ndr_crdt_send = 'h5;
-                  end else if(s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd8) begin
-                    s2m_ndr_crdt_send = 'h4;
-                  end else if(s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd4) begin
-                    s2m_ndr_crdt_send = 'h3;
-                  end else if(s2m_ndr_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
-                    s2m_ndr_crdt_send = 'h2;
-                  end else if(s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd1) begin
-                    s2m_ndr_crdt_send = 'h1;
-                  end else begin
-                    s2m_ndr_crdt_send = 'h0;
-                  end
-                end else begin
-                  s2m_ndr_crdt_send = 'h0;
-                end
-              end
-            end else begin
-              s2m_ndr_crdt_send = 'h0;
-            end
+            $display("zero pending: design issue");
           end
         end else begin
-          s2m_ndr_crdt_send = 'h0;
+          if(s2m_ndr_crdt_tbs[0].pending) begin
+            if(s2m_ndr_crdt_tbs[0].credit_to_be_sent >= 'd64) begin
+              s2m_ndr_crdt_send = 'h7;
+            end else if((s2m_ndr_crdt_tbs[0].credit_to_be_sent <= 'd63) && (s2m_ndr_crdt_tbs[0].credit_to_be_sent >= 'd32)) begin
+              s2m_ndr_crdt_send = 'h6;
+            end else if((s2m_ndr_crdt_tbs[0].credit_to_be_sent <= 'd31) && (s2m_ndr_crdt_tbs[0].credit_to_be_sent >= 'd16)) begin
+              s2m_ndr_crdt_send = 'h5;
+            end else if((s2m_ndr_crdt_tbs[0].credit_to_be_sent <= 'd15) && (s2m_ndr_crdt_tbs[0].credit_to_be_sent >= 'd8))  begin
+              s2m_ndr_crdt_send = 'h4;
+            end else if((s2m_ndr_crdt_tbs[0].credit_to_be_sent <= 'd7 ) && (s2m_ndr_crdt_tbs[0].credit_to_be_sent >= 'd4))  begin
+              s2m_ndr_crdt_send = 'h3;
+            end else if((s2m_ndr_crdt_tbs[0].credit_to_be_sent <= 'd3 ) && (s2m_ndr_crdt_tbs[0].credit_to_be_sent >= 'd2))  begin
+              s2m_ndr_crdt_send = 'h2;
+            end else if(s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd1) begin
+              s2m_ndr_crdt_send = 'h1;
+            end else begin
+              $display("zero pending: design issue");
+            end
+          end else begin
+              s2m_ndr_crdt_send = 'h0;
+          end
         end
       end 
-    end else begin
-      s2m_ndr_crdt_send = 'h0;
     end
 /*
     $display(
@@ -1626,85 +2947,85 @@ module host_tx_path#(
     );
 */        
     if(d2h_req_crdt_tbs[3].pending) begin
-      if(d2h_req_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+      if(d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         d2h_req_crdt_send = 'h7;
-      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent > 'd32) begin
+      end else if((d2h_req_crdt_tbs[3].credit_to_be_sent <= 'd63) && (d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd32)) begin
         d2h_req_crdt_send = 'h6;
-      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent > 'd16) begin
+      end else if((d2h_req_crdt_tbs[3].credit_to_be_sent <= 'd31) && (d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd16)) begin
         d2h_req_crdt_send = 'h5;
-      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent > 'd8) begin
+      end else if((d2h_req_crdt_tbs[3].credit_to_be_sent <= 'd15) && (d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd8))  begin
         d2h_req_crdt_send = 'h4;
-      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent > 'd4) begin
+      end else if((d2h_req_crdt_tbs[3].credit_to_be_sent <= 'd7 ) && (d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd4))  begin
         d2h_req_crdt_send = 'h3;
-      end else if(d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+      end else if((d2h_req_crdt_tbs[3].credit_to_be_sent <= 'd3 ) && (d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd2))  begin
         d2h_req_crdt_send = 'h2;
       end else if(d2h_req_crdt_tbs[3].credit_to_be_sent == 'd1) begin
         d2h_req_crdt_send = 'h1;
       end else begin
-        if(d2h_req_crdt_tbs[2].pending) begin
-          if(d2h_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+        $display("zero pending: design issue");
+      end
+    end else begin
+      if(d2h_req_crdt_tbs[2].pending) begin
+        if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd64) begin
+          d2h_req_crdt_send = 'h7;
+        end else if((d2h_req_crdt_tbs[2].credit_to_be_sent <= 'd63) && (d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd32)) begin
+          d2h_req_crdt_send = 'h6;
+        end else if((d2h_req_crdt_tbs[2].credit_to_be_sent <= 'd31) && (d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd16)) begin
+          d2h_req_crdt_send = 'h5;
+        end else if((d2h_req_crdt_tbs[2].credit_to_be_sent <= 'd15) && (d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd8))  begin
+          d2h_req_crdt_send = 'h4;
+        end else if((d2h_req_crdt_tbs[2].credit_to_be_sent <= 'd7)  && (d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd4))  begin
+          d2h_req_crdt_send = 'h3;
+        end else if((d2h_req_crdt_tbs[2].credit_to_be_sent <= 'd3)  && (d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd2))  begin
+          d2h_req_crdt_send = 'h2;
+        end else if(d2h_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          d2h_req_crdt_send = 'h1;
+        end else begin
+          $display("zero pending: design issue");
+        end
+      end else begin
+        if(d2h_req_crdt_tbs[1].pending) begin
+          if(d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd64) begin
             d2h_req_crdt_send = 'h7;
-          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd32) begin
+          end else if((d2h_req_crdt_tbs[1].credit_to_be_sent <= 'd63) && (d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd32)) begin
             d2h_req_crdt_send = 'h6;
-          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd16) begin
+          end else if((d2h_req_crdt_tbs[1].credit_to_be_sent <= 'd31) && (d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd16)) begin
             d2h_req_crdt_send = 'h5;
-          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd8) begin
+          end else if((d2h_req_crdt_tbs[1].credit_to_be_sent <= 'd15) && (d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd8))  begin
             d2h_req_crdt_send = 'h4;
-          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent > 'd4) begin
+          end else if((d2h_req_crdt_tbs[1].credit_to_be_sent <= 'd7 ) && (d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd4))  begin
             d2h_req_crdt_send = 'h3;
-          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+          end else if((d2h_req_crdt_tbs[1].credit_to_be_sent <= 'd3 ) && (d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd2))  begin
             d2h_req_crdt_send = 'h2;
-          end else if(d2h_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          end else if(d2h_req_crdt_tbs[1].credit_to_be_sent == 'd1) begin
             d2h_req_crdt_send = 'h1;
           end else begin
-            if(d2h_req_crdt_tbs[1].pending) begin
-              if(d2h_req_crdt_tbs[1].credit_to_be_sent == 'd64) begin
-                d2h_req_crdt_send = 'h7;
-              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent > 'd32) begin
-                d2h_req_crdt_send = 'h6;
-              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent > 'd16) begin
-               d2h_req_crdt_send = 'h5;
-              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent > 'd8) begin
-                d2h_req_crdt_send = 'h4;
-              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent >'d4) begin
-                d2h_req_crdt_send = 'h3;
-              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
-                d2h_req_crdt_send = 'h2;
-              end else if(d2h_req_crdt_tbs[1].credit_to_be_sent == 'd1) begin
-                d2h_req_crdt_send = 'h1;
-              end else begin
-                if(d2h_req_crdt_tbs[0].pending) begin
-                  if(d2h_req_crdt_tbs[0].credit_to_be_sent == 'd64) begin
-                    d2h_req_crdt_send = 'h7;
-                  end else if(d2h_req_crdt_tbs[0].credit_to_be_sent > 'd32) begin
-                    d2h_req_crdt_send = 'h6;
-                  end else if(d2h_req_crdt_tbs[0].credit_to_be_sent > 'd16) begin
-                    d2h_req_crdt_send = 'h5;
-                  end else if(d2h_req_crdt_tbs[0].credit_to_be_sent > 'd8) begin
-                    d2h_req_crdt_send = 'h4;
-                  end else if(d2h_req_crdt_tbs[0].credit_to_be_sent > 'd4) begin
-                    d2h_req_crdt_send = 'h3;
-                  end else if(d2h_req_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
-                    d2h_req_crdt_send = 'h2;
-                  end else if(d2h_req_crdt_tbs[0].credit_to_be_sent == 'd1) begin
-                    d2h_req_crdt_send = 'h1;
-                  end else begin
-                    d2h_req_crdt_send = 'h0;
-                  end
-                end else begin
-                  d2h_req_crdt_send = 'h0;
-                end
-              end
-            end else begin
-              d2h_req_crdt_send = 'h0;
-            end
+            $display("zero pending: design issue");
           end
         end else begin
-          d2h_req_crdt_send = 'h0;
+          if(d2h_req_crdt_tbs[0].pending) begin
+            if(d2h_req_crdt_tbs[0].credit_to_be_sent >= 'd64) begin
+              d2h_req_crdt_send = 'h7;
+            end else if((d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd63) && (d2h_req_crdt_tbs[0].credit_to_be_sent >= 'd32)) begin
+              d2h_req_crdt_send = 'h6;
+            end else if((d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd31) && (d2h_req_crdt_tbs[0].credit_to_be_sent >= 'd16)) begin
+              d2h_req_crdt_send = 'h5;
+            end else if((d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd15) && (d2h_req_crdt_tbs[0].credit_to_be_sent >= 'd8))  begin
+              d2h_req_crdt_send = 'h4;
+            end else if((d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd7 ) && (d2h_req_crdt_tbs[0].credit_to_be_sent >= 'd4))  begin
+              d2h_req_crdt_send = 'h3;
+            end else if((d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd3 ) && (d2h_req_crdt_tbs[0].credit_to_be_sent >= 'd2))  begin
+              d2h_req_crdt_send = 'h2;
+            end else if(d2h_req_crdt_tbs[0].credit_to_be_sent == 'd1) begin
+              d2h_req_crdt_send = 'h1;
+            end else begin
+              $display("zero pending: design issue");
+            end
+          end else begin
+              d2h_req_crdt_send = 'h0;
+          end
         end
       end 
-    end else begin
-      d2h_req_crdt_send = 'h0;
     end
  /*
     $display(
@@ -1718,85 +3039,85 @@ module host_tx_path#(
     );
 */
     if(d2h_data_crdt_tbs[3].pending) begin
-      if(d2h_data_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+      if(d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         d2h_data_crdt_send = 'h7;
-      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent > 'd32) begin
+      end else if((d2h_data_crdt_tbs[3].credit_to_be_sent <= 'd63) && (d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd32)) begin
         d2h_data_crdt_send = 'h6;
-      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent > 'd16) begin
+      end else if((d2h_data_crdt_tbs[3].credit_to_be_sent <= 'd31) && (d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd16)) begin
         d2h_data_crdt_send = 'h5;
-      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent > 'd8) begin
+      end else if((d2h_data_crdt_tbs[3].credit_to_be_sent <= 'd15) && (d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd8))  begin
         d2h_data_crdt_send = 'h4;
-      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent > 'd4) begin
+      end else if((d2h_data_crdt_tbs[3].credit_to_be_sent <= 'd7 ) && (d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd4))  begin
         d2h_data_crdt_send = 'h3;
-      end else if(d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+      end else if((d2h_data_crdt_tbs[3].credit_to_be_sent <= 'd3 ) && (d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd2))  begin
         d2h_data_crdt_send = 'h2;
       end else if(d2h_data_crdt_tbs[3].credit_to_be_sent == 'd1) begin
         d2h_data_crdt_send = 'h1;
       end else begin
-        if(d2h_data_crdt_tbs[2].pending) begin
-          if(d2h_data_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+        $display("zero pending: design issue");
+      end
+    end else begin
+      if(d2h_data_crdt_tbs[2].pending) begin
+        if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd64) begin
+          d2h_data_crdt_send = 'h7;
+        end else if((d2h_data_crdt_tbs[2].credit_to_be_sent <= 'd63) && (d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd32)) begin
+          d2h_data_crdt_send = 'h6;
+        end else if((d2h_data_crdt_tbs[2].credit_to_be_sent <= 'd31) && (d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd16)) begin
+          d2h_data_crdt_send = 'h5;
+        end else if((d2h_data_crdt_tbs[2].credit_to_be_sent <= 'd15) && (d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd8))  begin
+          d2h_data_crdt_send = 'h4;
+        end else if((d2h_data_crdt_tbs[2].credit_to_be_sent <= 'd7)  && (d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd4))  begin
+          d2h_data_crdt_send = 'h3;
+        end else if((d2h_data_crdt_tbs[2].credit_to_be_sent <= 'd3)  && (d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd2))  begin
+          d2h_data_crdt_send = 'h2;
+        end else if(d2h_data_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          d2h_data_crdt_send = 'h1;
+        end else begin
+          $display("zero pending: design issue");
+        end
+      end else begin
+        if(d2h_data_crdt_tbs[1].pending) begin
+          if(d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd64) begin
             d2h_data_crdt_send = 'h7;
-          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd32) begin
+          end else if((d2h_data_crdt_tbs[1].credit_to_be_sent <= 'd63) && (d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd32)) begin
             d2h_data_crdt_send = 'h6;
-          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd16) begin
+          end else if((d2h_data_crdt_tbs[1].credit_to_be_sent <= 'd31) && (d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd16)) begin
             d2h_data_crdt_send = 'h5;
-          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd8) begin
+          end else if((d2h_data_crdt_tbs[1].credit_to_be_sent <= 'd15) && (d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd8))  begin
             d2h_data_crdt_send = 'h4;
-          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent > 'd4) begin
+          end else if((d2h_data_crdt_tbs[1].credit_to_be_sent <= 'd7 ) && (d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd4))  begin
             d2h_data_crdt_send = 'h3;
-          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+          end else if((d2h_data_crdt_tbs[1].credit_to_be_sent <= 'd3 ) && (d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd2))  begin
             d2h_data_crdt_send = 'h2;
-          end else if(d2h_data_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          end else if(d2h_data_crdt_tbs[1].credit_to_be_sent == 'd1) begin
             d2h_data_crdt_send = 'h1;
           end else begin
-            if(d2h_data_crdt_tbs[1].pending) begin
-              if(d2h_data_crdt_tbs[1].credit_to_be_sent == 'd64) begin
-                d2h_data_crdt_send = 'h7;
-              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent > 'd32) begin
-                d2h_data_crdt_send = 'h6;
-              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent > 'd16) begin
-               d2h_data_crdt_send = 'h5;
-              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent > 'd8) begin
-                d2h_data_crdt_send = 'h4;
-              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent > 'd4) begin
-                d2h_data_crdt_send = 'h3;
-              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
-                d2h_data_crdt_send = 'h2;
-              end else if(d2h_data_crdt_tbs[1].credit_to_be_sent == 'd1) begin
-                d2h_data_crdt_send = 'h1;
-              end else begin
-                if(d2h_data_crdt_tbs[0].pending) begin
-                  if(d2h_data_crdt_tbs[0].credit_to_be_sent == 'd64) begin
-                    d2h_data_crdt_send = 'h7;
-                  end else if(d2h_data_crdt_tbs[0].credit_to_be_sent > 'd32) begin
-                    d2h_data_crdt_send = 'h6;
-                  end else if(d2h_data_crdt_tbs[0].credit_to_be_sent > 'd16) begin
-                    d2h_data_crdt_send = 'h5;
-                  end else if(d2h_data_crdt_tbs[0].credit_to_be_sent > 'd8) begin
-                    d2h_data_crdt_send = 'h4;
-                  end else if(d2h_data_crdt_tbs[0].credit_to_be_sent > 'd4) begin
-                    d2h_data_crdt_send = 'h3;
-                  end else if(d2h_data_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
-                    d2h_data_crdt_send = 'h2;
-                  end else if(d2h_data_crdt_tbs[0].credit_to_be_sent == 'd1) begin
-                    d2h_data_crdt_send = 'h1;
-                  end else begin
-                    d2h_data_crdt_send = 'h0;
-                  end
-                end else begin
-                  d2h_data_crdt_send = 'h0;
-                end
-              end
-            end else begin
-              d2h_data_crdt_send = 'h0;
-            end
+            $display("zero pending: design issue");
           end
         end else begin
-          d2h_data_crdt_send = 'h0;
+          if(d2h_data_crdt_tbs[0].pending) begin
+            if(d2h_data_crdt_tbs[0].credit_to_be_sent >= 'd64) begin
+              d2h_data_crdt_send = 'h7;
+            end else if((d2h_data_crdt_tbs[0].credit_to_be_sent <= 'd63) && (d2h_data_crdt_tbs[0].credit_to_be_sent >= 'd32)) begin
+              d2h_data_crdt_send = 'h6;
+            end else if((d2h_data_crdt_tbs[0].credit_to_be_sent <= 'd31) && (d2h_data_crdt_tbs[0].credit_to_be_sent >= 'd16)) begin
+              d2h_data_crdt_send = 'h5;
+            end else if((d2h_data_crdt_tbs[0].credit_to_be_sent <= 'd15) && (d2h_data_crdt_tbs[0].credit_to_be_sent >= 'd8))  begin
+              d2h_data_crdt_send = 'h4;
+            end else if((d2h_data_crdt_tbs[0].credit_to_be_sent <= 'd7 ) && (d2h_data_crdt_tbs[0].credit_to_be_sent >= 'd4))  begin
+              d2h_data_crdt_send = 'h3;
+            end else if((d2h_data_crdt_tbs[0].credit_to_be_sent <= 'd3 ) && (d2h_data_crdt_tbs[0].credit_to_be_sent >= 'd2))  begin
+              d2h_data_crdt_send = 'h2;
+            end else if(d2h_data_crdt_tbs[0].credit_to_be_sent == 'd1) begin
+              d2h_data_crdt_send = 'h1;
+            end else begin
+              $display("zero pending: design issue");
+            end
+          end else begin
+              d2h_data_crdt_send = 'h0;
+          end
         end
       end 
-    end else begin
-      d2h_data_crdt_send = 'h0;
     end
  /*
     $display(
@@ -1811,85 +3132,85 @@ module host_tx_path#(
    */ 
 
     if(s2m_drs_crdt_tbs[3].pending) begin
-      if(s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+      if(s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         s2m_drs_crdt_send = 'h7;
-      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd32) begin
+      end else if((s2m_drs_crdt_tbs[3].credit_to_be_sent <= 'd63) && (s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd32)) begin
         s2m_drs_crdt_send = 'h6;
-      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd16) begin
+      end else if((s2m_drs_crdt_tbs[3].credit_to_be_sent <= 'd31) && (s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd16)) begin
         s2m_drs_crdt_send = 'h5;
-      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd8) begin
+      end else if((s2m_drs_crdt_tbs[3].credit_to_be_sent <= 'd15) && (s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd8))  begin
         s2m_drs_crdt_send = 'h4;
-      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd4) begin
+      end else if((s2m_drs_crdt_tbs[3].credit_to_be_sent <= 'd7 ) && (s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd4))  begin
         s2m_drs_crdt_send = 'h3;
-      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+      end else if((s2m_drs_crdt_tbs[3].credit_to_be_sent <= 'd3 ) && (s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd2))  begin
         s2m_drs_crdt_send = 'h2;
       end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd1) begin
         s2m_drs_crdt_send = 'h1;
       end else begin
-        if(s2m_drs_crdt_tbs[2].pending) begin
-          if(s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+        $display("zero pending: design issue");
+      end
+    end else begin
+      if(s2m_drs_crdt_tbs[2].pending) begin
+        if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd64) begin
+          s2m_drs_crdt_send = 'h7;
+        end else if((s2m_drs_crdt_tbs[2].credit_to_be_sent <= 'd63) && (s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd32)) begin
+          s2m_drs_crdt_send = 'h6;
+        end else if((s2m_drs_crdt_tbs[2].credit_to_be_sent <= 'd31) && (s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd16)) begin
+          s2m_drs_crdt_send = 'h5;
+        end else if((s2m_drs_crdt_tbs[2].credit_to_be_sent <= 'd15) && (s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd8))  begin
+          s2m_drs_crdt_send = 'h4;
+        end else if((s2m_drs_crdt_tbs[2].credit_to_be_sent <= 'd7)  && (s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd4))  begin
+          s2m_drs_crdt_send = 'h3;
+        end else if((s2m_drs_crdt_tbs[2].credit_to_be_sent <= 'd3)  && (s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd2))  begin
+          s2m_drs_crdt_send = 'h2;
+        end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          s2m_drs_crdt_send = 'h1;
+        end else begin
+          $display("zero pending: design issue");
+        end
+      end else begin
+        if(s2m_drs_crdt_tbs[1].pending) begin
+          if(s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd64) begin
             s2m_drs_crdt_send = 'h7;
-          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd32) begin
+          end else if((s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'd63) && (s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd32)) begin
             s2m_drs_crdt_send = 'h6;
-          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd16) begin
+          end else if((s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'd31) && (s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd16)) begin
             s2m_drs_crdt_send = 'h5;
-          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd8) begin
+          end else if((s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'd15) && (s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd8))  begin
             s2m_drs_crdt_send = 'h4;
-          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd4) begin
+          end else if((s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'd7 ) && (s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd4))  begin
             s2m_drs_crdt_send = 'h3;
-          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+          end else if((s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'd3 ) && (s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd2))  begin
             s2m_drs_crdt_send = 'h2;
-          end else if(s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd1) begin
             s2m_drs_crdt_send = 'h1;
           end else begin
-            if(s2m_drs_crdt_tbs[1].pending) begin
-              if(s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd64) begin
-                s2m_drs_crdt_send = 'h7;
-              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd32) begin
-                s2m_drs_crdt_send = 'h6;
-              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd16) begin
-               s2m_drs_crdt_send = 'h5;
-              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd8) begin
-                s2m_drs_crdt_send = 'h4;
-              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd4) begin
-                s2m_drs_crdt_send = 'h3;
-              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
-                s2m_drs_crdt_send = 'h2;
-              end else if(s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd1) begin
-                s2m_drs_crdt_send = 'h1;
-              end else begin
-                if(s2m_drs_crdt_tbs[0].pending) begin
-                  if(s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd64) begin
-                    s2m_drs_crdt_send = 'h7;
-                  end else if(s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd32) begin
-                    s2m_drs_crdt_send = 'h6;
-                  end else if(s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd16) begin
-                    s2m_drs_crdt_send = 'h5;
-                  end else if(s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd8) begin
-                    s2m_drs_crdt_send = 'h4;
-                  end else if(s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd4) begin
-                    s2m_drs_crdt_send = 'h3;
-                  end else if(s2m_drs_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
-                    s2m_drs_crdt_send = 'h2;
-                  end else if(s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd1) begin
-                    s2m_drs_crdt_send = 'h1;
-                  end else begin
-                    s2m_drs_crdt_send = 'h0;
-                  end
-                end else begin
-                  s2m_drs_crdt_send = 'h0;
-                end
-              end
-            end else begin
-              s2m_drs_crdt_send = 'h0;
-            end
+            $display("zero pending: design issue");
           end
         end else begin
-          s2m_drs_crdt_send = 'h0;
+          if(s2m_drs_crdt_tbs[0].pending) begin
+            if(s2m_drs_crdt_tbs[0].credit_to_be_sent >= 'd64) begin
+              s2m_drs_crdt_send = 'h7;
+            end else if((s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd63) && (s2m_drs_crdt_tbs[0].credit_to_be_sent >= 'd32)) begin
+              s2m_drs_crdt_send = 'h6;
+            end else if((s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd31) && (s2m_drs_crdt_tbs[0].credit_to_be_sent >= 'd16)) begin
+              s2m_drs_crdt_send = 'h5;
+            end else if((s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd15) && (s2m_drs_crdt_tbs[0].credit_to_be_sent >= 'd8))  begin
+              s2m_drs_crdt_send = 'h4;
+            end else if((s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd7 ) && (s2m_drs_crdt_tbs[0].credit_to_be_sent >= 'd4))  begin
+              s2m_drs_crdt_send = 'h3;
+            end else if((s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd3 ) && (s2m_drs_crdt_tbs[0].credit_to_be_sent >= 'd2))  begin
+              s2m_drs_crdt_send = 'h2;
+            end else if(s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd1) begin
+              s2m_drs_crdt_send = 'h1;
+            end else begin
+              $display("zero pending: design issue");
+            end
+          end else begin
+              s2m_drs_crdt_send = 'h0;
+          end
         end
       end 
-    end else begin
-      s2m_drs_crdt_send = 'h0;
     end
 /*    
     $display(
@@ -1902,30 +3223,30 @@ module host_tx_path#(
     s2m_drs_crdt_send
     );
 */
-/*    d2h_req_crdt_send             = (d2h_req_crdt_tbs[3].pending)? (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_req_crdt_tbs[2].pending)? (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_req_crdt_tbs[1].pending)? (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_req_crdt_tbs[0].pending)? (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (d2h_req_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (d2h_req_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (d2h_req_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+/*    d2h_req_crdt_send             = (d2h_req_crdt_tbs[3].pending)? (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_req_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_req_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_req_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_req_crdt_tbs[2].pending)? (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_req_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_req_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_req_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_req_crdt_tbs[1].pending)? (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_req_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_req_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_req_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_req_crdt_tbs[0].pending)? (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_req_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_req_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_req_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
                                   : 'h0;
-    d2h_rsp_crdt_send             = (d2h_rsp_crdt_tbs[3].pending)? (d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (d2h_rsp_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_rsp_crdt_tbs[2].pending)? (d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (d2h_rsp_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_rsp_crdt_tbs[1].pending)? (d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (d2h_rsp_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_rsp_crdt_tbs[0].pending)? (d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (d2h_rsp_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+    d2h_rsp_crdt_send             = (d2h_rsp_crdt_tbs[3].pending)? (d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_rsp_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_rsp_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_rsp_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_rsp_crdt_tbs[2].pending)? (d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_rsp_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_rsp_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_rsp_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_rsp_crdt_tbs[1].pending)? (d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_rsp_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_rsp_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_rsp_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_rsp_crdt_tbs[0].pending)? (d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_rsp_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_rsp_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_rsp_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
                                   : 'h0;
-    d2h_data_crdt_send             = (d2h_data_crdt_tbs[3].pending)? (d2h_data_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (d2h_data_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (d2h_data_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (d2h_data_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (d2h_data_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_data_crdt_tbs[2].pending)? (d2h_data_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (d2h_data_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (d2h_data_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (d2h_data_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (d2h_data_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_data_crdt_tbs[1].pending)? (d2h_data_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (d2h_data_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (d2h_data_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (d2h_data_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (d2h_data_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_data_crdt_tbs[0].pending)? (d2h_data_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (d2h_data_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (d2h_data_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (d2h_data_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (d2h_data_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+    d2h_data_crdt_send             = (d2h_data_crdt_tbs[3].pending)? (d2h_data_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_data_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_data_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_data_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_data_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_data_crdt_tbs[2].pending)? (d2h_data_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_data_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_data_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_data_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_data_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_data_crdt_tbs[1].pending)? (d2h_data_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_data_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_data_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_data_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_data_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (d2h_data_crdt_tbs[0].pending)? (d2h_data_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_data_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_data_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_data_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_data_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
                                   : 'h0;
-    s2m_ndr_crdt_send             = (s2m_ndr_crdt_tbs[3].pending)? (s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (s2m_ndr_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (s2m_ndr_crdt_tbs[2].pending)? (s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (s2m_ndr_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (s2m_ndr_crdt_tbs[1].pending)? (s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (s2m_ndr_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (s2m_ndr_crdt_tbs[0].pending)? (s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (s2m_ndr_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+    s2m_ndr_crdt_send             = (s2m_ndr_crdt_tbs[3].pending)? (s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_ndr_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_ndr_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_ndr_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (s2m_ndr_crdt_tbs[2].pending)? (s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_ndr_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_ndr_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_ndr_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (s2m_ndr_crdt_tbs[1].pending)? (s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_ndr_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_ndr_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_ndr_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (s2m_ndr_crdt_tbs[0].pending)? (s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_ndr_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_ndr_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_ndr_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
                                   : 'h0;
-    s2m_drs_crdt_send             = (s2m_drs_crdt_tbs[3].pending)? (s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (s2m_drs_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (s2m_drs_crdt_tbs[2].pending)? (s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (s2m_drs_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (s2m_drs_crdt_tbs[1].pending)? (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (s2m_drs_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (s2m_drs_crdt_tbs[0].pending)? (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (s2m_drs_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+    s2m_drs_crdt_send             = (s2m_drs_crdt_tbs[3].pending)? (s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_drs_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_drs_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_drs_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (s2m_drs_crdt_tbs[2].pending)? (s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_drs_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_drs_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_drs_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (s2m_drs_crdt_tbs[1].pending)? (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_drs_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_drs_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_drs_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (s2m_drs_crdt_tbs[0].pending)? (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_drs_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_drs_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_drs_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
                                   : 'h0;
 */  
   end
@@ -1953,21 +3274,21 @@ module host_tx_path#(
       end
 */
       d2h_rsp_crdt_tbs[0].pending <= 'h1;
-      d2h_rsp_crdt_tbs[1].pending <= 'h1;
-      d2h_rsp_crdt_tbs[2].pending <= 'h1;
-      d2h_rsp_crdt_tbs[3].pending <= 'h1;
-      d2h_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
-      d2h_rsp_crdt_tbs[1].credit_to_be_sent <= 'd64;
-      d2h_rsp_crdt_tbs[2].credit_to_be_sent <= 'd64;
-      d2h_rsp_crdt_tbs[3].credit_to_be_sent <= 'd64;
+      d2h_rsp_crdt_tbs[1].pending <= 'h0;
+      d2h_rsp_crdt_tbs[2].pending <= 'h0;
+      d2h_rsp_crdt_tbs[3].pending <= 'h0;
+      d2h_rsp_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
+      d2h_rsp_crdt_tbs[1].credit_to_be_sent <= 'h0;
+      d2h_rsp_crdt_tbs[2].credit_to_be_sent <= 'h0;
+      d2h_rsp_crdt_tbs[3].credit_to_be_sent <= 'h0;
       s2m_ndr_crdt_tbs[0].pending <= 'h1;
-      s2m_ndr_crdt_tbs[1].pending <= 'h1;
-      s2m_ndr_crdt_tbs[2].pending <= 'h1;
-      s2m_ndr_crdt_tbs[3].pending <= 'h1;
-      s2m_ndr_crdt_tbs[0].credit_to_be_sent <= 'd64;
-      s2m_ndr_crdt_tbs[1].credit_to_be_sent <= 'd64;
-      s2m_ndr_crdt_tbs[2].credit_to_be_sent <= 'd64;
-      s2m_ndr_crdt_tbs[3].credit_to_be_sent <= 'd64;
+      s2m_ndr_crdt_tbs[1].pending <= 'h0;
+      s2m_ndr_crdt_tbs[2].pending <= 'h0;
+      s2m_ndr_crdt_tbs[3].pending <= 'h0;
+      s2m_ndr_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
+      s2m_ndr_crdt_tbs[1].credit_to_be_sent <= 'h0;
+      s2m_ndr_crdt_tbs[2].credit_to_be_sent <= 'h0;
+      s2m_ndr_crdt_tbs[3].credit_to_be_sent <= 'h0;
 
 /*
       foreach(d2h_req_crdt_tbs[i].pending) begin
@@ -1978,13 +3299,13 @@ module host_tx_path#(
       end
 */
       d2h_req_crdt_tbs[0].pending <= 'h1;
-      d2h_req_crdt_tbs[1].pending <= 'h1;
-      d2h_req_crdt_tbs[2].pending <= 'h1;
-      d2h_req_crdt_tbs[3].pending <= 'h1;
-      d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
-      d2h_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
-      d2h_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
-      d2h_req_crdt_tbs[3].credit_to_be_sent <= 'd64;
+      d2h_req_crdt_tbs[1].pending <= 'h0;
+      d2h_req_crdt_tbs[2].pending <= 'h0;
+      d2h_req_crdt_tbs[3].pending <= 'h0;
+      d2h_req_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
+      d2h_req_crdt_tbs[1].credit_to_be_sent <= 'h0;
+      d2h_req_crdt_tbs[2].credit_to_be_sent <= 'h0;
+      d2h_req_crdt_tbs[3].credit_to_be_sent <= 'h0;
 
 /*
       foreach(d2h_data_crdt_tbs[i].pending) begin
@@ -2001,22 +3322,21 @@ module host_tx_path#(
       end
 */
       d2h_data_crdt_tbs[0].pending <= 'h1;
-      d2h_data_crdt_tbs[1].pending <= 'h1;
-      d2h_data_crdt_tbs[2].pending <= 'h1;
-      d2h_data_crdt_tbs[3].pending <= 'h1;
-      d2h_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
-      d2h_data_crdt_tbs[1].credit_to_be_sent <= 'd64;
-      d2h_data_crdt_tbs[2].credit_to_be_sent <= 'd64;
-      d2h_data_crdt_tbs[3].credit_to_be_sent <= 'd64;
+      d2h_data_crdt_tbs[1].pending <= 'h0;
+      d2h_data_crdt_tbs[2].pending <= 'h0;
+      d2h_data_crdt_tbs[3].pending <= 'h0;
+      d2h_data_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
+      d2h_data_crdt_tbs[1].credit_to_be_sent <= 'h0;
+      d2h_data_crdt_tbs[2].credit_to_be_sent <= 'h0;
+      d2h_data_crdt_tbs[3].credit_to_be_sent <= 'h0;
       s2m_drs_crdt_tbs[0].pending <= 'h1;
-      s2m_drs_crdt_tbs[1].pending <= 'h1;
-      s2m_drs_crdt_tbs[2].pending <= 'h1;
-      s2m_drs_crdt_tbs[3].pending <= 'h1;
-      s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd64;
-      s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'd64;
-      s2m_drs_crdt_tbs[2].credit_to_be_sent <= 'd64;
-      s2m_drs_crdt_tbs[3].credit_to_be_sent <= 'd64;
-
+      s2m_drs_crdt_tbs[1].pending <= 'h0;
+      s2m_drs_crdt_tbs[2].pending <= 'h0;
+      s2m_drs_crdt_tbs[3].pending <= 'h0;
+      s2m_drs_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
+      s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'h0;
+      s2m_drs_crdt_tbs[2].credit_to_be_sent <= 'h0;
+      s2m_drs_crdt_tbs[3].credit_to_be_sent <= 'h0;
     end else begin 
       d2h_req_occ_d   <= d2h_req_occ;
       d2h_rsp_occ_d   <= d2h_rsp_occ;
@@ -2299,17 +3619,67 @@ module host_tx_path#(
         end else begin
           s2m_drs_crdt_tbs[2].credit_to_be_sent <= s2m_drs_crdt_tbs[2].credit_to_be_sent + s2m_drs_outstanding_credits_2;
         end
+      end else if(((s2m_drs_crdt_tbs[2].credit_to_be_sent + s2m_drs_outstanding_credits_1) > 'd64) && ((s2m_drs_crdt_tbs[3].credit_to_be_sent + s2m_drs_outstanding_credits_2) <= 'd64)) begin
+        s2m_drs_crdt_tbs[0].pending <= 'h1;
+        s2m_drs_crdt_tbs[1].pending <= 'h1;
+        s2m_drs_crdt_tbs[2].pending <= 'h1;
+        s2m_drs_crdt_tbs[3].pending <= 'h1;
+        s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        s2m_drs_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        if((slot_sel_d != slot_sel) && (slot_sel_d == H_SLOT0) && (((d2h_data_crdt_send > 0) && (lru == 1)) || (d2h_data_crdt_send == 0))) begin
+          s2m_drs_crdt_tbs[3].credit_to_be_sent <= s2m_drs_crdt_tbs[3].credit_to_be_sent + s2m_drs_outstanding_credits_3 - ((s2m_drs_crdt_send == 'h7)? 'd64: (s2m_drs_crdt_send == 'h6)? 'h32: (s2m_drs_crdt_send == 'h5)? 'h16: (s2m_drs_crdt_send == 'h4)? 'h8: (s2m_drs_crdt_send == 'h3)? 'h4: s2m_drs_crdt_send);
+          if(d2h_data_crdt_send > 0) begin
+            lru <= ~lru;
+          end
+        end else begin
+          s2m_drs_crdt_tbs[3].credit_to_be_sent <= s2m_drs_crdt_tbs[3].credit_to_be_sent + s2m_drs_outstanding_credits_3;
+        end
+      end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent + s2m_drs_outstanding_credits_2 > 'd64) begin
+        s2m_drs_crdt_tbs[0].pending <= 'h1;
+        s2m_drs_crdt_tbs[1].pending <= 'h1;
+        s2m_drs_crdt_tbs[2].pending <= 'h1;
+        s2m_drs_crdt_tbs[3].pending <= 'h1;
+        s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        s2m_drs_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        s2m_drs_crdt_tbs[3].credit_to_be_sent <= 'd64;
       end
     end
   end
 
   //TODO: serious missing piece is if roll over cnt exceeds then packing of further data should be avoided
   //ll pkt buffer
+
+  always@(negedge host_tx_dl_if.clk) begin
+    if(!host_tx_dl_if.rstn) begin
+      data_slot[0] <= 'h0;
+      data_slot[1] <= 'h0;
+      data_slot[2] <= 'h0;
+      data_slot[3] <= 'h0;
+      data_slot[4] <= 'h0;
+    end else begin
+      if(data_slot[1] == 'hf) begin
+        data_slot[0] <= data_slot[1];
+        data_slot[1] <= data_slot[2];
+        data_slot[2] <= data_slot[3];
+        data_slot[3] <= data_slot[4];
+        data_slot[4] <= 'h0;
+      end
+    end
+  end
+
   always@(posedge host_tx_dl_if.clk) begin
     if(!host_tx_dl_if.rstn) begin
       slot_sel <= H_SLOT0;
       slot_sel_d <= H_SLOT0;
+      slot_sel_d_d <= H_SLOT0;
       holding_wrptr <= 'h0;
+      data_slot[0] <= 'h0;
+      data_slot[1] <= 'h0;
+      data_slot[2] <= 'h0;
+      data_slot[3] <= 'h0;
+      data_slot[4] <= 'h0;
       data_slot_d[0] <= 'h0;
       data_slot_d[1] <= 'h0;
       data_slot_d[2] <= 'h0;
@@ -2319,18 +3689,12 @@ module host_tx_path#(
       h_gnt_d <= h_gnt;
       g_gnt_d <= g_gnt;
       slot_sel_d <= slot_sel;
+      slot_sel_d_d <= slot_sel_d;
       data_slot_d[0] <= data_slot[0];
       data_slot_d[1] <= data_slot[1];
       data_slot_d[2] <= data_slot[2];
       data_slot_d[3] <= data_slot[3];
       data_slot_d[4] <= data_slot[4];
-      if(data_slot[1] == 'hf) begin
-        data_slot[0] <= data_slot[1];
-        data_slot[1] <= data_slot[2];
-        data_slot[2] <= data_slot[3];
-        data_slot[3] <= data_slot[4];
-        data_slot[4] <= 'h0;
-      end
       case(slot_sel)
         H_SLOT0: begin
           if(h_gnt == 0) begin
@@ -2363,7 +3727,7 @@ module host_tx_path#(
               end
             end else if(h_gnt[3]) begin
               slot_sel <= H_SLOT0;
-              if((data_slot[0] == 'h0) /*|| (data_slot[0] == 'hf)*/) begin //TODO: I doubt you would get data_slot as 'hf
+              if((data_slot[0] == 'h0) || (data_slot[0] == 'hf)) begin //TODO: I doubt you would get data_slot as 'hf
                 data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h2;
               end else if(data_slot[0] == 'h2) begin
                 data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
@@ -2469,202 +3833,202 @@ module host_tx_path#(
         end 
       endcase
      //TODO: bug/major flaw in packing logic after data slot ends in slot0/1/2 then slots123/23/3 should not be packed currently you are just sending available pkts into these slots without header slot entry so receiver cannot decode these generic slots  
-      if(slot_sel_d != slot_sel) begin
-        case(slot_sel)
+      if((slot_sel_d_d != slot_sel_d) || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[4]) begin
+        case(slot_sel_d)
           H_SLOT0: begin
-            case(h_gnt)
-              'h1: begin
-                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= ((ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0);//TBD: logic for crdt ack to be added later
-                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
-                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
-                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[32]       <= h2d_req_dataout.valid;
-                holding_q[holding_wrptr].data[35:33]    <= h2d_req_dataout.opcode;
-                holding_q[holding_wrptr].data[81:36]    <= h2d_req_dataout.address[51:6];
-                holding_q[holding_wrptr].data[93:82]    <= h2d_req_dataout.uqid;
-                holding_q[holding_wrptr].data[95:94]    <= 'h0;//spare bits are rsvd must be set to 0
-                holding_q[holding_wrptr].data[96]       <= h2d_rsp_dataout.valid;
-                holding_q[holding_wrptr].data[100:97]   <= h2d_rsp_dataout.opcode;
-                holding_q[holding_wrptr].data[112:101]  <= h2d_rsp_dataout.rspdata;
-                holding_q[holding_wrptr].data[114:113]  <= h2d_rsp_dataout.rsppre;
-                holding_q[holding_wrptr].data[126:115]  <= h2d_rsp_dataout.cqid;
-                holding_q[holding_wrptr].data[127]      <= 'h0;//TBD: says sp not sure what it is must be spare 
-                if(data_slot[0] == 'he) begin
-                  holding_q[holding_wrptr].valid        <= 'h1;
-                  holding_wrptr                         <= holding_wrptr + 1;
+            case(h_gnt_d)
+              6'b000001: begin
+                holding_q[holding_wrptr].data[0]           <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]           <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]           <= ((ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0);//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                                <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
+                holding_q[holding_wrptr].data[3]           <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]           <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]         <= 'h0;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]        <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]       <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]       <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]       <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]       <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]          <= h2d_req_dataout.valid;
+                holding_q[holding_wrptr].data[35:33]       <= h2d_req_dataout.opcode;
+                holding_q[holding_wrptr].data[81:36]       <= h2d_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[93:82]       <= h2d_req_dataout.uqid;
+                holding_q[holding_wrptr].data[95:94]       <= 'h0;//spare bits are rsvd must be set to 0
+                holding_q[holding_wrptr].data[96]          <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[100:97]      <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[112:101]     <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[114:113]     <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[126:115]     <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[127]         <= 'h0;//TBD: says sp not sure what it is must be spare 
+                if(data_slot_d[0] == 'he) begin
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_wrptr                            <= holding_wrptr + 1;
                 end else begin
-                  holding_q[holding_wrptr].valid        <= 'h0;
+                  holding_q[holding_wrptr].valid           <= 'h0;
                 end
               end
-              'h2: begin
-                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= ((ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0);//TBD: logic for crdt ack to be added later
-                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
-                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[7:5]      <= 'h1;//slot0 fmt is H0 so 0
-                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[32]       <= h2d_data_dataout.valid;
-                holding_q[holding_wrptr].data[44:33]    <= h2d_data_dataout.cqid;
-                holding_q[holding_wrptr].data[45]       <= h2d_data_dataout.chunkvalid;
-                holding_q[holding_wrptr].data[46]       <= h2d_data_dataout.poison;
-                holding_q[holding_wrptr].data[47]       <= h2d_data_dataout.goerr;
-                holding_q[holding_wrptr].data[54:48]    <= 'h0;//TBD:says pre but I do not see any pre in h2d_data
-                holding_q[holding_wrptr].data[55]       <= 'h0;//spare bit always 0
-                holding_q[holding_wrptr].data[56]       <= h2d_rsp_dataout.valid;
-                holding_q[holding_wrptr].data[60:57]    <= h2d_rsp_dataout.opcode;
-                holding_q[holding_wrptr].data[72:61]    <= h2d_rsp_dataout.rspdata;
-                holding_q[holding_wrptr].data[74:73]    <= h2d_rsp_dataout.rsppre;
-                holding_q[holding_wrptr].data[86:75]    <= h2d_rsp_dataout.cqid;
-                holding_q[holding_wrptr].data[87]       <= 'h0;//spare always 0
-                holding_q[holding_wrptr].data[88]       <= h2d_rsp_ddataout.valid;
-                holding_q[holding_wrptr].data[92:89]    <= h2d_rsp_ddataout.opcode;
-                holding_q[holding_wrptr].data[104:93]   <= h2d_rsp_ddataout.rspdata;
-                holding_q[holding_wrptr].data[106:105]  <= h2d_rsp_ddataout.rsppre;
-                holding_q[holding_wrptr].data[118:107]  <= h2d_rsp_ddataout.cqid;
-                holding_q[holding_wrptr].data[119]      <= 'h0;
-                holding_q[holding_wrptr].data[127:120]  <= 'h0;//rsvd always to 0
-                if(data_slot[0] == 'h0) begin
-                  holding_q[holding_wrptr].data[511:128]  <= h2d_data_dataout.data[383:0];
-                  holding_q[holding_wrptr].valid          <= 'h1;
-                  holding_q[holding_wrptr+1].data[255:128]<= h2d_data_dataout.data[511:384];
-                  holding_q[holding_wrptr+1].valid        <= 'h0;
-                  holding_wrptr                           <= holding_wrptr + 1;
-                end else if(data_slot[0] == 'h2) begin
-                  holding_q[holding_wrptr].data[511:256]  <= h2d_data_dataout.data[255:0];
-                  holding_q[holding_wrptr].valid          <= 'h1;
-                  holding_q[holding_wrptr+1].data[383:128]<= h2d_data_dataout.data[511:256];
-                  holding_q[holding_wrptr+1].valid        <= 'h0;
-                  holding_wrptr                           <= holding_wrptr + 1;
-                end else if(data_slot[0] == 'h6) begin
-                  holding_q[holding_wrptr].data[511:384]  <= h2d_data_dataout.data[127:0];
-                  holding_q[holding_wrptr].valid          <= 'h1;
-                  holding_q[holding_wrptr+1].data[511:128]<= h2d_data_dataout.data[511:128];
-                  holding_q[holding_wrptr+1].valid        <= 'h0;
-                  holding_wrptr                           <= holding_wrptr + 1;
-                end else if(data_slot[0] == 'he) begin
-                  holding_q[holding_wrptr].valid          <= 'h1;
-                  holding_q[holding_wrptr+1].data[511:0]  <= h2d_data_dataout.data[511:0];
-                  holding_q[holding_wrptr+1].valid        <= 'h1;
-                  holding_wrptr                           <= holding_wrptr + 2;
-                  holding_q[holding_wrptr+2].valid        <= 'h0;
+              6'b000010: begin
+                holding_q[holding_wrptr].data[0]           <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]           <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]           <= ((ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0);//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                                <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
+                holding_q[holding_wrptr].data[3]           <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]           <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]         <= 'h1;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]        <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]       <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]       <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]       <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]       <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]          <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[44:33]       <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[45]          <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[46]          <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[47]          <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[54:48]       <= 'h0;//TBD:says pre but I do not see any pre in h2d_data
+                holding_q[holding_wrptr].data[55]          <= 'h0;//spare bit always 0
+                holding_q[holding_wrptr].data[56]          <= h2d_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[60:57]       <= h2d_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[72:61]       <= h2d_rsp_dataout.rspdata;
+                holding_q[holding_wrptr].data[74:73]       <= h2d_rsp_dataout.rsppre;
+                holding_q[holding_wrptr].data[86:75]       <= h2d_rsp_dataout.cqid;
+                holding_q[holding_wrptr].data[87]          <= 'h0;//spare always 0
+                holding_q[holding_wrptr].data[88]          <= h2d_rsp_ddataout.valid;
+                holding_q[holding_wrptr].data[92:89]       <= h2d_rsp_ddataout.opcode;
+                holding_q[holding_wrptr].data[104:93]      <= h2d_rsp_ddataout.rspdata;
+                holding_q[holding_wrptr].data[106:105]     <= h2d_rsp_ddataout.rsppre;
+                holding_q[holding_wrptr].data[118:107]     <= h2d_rsp_ddataout.cqid;
+                holding_q[holding_wrptr].data[119]         <= 'h0;
+                holding_q[holding_wrptr].data[127:120]     <= 'h0;//rsvd always to 0
+                if(data_slot_d[0] == 'h0) begin
+                  holding_q[holding_wrptr].data[511:128]   <= h2d_data_dataout.data[383:0];
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[255:128] <= h2d_data_dataout.data[511:384];
+                  holding_q[holding_wrptr+1].valid         <= 'h0;
+                  holding_wrptr                            <= holding_wrptr + 1;
+                end else if(data_slot_d[0] == 'h2) begin
+                  holding_q[holding_wrptr].data[511:256]   <= h2d_data_dataout.data[255:0];
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[383:128] <= h2d_data_dataout.data[511:256];
+                  holding_q[holding_wrptr+1].valid         <= 'h0;
+                  holding_wrptr                            <= holding_wrptr + 1;
+                end else if(data_slot_d[0] == 'h6) begin
+                  holding_q[holding_wrptr].data[511:384]   <= h2d_data_dataout.data[127:0];
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[511:128] <= h2d_data_dataout.data[511:128];
+                  holding_q[holding_wrptr+1].valid         <= 'h0;
+                  holding_wrptr                            <= holding_wrptr + 1;
+                end else if(data_slot_d[0] == 'he) begin
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[511:0]   <= h2d_data_dataout.data[511:0];
+                  holding_q[holding_wrptr+1].valid         <= 'h1;
+                  holding_wrptr                            <= holding_wrptr + 2;
+                  holding_q[holding_wrptr+2].valid         <= 'h0;
                 end
               end
-              'h4: begin
-                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= ((ack_cnt_snt)? 'h1: 'h0);//TBD: logic for crdt ack to be added later
-                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
-                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[7:5]      <= 'h2;//slot0 fmt is H0 so 0
-                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[32]       <= h2d_req_dataout.valid;
-                holding_q[holding_wrptr].data[35:33]    <= h2d_req_dataout.opcode;
-                holding_q[holding_wrptr].data[81:36]    <= h2d_req_dataout.address[51:6];
-                holding_q[holding_wrptr].data[93:82]    <= h2d_req_dataout.uqid;
-                holding_q[holding_wrptr].data[95:94]    <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[96]       <= h2d_data_dataout.valid;
-                holding_q[holding_wrptr].data[108:97]   <= h2d_data_dataout.cqid;
-                holding_q[holding_wrptr].data[109]      <= h2d_data_dataout.chunkvalid;
-                holding_q[holding_wrptr].data[110]      <= h2d_data_dataout.poison;
-                holding_q[holding_wrptr].data[111]      <= h2d_data_dataout.goerr;
-                holding_q[holding_wrptr].data[118:112]  <= 'h0;//TBD: think it is typo there is no pre in d2h_data
-                holding_q[holding_wrptr].data[119]      <= 'h0;// spare always 0
-                holding_q[holding_wrptr].data[127:120]  <= 'h0;//rsvd always 0
-                if(data_slot[0] == 'h0) begin
-                  holding_q[holding_wrptr].data[511:128]  <= h2d_data_dataout.data[383:0];
-                  holding_q[holding_wrptr].valid          <= 'h1;
-                  holding_q[holding_wrptr+1].data[255:128]<= h2d_data_dataout.data[511:384];
-                  holding_q[holding_wrptr+1].valid        <= 'h0;
-                  holding_wrptr                           <= holding_wrptr + 1;
-                end else if(data_slot[0] == 'h2) begin
-                  holding_q[holding_wrptr].data[511:256]  <= h2d_data_dataout.data[255:0];
-                  holding_q[holding_wrptr].valid          <= 'h1;
-                  holding_q[holding_wrptr+1].data[383:128]<= h2d_data_dataout.data[511:256];
-                  holding_q[holding_wrptr+1].valid        <= 'h0;
-                  holding_wrptr                           <= holding_wrptr + 1;
-                end else if(data_slot[0] == 'h6) begin
-                  holding_q[holding_wrptr].data[511:384]  <= h2d_data_dataout.data[127:0];
-                  holding_q[holding_wrptr].valid          <= 'h1;
-                  holding_q[holding_wrptr+1].data[511:128]<= h2d_data_dataout.data[511:128];
-                  holding_q[holding_wrptr+1].valid        <= 'h0;
-                  holding_wrptr                           <= holding_wrptr + 1;
-                end else if(data_slot[0] == 'he) begin
-                  holding_q[holding_wrptr].valid          <= 'h1;
-                  holding_q[holding_wrptr+1].data[511:0]  <= h2d_data_dataout.data[511:0];
-                  holding_q[holding_wrptr+1].valid        <= 'h1;
-                  holding_wrptr                           <= holding_wrptr + 2;
-                  holding_q[holding_wrptr+2].valid        <= 'h0;
+              6'b000100: begin
+                holding_q[holding_wrptr].data[0]           <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]           <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]           <= ((ack_cnt_snt)? 'h1: 'h0);//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                                <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
+                holding_q[holding_wrptr].data[3]           <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]           <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]         <= 'h2;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]        <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]       <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]       <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]       <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]       <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]          <= h2d_req_dataout.valid;
+                holding_q[holding_wrptr].data[35:33]       <= h2d_req_dataout.opcode;
+                holding_q[holding_wrptr].data[81:36]       <= h2d_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[93:82]       <= h2d_req_dataout.uqid;
+                holding_q[holding_wrptr].data[95:94]       <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[96]          <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[108:97]      <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[109]         <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[110]         <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[111]         <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[118:112]     <= 'h0;//TBD: think it is typo there is no pre in d2h_data
+                holding_q[holding_wrptr].data[119]         <= 'h0;// spare always 0
+                holding_q[holding_wrptr].data[127:120]     <= 'h0;//rsvd always 0
+                if(data_slot_d[0] == 'h0) begin
+                  holding_q[holding_wrptr].data[511:128]   <= h2d_data_dataout.data[383:0];
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[255:128] <= h2d_data_dataout.data[511:384];
+                  holding_q[holding_wrptr+1].valid         <= 'h0;
+                  holding_wrptr                            <= holding_wrptr + 1;
+                end else if(data_slot_d[0] == 'h2) begin
+                  holding_q[holding_wrptr].data[511:256]   <= h2d_data_dataout.data[255:0];
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[383:128] <= h2d_data_dataout.data[511:256];
+                  holding_q[holding_wrptr+1].valid         <= 'h0;
+                  holding_wrptr                            <= holding_wrptr + 1;
+                end else if(data_slot_d[0] == 'h6) begin
+                  holding_q[holding_wrptr].data[511:384]   <= h2d_data_dataout.data[127:0];
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[511:128] <= h2d_data_dataout.data[511:128];
+                  holding_q[holding_wrptr+1].valid         <= 'h0;
+                  holding_wrptr                            <= holding_wrptr + 1;
+                end else if(data_slot_d[0] == 'he) begin
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[511:0]   <= h2d_data_dataout.data[511:0];
+                  holding_q[holding_wrptr+1].valid         <= 'h1;
+                  holding_wrptr                            <= holding_wrptr + 2;
+                  holding_q[holding_wrptr+2].valid         <= 'h0;
                 end
               end
-              'h8: begin
-                holding_q[holding_wrptr].data[0]         <= 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[holding_wrptr].data[1]         <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]         <= ((ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0);//TBD: logic for crdt ack to be added later
-                ack_cnt_snt                              <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
-                holding_q[holding_wrptr].data[3]         <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[4]         <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[7:5]       <= 'h3;//slot0 fmt is H0 so 0
-                holding_q[holding_wrptr].data[10:8]      <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[13:11]     <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[16:14]     <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[19:17]     <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]     <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]     <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]     <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[32]        <= h2d_data_dataout.valid;
-                holding_q[holding_wrptr].data[44:33]     <= h2d_data_dataout.cqid;
-                holding_q[holding_wrptr].data[45]        <= h2d_data_dataout.chunkvalid;
-                holding_q[holding_wrptr].data[46]        <= h2d_data_dataout.poison;
-                holding_q[holding_wrptr].data[47]        <= h2d_data_dataout.goerr;
-                holding_q[holding_wrptr].data[54:48]     <= 'h0;//TBD:says pre but I do not see any pre in h2d_data
-                holding_q[holding_wrptr].data[55]        <= 'h0;//spare always 0
-                holding_q[holding_wrptr].data[56]        <= h2d_data_ddataout.valid;
-                holding_q[holding_wrptr].data[68:57]     <= h2d_data_ddataout.cqid;
-                holding_q[holding_wrptr].data[69]        <= h2d_data_ddataout.chunkvalid;
-                holding_q[holding_wrptr].data[70]        <= h2d_data_ddataout.poison;
-                holding_q[holding_wrptr].data[71]        <= h2d_data_ddataout.goerr;
-                holding_q[holding_wrptr].data[78:72]     <= 'h0;//TBD: says pre but there is no pre in h2d_data
-                holding_q[holding_wrptr].data[79]        <= 'h0;// spare always 0
-                holding_q[holding_wrptr].data[80]        <= h2d_data_tdataout.valid;
-                holding_q[holding_wrptr].data[92:81]     <= h2d_data_tdataout.cqid;
-                holding_q[holding_wrptr].data[93]        <= h2d_data_tdataout.chunkvalid;
-                holding_q[holding_wrptr].data[94]        <= h2d_data_tdataout.poison;
-                holding_q[holding_wrptr].data[95]        <= h2d_data_tdataout.goerr;
-                holding_q[holding_wrptr].data[102:96]    <= 'h0;//TBD:says pre but there is no pre in h2d_data
-                holding_q[holding_wrptr].data[103]       <= 'h0;//spare bit always 0
-                holding_q[holding_wrptr].data[104]       <= h2d_data_qdataout.valid;
-                holding_q[holding_wrptr].data[116:105]   <= h2d_data_qdataout.cqid;
-                holding_q[holding_wrptr].data[117]       <= h2d_data_qdataout.chunkvalid;
-                holding_q[holding_wrptr].data[118]       <= h2d_data_qdataout.poison;
-                holding_q[holding_wrptr].data[119]       <= h2d_data_qdataout.goerr;
-                holding_q[holding_wrptr].data[126:120]   <= 'h0;//TBD: says pre but there is no pre in h2d_data
-                holding_q[holding_wrptr].data[127]       <= 'h0;
-                if(data_slot[0] == 'h0) begin
+              6'b001000: begin
+                holding_q[holding_wrptr].data[0]           <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]           <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]           <= ((ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0);//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                                <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
+                holding_q[holding_wrptr].data[3]           <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]           <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]         <= 'h3;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]        <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]       <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]       <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]       <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]       <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]          <= h2d_data_dataout.valid;
+                holding_q[holding_wrptr].data[44:33]       <= h2d_data_dataout.cqid;
+                holding_q[holding_wrptr].data[45]          <= h2d_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[46]          <= h2d_data_dataout.poison;
+                holding_q[holding_wrptr].data[47]          <= h2d_data_dataout.goerr;
+                holding_q[holding_wrptr].data[54:48]       <= 'h0;//TBD:says pre but I do not see any pre in h2d_data
+                holding_q[holding_wrptr].data[55]          <= 'h0;//spare always 0
+                holding_q[holding_wrptr].data[56]          <= h2d_data_ddataout.valid;
+                holding_q[holding_wrptr].data[68:57]       <= h2d_data_ddataout.cqid;
+                holding_q[holding_wrptr].data[69]          <= h2d_data_ddataout.chunkvalid;
+                holding_q[holding_wrptr].data[70]          <= h2d_data_ddataout.poison;
+                holding_q[holding_wrptr].data[71]          <= h2d_data_ddataout.goerr;
+                holding_q[holding_wrptr].data[78:72]       <= 'h0;//TBD: says pre but there is no pre in h2d_data
+                holding_q[holding_wrptr].data[79]          <= 'h0;// spare always 0
+                holding_q[holding_wrptr].data[80]          <= h2d_data_tdataout.valid;
+                holding_q[holding_wrptr].data[92:81]       <= h2d_data_tdataout.cqid;
+                holding_q[holding_wrptr].data[93]          <= h2d_data_tdataout.chunkvalid;
+                holding_q[holding_wrptr].data[94]          <= h2d_data_tdataout.poison;
+                holding_q[holding_wrptr].data[95]          <= h2d_data_tdataout.goerr;
+                holding_q[holding_wrptr].data[102:96]      <= 'h0;//TBD:says pre but there is no pre in h2d_data
+                holding_q[holding_wrptr].data[103]         <= 'h0;//spare bit always 0
+                holding_q[holding_wrptr].data[104]         <= h2d_data_qdataout.valid;
+                holding_q[holding_wrptr].data[116:105]     <= h2d_data_qdataout.cqid;
+                holding_q[holding_wrptr].data[117]         <= h2d_data_qdataout.chunkvalid;
+                holding_q[holding_wrptr].data[118]         <= h2d_data_qdataout.poison;
+                holding_q[holding_wrptr].data[119]         <= h2d_data_qdataout.goerr;
+                holding_q[holding_wrptr].data[126:120]     <= 'h0;//TBD: says pre but there is no pre in h2d_data
+                holding_q[holding_wrptr].data[127]         <= 'h0;
+                if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:128]   <= h2d_data_dataout.data[383:0];
                   holding_q[holding_wrptr].valid           <= 'h1;
                   holding_q[holding_wrptr+1].data[127:0]   <= h2d_data_dataout.data[511:384];
@@ -2679,7 +4043,7 @@ module host_tx_path#(
                   holding_q[holding_wrptr+4].data[127:0]   <= h2d_data_qdataout.data[511:384];
                   holding_q[holding_wrptr+4].valid         <= 'h0;
                   holding_wrptr                            <= holding_wrptr + 4;
-                end else if(data_slot[0] == 'h2) begin
+                end else if(data_slot_d[0] == 'h2) begin
                   holding_q[holding_wrptr].data[511:256]   <= h2d_data_dataout.data[255:0];
                   holding_q[holding_wrptr].valid           <= 'h1;
                   holding_q[holding_wrptr+1].data[255:0]   <= h2d_data_dataout.data[511:256];
@@ -2691,10 +4055,10 @@ module host_tx_path#(
                   holding_q[holding_wrptr+3].data[255:0]   <= h2d_data_tdataout.data[511:256];
                   holding_q[holding_wrptr+3].data[511:256] <= h2d_data_qdataout.data[255:0];
                   holding_q[holding_wrptr+3].valid         <= 'h1;
-                  holding_q[holding_wrptr+4].data[255:128]   <= h2d_data_qdataout.data[511:256];
+                  holding_q[holding_wrptr+4].data[255:128] <= h2d_data_qdataout.data[511:256];
                   holding_q[holding_wrptr+4].valid         <= 'h0;
                   holding_wrptr                            <= holding_wrptr + 4;
-                end else if(data_slot[0] == 'h6) begin
+                end else if(data_slot_d[0] == 'h6) begin
                   holding_q[holding_wrptr].data[511:384]   <= h2d_data_dataout.data[127:0];
                   holding_q[holding_wrptr].valid           <= 'h1;
                   holding_q[holding_wrptr+1].data[383:0]   <= h2d_data_dataout.data[511:128];
@@ -2709,7 +4073,7 @@ module host_tx_path#(
                   holding_q[holding_wrptr+4].data[511:128]   <= h2d_data_qdataout.data[511:128];
                   holding_q[holding_wrptr+4].valid         <= 'h0;
                   holding_wrptr                            <= holding_wrptr + 4;
-                end else if(data_slot[0] == 'he) begin
+                end else if(data_slot_d[0] == 'he) begin
                   holding_q[holding_wrptr].valid           <= 'h1;
                   holding_q[holding_wrptr+1].data[511:0]   <= h2d_data_dataout.data[511:0];
                   holding_q[holding_wrptr+1].valid         <= 'h1;
@@ -2723,51 +4087,51 @@ module host_tx_path#(
                   holding_q[holding_wrptr+5].valid         <= 'h0;
                 end
               end
-              'h16: begin
-                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
-                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
-                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[7:5]      <= 'h4;//slot0 fmt is H0 so 0
-                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[32]       <= m2s_rwd_dataout.valid;
-                holding_q[holding_wrptr].data[36:33]    <= m2s_rwd_dataout.memopcode;
-                holding_q[holding_wrptr].data[39:37]    <= m2s_rwd_dataout.snptype;
-                holding_q[holding_wrptr].data[41:40]    <= m2s_rwd_dataout.metafield;
-                holding_q[holding_wrptr].data[43:42]    <= m2s_rwd_dataout.metavalue;
-                holding_q[holding_wrptr].data[58:44]    <= m2s_rwd_dataout.tag;
-                holding_q[holding_wrptr].data[105:59]   <= m2s_rwd_dataout.address[51:6];
-                holding_q[holding_wrptr].data[106]      <= m2s_rwd_dataout.poison;
-                holding_q[holding_wrptr].data[108:107]  <= m2s_rwd_dataout.tc;
-                holding_q[holding_wrptr].data[118:109]  <= 'h0; //spare bit set to 0
-                holding_q[holding_wrptr].data[127:119]  <= 'h0; // rsvd bits set tp 0
-                if(data_slot[0] == 'h0) begin
+              6'b010000: begin
+                holding_q[holding_wrptr].data[0]          <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]          <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]          <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                               <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
+                holding_q[holding_wrptr].data[3]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]        <= 'h4;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]      <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]      <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]      <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]      <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]         <= m2s_rwd_dataout.valid;
+                holding_q[holding_wrptr].data[36:33]      <= m2s_rwd_dataout.memopcode;
+                holding_q[holding_wrptr].data[39:37]      <= m2s_rwd_dataout.snptype;
+                holding_q[holding_wrptr].data[41:40]      <= m2s_rwd_dataout.metafield;
+                holding_q[holding_wrptr].data[43:42]      <= m2s_rwd_dataout.metavalue;
+                holding_q[holding_wrptr].data[58:44]      <= m2s_rwd_dataout.tag;
+                holding_q[holding_wrptr].data[105:59]     <= m2s_rwd_dataout.address[51:6];
+                holding_q[holding_wrptr].data[106]        <= m2s_rwd_dataout.poison;
+                holding_q[holding_wrptr].data[108:107]    <= m2s_rwd_dataout.tc;
+                holding_q[holding_wrptr].data[118:109]    <= 'h0; //spare bit set to 0
+                holding_q[holding_wrptr].data[127:119]    <= 'h0; // rsvd bits set tp 0
+                if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:128]  <= m2s_rwd_dataout.data[383:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[127:0]  <= m2s_rwd_dataout.data[511:384];
                   holding_q[holding_wrptr+1].valid        <= 'h0;
                   holding_wrptr                           <= holding_wrptr + 1;
-                end else if(data_slot[0] == 'h2) begin
+                end else if(data_slot_d[0] == 'h2) begin
                   holding_q[holding_wrptr].data[511:256]  <= m2s_rwd_dataout.data[255:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[255:0]  <= m2s_rwd_dataout.data[511:256];
                   holding_q[holding_wrptr+1].valid        <= 'h0;
                   holding_wrptr                           <= holding_wrptr + 1;
-                end else if(data_slot[0] == 'h6) begin
+                end else if(data_slot_d[0] == 'h6) begin
                   holding_q[holding_wrptr].data[511:384]  <= m2s_rwd_dataout.data[127:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[511:128]<= m2s_rwd_dataout.data[511:128];
                   holding_q[holding_wrptr+1].valid        <= 'h0;
                   holding_wrptr                           <= holding_wrptr + 1;
-                end else if(data_slot[0] =='he) begin
+                end else if(data_slot_d[0] =='he) begin
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[511:0]  <= m2s_rwd_dataout.data[511:0];
                   holding_q[holding_wrptr+1].valid        <= 'h1;
@@ -2775,7 +4139,7 @@ module host_tx_path#(
                   holding_q[holding_wrptr+2].valid        <= 'h0;
                 end
               end
-              'h32: begin
+              6'b100000: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
                 holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
@@ -2800,7 +4164,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[108:107]  <= m2s_req_dataout.tc;
                 holding_q[holding_wrptr].data[118:109]  <= 'h0; //spare bit set to 0
                 holding_q[holding_wrptr].data[127:119]  <= 'h0; // rsvd bits set tp 0
-                if(data_slot[0] == 'he) begin
+                if(data_slot_d[0] == 'he) begin
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
                   holding_q[holding_wrptr+1].valid        <= 'h0;
@@ -2809,13 +4173,13 @@ module host_tx_path#(
                 end
               end
               default: begin //TBD: do you want to keeep default to assign data pkt or want some other value
-                holding_q[holding_wrptr].valid          <= 'h0;
+                holding_q[holding_wrptr].valid          <= 'hX;
               end
             endcase
           end
           G_SLOT1: begin
-            case(g_gnt)
-              'h2: begin
+            case(g_gnt_d)
+              6'b000010: begin
                 holding_q[holding_wrptr].data[10:8]                                   <= 'h1;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= h2d_rsp_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]      <= h2d_rsp_dataout.opcode;
@@ -2843,7 +4207,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+127)]                     <= 'h0; // spare bits always 0
                 holding_q[holding_wrptr].valid                                        <= 'h0;
               end
-              'h4: begin
+              6'b000100: begin
                 holding_q[holding_wrptr].data[10:8]                                   <= 'h2;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= h2d_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= h2d_req_dataout.opcode;
@@ -2870,7 +4234,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+1].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
-              'h8: begin
+              6'b001000: begin
                 holding_q[holding_wrptr].data[10:8]                                   <= 'h3;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= h2d_data_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)]     <= h2d_data_dataout.cqid;
@@ -2921,7 +4285,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+4].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 4;
               end
-              'h16: begin
+              6'b010000: begin
                 holding_q[holding_wrptr].data[10:8]     <= 'h4;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= m2s_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]      <= m2s_req_dataout.memopcode;
@@ -2947,7 +4311,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+1].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
-              'h32: begin
+              6'b100000: begin
                 holding_q[holding_wrptr].data[10:8]     <= 'h5;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= m2s_rwd_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]      <= m2s_rwd_dataout.memopcode;
@@ -2979,8 +4343,8 @@ module host_tx_path#(
             endcase
           end
           G_SLOT2: begin
-            case(g_gnt)
-              'h2: begin
+            case(g_gnt_d)
+              6'b000010: begin
                 holding_q[holding_wrptr].data[13:11]    <= 'h1;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= h2d_rsp_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]      <= h2d_rsp_dataout.opcode;
@@ -3008,7 +4372,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+127)]                     <= 'h0; // spare bits always 0
                 holding_q[holding_wrptr].valid                                        <= 'h0;
               end
-              'h4: begin
+              6'b000100: begin
                 holding_q[holding_wrptr].data[13:11]    <= 'h2;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= h2d_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]      <= h2d_req_dataout.opcode;
@@ -3035,7 +4399,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+1].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
-              'h8: begin
+              6'b001000: begin
                 holding_q[holding_wrptr].data[13:11]    <= 'h3;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= h2d_data_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)]     <= h2d_data_dataout.cqid;
@@ -3086,7 +4450,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+4].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 4;
               end
-              'h16: begin
+              6'b010000: begin
                 holding_q[holding_wrptr].data[13:11]    <= 'h4;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= m2s_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]      <= m2s_req_dataout.memopcode;
@@ -3112,7 +4476,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+1].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
-              'h32: begin
+              6'b100000: begin
                 holding_q[holding_wrptr].data[13:11]    <= 'h5;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= m2s_rwd_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]      <= m2s_rwd_dataout.memopcode;
@@ -3144,8 +4508,8 @@ module host_tx_path#(
             endcase
           end
           G_SLOT3: begin
-            case(g_gnt)
-              'h2: begin
+            case(g_gnt_d)
+              6'b000010: begin
                 holding_q[holding_wrptr].data[16:14]    <= 'h1;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= h2d_rsp_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]      <= h2d_rsp_dataout.opcode;
@@ -3175,7 +4539,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+1].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 1;
               end
-              'h4: begin
+              6'b000100: begin
                 holding_q[holding_wrptr].data[16:14]    <= 'h2;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= h2d_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]      <= h2d_req_dataout.opcode;
@@ -3202,7 +4566,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+2].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 2;
               end
-              'h8: begin
+              6'b001000: begin
                 holding_q[holding_wrptr].data[16:14]    <= 'h3;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= h2d_data_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+12):(SLOT3_OFFSET+1)]     <= h2d_data_dataout.cqid;
@@ -3250,7 +4614,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+5].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 5;
               end
-              'h16: begin
+              6'b010000: begin
                 holding_q[holding_wrptr].data[16:14]    <= 'h4;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= m2s_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]      <= m2s_req_dataout.memopcode;
@@ -3276,7 +4640,7 @@ module host_tx_path#(
                 holding_q[holding_wrptr+2].valid                                      <= 'h0;
                 holding_wrptr                                                         <= holding_wrptr + 2;
               end
-              'h32: begin
+              6'b100000: begin
                 holding_q[holding_wrptr].data[16:14]    <= 'h5;//this field will be reupdated after g slot is selected
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                       <= m2s_rwd_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]      <= m2s_rwd_dataout.memopcode;
@@ -3315,43 +4679,44 @@ module host_tx_path#(
   always@(posedge host_tx_dl_if.clk) begin
     if(!host_tx_dl_if.rstn) begin
       foreach(holding_q[i]) begin
-        holding_q[i].valid <= 'h0;
-        holding_q[i].data <= 'h0;
+        holding_q[i].valid                   <= 'h0;
+        holding_q[i].data                    <= 'h0;
       end
-      host_tx_dl_if_pre_valid <= 'h0;
-      host_tx_dl_if_pre_data <= 'h0;
-      host_tx_dl_if.valid <= 'h0;
-      host_tx_dl_if_rstn_d <= 'h0;
-      host_tx_dl_if_rstn_dd <= 'h0;
-      host_tx_dl_if_valid_d <= 'h0;
-      host_tx_dl_if.data <= 'h0;
-      host_tx_dl_if_data_d <= 'h0;
-      holding_rdptr <= 'h0;
-      ack_cnt_tbs <= 'h0;
-      ack_cnt_snt <= 'h0;
-      insert_ack_d <= 'h0;
+      host_tx_dl_if_pre_valid                <= 'h0;
+      host_tx_dl_if_pre_data                 <= 'h0;
+      host_tx_dl_if.valid                    <= 'h0;
+      host_tx_dl_if_rstn_d                   <= 'h0;
+      host_tx_dl_if_rstn_dd                  <= 'h0;
+      host_tx_dl_if_valid_d                  <= 'h0;
+      host_tx_dl_if.data                     <= 'h0;
+      host_tx_dl_if_data_d                   <= 'h0;
+      holding_rdptr                          <= 'h0;
+      ack_cnt_tbs                            <= 'h0;
+      ack_cnt_snt                            <= 'h0;
+      insert_ack_d                           <= 'h0;
     end else begin
-      insert_ack_d <= insert_ack;
-      host_tx_dl_if_rstn_d <= host_tx_dl_if.rstn;
-      host_tx_dl_if_rstn_dd <= host_tx_dl_if_rstn_d;
-      host_tx_dl_if_valid_d <= host_tx_dl_if_pre_valid;
-      host_tx_dl_if_data_d <= host_tx_dl_if_pre_data;
-      host_tx_dl_if.valid <= host_tx_dl_if_pre_valid;
-      host_tx_dl_if.data <= {host_tx_dl_if_pre_crc[15:0], host_tx_dl_if_pre_data[511:0]};
+      insert_ack_d                           <= insert_ack;
+      host_tx_dl_if_rstn_d                   <= host_tx_dl_if.rstn;
+      host_tx_dl_if_rstn_dd                  <= host_tx_dl_if_rstn_d;
+      host_tx_dl_if_valid_d                  <= host_tx_dl_if_pre_valid;
+      host_tx_dl_if_data_d                   <= host_tx_dl_if_pre_data;
+      host_tx_dl_if.valid                    <= host_tx_dl_if_pre_valid;
+      host_tx_dl_if.data                     <= {host_tx_dl_if_pre_crc[15:0], host_tx_dl_if_pre_data[511:0]};
       if(ack) begin
-        ack_cnt_tbs <= ack_cnt_tbs + 1;
+        ack_cnt_tbs                          <= ack_cnt_tbs + 1;
       end
       if(holding_q[holding_rdptr].valid) begin
-        host_tx_dl_if_pre_valid <= holding_q[holding_rdptr].valid;
-        host_tx_dl_if_pre_data <= holding_q[holding_rdptr].data;
-        holding_rdptr <= holding_rdptr + 1;
+        host_tx_dl_if_pre_valid              <= holding_q[holding_rdptr].valid;
+        holding_q[holding_rdptr].valid       <= 'h0;
+        host_tx_dl_if_pre_data               <= holding_q[holding_rdptr].data;
+        holding_rdptr                        <= holding_rdptr + 1;
       end else begin//TODO: this is wrong this is operating on a different clock and I am unsure need to analyze more if there is any cdc issues
         if((host_tx_dl_if_rstn_dd == 'h0) && (host_tx_dl_if_rstn_d == 'h1)) begin
-          host_tx_dl_if_pre_valid          <= 'h1;
-          host_tx_dl_if_pre_data[0]        <= 'h1;
-          host_tx_dl_if_pre_data[35:32]    <= 'b1100;
-          host_tx_dl_if_pre_data[39:36]    <= 'b1000;
-          host_tx_dl_if_pre_data[67:64]    <= 'h1;
+          host_tx_dl_if_pre_valid            <= 'h1;
+          host_tx_dl_if_pre_data[0]          <= 'h1;
+          host_tx_dl_if_pre_data[35:32]      <= 'b1100;
+          host_tx_dl_if_pre_data[39:36]      <= 'b1000;
+          host_tx_dl_if_pre_data[67:64]      <= 'h1;
         end else begin
           if(insert_ack) begin
             host_tx_dl_if_pre_valid          <= 'h1;
@@ -3529,6 +4894,7 @@ module device_tx_path#(
   } slot_sel_t;
   slot_sel_t slot_sel;
   slot_sel_t slot_sel_d;
+  slot_sel_t slot_sel_d_d;
   logic [7:0] holding_rdptr;
   logic [7:0] holding_wrptr;
   typedef struct {
@@ -3603,37 +4969,74 @@ module device_tx_path#(
 
   ASSERT_DEVSIDE_ONEHOT_SLOT_SEL: assert property (@(posedge dev_tx_dl_if.clk) disable iff (!dev_tx_dl_if.rstn) $onehot(slot_sel));
 
-  assign h_val[0] = (d2h_data_occ > 0) && (d2h_rsp_occ > 1);
-  assign h_val[1] = (d2h_req_occ >0) && (d2h_data_occ > 0);
-  assign h_val[2] = (d2h_data_occ > 3) && (d2h_rsp_occ > 0);
-  assign h_val[3] = (s2m_drs_occ > 0) && (s2m_ndr_occ > 0);
-  assign h_val[4] = (s2m_ndr_occ > 1);
-  assign h_val[5] = (s2m_drs_occ > 1);
-  assign g_val[1] = (d2h_req_occ > 0) && (d2h_rsp_occ > 1);
-  assign g_val[2] = (d2h_req_occ > 0) && (d2h_data_occ > 0) && (d2h_rsp_occ > 0);
-  assign g_val[3] = (d2h_data_occ > 4);
-  assign g_val[4] = (s2m_drs_occ > 0) && (s2m_ndr_occ > 1);
-  assign g_val[5] = (s2m_ndr_occ > 2);
-  assign g_val[6] = (s2m_drs_occ > 2);
-
-  assign d2h_data_rval  = (h_gnt[0] || h_gnt[1] || h_gnt[2] || g_gnt[2] || g_gnt[3])? 'h1: 'h0;
-  assign d2h_rsp_rval   = (h_gnt[0] || h_gnt[2] || g_gnt[2])?                         'h1: 'h0;
-  assign s2m_ndr_rval   = (h_gnt[0] || h_gnt[3] || h_gnt[4] || g_gnt[4] || g_gnt[5])? 'h1: 'h0;
-  assign d2h_req_rval   = (h_gnt[1] || g_gnt[2])?                                     'h1: 'h0;
-  assign d2h_data_drval = (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
-  assign d2h_data_trval = (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
-  assign d2h_data_qrval = (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
-  assign s2m_drs_rval   = (h_gnt[3] || h_gnt[5] || g_gnt[4] || g_gnt[6])?             'h1: 'h0;
-  assign s2m_ndr_drval  = (h_gnt[4] || g_gnt[4] || g_gnt[5])?                         'h1: 'h0;
-  assign s2m_drs_drval  = (h_gnt[5] || g_gnt[6])?                                     'h1: 'h0;
-  assign s2m_ndr_trval  = (g_gnt[5])?                                                 'h1: 'h0;
-  assign s2m_drs_trval  = (g_gnt[6])?                                                 'h1: 'h0;
-
-  assign h_req = ((slot_sel>1) || (data_slot[0] == 'hf))? 'h0: h_val;
-  assign g_req = ((slot_sel[0]) || (data_slot[0] == 'hf))? 'h0: g_val;
- 
-  assign insert_ack = (((ack_cnt_tbs - ack_cnt_snt) > 16) || init_done)? 1'h1: 1'h0;
+  assign h_val[0] = (d2h_data_occ > 0) && (d2h_rsp_occ  > 1)                      ;
+  assign h_val[1] = (d2h_req_occ  > 0) && (d2h_data_occ > 0)                      ;
+  assign h_val[2] = (d2h_data_occ > 3) && (d2h_rsp_occ  > 0)                      ;
+  assign h_val[3] = (s2m_drs_occ  > 0) && (s2m_ndr_occ  > 0)                      ;
+  assign h_val[4] = (s2m_ndr_occ  > 1)                                            ; 
+  assign h_val[5] = (s2m_drs_occ  > 1)                                            ;
+  assign g_val[1] = (d2h_req_occ  > 0) && (d2h_rsp_occ  > 1)                      ;
+  assign g_val[2] = (d2h_req_occ  > 0) && (d2h_data_occ > 0) && (d2h_rsp_occ > 0) ;
+  assign g_val[3] = (d2h_data_occ > 4)                                            ;
+  assign g_val[4] = (s2m_drs_occ  > 0) && (s2m_ndr_occ  > 1)                      ;
+  assign g_val[5] = (s2m_ndr_occ  > 2)                                            ;
+  assign g_val[6] = (s2m_drs_occ  > 2)                                            ;
   
+  assign h_req = ((slot_sel>1)  || (data_slot[0] == 'hf))? 'h0: h_val             ;
+  assign g_req = ((slot_sel[0]) || (data_slot[0] == 'hf))? 'h0: g_val             ;
+ 
+  assign insert_ack = (((ack_cnt_tbs-ack_cnt_snt) > 16) || init_done)? 1'h1: 1'h0 ; 
+
+  assign d2h_req_drval   = 'h0;
+  assign d2h_req_trval   = 'h0;
+  assign d2h_req_qrval   = 'h0;
+  assign d2h_rsp_drval   = 'h0;
+  assign d2h_rsp_trval   = 'h0;
+  assign d2h_rsp_qrval   = 'h0;
+  assign s2m_ndr_qrval   = 'h0;
+  assign s2m_drs_trval   = 'h0;
+  assign s2m_drs_qrval   = 'h0;
+  assign d2h_data_rval   = (h_gnt[0] || h_gnt[1] || h_gnt[2] || g_gnt[2] || g_gnt[3])? 'h1: 'h0;
+  assign d2h_rsp_rval    = (h_gnt[0] || h_gnt[2] || g_gnt[2])?                         'h1: 'h0;
+  assign s2m_ndr_rval    = (h_gnt[0] || h_gnt[3] || h_gnt[4] || g_gnt[4] || g_gnt[5])? 'h1: 'h0;
+  assign d2h_req_rval    = (h_gnt[1] || g_gnt[2])?                                     'h1: 'h0;
+  assign d2h_data_drval  = (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
+  assign d2h_data_trval  = (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
+  assign d2h_data_qrval  = (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
+  assign s2m_drs_rval    = (h_gnt[3] || h_gnt[5] || g_gnt[4] || g_gnt[6])?             'h1: 'h0;
+  assign s2m_ndr_drval   = (h_gnt[4] || g_gnt[4] || g_gnt[5])?                         'h1: 'h0;
+  assign s2m_drs_drval   = (h_gnt[5] || g_gnt[6])?                                     'h1: 'h0;
+  assign s2m_ndr_trval   = (g_gnt[5])?                                                 'h1: 'h0;
+/*
+  always@(posedge dev_tx_dl_if.clk) begin
+    if(!dev_tx_dl_if.rstn) begin
+      d2h_req_drval   <= 'h0;
+      d2h_req_trval   <= 'h0;
+      d2h_req_qrval   <= 'h0;
+      d2h_rsp_drval   <= 'h0;
+      d2h_rsp_trval   <= 'h0;
+      d2h_rsp_qrval   <= 'h0;
+      s2m_ndr_qrval   <= 'h0;
+      s2m_drs_rval    <= 'h0;
+      s2m_drs_drval   <= 'h0;
+      s2m_drs_trval   <= 'h0;
+      s2m_drs_qrval   <= 'h0;
+    end else begin
+      d2h_data_rval   <= (h_gnt[0] || h_gnt[1] || h_gnt[2] || g_gnt[2] || g_gnt[3])? 'h1: 'h0;
+      d2h_rsp_rval    <= (h_gnt[0] || h_gnt[2] || g_gnt[2])?                         'h1: 'h0;
+      s2m_ndr_rval    <= (h_gnt[0] || h_gnt[3] || h_gnt[4] || g_gnt[4] || g_gnt[5])? 'h1: 'h0;
+      d2h_req_rval    <= (h_gnt[1] || g_gnt[2])?                                     'h1: 'h0;
+      d2h_data_drval  <= (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
+      d2h_data_trval  <= (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
+      d2h_data_qrval  <= (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
+      s2m_drs_rval    <= (h_gnt[3] || h_gnt[5] || g_gnt[4] || g_gnt[6])?             'h1: 'h0;
+      s2m_ndr_drval   <= (h_gnt[4] || g_gnt[4] || g_gnt[5])?                         'h1: 'h0;
+      s2m_drs_drval   <= (h_gnt[5] || g_gnt[6])?                                     'h1: 'h0;
+      s2m_ndr_trval   <= (g_gnt[5])?                                                 'h1: 'h0;
+      s2m_drs_trval   <= (g_gnt[6])?                                                 'h1: 'h0;
+    end
+  end
+*/
   always_comb begin
  /* 
   $display(
@@ -3707,106 +5110,146 @@ module device_tx_path#(
     m2s_req_outstanding_credits     = (m2s_req_occ_d  > m2s_req_occ ) ? (m2s_req_occ_d  - m2s_req_occ   ) : 'h0;
     h2d_data_outstanding_credits    = (h2d_data_occ_d > h2d_data_occ) ? (h2d_data_occ_d - h2d_data_occ  ) : 'h0;
     m2s_rwd_outstanding_credits     = (m2s_rwd_occ_d  > m2s_rwd_occ ) ? (m2s_rwd_occ_d  - m2s_rwd_occ   ) : 'h0;
-    h2d_rsp_outstanding_credits_0   = (h2d_rsp_crdt_tbs[0].credit_to_be_sent > h2d_rsp_outstanding_credits)?
-                                      (h2d_rsp_crdt_tbs[0].credit_to_be_sent - h2d_rsp_outstanding_credits): 
-                                      (h2d_rsp_crdt_tbs[0].credit_to_be_sent < h2d_rsp_outstanding_credits)?
-                                      (h2d_rsp_outstanding_credits - h2d_rsp_crdt_tbs[0].credit_to_be_sent): 
-                                      (h2d_rsp_crdt_tbs[0].credit_to_be_sent);
-    h2d_rsp_outstanding_credits_1   = (h2d_rsp_crdt_tbs[1].credit_to_be_sent > h2d_rsp_outstanding_credits_0)?
-                                      (h2d_rsp_crdt_tbs[1].credit_to_be_sent - h2d_rsp_outstanding_credits_0): 
-                                      (h2d_rsp_crdt_tbs[1].credit_to_be_sent < h2d_rsp_outstanding_credits_0)?
-                                      (h2d_rsp_outstanding_credits_0 - h2d_rsp_crdt_tbs[1].credit_to_be_sent): 
-                                      (h2d_rsp_crdt_tbs[1].credit_to_be_sent);
-    h2d_rsp_outstanding_credits_2   = (h2d_rsp_crdt_tbs[2].credit_to_be_sent > h2d_rsp_outstanding_credits_1)?
-                                      (h2d_rsp_crdt_tbs[2].credit_to_be_sent - h2d_rsp_outstanding_credits_1): 
-                                      (h2d_rsp_crdt_tbs[2].credit_to_be_sent < h2d_rsp_outstanding_credits_1)?
-                                      (h2d_rsp_outstanding_credits_1 - h2d_rsp_crdt_tbs[2].credit_to_be_sent): 
-                                      (h2d_rsp_crdt_tbs[2].credit_to_be_sent);
-    h2d_rsp_outstanding_credits_3   = (h2d_rsp_crdt_tbs[3].credit_to_be_sent > h2d_rsp_outstanding_credits_2)?
-                                      (h2d_rsp_crdt_tbs[3].credit_to_be_sent - h2d_rsp_outstanding_credits_2): 
-                                      (h2d_rsp_crdt_tbs[3].credit_to_be_sent < h2d_rsp_outstanding_credits_2)?
-                                      (h2d_rsp_outstanding_credits_2 - h2d_rsp_crdt_tbs[3].credit_to_be_sent): 
-                                      (h2d_rsp_crdt_tbs[3].credit_to_be_sent);
-    h2d_req_outstanding_credits_0   = (h2d_req_crdt_tbs[0].credit_to_be_sent > h2d_req_outstanding_credits)? 
-                                      (h2d_req_crdt_tbs[0].credit_to_be_sent - h2d_req_outstanding_credits): 
-                                      (h2d_req_crdt_tbs[0].credit_to_be_sent < h2d_req_outstanding_credits)?
-                                      (h2d_req_outstanding_credits - h2d_req_crdt_tbs[0].credit_to_be_sent): 
-                                      (h2d_req_crdt_tbs[0].credit_to_be_sent);
-    h2d_req_outstanding_credits_1   = (h2d_req_crdt_tbs[1].credit_to_be_sent > h2d_req_outstanding_credits_0)?
-                                      (h2d_req_crdt_tbs[1].credit_to_be_sent - h2d_req_outstanding_credits_0): 
-                                      (h2d_req_crdt_tbs[1].credit_to_be_sent < h2d_req_outstanding_credits_0)?
-                                      (h2d_req_outstanding_credits_0 - h2d_req_crdt_tbs[1].credit_to_be_sent): 
-                                      (h2d_req_crdt_tbs[1].credit_to_be_sent);
-    h2d_req_outstanding_credits_2   = (h2d_req_crdt_tbs[2].credit_to_be_sent > h2d_req_outstanding_credits_1)?
-                                      (h2d_req_crdt_tbs[2].credit_to_be_sent - h2d_req_outstanding_credits_1): 
-                                      (h2d_req_crdt_tbs[2].credit_to_be_sent < h2d_req_outstanding_credits_1)?
-                                      (h2d_req_outstanding_credits_1 - h2d_req_crdt_tbs[2].credit_to_be_sent): 
-                                      (h2d_req_crdt_tbs[2].credit_to_be_sent);
-    h2d_req_outstanding_credits_3   = (h2d_req_crdt_tbs[3].credit_to_be_sent > h2d_req_outstanding_credits_2)?
-                                      (h2d_req_crdt_tbs[3].credit_to_be_sent - h2d_req_outstanding_credits_2): 
-                                      (h2d_req_crdt_tbs[3].credit_to_be_sent < h2d_req_outstanding_credits_2)?
-                                      (h2d_req_outstanding_credits_2 - h2d_req_crdt_tbs[3].credit_to_be_sent): 
-                                      (h2d_req_crdt_tbs[3].credit_to_be_sent);
-    h2d_data_outstanding_credits_0  = (h2d_data_crdt_tbs[0].credit_to_be_sent > h2d_data_outstanding_credits)?
-                                      (h2d_data_crdt_tbs[0].credit_to_be_sent - h2d_data_outstanding_credits): 
-                                      (h2d_data_crdt_tbs[0].credit_to_be_sent < h2d_data_outstanding_credits)?
-                                      (h2d_data_outstanding_credits - h2d_data_crdt_tbs[0].credit_to_be_sent): 
-                                      (h2d_data_crdt_tbs[0].credit_to_be_sent);
-    h2d_data_outstanding_credits_1  = (h2d_data_crdt_tbs[1].credit_to_be_sent > h2d_data_outstanding_credits_0)?
-                                      (h2d_data_crdt_tbs[1].credit_to_be_sent - h2d_data_outstanding_credits_0): 
-                                      (h2d_data_crdt_tbs[1].credit_to_be_sent < h2d_data_outstanding_credits_0)?
-                                      (h2d_data_outstanding_credits_0 - h2d_data_crdt_tbs[1].credit_to_be_sent): 
-                                      (h2d_data_crdt_tbs[1].credit_to_be_sent);
-    h2d_data_outstanding_credits_2  = (h2d_data_crdt_tbs[2].credit_to_be_sent > h2d_data_outstanding_credits_1)?
-                                      (h2d_data_crdt_tbs[2].credit_to_be_sent - h2d_data_outstanding_credits_1): 
-                                      (h2d_data_crdt_tbs[2].credit_to_be_sent < h2d_data_outstanding_credits_1)?
-                                      (h2d_data_outstanding_credits_1 - h2d_data_crdt_tbs[2].credit_to_be_sent): 
-                                      (h2d_data_crdt_tbs[2].credit_to_be_sent);
-    h2d_data_outstanding_credits_3  = (h2d_data_crdt_tbs[3].credit_to_be_sent > h2d_data_outstanding_credits_2)?
-                                      (h2d_data_crdt_tbs[3].credit_to_be_sent - h2d_data_outstanding_credits_2): 
-                                      (h2d_data_crdt_tbs[3].credit_to_be_sent < h2d_data_outstanding_credits_2)?
-                                      (h2d_data_outstanding_credits_2 - h2d_data_crdt_tbs[3].credit_to_be_sent): 
-                                      (h2d_data_crdt_tbs[3].credit_to_be_sent);
-    m2s_req_outstanding_credits_0   = (m2s_req_crdt_tbs[0].credit_to_be_sent > m2s_req_outstanding_credits)?
-                                      (m2s_req_crdt_tbs[0].credit_to_be_sent - m2s_req_outstanding_credits): 
-                                      (m2s_req_crdt_tbs[0].credit_to_be_sent < m2s_req_outstanding_credits)?
-                                      (m2s_req_outstanding_credits - m2s_req_crdt_tbs[0].credit_to_be_sent): 
-                                      (m2s_req_crdt_tbs[0].credit_to_be_sent);
-    m2s_req_outstanding_credits_1   = (m2s_req_crdt_tbs[1].credit_to_be_sent > m2s_req_outstanding_credits_0)?
-                                      (m2s_req_crdt_tbs[1].credit_to_be_sent - m2s_req_outstanding_credits_0): 
-                                      (m2s_req_crdt_tbs[1].credit_to_be_sent < m2s_req_outstanding_credits_0)?
-                                      (m2s_req_outstanding_credits_0 - m2s_req_crdt_tbs[1].credit_to_be_sent): 
-                                      (m2s_req_crdt_tbs[1].credit_to_be_sent);
-    m2s_req_outstanding_credits_2   = (m2s_req_crdt_tbs[2].credit_to_be_sent > m2s_req_outstanding_credits_1)?
-                                      (m2s_req_crdt_tbs[2].credit_to_be_sent - m2s_req_outstanding_credits_1): 
-                                      (m2s_req_crdt_tbs[2].credit_to_be_sent < m2s_req_outstanding_credits_1)?
-                                      (m2s_req_outstanding_credits_1 - m2s_req_crdt_tbs[2].credit_to_be_sent): 
-                                      (m2s_req_crdt_tbs[2].credit_to_be_sent);
-    m2s_req_outstanding_credits_3   = (m2s_req_crdt_tbs[3].credit_to_be_sent > m2s_req_outstanding_credits_2)?
-                                      (m2s_req_crdt_tbs[3].credit_to_be_sent - m2s_req_outstanding_credits_2): 
-                                      (m2s_req_crdt_tbs[3].credit_to_be_sent < m2s_req_outstanding_credits_2)?
-                                      (m2s_req_outstanding_credits_2 - m2s_req_crdt_tbs[3].credit_to_be_sent): 
-                                      (m2s_req_crdt_tbs[3].credit_to_be_sent);
-    m2s_rwd_outstanding_credits_0   = (m2s_rwd_crdt_tbs[0].credit_to_be_sent > m2s_rwd_outstanding_credits)?
-                                      (m2s_rwd_crdt_tbs[0].credit_to_be_sent - m2s_rwd_outstanding_credits): 
-                                      (m2s_rwd_crdt_tbs[0].credit_to_be_sent < m2s_rwd_outstanding_credits)?
-                                      (m2s_rwd_outstanding_credits - m2s_rwd_crdt_tbs[0].credit_to_be_sent): 
-                                      (m2s_rwd_crdt_tbs[0].credit_to_be_sent);
-    m2s_rwd_outstanding_credits_1   = (m2s_rwd_crdt_tbs[1].credit_to_be_sent > m2s_rwd_outstanding_credits_0)?
-                                      (m2s_rwd_crdt_tbs[1].credit_to_be_sent - m2s_rwd_outstanding_credits_0): 
-                                      (m2s_rwd_crdt_tbs[1].credit_to_be_sent < m2s_rwd_outstanding_credits_0)?
-                                      (m2s_rwd_outstanding_credits_0 - m2s_rwd_crdt_tbs[1].credit_to_be_sent): 
-                                      (m2s_rwd_crdt_tbs[1].credit_to_be_sent);
-    m2s_rwd_outstanding_credits_2   = (m2s_rwd_crdt_tbs[2].credit_to_be_sent > m2s_rwd_outstanding_credits_1)?
-                                      (m2s_rwd_crdt_tbs[2].credit_to_be_sent - m2s_rwd_outstanding_credits_1): 
-                                      (m2s_rwd_crdt_tbs[2].credit_to_be_sent < m2s_rwd_outstanding_credits_1)?
-                                      (m2s_rwd_outstanding_credits_1 - m2s_rwd_crdt_tbs[2].credit_to_be_sent): 
-                                      (m2s_rwd_crdt_tbs[2].credit_to_be_sent);
-    m2s_rwd_outstanding_credits_3   = (m2s_rwd_crdt_tbs[3].credit_to_be_sent > m2s_rwd_outstanding_credits_2)?
-                                      (m2s_rwd_crdt_tbs[3].credit_to_be_sent - m2s_rwd_outstanding_credits_2): 
-                                      (m2s_rwd_crdt_tbs[3].credit_to_be_sent < m2s_rwd_outstanding_credits_2)?
-                                      (m2s_rwd_outstanding_credits_2 - m2s_rwd_crdt_tbs[3].credit_to_be_sent): 
-                                      (m2s_rwd_crdt_tbs[3].credit_to_be_sent);
+    h2d_rsp_outstanding_credits_0   = (h2d_req_outstanding_credits > 0)? (
+                                        (h2d_rsp_crdt_tbs[0].credit_to_be_sent > h2d_rsp_outstanding_credits)?
+                                        (h2d_rsp_crdt_tbs[0].credit_to_be_sent - h2d_rsp_outstanding_credits): 
+                                        (h2d_rsp_crdt_tbs[0].credit_to_be_sent < h2d_rsp_outstanding_credits)?
+                                        (h2d_rsp_outstanding_credits - h2d_rsp_crdt_tbs[0].credit_to_be_sent): 
+                                        (h2d_rsp_crdt_tbs[0].credit_to_be_sent)
+                                      ) : 'h0;
+    h2d_rsp_outstanding_credits_1   = (h2d_rsp_outstanding_credits_0 > 0)? (
+                                        (h2d_rsp_crdt_tbs[1].credit_to_be_sent > h2d_rsp_outstanding_credits_0)?
+                                        (h2d_rsp_crdt_tbs[1].credit_to_be_sent - h2d_rsp_outstanding_credits_0): 
+                                        (h2d_rsp_crdt_tbs[1].credit_to_be_sent < h2d_rsp_outstanding_credits_0)?
+                                        (h2d_rsp_outstanding_credits_0 - h2d_rsp_crdt_tbs[1].credit_to_be_sent): 
+                                        (h2d_rsp_crdt_tbs[1].credit_to_be_sent)
+                                      ) : 'h0;
+    h2d_rsp_outstanding_credits_2   = (h2d_rsp_outstanding_credits_1 > 0) ? (
+                                        (h2d_rsp_crdt_tbs[2].credit_to_be_sent > h2d_rsp_outstanding_credits_1)?
+                                        (h2d_rsp_crdt_tbs[2].credit_to_be_sent - h2d_rsp_outstanding_credits_1): 
+                                        (h2d_rsp_crdt_tbs[2].credit_to_be_sent < h2d_rsp_outstanding_credits_1)?
+                                        (h2d_rsp_outstanding_credits_1 - h2d_rsp_crdt_tbs[2].credit_to_be_sent): 
+                                        (h2d_rsp_crdt_tbs[2].credit_to_be_sent)
+                                      ) : 'h0;
+    h2d_rsp_outstanding_credits_3   = (h2d_rsp_outstanding_credits_2 > 0)? (
+                                        (h2d_rsp_crdt_tbs[3].credit_to_be_sent > h2d_rsp_outstanding_credits_2)?
+                                        (h2d_rsp_crdt_tbs[3].credit_to_be_sent - h2d_rsp_outstanding_credits_2): 
+                                        (h2d_rsp_crdt_tbs[3].credit_to_be_sent < h2d_rsp_outstanding_credits_2)?
+                                        (h2d_rsp_outstanding_credits_2 - h2d_rsp_crdt_tbs[3].credit_to_be_sent): 
+                                        (h2d_rsp_crdt_tbs[3].credit_to_be_sent)
+                                      ) : 'h0;
+    h2d_req_outstanding_credits_0   = (h2d_req_outstanding_credits > 0)? (
+                                        (h2d_req_crdt_tbs[0].credit_to_be_sent > h2d_req_outstanding_credits)? 
+                                        (h2d_req_crdt_tbs[0].credit_to_be_sent - h2d_req_outstanding_credits): 
+                                        (h2d_req_crdt_tbs[0].credit_to_be_sent < h2d_req_outstanding_credits)?
+                                        (h2d_req_outstanding_credits - h2d_req_crdt_tbs[0].credit_to_be_sent): 
+                                        (h2d_req_crdt_tbs[0].credit_to_be_sent)
+                                      ) : 'h0;
+    h2d_req_outstanding_credits_1   = (h2d_req_outstanding_credits_0 > 0)? (
+                                        (h2d_req_crdt_tbs[1].credit_to_be_sent > h2d_req_outstanding_credits_0)?
+                                        (h2d_req_crdt_tbs[1].credit_to_be_sent - h2d_req_outstanding_credits_0): 
+                                        (h2d_req_crdt_tbs[1].credit_to_be_sent < h2d_req_outstanding_credits_0)?
+                                        (h2d_req_outstanding_credits_0 - h2d_req_crdt_tbs[1].credit_to_be_sent): 
+                                        (h2d_req_crdt_tbs[1].credit_to_be_sent)
+                                      ) : 'h0;
+    h2d_req_outstanding_credits_2   = (h2d_req_outstanding_credits_1 > 0)? (
+                                        (h2d_req_crdt_tbs[2].credit_to_be_sent > h2d_req_outstanding_credits_1)?
+                                        (h2d_req_crdt_tbs[2].credit_to_be_sent - h2d_req_outstanding_credits_1): 
+                                        (h2d_req_crdt_tbs[2].credit_to_be_sent < h2d_req_outstanding_credits_1)?
+                                        (h2d_req_outstanding_credits_1 - h2d_req_crdt_tbs[2].credit_to_be_sent): 
+                                        (h2d_req_crdt_tbs[2].credit_to_be_sent)
+                                      ) : 'h0;
+    h2d_req_outstanding_credits_3   = (h2d_req_outstanding_credits_2 > 0)? (
+                                        (h2d_req_crdt_tbs[3].credit_to_be_sent > h2d_req_outstanding_credits_2)?
+                                        (h2d_req_crdt_tbs[3].credit_to_be_sent - h2d_req_outstanding_credits_2): 
+                                        (h2d_req_crdt_tbs[3].credit_to_be_sent < h2d_req_outstanding_credits_2)?
+                                        (h2d_req_outstanding_credits_2 - h2d_req_crdt_tbs[3].credit_to_be_sent): 
+                                        (h2d_req_crdt_tbs[3].credit_to_be_sent)
+                                      ) : 'h0;
+    h2d_data_outstanding_credits_0  = (h2d_data_outstanding_credits > 0)? (
+                                        (h2d_data_crdt_tbs[0].credit_to_be_sent > h2d_data_outstanding_credits)?
+                                        (h2d_data_crdt_tbs[0].credit_to_be_sent - h2d_data_outstanding_credits): 
+                                        (h2d_data_crdt_tbs[0].credit_to_be_sent < h2d_data_outstanding_credits)?
+                                        (h2d_data_outstanding_credits - h2d_data_crdt_tbs[0].credit_to_be_sent): 
+                                        (h2d_data_crdt_tbs[0].credit_to_be_sent)
+                                      ) : 'h0;
+    h2d_data_outstanding_credits_1  = (h2d_data_outstanding_credits_0 > 0)? (
+                                        (h2d_data_crdt_tbs[1].credit_to_be_sent > h2d_data_outstanding_credits_0)?
+                                        (h2d_data_crdt_tbs[1].credit_to_be_sent - h2d_data_outstanding_credits_0): 
+                                        (h2d_data_crdt_tbs[1].credit_to_be_sent < h2d_data_outstanding_credits_0)?
+                                        (h2d_data_outstanding_credits_0 - h2d_data_crdt_tbs[1].credit_to_be_sent): 
+                                        (h2d_data_crdt_tbs[1].credit_to_be_sent)
+                                      ) : 'h0;
+    h2d_data_outstanding_credits_2  = (h2d_data_outstanding_credits_1 > 0)? (
+                                        (h2d_data_crdt_tbs[2].credit_to_be_sent > h2d_data_outstanding_credits_1)?
+                                        (h2d_data_crdt_tbs[2].credit_to_be_sent - h2d_data_outstanding_credits_1): 
+                                        (h2d_data_crdt_tbs[2].credit_to_be_sent < h2d_data_outstanding_credits_1)?
+                                        (h2d_data_outstanding_credits_1 - h2d_data_crdt_tbs[2].credit_to_be_sent): 
+                                        (h2d_data_crdt_tbs[2].credit_to_be_sent)
+                                      ) : 'h0;
+    h2d_data_outstanding_credits_3  = (h2d_data_outstanding_credits_2 > 0)? (
+                                        (h2d_data_crdt_tbs[3].credit_to_be_sent > h2d_data_outstanding_credits_2)?
+                                        (h2d_data_crdt_tbs[3].credit_to_be_sent - h2d_data_outstanding_credits_2): 
+                                        (h2d_data_crdt_tbs[3].credit_to_be_sent < h2d_data_outstanding_credits_2)?
+                                        (h2d_data_outstanding_credits_2 - h2d_data_crdt_tbs[3].credit_to_be_sent): 
+                                        (h2d_data_crdt_tbs[3].credit_to_be_sent)
+                                      ) : 'h0;
+    m2s_req_outstanding_credits_0   = (m2s_req_outstanding_credits > 0)? (
+                                        (m2s_req_crdt_tbs[0].credit_to_be_sent > m2s_req_outstanding_credits)?
+                                        (m2s_req_crdt_tbs[0].credit_to_be_sent - m2s_req_outstanding_credits): 
+                                        (m2s_req_crdt_tbs[0].credit_to_be_sent < m2s_req_outstanding_credits)?
+                                        (m2s_req_outstanding_credits - m2s_req_crdt_tbs[0].credit_to_be_sent): 
+                                        (m2s_req_crdt_tbs[0].credit_to_be_sent)
+                                      ) : 'h0;
+    m2s_req_outstanding_credits_1   = (m2s_req_outstanding_credits_0 > 0)? (
+                                        (m2s_req_crdt_tbs[1].credit_to_be_sent > m2s_req_outstanding_credits_0)?
+                                        (m2s_req_crdt_tbs[1].credit_to_be_sent - m2s_req_outstanding_credits_0): 
+                                        (m2s_req_crdt_tbs[1].credit_to_be_sent < m2s_req_outstanding_credits_0)?
+                                        (m2s_req_outstanding_credits_0 - m2s_req_crdt_tbs[1].credit_to_be_sent): 
+                                        (m2s_req_crdt_tbs[1].credit_to_be_sent)
+                                      ) : 'h0;
+    m2s_req_outstanding_credits_2   = (m2s_req_outstanding_credits_1 > 0)? (
+                                        (m2s_req_crdt_tbs[2].credit_to_be_sent > m2s_req_outstanding_credits_1)?
+                                        (m2s_req_crdt_tbs[2].credit_to_be_sent - m2s_req_outstanding_credits_1): 
+                                        (m2s_req_crdt_tbs[2].credit_to_be_sent < m2s_req_outstanding_credits_1)?
+                                        (m2s_req_outstanding_credits_1 - m2s_req_crdt_tbs[2].credit_to_be_sent): 
+                                        (m2s_req_crdt_tbs[2].credit_to_be_sent)
+                                      ) : 'h0;
+    m2s_req_outstanding_credits_3   = (m2s_req_outstanding_credits_2 > 0)? (
+                                        (m2s_req_crdt_tbs[3].credit_to_be_sent > m2s_req_outstanding_credits_2)?
+                                        (m2s_req_crdt_tbs[3].credit_to_be_sent - m2s_req_outstanding_credits_2): 
+                                        (m2s_req_crdt_tbs[3].credit_to_be_sent < m2s_req_outstanding_credits_2)?
+                                        (m2s_req_outstanding_credits_2 - m2s_req_crdt_tbs[3].credit_to_be_sent): 
+                                        (m2s_req_crdt_tbs[3].credit_to_be_sent)
+                                      ) : 'h0;
+    m2s_rwd_outstanding_credits_0   = (m2s_rwd_outstanding_credits > 0)? (
+                                        (m2s_rwd_crdt_tbs[0].credit_to_be_sent > m2s_rwd_outstanding_credits)?
+                                        (m2s_rwd_crdt_tbs[0].credit_to_be_sent - m2s_rwd_outstanding_credits): 
+                                        (m2s_rwd_crdt_tbs[0].credit_to_be_sent < m2s_rwd_outstanding_credits)?
+                                        (m2s_rwd_outstanding_credits - m2s_rwd_crdt_tbs[0].credit_to_be_sent): 
+                                        (m2s_rwd_crdt_tbs[0].credit_to_be_sent)
+                                      ) : 'h0;
+    m2s_rwd_outstanding_credits_1   = (m2s_rwd_outstanding_credits_0 > 0)? (
+                                        (m2s_rwd_crdt_tbs[1].credit_to_be_sent > m2s_rwd_outstanding_credits_0)?
+                                        (m2s_rwd_crdt_tbs[1].credit_to_be_sent - m2s_rwd_outstanding_credits_0): 
+                                        (m2s_rwd_crdt_tbs[1].credit_to_be_sent < m2s_rwd_outstanding_credits_0)?
+                                        (m2s_rwd_outstanding_credits_0 - m2s_rwd_crdt_tbs[1].credit_to_be_sent): 
+                                        (m2s_rwd_crdt_tbs[1].credit_to_be_sent)
+                                      ) : 'h0;
+    m2s_rwd_outstanding_credits_2   = (m2s_rwd_outstanding_credits_1 > 0)? (
+                                        (m2s_rwd_crdt_tbs[2].credit_to_be_sent > m2s_rwd_outstanding_credits_1)?
+                                        (m2s_rwd_crdt_tbs[2].credit_to_be_sent - m2s_rwd_outstanding_credits_1): 
+                                        (m2s_rwd_crdt_tbs[2].credit_to_be_sent < m2s_rwd_outstanding_credits_1)?
+                                        (m2s_rwd_outstanding_credits_1 - m2s_rwd_crdt_tbs[2].credit_to_be_sent): 
+                                        (m2s_rwd_crdt_tbs[2].credit_to_be_sent)
+                                      ) : 'h0;
+    m2s_rwd_outstanding_credits_3   = (m2s_rwd_outstanding_credits_2 > 0)? (
+                                        (m2s_rwd_crdt_tbs[3].credit_to_be_sent > m2s_rwd_outstanding_credits_2)?
+                                        (m2s_rwd_crdt_tbs[3].credit_to_be_sent - m2s_rwd_outstanding_credits_2): 
+                                        (m2s_rwd_crdt_tbs[3].credit_to_be_sent < m2s_rwd_outstanding_credits_2)?
+                                        (m2s_rwd_outstanding_credits_2 - m2s_rwd_crdt_tbs[3].credit_to_be_sent): 
+                                        (m2s_rwd_crdt_tbs[3].credit_to_be_sent)
+                                      ) : 'h0;
     h2d_rsp_consumed_credits        = (h2d_rsp_occ_d  < h2d_rsp_occ ) ? (h2d_rsp_occ    - h2d_rsp_occ_d ) : 'h0;
     h2d_req_consumed_credits        = (h2d_req_occ_d  < h2d_req_occ ) ? (h2d_req_occ    - h2d_req_occ_d ) : 'h0;
     m2s_req_consumed_credits        = (m2s_req_occ_d  < m2s_req_occ ) ? (m2s_req_occ    - m2s_req_occ_d ) : 'h0;
@@ -3841,85 +5284,85 @@ module device_tx_path#(
     */
 
     if(h2d_rsp_crdt_tbs[3].pending) begin
-      if(h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+      if(h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         h2d_rsp_crdt_send = 'h7;
-      end else if(h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+      end else if((h2d_rsp_crdt_tbs[3].credit_to_be_sent <= 'd63) && (h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd32)) begin
         h2d_rsp_crdt_send = 'h6;
-      end else if(h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+      end else if((h2d_rsp_crdt_tbs[3].credit_to_be_sent <= 'd31) && (h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd16)) begin
         h2d_rsp_crdt_send = 'h5;
-      end else if(h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+      end else if((h2d_rsp_crdt_tbs[3].credit_to_be_sent <= 'd15) && (h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd8))  begin
         h2d_rsp_crdt_send = 'h4;
-      end else if(h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+      end else if((h2d_rsp_crdt_tbs[3].credit_to_be_sent <= 'd7 ) && (h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd4))  begin
         h2d_rsp_crdt_send = 'h3;
-      end else if(h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+      end else if((h2d_rsp_crdt_tbs[3].credit_to_be_sent <= 'd3 ) && (h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd2))  begin
         h2d_rsp_crdt_send = 'h2;
       end else if(h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd1) begin
         h2d_rsp_crdt_send = 'h1;
       end else begin
-        if(h2d_rsp_crdt_tbs[2].pending) begin
-          if(h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+        $display("zero pending: design issue");
+      end
+    end else begin
+      if(h2d_rsp_crdt_tbs[2].pending) begin
+        if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd64) begin
+          h2d_rsp_crdt_send = 'h7;
+        end else if((h2d_rsp_crdt_tbs[2].credit_to_be_sent <= 'd63) && (h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd32)) begin
+          h2d_rsp_crdt_send = 'h6;
+        end else if((h2d_rsp_crdt_tbs[2].credit_to_be_sent <= 'd31) && (h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd16)) begin
+          h2d_rsp_crdt_send = 'h5;
+        end else if((h2d_rsp_crdt_tbs[2].credit_to_be_sent <= 'd15) && (h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd8))  begin
+          h2d_rsp_crdt_send = 'h4;
+        end else if((h2d_rsp_crdt_tbs[2].credit_to_be_sent <= 'd7)  && (h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd4))  begin
+          h2d_rsp_crdt_send = 'h3;
+        end else if((h2d_rsp_crdt_tbs[2].credit_to_be_sent <= 'd3)  && (h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd2))  begin
+          h2d_rsp_crdt_send = 'h2;
+        end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          h2d_rsp_crdt_send = 'h1;
+        end else begin
+          $display("zero pending: design issue");
+        end
+      end else begin
+        if(h2d_rsp_crdt_tbs[1].pending) begin
+          if(h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd64) begin
             h2d_rsp_crdt_send = 'h7;
-          end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+          end else if((h2d_rsp_crdt_tbs[1].credit_to_be_sent <= 'd63) && (h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd32)) begin
             h2d_rsp_crdt_send = 'h6;
-          end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+          end else if((h2d_rsp_crdt_tbs[1].credit_to_be_sent <= 'd31) && (h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd16)) begin
             h2d_rsp_crdt_send = 'h5;
-          end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+          end else if((h2d_rsp_crdt_tbs[1].credit_to_be_sent <= 'd15) && (h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd8))  begin
             h2d_rsp_crdt_send = 'h4;
-          end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+          end else if((h2d_rsp_crdt_tbs[1].credit_to_be_sent <= 'd7 ) && (h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd4))  begin
             h2d_rsp_crdt_send = 'h3;
-          end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+          end else if((h2d_rsp_crdt_tbs[1].credit_to_be_sent <= 'd3 ) && (h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd2))  begin
             h2d_rsp_crdt_send = 'h2;
-          end else if(h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          end else if(h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd1) begin
             h2d_rsp_crdt_send = 'h1;
           end else begin
-            if(h2d_rsp_crdt_tbs[1].pending) begin
-              if(h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd64) begin
-                h2d_rsp_crdt_send = 'h7;
-              end else if(h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
-                h2d_rsp_crdt_send = 'h6;
-              end else if(h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
-               h2d_rsp_crdt_send = 'h5;
-              end else if(h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
-                h2d_rsp_crdt_send = 'h4;
-              end else if(h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
-                h2d_rsp_crdt_send = 'h3;
-              end else if(h2d_rsp_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
-                h2d_rsp_crdt_send = 'h2;
-              end else if(h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd1) begin
-                h2d_rsp_crdt_send = 'h1;
-              end else begin
-                if(h2d_rsp_crdt_tbs[0].pending) begin
-                  if(h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd64) begin
-                    h2d_rsp_crdt_send = 'h7;
-                  end else if(h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd32) begin
-                    h2d_rsp_crdt_send = 'h6;
-                  end else if(h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd16) begin
-                    h2d_rsp_crdt_send = 'h5;
-                  end else if(h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd8) begin
-                    h2d_rsp_crdt_send = 'h4;
-                  end else if(h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd4) begin
-                    h2d_rsp_crdt_send = 'h3;
-                  end else if(h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
-                    h2d_rsp_crdt_send = 'h2;
-                  end else if(h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd1) begin
-                    h2d_rsp_crdt_send = 'h1;
-                  end else begin
-                    h2d_rsp_crdt_send = 'h0;
-                  end
-                end else begin
-                  h2d_rsp_crdt_send = 'h0;
-                end
-              end
-            end else begin
-              h2d_rsp_crdt_send = 'h0;
-            end
+            $display("zero pending: design issue");
           end
         end else begin
-          h2d_rsp_crdt_send = 'h0;
+          if(h2d_rsp_crdt_tbs[0].pending) begin
+            if(h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd64) begin
+              h2d_rsp_crdt_send = 'h7;
+            end else if((h2d_rsp_crdt_tbs[0].credit_to_be_sent <= 'd63) && (h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd32)) begin
+              h2d_rsp_crdt_send = 'h6;
+            end else if((h2d_rsp_crdt_tbs[0].credit_to_be_sent <= 'd31) && (h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd16)) begin
+              h2d_rsp_crdt_send = 'h5;
+            end else if((h2d_rsp_crdt_tbs[0].credit_to_be_sent <= 'd15) && (h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd8))  begin
+              h2d_rsp_crdt_send = 'h4;
+            end else if((h2d_rsp_crdt_tbs[0].credit_to_be_sent <= 'd7 ) && (h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd4))  begin
+              h2d_rsp_crdt_send = 'h3;
+            end else if((h2d_rsp_crdt_tbs[0].credit_to_be_sent <= 'd3 ) && (h2d_rsp_crdt_tbs[0].credit_to_be_sent >= 'd2))  begin
+              h2d_rsp_crdt_send = 'h2;
+            end else if(h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd1) begin
+              h2d_rsp_crdt_send = 'h1;
+            end else begin
+              $display("zero pending: design issue");
+            end
+          end else begin
+              h2d_rsp_crdt_send = 'h0;
+          end
         end
       end 
-    end else begin
-      h2d_rsp_crdt_send = 'h0;
     end
 /*
     $display(
@@ -3933,85 +5376,85 @@ module device_tx_path#(
     );
 */
     if(h2d_req_crdt_tbs[3].pending) begin
-      if(h2d_req_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+      if(h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         h2d_req_crdt_send = 'h7;
-      end else if(h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+      end else if((h2d_req_crdt_tbs[3].credit_to_be_sent <= 'd63) && (h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd32)) begin
         h2d_req_crdt_send = 'h6;
-      end else if(h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+      end else if((h2d_req_crdt_tbs[3].credit_to_be_sent <= 'd31) && (h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd16)) begin
         h2d_req_crdt_send = 'h5;
-      end else if(h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+      end else if((h2d_req_crdt_tbs[3].credit_to_be_sent <= 'd15) && (h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd8))  begin
         h2d_req_crdt_send = 'h4;
-      end else if(h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+      end else if((h2d_req_crdt_tbs[3].credit_to_be_sent <= 'd7 ) && (h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd4))  begin
         h2d_req_crdt_send = 'h3;
-      end else if(h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+      end else if((h2d_req_crdt_tbs[3].credit_to_be_sent <= 'd3 ) && (h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd2))  begin
         h2d_req_crdt_send = 'h2;
       end else if(h2d_req_crdt_tbs[3].credit_to_be_sent == 'd1) begin
         h2d_req_crdt_send = 'h1;
       end else begin
-        if(h2d_req_crdt_tbs[2].pending) begin
-          if(h2d_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+        $display("zero pending: design issue");
+      end
+    end else begin
+      if(h2d_req_crdt_tbs[2].pending) begin
+        if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd64) begin
+          h2d_req_crdt_send = 'h7;
+        end else if((h2d_req_crdt_tbs[2].credit_to_be_sent <= 'd63) && (h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd32)) begin
+          h2d_req_crdt_send = 'h6;
+        end else if((h2d_req_crdt_tbs[2].credit_to_be_sent <= 'd31) && (h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd16)) begin
+          h2d_req_crdt_send = 'h5;
+        end else if((h2d_req_crdt_tbs[2].credit_to_be_sent <= 'd15) && (h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd8))  begin
+          h2d_req_crdt_send = 'h4;
+        end else if((h2d_req_crdt_tbs[2].credit_to_be_sent <= 'd7)  && (h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd4))  begin
+          h2d_req_crdt_send = 'h3;
+        end else if((h2d_req_crdt_tbs[2].credit_to_be_sent <= 'd3)  && (h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd2))  begin
+          h2d_req_crdt_send = 'h2;
+        end else if(h2d_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          h2d_req_crdt_send = 'h1;
+        end else begin
+          $display("zero pending: design issue");
+        end
+      end else begin
+        if(h2d_req_crdt_tbs[1].pending) begin
+          if(h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd64) begin
             h2d_req_crdt_send = 'h7;
-          end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+          end else if((h2d_req_crdt_tbs[1].credit_to_be_sent <= 'd63) && (h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd32)) begin
             h2d_req_crdt_send = 'h6;
-          end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+          end else if((h2d_req_crdt_tbs[1].credit_to_be_sent <= 'd31) && (h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd16)) begin
             h2d_req_crdt_send = 'h5;
-          end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+          end else if((h2d_req_crdt_tbs[1].credit_to_be_sent <= 'd15) && (h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd8))  begin
             h2d_req_crdt_send = 'h4;
-          end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+          end else if((h2d_req_crdt_tbs[1].credit_to_be_sent <= 'd7 ) && (h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd4))  begin
             h2d_req_crdt_send = 'h3;
-          end else if(h2d_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+          end else if((h2d_req_crdt_tbs[1].credit_to_be_sent <= 'd3 ) && (h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd2))  begin
             h2d_req_crdt_send = 'h2;
-          end else if(h2d_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          end else if(h2d_req_crdt_tbs[1].credit_to_be_sent == 'd1) begin
             h2d_req_crdt_send = 'h1;
           end else begin
-            if(h2d_req_crdt_tbs[1].pending) begin
-              if(h2d_req_crdt_tbs[1].credit_to_be_sent == 'd64) begin
-                h2d_req_crdt_send = 'h7;
-              end else if(h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
-                h2d_req_crdt_send = 'h6;
-              end else if(h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
-                h2d_req_crdt_send = 'h5;
-              end else if(h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
-                h2d_req_crdt_send = 'h4;
-              end else if(h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
-                h2d_req_crdt_send = 'h3;
-              end else if(h2d_req_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
-                h2d_req_crdt_send = 'h2;
-              end else if(h2d_req_crdt_tbs[1].credit_to_be_sent == 'd1) begin
-                h2d_req_crdt_send = 'h1;
-              end else begin
-                if(h2d_req_crdt_tbs[0].pending) begin
-                  if(h2d_req_crdt_tbs[0].credit_to_be_sent == 'd64) begin
-                    h2d_req_crdt_send = 'h7;
-                  end else if(h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd32) begin
-                    h2d_req_crdt_send = 'h6;
-                  end else if(h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd16) begin
-                    h2d_req_crdt_send = 'h5;
-                  end else if(h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd8) begin
-                    h2d_req_crdt_send = 'h4;
-                  end else if(h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd4) begin
-                    h2d_req_crdt_send = 'h3;
-                  end else if(h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
-                    h2d_req_crdt_send = 'h2;
-                  end else if(h2d_req_crdt_tbs[0].credit_to_be_sent == 'd1) begin
-                    h2d_req_crdt_send = 'h1;
-                  end else begin
-                    h2d_req_crdt_send = 'h0;
-                  end
-                end else begin
-                  h2d_req_crdt_send = 'h0;
-                end
-              end
-            end else begin
-              h2d_req_crdt_send = 'h0;
-            end
+            $display("zero pending: design issue");
           end
         end else begin
-          h2d_req_crdt_send = 'h0;
+          if(h2d_req_crdt_tbs[0].pending) begin
+            if(h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd64) begin
+              h2d_req_crdt_send = 'h7;
+            end else if((h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd63) && (h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd32)) begin
+              h2d_req_crdt_send = 'h6;
+            end else if((h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd31) && (h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd16)) begin
+              h2d_req_crdt_send = 'h5;
+            end else if((h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd15) && (h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd8))  begin
+              h2d_req_crdt_send = 'h4;
+            end else if((h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd7 ) && (h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd4))  begin
+              h2d_req_crdt_send = 'h3;
+            end else if((h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd3 ) && (h2d_req_crdt_tbs[0].credit_to_be_sent >= 'd2))  begin
+              h2d_req_crdt_send = 'h2;
+            end else if(h2d_req_crdt_tbs[0].credit_to_be_sent == 'd1) begin
+              h2d_req_crdt_send = 'h1;
+            end else begin
+              $display("zero pending: design issue");
+            end
+          end else begin
+              h2d_req_crdt_send = 'h0;
+          end
         end
       end 
-    end else begin
-      h2d_req_crdt_send = 'h0;
     end
 /*
     $display(
@@ -4025,85 +5468,85 @@ module device_tx_path#(
     );
 */
     if(m2s_req_crdt_tbs[3].pending) begin
-      if(m2s_req_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+      if(m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         m2s_req_crdt_send = 'h7;
-      end else if(m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+      end else if((m2s_req_crdt_tbs[3].credit_to_be_sent <= 'd63) && (m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd32)) begin
         m2s_req_crdt_send = 'h6;
-      end else if(m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+      end else if((m2s_req_crdt_tbs[3].credit_to_be_sent <= 'd31) && (m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd16)) begin
         m2s_req_crdt_send = 'h5;
-      end else if(m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+      end else if((m2s_req_crdt_tbs[3].credit_to_be_sent <= 'd15) && (m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd8))  begin
         m2s_req_crdt_send = 'h4;
-      end else if(m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+      end else if((m2s_req_crdt_tbs[3].credit_to_be_sent <= 'd7 ) && (m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd4))  begin
         m2s_req_crdt_send = 'h3;
-      end else if(m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+      end else if((m2s_req_crdt_tbs[3].credit_to_be_sent <= 'd3 ) && (m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd2))  begin
         m2s_req_crdt_send = 'h2;
       end else if(m2s_req_crdt_tbs[3].credit_to_be_sent == 'd1) begin
         m2s_req_crdt_send = 'h1;
       end else begin
-        if(m2s_req_crdt_tbs[2].pending) begin
-          if(m2s_req_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+        $display("zero pending: design issue");
+      end
+    end else begin
+      if(m2s_req_crdt_tbs[2].pending) begin
+        if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd64) begin
+          m2s_req_crdt_send = 'h7;
+        end else if((m2s_req_crdt_tbs[2].credit_to_be_sent <= 'd63) && (m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd32)) begin
+          m2s_req_crdt_send = 'h6;
+        end else if((m2s_req_crdt_tbs[2].credit_to_be_sent <= 'd31) && (m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd16)) begin
+          m2s_req_crdt_send = 'h5;
+        end else if((m2s_req_crdt_tbs[2].credit_to_be_sent <= 'd15) && (m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd8))  begin
+          m2s_req_crdt_send = 'h4;
+        end else if((m2s_req_crdt_tbs[2].credit_to_be_sent <= 'd7)  && (m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd4))  begin
+          m2s_req_crdt_send = 'h3;
+        end else if((m2s_req_crdt_tbs[2].credit_to_be_sent <= 'd3)  && (m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd2))  begin
+          m2s_req_crdt_send = 'h2;
+        end else if(m2s_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          m2s_req_crdt_send = 'h1;
+        end else begin
+          $display("zero pending: design issue");
+        end
+      end else begin
+        if(m2s_req_crdt_tbs[1].pending) begin
+          if(m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd64) begin
             m2s_req_crdt_send = 'h7;
-          end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+          end else if((m2s_req_crdt_tbs[1].credit_to_be_sent <= 'd63) && (m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd32)) begin
             m2s_req_crdt_send = 'h6;
-          end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+          end else if((m2s_req_crdt_tbs[1].credit_to_be_sent <= 'd31) && (m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd16)) begin
             m2s_req_crdt_send = 'h5;
-          end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+          end else if((m2s_req_crdt_tbs[1].credit_to_be_sent <= 'd15) && (m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd8))  begin
             m2s_req_crdt_send = 'h4;
-          end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+          end else if((m2s_req_crdt_tbs[1].credit_to_be_sent <= 'd7 ) && (m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd4))  begin
             m2s_req_crdt_send = 'h3;
-          end else if(m2s_req_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+          end else if((m2s_req_crdt_tbs[1].credit_to_be_sent <= 'd3 ) && (m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd2))  begin
             m2s_req_crdt_send = 'h2;
-          end else if(m2s_req_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          end else if(m2s_req_crdt_tbs[1].credit_to_be_sent == 'd1) begin
             m2s_req_crdt_send = 'h1;
           end else begin
-            if(m2s_req_crdt_tbs[1].pending) begin
-              if(m2s_req_crdt_tbs[1].credit_to_be_sent == 'd64) begin
-                m2s_req_crdt_send = 'h7;
-              end else if(m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
-                m2s_req_crdt_send = 'h6;
-              end else if(m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
-               m2s_req_crdt_send = 'h5;
-              end else if(m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
-                m2s_req_crdt_send = 'h4;
-              end else if(m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
-                m2s_req_crdt_send = 'h3;
-              end else if(m2s_req_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
-                m2s_req_crdt_send = 'h2;
-              end else if(m2s_req_crdt_tbs[1].credit_to_be_sent == 'd1) begin
-                m2s_req_crdt_send = 'h1;
-              end else begin
-                if(m2s_req_crdt_tbs[0].pending) begin
-                  if(m2s_req_crdt_tbs[0].credit_to_be_sent == 'd64) begin
-                    m2s_req_crdt_send = 'h7;
-                  end else if(m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd32) begin
-                    m2s_req_crdt_send = 'h6;
-                  end else if(m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd16) begin
-                    m2s_req_crdt_send = 'h5;
-                  end else if(m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd8) begin
-                    m2s_req_crdt_send = 'h4;
-                  end else if(m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd4) begin
-                    m2s_req_crdt_send = 'h3;
-                  end else if(m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
-                    m2s_req_crdt_send = 'h2;
-                  end else if(m2s_req_crdt_tbs[0].credit_to_be_sent == 'd1) begin
-                    m2s_req_crdt_send = 'h1;
-                  end else begin
-                    m2s_req_crdt_send = 'h0;
-                  end
-                end else begin
-                  m2s_req_crdt_send = 'h0;
-                end
-              end
-            end else begin
-              m2s_req_crdt_send = 'h0;
-            end
+            $display("zero pending: design issue");
           end
         end else begin
-          m2s_req_crdt_send = 'h0;
+          if(m2s_req_crdt_tbs[0].pending) begin
+            if(m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd64) begin
+              m2s_req_crdt_send = 'h7;
+            end else if((m2s_req_crdt_tbs[0].credit_to_be_sent <= 'd63) && (m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd32)) begin
+              m2s_req_crdt_send = 'h6;
+            end else if((m2s_req_crdt_tbs[0].credit_to_be_sent <= 'd31) && (m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd16)) begin
+              m2s_req_crdt_send = 'h5;
+            end else if((m2s_req_crdt_tbs[0].credit_to_be_sent <= 'd15) && (m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd8))  begin
+              m2s_req_crdt_send = 'h4;
+            end else if((m2s_req_crdt_tbs[0].credit_to_be_sent <= 'd7 ) && (m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd4))  begin
+              m2s_req_crdt_send = 'h3;
+            end else if((m2s_req_crdt_tbs[0].credit_to_be_sent <= 'd3 ) && (m2s_req_crdt_tbs[0].credit_to_be_sent >= 'd2))  begin
+              m2s_req_crdt_send = 'h2;
+            end else if(m2s_req_crdt_tbs[0].credit_to_be_sent == 'd1) begin
+              m2s_req_crdt_send = 'h1;
+            end else begin
+              $display("zero pending: design issue");
+            end
+          end else begin
+              m2s_req_crdt_send = 'h0;
+          end
         end
       end 
-    end else begin
-      m2s_req_crdt_send = 'h0;
     end
 /*
     $display(
@@ -4117,85 +5560,85 @@ module device_tx_path#(
     );
 */
     if(h2d_data_crdt_tbs[3].pending) begin
-      if(h2d_data_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+      if(h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         h2d_data_crdt_send = 'h7;
-      end else if(h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+      end else if((h2d_data_crdt_tbs[3].credit_to_be_sent <= 'd63) && (h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd32)) begin
         h2d_data_crdt_send = 'h6;
-      end else if(h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+      end else if((h2d_data_crdt_tbs[3].credit_to_be_sent <= 'd31) && (h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd16)) begin
         h2d_data_crdt_send = 'h5;
-      end else if(h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+      end else if((h2d_data_crdt_tbs[3].credit_to_be_sent <= 'd15) && (h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd8))  begin
         h2d_data_crdt_send = 'h4;
-      end else if(h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+      end else if((h2d_data_crdt_tbs[3].credit_to_be_sent <= 'd7 ) && (h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd4))  begin
         h2d_data_crdt_send = 'h3;
-      end else if(h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+      end else if((h2d_data_crdt_tbs[3].credit_to_be_sent <= 'd3 ) && (h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd2))  begin
         h2d_data_crdt_send = 'h2;
       end else if(h2d_data_crdt_tbs[3].credit_to_be_sent == 'd1) begin
         h2d_data_crdt_send = 'h1;
       end else begin
-        if(h2d_data_crdt_tbs[2].pending) begin
-          if(h2d_data_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+        $display("zero pending: design issue");
+      end
+    end else begin
+      if(h2d_data_crdt_tbs[2].pending) begin
+        if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd64) begin
+          h2d_data_crdt_send = 'h7;
+        end else if((h2d_data_crdt_tbs[2].credit_to_be_sent <= 'd63) && (h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd32)) begin
+          h2d_data_crdt_send = 'h6;
+        end else if((h2d_data_crdt_tbs[2].credit_to_be_sent <= 'd31) && (h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd16)) begin
+          h2d_data_crdt_send = 'h5;
+        end else if((h2d_data_crdt_tbs[2].credit_to_be_sent <= 'd15) && (h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd8))  begin
+          h2d_data_crdt_send = 'h4;
+        end else if((h2d_data_crdt_tbs[2].credit_to_be_sent <= 'd7)  && (h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd4))  begin
+          h2d_data_crdt_send = 'h3;
+        end else if((h2d_data_crdt_tbs[2].credit_to_be_sent <= 'd3)  && (h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd2))  begin
+          h2d_data_crdt_send = 'h2;
+        end else if(h2d_data_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          h2d_data_crdt_send = 'h1;
+        end else begin
+          $display("zero pending: design issue");
+        end
+      end else begin
+        if(h2d_data_crdt_tbs[1].pending) begin
+          if(h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd64) begin
             h2d_data_crdt_send = 'h7;
-          end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+          end else if((h2d_data_crdt_tbs[1].credit_to_be_sent <= 'd63) && (h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd32)) begin
             h2d_data_crdt_send = 'h6;
-          end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+          end else if((h2d_data_crdt_tbs[1].credit_to_be_sent <= 'd31) && (h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd16)) begin
             h2d_data_crdt_send = 'h5;
-          end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+          end else if((h2d_data_crdt_tbs[1].credit_to_be_sent <= 'd15) && (h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd8))  begin
             h2d_data_crdt_send = 'h4;
-          end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+          end else if((h2d_data_crdt_tbs[1].credit_to_be_sent <= 'd7 ) && (h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd4))  begin
             h2d_data_crdt_send = 'h3;
-          end else if(h2d_data_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+          end else if((h2d_data_crdt_tbs[1].credit_to_be_sent <= 'd3 ) && (h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd2))  begin
             h2d_data_crdt_send = 'h2;
-          end else if(h2d_data_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          end else if(h2d_data_crdt_tbs[1].credit_to_be_sent == 'd1) begin
             h2d_data_crdt_send = 'h1;
           end else begin
-            if(h2d_data_crdt_tbs[1].pending) begin
-              if(h2d_data_crdt_tbs[1].credit_to_be_sent == 'd64) begin
-                h2d_data_crdt_send = 'h7;
-              end else if(h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
-                h2d_data_crdt_send = 'h6;
-              end else if(h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
-               h2d_data_crdt_send = 'h5;
-              end else if(h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
-                h2d_data_crdt_send = 'h4;
-              end else if(h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
-                h2d_data_crdt_send = 'h3;
-              end else if(h2d_data_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
-                h2d_data_crdt_send = 'h2;
-              end else if(h2d_data_crdt_tbs[1].credit_to_be_sent == 'd1) begin
-                h2d_data_crdt_send = 'h1;
-              end else begin
-                if(h2d_data_crdt_tbs[0].pending) begin
-                  if(h2d_data_crdt_tbs[0].credit_to_be_sent == 'd64) begin
-                    h2d_data_crdt_send = 'h7;
-                  end else if(h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd32) begin
-                    h2d_data_crdt_send = 'h6;
-                  end else if(h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd16) begin
-                    h2d_data_crdt_send = 'h5;
-                  end else if(h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd8) begin
-                    h2d_data_crdt_send = 'h4;
-                  end else if(h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd4) begin
-                    h2d_data_crdt_send = 'h3;
-                  end else if(h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
-                    h2d_data_crdt_send = 'h2;
-                  end else if(h2d_data_crdt_tbs[0].credit_to_be_sent == 'd1) begin
-                    h2d_data_crdt_send = 'h1;
-                  end else begin
-                    h2d_data_crdt_send = 'h0;
-                  end
-                end else begin
-                  h2d_data_crdt_send = 'h0;
-                end
-              end
-            end else begin
-              h2d_data_crdt_send = 'h0;
-            end
+            $display("zero pending: design issue");
           end
         end else begin
-          h2d_data_crdt_send = 'h0;
+          if(h2d_data_crdt_tbs[0].pending) begin
+            if(h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd64) begin
+              h2d_data_crdt_send = 'h7;
+            end else if((h2d_data_crdt_tbs[0].credit_to_be_sent <= 'd63) && (h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd32)) begin
+              h2d_data_crdt_send = 'h6;
+            end else if((h2d_data_crdt_tbs[0].credit_to_be_sent <= 'd31) && (h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd16)) begin
+              h2d_data_crdt_send = 'h5;
+            end else if((h2d_data_crdt_tbs[0].credit_to_be_sent <= 'd15) && (h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd8))  begin
+              h2d_data_crdt_send = 'h4;
+            end else if((h2d_data_crdt_tbs[0].credit_to_be_sent <= 'd7 ) && (h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd4))  begin
+              h2d_data_crdt_send = 'h3;
+            end else if((h2d_data_crdt_tbs[0].credit_to_be_sent <= 'd3 ) && (h2d_data_crdt_tbs[0].credit_to_be_sent >= 'd2))  begin
+              h2d_data_crdt_send = 'h2;
+            end else if(h2d_data_crdt_tbs[0].credit_to_be_sent == 'd1) begin
+              h2d_data_crdt_send = 'h1;
+            end else begin
+              $display("zero pending: design issue");
+            end
+          end else begin
+              h2d_data_crdt_send = 'h0;
+          end
         end
       end 
-    end else begin
-      h2d_data_crdt_send = 'h0;
     end
     /*
     $display(
@@ -4209,85 +5652,85 @@ module device_tx_path#(
     );
 */
     if(m2s_rwd_crdt_tbs[3].pending) begin
-      if(m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd64) begin
+      if(m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         m2s_rwd_crdt_send = 'h7;
-      end else if(m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd32) begin
+      end else if((m2s_rwd_crdt_tbs[3].credit_to_be_sent <= 'd63) && (m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd32)) begin
         m2s_rwd_crdt_send = 'h6;
-      end else if(m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd16) begin
+      end else if((m2s_rwd_crdt_tbs[3].credit_to_be_sent <= 'd31) && (m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd16)) begin
         m2s_rwd_crdt_send = 'h5;
-      end else if(m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd8) begin
+      end else if((m2s_rwd_crdt_tbs[3].credit_to_be_sent <= 'd15) && (m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd8))  begin
         m2s_rwd_crdt_send = 'h4;
-      end else if(m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd4) begin
+      end else if((m2s_rwd_crdt_tbs[3].credit_to_be_sent <= 'd7 ) && (m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd4))  begin
         m2s_rwd_crdt_send = 'h3;
-      end else if(m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd2) begin
+      end else if((m2s_rwd_crdt_tbs[3].credit_to_be_sent <= 'd3 ) && (m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd2))  begin
         m2s_rwd_crdt_send = 'h2;
       end else if(m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd1) begin
         m2s_rwd_crdt_send = 'h1;
       end else begin
-        if(m2s_rwd_crdt_tbs[2].pending) begin
-          if(m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd64) begin
+        $display("zero pending: design issue");
+      end
+    end else begin
+      if(m2s_rwd_crdt_tbs[2].pending) begin
+        if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd64) begin
+          m2s_rwd_crdt_send = 'h7;
+        end else if((m2s_rwd_crdt_tbs[2].credit_to_be_sent <= 'd63) && (m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd32)) begin
+          m2s_rwd_crdt_send = 'h6;
+        end else if((m2s_rwd_crdt_tbs[2].credit_to_be_sent <= 'd31) && (m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd16)) begin
+          m2s_rwd_crdt_send = 'h5;
+        end else if((m2s_rwd_crdt_tbs[2].credit_to_be_sent <= 'd15) && (m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd8))  begin
+          m2s_rwd_crdt_send = 'h4;
+        end else if((m2s_rwd_crdt_tbs[2].credit_to_be_sent <= 'd7)  && (m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd4))  begin
+          m2s_rwd_crdt_send = 'h3;
+        end else if((m2s_rwd_crdt_tbs[2].credit_to_be_sent <= 'd3)  && (m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd2))  begin
+          m2s_rwd_crdt_send = 'h2;
+        end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          m2s_rwd_crdt_send = 'h1;
+        end else begin
+          $display("zero pending: design issue");
+        end
+      end else begin
+        if(m2s_rwd_crdt_tbs[1].pending) begin
+          if(m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd64) begin
             m2s_rwd_crdt_send = 'h7;
-          end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd32) begin
+          end else if((m2s_rwd_crdt_tbs[1].credit_to_be_sent <= 'd63) && (m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd32)) begin
             m2s_rwd_crdt_send = 'h6;
-          end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd16) begin
+          end else if((m2s_rwd_crdt_tbs[1].credit_to_be_sent <= 'd31) && (m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd16)) begin
             m2s_rwd_crdt_send = 'h5;
-          end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd8) begin
+          end else if((m2s_rwd_crdt_tbs[1].credit_to_be_sent <= 'd15) && (m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd8))  begin
             m2s_rwd_crdt_send = 'h4;
-          end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd4) begin
+          end else if((m2s_rwd_crdt_tbs[1].credit_to_be_sent <= 'd7 ) && (m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd4))  begin
             m2s_rwd_crdt_send = 'h3;
-          end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent >= 'd2) begin
+          end else if((m2s_rwd_crdt_tbs[1].credit_to_be_sent <= 'd3 ) && (m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd2))  begin
             m2s_rwd_crdt_send = 'h2;
-          end else if(m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd1) begin
+          end else if(m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd1) begin
             m2s_rwd_crdt_send = 'h1;
           end else begin
-            if(m2s_rwd_crdt_tbs[1].pending) begin
-              if(m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd64) begin
-                m2s_rwd_crdt_send = 'h7;
-              end else if(m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd32) begin
-                m2s_rwd_crdt_send = 'h6;
-              end else if(m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd16) begin
-               m2s_rwd_crdt_send = 'h5;
-              end else if(m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd8) begin
-                m2s_rwd_crdt_send = 'h4;
-              end else if(m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd4) begin
-                m2s_rwd_crdt_send = 'h3;
-              end else if(m2s_rwd_crdt_tbs[1].credit_to_be_sent >= 'd2) begin
-                m2s_rwd_crdt_send = 'h2;
-              end else if(m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd1) begin
-                m2s_rwd_crdt_send = 'h1;
-              end else begin
-                if(m2s_rwd_crdt_tbs[0].pending) begin
-                  if(m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd64) begin
-                    m2s_rwd_crdt_send = 'h7;
-                  end else if(m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd32) begin
-                    m2s_rwd_crdt_send = 'h6;
-                  end else if(m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd16) begin
-                    m2s_rwd_crdt_send = 'h5;
-                  end else if(m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd8) begin
-                    m2s_rwd_crdt_send = 'h4;
-                  end else if(m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd4) begin
-                    m2s_rwd_crdt_send = 'h3;
-                  end else if(m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd2) begin
-                    m2s_rwd_crdt_send = 'h2;
-                  end else if(m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd1) begin
-                    m2s_rwd_crdt_send = 'h1;
-                  end else begin
-                    m2s_rwd_crdt_send = 'h0;
-                  end
-                end else begin
-                  m2s_rwd_crdt_send = 'h0;
-                end
-              end
-            end else begin
-              m2s_rwd_crdt_send = 'h0;
-            end
+            $display("zero pending: design issue");
           end
         end else begin
-          m2s_rwd_crdt_send = 'h0;
+          if(m2s_rwd_crdt_tbs[0].pending) begin
+            if(m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd64) begin
+              m2s_rwd_crdt_send = 'h7;
+            end else if((m2s_rwd_crdt_tbs[0].credit_to_be_sent <= 'd63) && (m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd32)) begin
+              m2s_rwd_crdt_send = 'h6;
+            end else if((m2s_rwd_crdt_tbs[0].credit_to_be_sent <= 'd31) && (m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd16)) begin
+              m2s_rwd_crdt_send = 'h5;
+            end else if((m2s_rwd_crdt_tbs[0].credit_to_be_sent <= 'd15) && (m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd8))  begin
+              m2s_rwd_crdt_send = 'h4;
+            end else if((m2s_rwd_crdt_tbs[0].credit_to_be_sent <= 'd7 ) && (m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd4))  begin
+              m2s_rwd_crdt_send = 'h3;
+            end else if((m2s_rwd_crdt_tbs[0].credit_to_be_sent <= 'd3 ) && (m2s_rwd_crdt_tbs[0].credit_to_be_sent >= 'd2))  begin
+              m2s_rwd_crdt_send = 'h2;
+            end else if(m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd1) begin
+              m2s_rwd_crdt_send = 'h1;
+            end else begin
+              $display("zero pending: design issue");
+            end
+          end else begin
+              m2s_rwd_crdt_send = 'h0;
+          end
         end
       end 
-    end else begin
-      m2s_rwd_crdt_send = 'h0;
     end
 /*
     $display(
@@ -4301,30 +5744,30 @@ module device_tx_path#(
     );
 */
 /*
-    h2d_req_crdt_send             = (h2d_req_crdt_tbs[3].pending)? (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (h2d_req_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_req_crdt_tbs[2].pending)? (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (h2d_req_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_req_crdt_tbs[1].pending)? (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (h2d_req_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (h2d_req_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (h2d_req_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_req_crdt_tbs[0].pending)? (h2d_req_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (h2d_req_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (h2d_req_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (h2d_req_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (h2d_req_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+    h2d_req_crdt_send             = (h2d_req_crdt_tbs[3].pending)? (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_req_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_req_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_req_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_req_crdt_tbs[2].pending)? (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_req_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_req_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_req_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_req_crdt_tbs[1].pending)? (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_req_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_req_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_req_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_req_crdt_tbs[0].pending)? (h2d_req_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_req_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_req_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_req_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_req_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
                                   : 'h0;
-    h2d_rsp_crdt_send             = (h2d_rsp_crdt_tbs[3].pending)? (h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (h2d_rsp_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (h2d_rsp_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (h2d_rsp_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_rsp_crdt_tbs[2].pending)? (h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (h2d_rsp_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (h2d_rsp_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (h2d_rsp_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_rsp_crdt_tbs[1].pending)? (h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (h2d_rsp_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (h2d_rsp_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (h2d_rsp_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_rsp_crdt_tbs[0].pending)? (h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (h2d_rsp_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (h2d_rsp_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (h2d_rsp_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+    h2d_rsp_crdt_send             = (h2d_rsp_crdt_tbs[3].pending)? (h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_rsp_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_rsp_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_rsp_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_rsp_crdt_tbs[2].pending)? (h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_rsp_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_rsp_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_rsp_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_rsp_crdt_tbs[1].pending)? (h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_rsp_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_rsp_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_rsp_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_rsp_crdt_tbs[0].pending)? (h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_rsp_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_rsp_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_rsp_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
                                   : 'h0;
-    h2d_data_crdt_send             = (h2d_data_crdt_tbs[3].pending)? (h2d_data_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (h2d_data_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (h2d_data_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (h2d_data_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (h2d_data_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_data_crdt_tbs[2].pending)? (h2d_data_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (h2d_data_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (h2d_data_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (h2d_data_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (h2d_data_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_data_crdt_tbs[1].pending)? (h2d_data_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (h2d_data_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (h2d_data_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (h2d_data_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (h2d_data_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_data_crdt_tbs[0].pending)? (h2d_data_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (h2d_data_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (h2d_data_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (h2d_data_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (h2d_data_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+    h2d_data_crdt_send             = (h2d_data_crdt_tbs[3].pending)? (h2d_data_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_data_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_data_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_data_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_data_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_data_crdt_tbs[2].pending)? (h2d_data_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_data_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_data_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_data_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_data_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_data_crdt_tbs[1].pending)? (h2d_data_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_data_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_data_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_data_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_data_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (h2d_data_crdt_tbs[0].pending)? (h2d_data_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_data_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_data_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_data_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_data_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
                                   : 'h0;
-    m2s_req_crdt_send             = (m2s_req_crdt_tbs[3].pending)? (m2s_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (m2s_req_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (m2s_req_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (m2s_req_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (m2s_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (m2s_req_crdt_tbs[2].pending)? (m2s_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (m2s_req_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (m2s_req_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (m2s_req_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (m2s_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (m2s_req_crdt_tbs[1].pending)? (m2s_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (m2s_req_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (m2s_req_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (m2s_req_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (m2s_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (m2s_req_crdt_tbs[0].pending)? (m2s_req_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (m2s_req_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (m2s_req_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (m2s_req_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (m2s_req_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+    m2s_req_crdt_send             = (m2s_req_crdt_tbs[3].pending)? (m2s_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_req_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_req_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_req_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (m2s_req_crdt_tbs[2].pending)? (m2s_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_req_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_req_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_req_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (m2s_req_crdt_tbs[1].pending)? (m2s_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_req_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_req_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_req_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (m2s_req_crdt_tbs[0].pending)? (m2s_req_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_req_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_req_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_req_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_req_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
                                   : 'h0;
-    m2s_rwd_crdt_send             = (m2s_rwd_crdt_tbs[3].pending)? (m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[3].credit_to_be_sent > 'd32)? 'h6: (m2s_rwd_crdt_tbs[3].credit_to_be_sent > 'd16)? 'h5 : (m2s_rwd_crdt_tbs[3].credit_to_be_sent > 'd8)? 'h4: (m2s_rwd_crdt_tbs[3].credit_to_be_sent > 'd4)? 'd3: (m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (m2s_rwd_crdt_tbs[2].pending)? (m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[2].credit_to_be_sent > 'd32)? 'h6: (m2s_rwd_crdt_tbs[2].credit_to_be_sent > 'd16)? 'h5 : (m2s_rwd_crdt_tbs[2].credit_to_be_sent > 'd8)? 'h4: (m2s_rwd_crdt_tbs[2].credit_to_be_sent > 'd4)? 'd3: (m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (m2s_rwd_crdt_tbs[1].pending)? (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[1].credit_to_be_sent > 'd32)? 'h6: (m2s_rwd_crdt_tbs[1].credit_to_be_sent > 'd16)? 'h5 : (m2s_rwd_crdt_tbs[1].credit_to_be_sent > 'd8)? 'h4: (m2s_rwd_crdt_tbs[1].credit_to_be_sent > 'd4)? 'd3: (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (m2s_rwd_crdt_tbs[0].pending)? (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[0].credit_to_be_sent > 'd32)? 'h6: (m2s_rwd_crdt_tbs[0].credit_to_be_sent > 'd16)? 'h5 : (m2s_rwd_crdt_tbs[0].credit_to_be_sent > 'd8)? 'h4: (m2s_rwd_crdt_tbs[0].credit_to_be_sent > 'd4)? 'd3: (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
+    m2s_rwd_crdt_send             = (m2s_rwd_crdt_tbs[3].pending)? (m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_rwd_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_rwd_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_rwd_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
+                                  : (m2s_rwd_crdt_tbs[2].pending)? (m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_rwd_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_rwd_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_rwd_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
+                                  : (m2s_rwd_crdt_tbs[1].pending)? (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_rwd_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_rwd_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_rwd_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
+                                  : (m2s_rwd_crdt_tbs[0].pending)? (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_rwd_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_rwd_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_rwd_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
                                   : 'h0;
 */
   end
@@ -4346,13 +5789,13 @@ module device_tx_path#(
       end
 */
       h2d_rsp_crdt_tbs[0].pending <= 'h1;
-      h2d_rsp_crdt_tbs[1].pending <= 'h1;
-      h2d_rsp_crdt_tbs[2].pending <= 'h1;
-      h2d_rsp_crdt_tbs[3].pending <= 'h1;
-      h2d_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
-      h2d_rsp_crdt_tbs[1].credit_to_be_sent <= 'd64;
-      h2d_rsp_crdt_tbs[2].credit_to_be_sent <= 'd64;
-      h2d_rsp_crdt_tbs[3].credit_to_be_sent <= 'd64;
+      h2d_rsp_crdt_tbs[1].pending <= 'h0;
+      h2d_rsp_crdt_tbs[2].pending <= 'h0;
+      h2d_rsp_crdt_tbs[3].pending <= 'h0;
+      h2d_rsp_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
+      h2d_rsp_crdt_tbs[1].credit_to_be_sent <= 'h0;
+      h2d_rsp_crdt_tbs[2].credit_to_be_sent <= 'h0;
+      h2d_rsp_crdt_tbs[3].credit_to_be_sent <= 'h0;
 /*
       foreach(h2d_req_crdt_tbs[i].pending) begin
         h2d_req_crdt_tbs[i].pending <= 'h1;
@@ -4362,13 +5805,13 @@ module device_tx_path#(
       end
 */
       h2d_req_crdt_tbs[0].pending <= 'h1;
-      h2d_req_crdt_tbs[1].pending <= 'h1;
-      h2d_req_crdt_tbs[2].pending <= 'h1;
-      h2d_req_crdt_tbs[3].pending <= 'h1;
-      h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
-      h2d_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
-      h2d_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
-      h2d_req_crdt_tbs[3].credit_to_be_sent <= 'd64;
+      h2d_req_crdt_tbs[1].pending <= 'h0;
+      h2d_req_crdt_tbs[2].pending <= 'h0;
+      h2d_req_crdt_tbs[3].pending <= 'h0;
+      h2d_req_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
+      h2d_req_crdt_tbs[1].credit_to_be_sent <= 'h0;
+      h2d_req_crdt_tbs[2].credit_to_be_sent <= 'h0;
+      h2d_req_crdt_tbs[3].credit_to_be_sent <= 'h0;
 /*
       foreach(m2s_req_crdt_tbs[i].pending) begin
         m2s_req_crdt_tbs[i].pending <= 'h1;
@@ -4378,13 +5821,13 @@ module device_tx_path#(
       end
 */
       m2s_req_crdt_tbs[0].pending <= 'h1;
-      m2s_req_crdt_tbs[1].pending <= 'h1;
-      m2s_req_crdt_tbs[2].pending <= 'h1;
-      m2s_req_crdt_tbs[3].pending <= 'h1;
-      m2s_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
-      m2s_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
-      m2s_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
-      m2s_req_crdt_tbs[3].credit_to_be_sent <= 'd64;
+      m2s_req_crdt_tbs[1].pending <= 'h0;
+      m2s_req_crdt_tbs[2].pending <= 'h0;
+      m2s_req_crdt_tbs[3].pending <= 'h0;
+      m2s_req_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
+      m2s_req_crdt_tbs[1].credit_to_be_sent <= 'h0;
+      m2s_req_crdt_tbs[2].credit_to_be_sent <= 'h0;
+      m2s_req_crdt_tbs[3].credit_to_be_sent <= 'h0;
 /*
       foreach(h2d_data_crdt_tbs[i].pending) begin
         h2d_data_crdt_tbs[i].pending <= 'h1;
@@ -4394,13 +5837,13 @@ module device_tx_path#(
       end
 */
       h2d_data_crdt_tbs[0].pending <= 'h1;
-      h2d_data_crdt_tbs[1].pending <= 'h1;
-      h2d_data_crdt_tbs[2].pending <= 'h1;
-      h2d_data_crdt_tbs[3].pending <= 'h1;
-      h2d_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
-      h2d_data_crdt_tbs[1].credit_to_be_sent <= 'd64;
-      h2d_data_crdt_tbs[2].credit_to_be_sent <= 'd64;
-      h2d_data_crdt_tbs[3].credit_to_be_sent <= 'd64;
+      h2d_data_crdt_tbs[1].pending <= 'h0;
+      h2d_data_crdt_tbs[2].pending <= 'h0;
+      h2d_data_crdt_tbs[3].pending <= 'h0;
+      h2d_data_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
+      h2d_data_crdt_tbs[1].credit_to_be_sent <= 'h0;
+      h2d_data_crdt_tbs[2].credit_to_be_sent <= 'h0;
+      h2d_data_crdt_tbs[3].credit_to_be_sent <= 'h0;
 /*
       foreach(m2s_rwd_crdt_tbs[i].pending) begin
         m2s_rwd_crdt_tbs[i].pending <= 'h1;
@@ -4410,13 +5853,13 @@ module device_tx_path#(
       end
 */
       m2s_rwd_crdt_tbs[0].pending <= 'h1;
-      m2s_rwd_crdt_tbs[1].pending <= 'h1;
-      m2s_rwd_crdt_tbs[2].pending <= 'h1;
-      m2s_rwd_crdt_tbs[3].pending <= 'h1;
-      m2s_rwd_crdt_tbs[0].credit_to_be_sent <= 'd64;
-      m2s_rwd_crdt_tbs[1].credit_to_be_sent <= 'd64;
-      m2s_rwd_crdt_tbs[2].credit_to_be_sent <= 'd64;
-      m2s_rwd_crdt_tbs[3].credit_to_be_sent <= 'd64;
+      m2s_rwd_crdt_tbs[1].pending <= 'h0;
+      m2s_rwd_crdt_tbs[2].pending <= 'h0;
+      m2s_rwd_crdt_tbs[3].pending <= 'h0;
+      m2s_rwd_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
+      m2s_rwd_crdt_tbs[1].credit_to_be_sent <= 'h0;
+      m2s_rwd_crdt_tbs[2].credit_to_be_sent <= 'h0;
+      m2s_rwd_crdt_tbs[3].credit_to_be_sent <= 'h0;
 
     end else begin 
       h2d_req_occ_d   <= h2d_req_occ;
@@ -4733,10 +6176,29 @@ module device_tx_path#(
   //TODO: assignment of slot number is missing in the header of pkt after generic slot is selected 
   //TODO: serious missing piece is if roll over cnt exceeds then packing of further data should be avoided
   //ll pkt buffer
+  always@(negedge dev_tx_dl_if.clk) begin
+    if(!dev_tx_dl_if.rstn) begin
+      data_slot[0] <= 'h0;
+      data_slot[1] <= 'h0;
+      data_slot[2] <= 'h0;
+      data_slot[3] <= 'h0;
+      data_slot[4] <= 'h0;
+    end else begin
+      if(data_slot[1] == 'hf) begin
+        data_slot[0] <= data_slot[1];
+        data_slot[1] <= data_slot[2];
+        data_slot[2] <= data_slot[3];
+        data_slot[3] <= data_slot[4];
+        data_slot[4] <= 'h0;
+      end
+    end
+  end
+
   always@(posedge dev_tx_dl_if.clk) begin
     if(!dev_tx_dl_if.rstn) begin
       slot_sel <= H_SLOT0;
       slot_sel_d <= H_SLOT0;
+      slot_sel_d_d <= H_SLOT0;
       holding_wrptr <= 'h0;
       data_slot[0] <= 'h0;
       data_slot[1] <= 'h0;
@@ -4752,18 +6214,12 @@ module device_tx_path#(
       h_gnt_d <= h_gnt;
       g_gnt_d <= g_gnt;
       slot_sel_d <= slot_sel;
+      slot_sel_d_d <= slot_sel_d;
       data_slot_d[0] <= data_slot[0];
       data_slot_d[1] <= data_slot[1];
       data_slot_d[2] <= data_slot[2];
       data_slot_d[3] <= data_slot[3];
       data_slot_d[4] <= data_slot[4];
-      if(data_slot[1] == 'hf) begin
-        data_slot[0] <= data_slot[1];
-        data_slot[1] <= data_slot[2];
-        data_slot[2] <= data_slot[3];
-        data_slot[3] <= data_slot[4];
-        data_slot[4] <= 'h0;
-      end
       case(slot_sel)
         H_SLOT0: begin
           if(h_gnt == 0) begin
@@ -4952,65 +6408,65 @@ module device_tx_path#(
         end 
       endcase
       
-      if(slot_sel_d != slot_sel) begin
-        case(slot_sel)
+      if((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5]) begin
+        case(slot_sel_d)
           H_SLOT0: begin
-            case(h_gnt)
-              'h1: begin
-                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
-                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
-                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[7:5]      <= 'h0;//slot0 fmt is H0 so 0
-                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= h2d_rsp_crdt_send;
-                holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[32]       <= d2h_data_dataout.valid;
-                holding_q[holding_wrptr].data[44:33]    <= d2h_data_dataout.uqid;
-                holding_q[holding_wrptr].data[45]       <= d2h_data_dataout.chunkvalid;
-                holding_q[holding_wrptr].data[46]       <= d2h_data_dataout.bogus;
-                holding_q[holding_wrptr].data[47]       <= d2h_data_dataout.poison;
-                holding_q[holding_wrptr].data[48]       <= 'h0;//spare bit is always 0
-                holding_q[holding_wrptr].data[49]       <= d2h_rsp_dataout.valid;
-                holding_q[holding_wrptr].data[54:50]    <= d2h_rsp_dataout.opcode;
-                holding_q[holding_wrptr].data[66:55]    <= d2h_rsp_dataout.uqid;
-                holding_q[holding_wrptr].data[68:67]    <= 'h0; //spare bit is always 0
-                holding_q[holding_wrptr].data[69]       <= d2h_rsp_ddataout.valid;
-                holding_q[holding_wrptr].data[74:70]    <= d2h_rsp_ddataout.opcode;
-                holding_q[holding_wrptr].data[86:75]    <= d2h_rsp_ddataout.uqid;
-                holding_q[holding_wrptr].data[88:87]    <= 'h0;//spare bit always 0
-                holding_q[holding_wrptr].data[89]       <= s2m_ndr_dataout.valid;
-                holding_q[holding_wrptr].data[92:90]    <= s2m_ndr_dataout.opcode;
-                holding_q[holding_wrptr].data[94:93]    <= s2m_ndr_dataout.metafield;
-                holding_q[holding_wrptr].data[96:95]    <= s2m_ndr_dataout.metavalue;
-                holding_q[holding_wrptr].data[112:97]   <= s2m_ndr_dataout.tag;
-                holding_q[holding_wrptr].data[116:113]  <= 'h0;//spare always 0
-                holding_q[holding_wrptr].data[127:117]  <= 'h0;//rsvd always 0
-                if(data_slot[0] == 'h0) begin
+            case(h_gnt_d)
+              6'b000001: begin
+                holding_q[holding_wrptr].data[0]          <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]          <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]          <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                               <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
+                holding_q[holding_wrptr].data[3]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]        <= 'h0;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]      <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]      <= h2d_rsp_crdt_send;
+                holding_q[holding_wrptr].data[27:24]      <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]      <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]         <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[44:33]      <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[45]         <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[46]         <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[47]         <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[48]         <= 'h0;//spare bit is always 0
+                holding_q[holding_wrptr].data[49]         <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[54:50]      <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[66:55]      <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[68:67]      <= 'h0; //spare bit is always 0
+                holding_q[holding_wrptr].data[69]         <= d2h_rsp_ddataout.valid;
+                holding_q[holding_wrptr].data[74:70]      <= d2h_rsp_ddataout.opcode;
+                holding_q[holding_wrptr].data[86:75]      <= d2h_rsp_ddataout.uqid;
+                holding_q[holding_wrptr].data[88:87]      <= 'h0;//spare bit always 0
+                holding_q[holding_wrptr].data[89]         <= s2m_ndr_dataout.valid;
+                holding_q[holding_wrptr].data[92:90]      <= s2m_ndr_dataout.opcode;
+                holding_q[holding_wrptr].data[94:93]      <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[96:95]      <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[112:97]     <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[116:113]    <= 'h0;//spare always 0
+                holding_q[holding_wrptr].data[127:117]    <= 'h0;//rsvd always 0
+                if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:128]  <= d2h_data_dataout.data[383:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
                   holding_q[holding_wrptr+1].data[255:128]<= d2h_data_dataout.data[511:384];
                   holding_q[holding_wrptr+1].valid        <= 'h0;
-                end else if(data_slot[0] == 'h2) begin
+                end else if(data_slot_d[0] == 'h2) begin
                   holding_q[holding_wrptr].data[511:256]  <= d2h_data_dataout.data[255:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
                   holding_q[holding_wrptr+1].data[383:128]<= d2h_data_dataout.data[511:256];
                   holding_q[holding_wrptr+1].valid        <= 'h0;
-                end else if(data_slot[0] == 'h6) begin
+                end else if(data_slot_d[0] == 'h6) begin
                   holding_q[holding_wrptr].data[511:384]  <= d2h_data_dataout.data[127:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
                   holding_q[holding_wrptr+1].data[511:128]<= d2h_data_dataout.data[511:128];
                   holding_q[holding_wrptr+1].valid        <= 'h0;
-                end else if(data_slot[0] == 'he) begin
+                end else if(data_slot_d[0] == 'he) begin
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[511:0]  <= d2h_data_dataout.data[511:0];
                   holding_q[holding_wrptr+1].valid        <= 'h1;
@@ -5018,7 +6474,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr+2].valid        <= 'h0;
                 end
               end
-              'h2: begin
+              6'b000010: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
                 holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1 : 'h0;//TBD: logic for crdt ack to be added later
@@ -5046,25 +6502,25 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[125]      <= d2h_data_dataout.bogus;
                 holding_q[holding_wrptr].data[126]      <= d2h_data_dataout.poison;
                 holding_q[holding_wrptr].data[127]      <= 'h0;//spare bits always 0
-                if(data_slot[0] == 'h0) begin
+                if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:128]  <= d2h_data_dataout.data[383:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
                   holding_q[holding_wrptr+1].data[255:128]  <= d2h_data_dataout.data[511:384];
                   holding_q[holding_wrptr+1].valid        <= 'h0;
-                end else if(data_slot[0] == 'h2) begin
+                end else if(data_slot_d[0] == 'h2) begin
                   holding_q[holding_wrptr].data[511:256]  <= d2h_data_dataout.data[255:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
                   holding_q[holding_wrptr+1].data[383:128]<= d2h_data_dataout.data[511:256];
                   holding_q[holding_wrptr+1].valid        <= 'h0;
-                end else if(data_slot[0] == 'h6) begin
+                end else if(data_slot_d[0] == 'h6) begin
                   holding_q[holding_wrptr].data[511:384]  <= d2h_data_dataout.data[127:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
                   holding_q[holding_wrptr+1].data[511:128]<= d2h_data_dataout.data[511:128];
                   holding_q[holding_wrptr+1].valid        <= 'h0;
-                end else if(data_slot[0] == 'he) begin
+                end else if(data_slot_d[0] == 'he) begin
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[511:0]  <= d2h_data_dataout.data[511:0];
                   holding_q[holding_wrptr+1].valid        <= 'h1;
@@ -5072,7 +6528,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr+2].valid        <= 'h0;
                 end
               end
-              'h4: begin
+              6'b000100: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
                 holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
@@ -5116,7 +6572,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[117:106]  <= d2h_rsp_dataout.uqid;
                 holding_q[holding_wrptr].data[119:118]  <= 'h0; //spare bits always 0
                 holding_q[holding_wrptr].data[127:120]  <= 'h0;//rsvd bits always 0
-                if(data_slot[0] == 'h0) begin
+                if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:128]  <= d2h_data_dataout.data[383:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 4;
@@ -5131,7 +6587,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr+3].valid        <= 'h1;
                   holding_q[holding_wrptr+4].data[255:128]  <= d2h_data_qdataout.data[511:384];
                   holding_q[holding_wrptr+4].valid        <= 'h0;
-                end else if(data_slot[0] == 'h2) begin
+                end else if(data_slot_d[0] == 'h2) begin
                   holding_q[holding_wrptr].data[511:256]  <= d2h_data_dataout.data[255:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[255:0]  <= d2h_data_dataout.data[511:256];
@@ -5146,7 +6602,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr+4].data[383:128]  <= d2h_data_qdataout.data[511:256];
                   holding_q[holding_wrptr+4].valid        <= 'h0;
                   holding_wrptr                           <= holding_wrptr + 4;
-                end else if(data_slot[0] == 'h6) begin
+                end else if(data_slot_d[0] == 'h6) begin
                   holding_q[holding_wrptr].data[511:384]  <= d2h_data_dataout.data[127:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[383:0]  <= d2h_data_dataout.data[511:128];
@@ -5161,7 +6617,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr+4].data[511:0]  <= d2h_data_qdataout.data[511:128];
                   holding_q[holding_wrptr+4].valid        <= 'h0;
                   holding_wrptr                           <= holding_wrptr + 4;
-                end else if(data_slot[0] == 'he) begin
+                end else if(data_slot_d[0] == 'he) begin
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[511:0]  <= d2h_data_dataout.data[511:0];
                   holding_q[holding_wrptr+1].valid        <= 'h1;
@@ -5174,7 +6630,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr+5].valid        <= 'h0;
                 end
               end
-              'h8: begin
+              6'b001000: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
                 holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
@@ -5203,25 +6659,25 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[95:80]    <= s2m_ndr_dataout.tag;
                 holding_q[holding_wrptr].data[99:96]    <= 'h0;//spare bits always 0
                 holding_q[holding_wrptr].data[127:100]  <= 'h0;//rsvd bits always 0
-                if(data_slot[0]) begin
+                if(data_slot_d[0]) begin
                   holding_q[holding_wrptr].data[511:128]  <= s2m_drs_dataout.data[383:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
                   holding_q[holding_wrptr+1].data[127:0]  <= s2m_drs_dataout.data[511:384];
                   holding_q[holding_wrptr+1].valid        <= 'h0;
-                end else if(data_slot[0] == 'h2) begin
+                end else if(data_slot_d[0] == 'h2) begin
                   holding_q[holding_wrptr].data[511:256]  <= s2m_drs_dataout.data[255:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
                   holding_q[holding_wrptr+1].data[383:128]<= s2m_drs_dataout.data[511:256];
                   holding_q[holding_wrptr+1].valid        <= 'h0;
-                end else if(data_slot[0] == 'h6) begin
+                end else if(data_slot_d[0] == 'h6) begin
                   holding_q[holding_wrptr].data[511:384]  <= s2m_drs_dataout.data[127:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
                   holding_q[holding_wrptr+1].data[511:128]<= s2m_drs_dataout.data[511:128];
                   holding_q[holding_wrptr+1].valid        <= 'h0;
-                end else if(data_slot[0] == 'he) begin
+                end else if(data_slot_d[0] == 'he) begin
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[511:0]  <= s2m_drs_dataout.data[511:0];
                   holding_q[holding_wrptr+1].valid        <= 'h1;
@@ -5229,7 +6685,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr+2].valid        <= 'h0;
                 end
               end
-              'h16: begin
+              6'b010000: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
                 holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
@@ -5257,7 +6713,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[83:68]    <= s2m_ndr_ddataout.tag;
                 holding_q[holding_wrptr].data[87:84]    <= 'h0;//spare are always 0
                 holding_q[holding_wrptr].data[127:88]   <= 'h0;//rsvd bits are always 0
-                if(data_slot[0] == 'he) begin
+                if(data_slot_d[0] == 'he) begin
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
                   holding_q[holding_wrptr+1].valid        <= 'h0;
@@ -5265,7 +6721,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr].valid          <= 'h0;
                 end
               end
-              'h32: begin
+              6'b100000: begin
                 holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
                 holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
                 holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
@@ -5295,7 +6751,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[96]       <= s2m_drs_ddataout.poison;
                 holding_q[holding_wrptr].data[111:97]   <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[127:112]  <= 'h0;//rsvd bits are always 0
-                if(data_slot[0] == 'h0) begin
+                if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:128]  <= s2m_drs_dataout.data[383:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[127:0]  <= s2m_drs_dataout.data[511:384];
@@ -5304,7 +6760,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr+2].data[127:0]  <= s2m_drs_ddataout.data[511:384];
                   holding_wrptr                           <= holding_wrptr + 2;
                   holding_q[holding_wrptr+2].valid        <= 'h0;
-                end else if(data_slot[0] == 'h2) begin
+                end else if(data_slot_d[0] == 'h2) begin
                   holding_q[holding_wrptr].data[511:256]  <= s2m_drs_dataout.data[255:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[255:0]  <= s2m_drs_dataout.data[511:256];
@@ -5313,7 +6769,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr+2].data[383:128]<= s2m_drs_ddataout.data[511:256];
                   holding_wrptr                           <= holding_wrptr + 2;
                   holding_q[holding_wrptr+2].valid        <= 'h0;
-                end else if(data_slot[0] == 'h6) begin
+                end else if(data_slot_d[0] == 'h6) begin
                   holding_q[holding_wrptr].data[511:384]  <= s2m_drs_dataout.data[127:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[383:0]  <= s2m_drs_dataout.data[511:128];
@@ -5322,7 +6778,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr+2].data[511:128]<= s2m_drs_ddataout.data[511:128];
                   holding_wrptr                           <= holding_wrptr + 2;
                   holding_q[holding_wrptr+2].valid        <= 'h0;
-                end else if(data_slot[0] == 'he) begin
+                end else if(data_slot_d[0] == 'he) begin
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_q[holding_wrptr+1].data[511:0]  <= s2m_drs_dataout.data[511:0];
                   holding_q[holding_wrptr+1].valid        <= 'h1;
@@ -5338,8 +6794,8 @@ module device_tx_path#(
             endcase
           end
           G_SLOT1: begin
-            case(g_gnt)
-              'h2: begin
+            case(g_gnt_d)
+              7'b0000010: begin
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= d2h_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]      <= d2h_req_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)]     <= d2h_req_dataout.cqid;
@@ -5356,7 +6812,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+116):(SLOT1_OFFSET+105)]  <= d2h_rsp_ddataout.uqid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+117)]  <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+119)]  <= 'h0;//rsvd bits are always 0
-                if(data_slot[0] == 'he) begin
+                if(data_slot_d[0] == 'he) begin
                   holding_q[holding_wrptr].valid                                        <= 'h0;
                 end else begin
                   holding_q[holding_wrptr].valid                                        <= 'h1;
@@ -5364,7 +6820,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr+1].valid                                      <= 'h1;
                 end
               end
-              'h4: begin
+              7'b0000100: begin
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= d2h_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]      <= d2h_req_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)]     <= d2h_req_dataout.cqid;
@@ -5383,7 +6839,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+113):(SLOT1_OFFSET+102)]  <= d2h_rsp_dataout.uqid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+115):(SLOT1_OFFSET+114)]  <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+116)]  <= 'h0;//rsvd bits are always 0
-                if(data_slot[0] == 'h0) begin
+                if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:256]                                <= d2h_data_dataout.data[255:0];
                   holding_q[holding_wrptr].valid                                        <= 'h1;
                   holding_wrptr                                                         <= holding_wrptr + 1;
@@ -5393,7 +6849,7 @@ module device_tx_path#(
                   holding_wrptr                                                         <= 'hX;
                 end
               end  
-              'h8: begin
+              7'b0001000: begin
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= d2h_data_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)]     <= d2h_data_dataout.uqid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+13)]                      <= d2h_data_dataout.chunkvalid;
@@ -5419,7 +6875,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+66)]                      <= d2h_data_qdataout.poison;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+67)]                      <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+68)]   <= 'h0;//rsvd bits are always 0
-                if(data_slot[0] == 'h0) begin
+                if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:256]                                <= d2h_data_dataout.data[255:0];
                   holding_q[holding_wrptr].valid                                        <= 'h1;
                   holding_q[holding_wrptr+1].data[255:0]                                <= d2h_data_dataout.data[511:256];
@@ -5438,7 +6894,7 @@ module device_tx_path#(
                   holding_wrptr                                                         <= 'hX;
                 end
               end
-              'h16: begin
+              7'b0010000: begin
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= s2m_drs_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_drs_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      <= s2m_drs_dataout.metafield;
@@ -5459,7 +6915,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+76)]    <= s2m_ndr_ddataout.tag;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+95):(SLOT1_OFFSET+92)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+96)]   <= 'h0;
-                if(data_slot[0] == 'h0) begin
+                if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:256]                                <= s2m_drs_dataout.data[255:0];
                   holding_q[holding_wrptr].valid                                        <= 'h1;
                   holding_q[holding_wrptr+1].data[383:128]                              <= s2m_drs_dataout.data[511:256];
@@ -5469,7 +6925,7 @@ module device_tx_path#(
                   holding_wrptr                                                         <= 'hX;
                 end
               end
-              'h32: begin
+              7'b0100000: begin
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= s2m_ndr_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_ndr_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      <= s2m_ndr_dataout.metafield;
@@ -5491,7 +6947,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+84)]   <= 'h0;//rsvd bits are always 0
                 holding_q[holding_wrptr].valid                                        <= 'h0;
               end
-              'h64: begin
+              7'b1000000: begin
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= s2m_drs_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_drs_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      <=  s2m_drs_dataout.metafield;
@@ -5514,7 +6970,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+104)]                     <= s2m_drs_tdataout.poison;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+119):(SLOT1_OFFSET+105)]  <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+120)]  <= 'h0;//rsvd bits are always 0
-                if(data_slot[0] == 'h0) begin
+                if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:256]                                <= s2m_drs_dataout.data[255:0];
                   holding_q[holding_wrptr].valid                                        <= 'h1;
                   holding_q[holding_wrptr+1].data[255:0]                                <= s2m_drs_dataout.data[511:256];
@@ -5536,8 +6992,8 @@ module device_tx_path#(
             endcase
           end
           G_SLOT2: begin
-            case(g_gnt)    
-              'h2: begin
+            case(g_gnt_d)    
+              7'b0000010: begin
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= d2h_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]      <= d2h_req_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)]     <= d2h_req_dataout.cqid;
@@ -5556,7 +7012,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+119)]  <= 'h0;//rsvd bits are always 0
                 holding_q[holding_wrptr].valid                                        <= 'h0;
               end
-              'h4: begin
+              7'b0000100: begin
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= d2h_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]      <= d2h_req_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)]     <= d2h_req_dataout.cqid;
@@ -5575,7 +7031,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+113):(SLOT2_OFFSET+102)]  <= d2h_rsp_dataout.uqid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+115):(SLOT2_OFFSET+114)]  <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+116)]  <= 'h0;//rsvd bits are always 0
-                if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
+                if((data_slot_d[0] == 'h0) || (data_slot_d[0] == 'h2)) begin
                   holding_q[holding_wrptr].data[511:384]                                <= d2h_data_dataout.data[127:0];
                   holding_q[holding_wrptr].valid                                        <= 'h1;
                   holding_wrptr                                                         <= holding_wrptr + 1;
@@ -5585,7 +7041,7 @@ module device_tx_path#(
                   holding_wrptr                                                         <= 'hX;
                 end
               end  
-              'h8: begin
+              7'b0001000: begin
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                         <= d2h_data_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)]       <= d2h_data_dataout.uqid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+13)]                        <= d2h_data_dataout.chunkvalid;
@@ -5611,7 +7067,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+66)]                        <= d2h_data_qdataout.poison;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+67)]                        <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+68)]     <= 'h0;//rsvd bits are always 0
-                if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
+                if((data_slot_d[0] == 'h0) || (data_slot_d[0] == 'h2)) begin
                   holding_q[holding_wrptr].data[511:384]                                <= d2h_data_dataout.data[127:0];
                   holding_q[holding_wrptr].valid                                        <= 'h1;
                   holding_q[holding_wrptr+1].data[383:0]                                <= d2h_data_dataout.data[511:128];
@@ -5630,7 +7086,7 @@ module device_tx_path#(
                   holding_wrptr                                                         <= 'hX;
                 end 
               end
-              'h16: begin
+              7'b0010000: begin
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                         <= s2m_drs_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]        <= s2m_drs_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]        <= s2m_drs_dataout.metafield;
@@ -5651,7 +7107,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+76)]      <= s2m_ndr_ddataout.tag;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+95):(SLOT2_OFFSET+92)]      <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+96)]     <= 'h0;
-                if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
+                if((data_slot_d[0] == 'h0) || (data_slot_d[0] == 'h2)) begin
                   holding_q[holding_wrptr].data[511:384]                                <= s2m_drs_dataout.data[127:0];
                   holding_q[holding_wrptr].valid                                        <= 'h1;
                   holding_q[holding_wrptr+1].data[383:0]                                <= s2m_drs_dataout.data[511:128];
@@ -5661,7 +7117,7 @@ module device_tx_path#(
                   holding_wrptr                                                         <= 'hX;
                 end
               end
-              'h32: begin
+              7'b0100000: begin
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                         <= s2m_ndr_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]        <= s2m_ndr_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]        <= s2m_ndr_dataout.metafield;
@@ -5683,7 +7139,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+84)]     <= 'h0;//rsvd bits are always 0
                 holding_q[holding_wrptr].valid                                          <= 'h0;
               end
-              'h64: begin
+              7'b1000000: begin
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                         <= s2m_drs_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]        <= s2m_drs_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]        <=  s2m_drs_dataout.metafield;
@@ -5706,7 +7162,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+104)]                       <= s2m_drs_tdataout.poison;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+119):(SLOT2_OFFSET+105)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+120)]    <= 'h0;//rsvd bits are always 0
-                if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
+                if((data_slot_d[0] == 'h0) || (data_slot_d[0] == 'h2)) begin
                   holding_q[holding_wrptr].data[511:384]                                <= s2m_drs_dataout.data[127:0];
                   holding_q[holding_wrptr].valid                                        <= 'h1;
                   holding_q[holding_wrptr+1].data[383:0]                                <= s2m_drs_dataout.data[511:128];
@@ -5728,8 +7184,8 @@ module device_tx_path#(
             endcase
           end
           G_SLOT3: begin
-            case(g_gnt)
-              'h2: begin
+            case(g_gnt_d)
+              7'b0000010: begin
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                         <= d2h_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]        <= d2h_req_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)]       <= d2h_req_dataout.cqid;
@@ -5748,13 +7204,13 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+119)]    <= 'h0;//rsvd bits are always 0
                 holding_q[holding_wrptr].valid                                          <= 'h1;
                 holding_q[holding_wrptr+1].valid                                        <= 'h0;
-                if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
+                if((data_slot_d[0] == 'h0) || (data_slot_d[0] == 'h2) || (data_slot_d[0] == 'h6)) begin
                   holding_wrptr                                                         <= holding_wrptr + 1;
                 end else begin
                   holding_wrptr                                                         <= 'hX;
                 end
               end
-              'h4: begin
+              7'b0000100: begin
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                         <= d2h_req_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]        <= d2h_req_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)]       <= d2h_req_dataout.cqid;
@@ -5773,7 +7229,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+113):(SLOT3_OFFSET+102)]    <= d2h_rsp_dataout.uqid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+115):(SLOT3_OFFSET+114)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+116)]    <= 'h0;//rsvd bits are always 0
-                if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
+                if((data_slot_d[0] == 'h0) || (data_slot_d[0] == 'h2) || (data_slot_d[0] == 'h6)) begin
                   holding_q[holding_wrptr].valid                                        <= 'h1;
                   holding_q[holding_wrptr+1].data[511:0]                                <= d2h_data_dataout.data[511:0];
                   holding_q[holding_wrptr+1].valid                                      <= 'h1;
@@ -5783,7 +7239,7 @@ module device_tx_path#(
                   holding_wrptr                                                         <= 'hX;
                 end
               end  
-              'h8: begin
+              7'b0001000: begin
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                         <= d2h_data_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+12):(SLOT3_OFFSET+1)]       <= d2h_data_dataout.uqid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+13)]                        <= d2h_data_dataout.chunkvalid;
@@ -5809,7 +7265,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+66)]                        <= d2h_data_qdataout.poison;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+67)]                        <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+68)]     <= 'h0;//rsvd bits are always 0
-                if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
+                if((data_slot_d[0] == 'h0) || (data_slot_d[0] == 'h2) || (data_slot_d[0] == 'h6)) begin
                   holding_q[holding_wrptr].valid                                        <= 'h1;
                   holding_q[holding_wrptr+1].data[511:0]                                <= d2h_data_dataout.data;
                   holding_q[holding_wrptr+1].valid                                      <= 'h1;
@@ -5825,7 +7281,7 @@ module device_tx_path#(
                   holding_wrptr                                                         <= 'hX;
                 end
               end
-              'h16: begin
+              7'b0010000: begin
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                         <= s2m_drs_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]        <= s2m_drs_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]        <= s2m_drs_dataout.metafield;
@@ -5846,7 +7302,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+76)]      <= s2m_ndr_ddataout.tag;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+95):(SLOT3_OFFSET+92)]      <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+96)]     <= 'h0;
-                if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
+                if((data_slot_d[0] == 'h0) || (data_slot_d[0] == 'h2) || (data_slot_d[0] == 'h6)) begin
                   holding_q[holding_wrptr].valid                                        <= 'h1;
                   holding_q[holding_wrptr+1].data[511:0]                                <= s2m_drs_dataout.data[511:0];
                   holding_q[holding_wrptr+1].valid                                      <= 'h1;
@@ -5856,7 +7312,7 @@ module device_tx_path#(
                   holding_wrptr                                                         <= 'hX;
                 end  
               end
-              'h32: begin
+              7'b0100000: begin
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                         <= s2m_ndr_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]        <= s2m_ndr_dataout.opcode;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]        <= s2m_ndr_dataout.metafield;
@@ -5876,7 +7332,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+79):(SLOT3_OFFSET+64)]      <= s2m_ndr_tdataout.tag;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+83):(SLOT3_OFFSET+80)]      <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+84)]     <= 'h0;//rsvd bits are always 0
-                if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
+                if((data_slot_d[0] == 'h0) || (data_slot_d[0] == 'h2) || (data_slot_d[0] == 'h6)) begin
                   holding_q[holding_wrptr].valid                                        <= 'h1;
                   holding_wrptr                                                         <= holding_wrptr + 1;
                   holding_q[holding_wrptr+1].valid                                      <= 'h0;
@@ -5884,10 +7340,10 @@ module device_tx_path#(
                   holding_wrptr                                                         <= 'hX;
                 end
               end
-              'h64: begin
+              7'b1000000: begin
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+0)]                         <= s2m_drs_dataout.valid;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]        <= s2m_drs_dataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]        <=  s2m_drs_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]        <= s2m_drs_dataout.metafield;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]        <= s2m_drs_dataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)]       <= s2m_drs_dataout.tag;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+24)]                        <= s2m_drs_dataout.poison;
@@ -5907,7 +7363,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+104)]                       <= s2m_drs_tdataout.poison;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+119):(SLOT3_OFFSET+105)]    <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+120)]    <= 'h0;//rsvd bits are always 0
-                if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
+                if((data_slot_d[0] == 'h0) || (data_slot_d[0] == 'h2) || (data_slot_d[0] == 'h6)) begin
                   holding_q[holding_wrptr].valid                                        <= 'h1;
                   holding_q[holding_wrptr+1].data[511:0]                                <= s2m_drs_dataout.data[511:0];
                   holding_q[holding_wrptr+1].valid                                      <= 'h1;
@@ -5934,36 +7390,36 @@ module device_tx_path#(
   always@(posedge dev_tx_dl_if.clk) begin
     if(!dev_tx_dl_if.rstn) begin
       foreach(holding_q[i]) begin
-        holding_q[i].valid <= 'h0;
-        holding_q[i].data <= 'h0;
+        holding_q[i].valid    <= 'h0;
+        holding_q[i].data     <= 'h0;
       end
-      dev_tx_dl_if_pre_valid <= 'h0;
-      dev_tx_dl_if_pre_data <= 'h0;
-      dev_tx_dl_if.valid <= 'h0;
-      dev_tx_dl_if_valid_d <= 'h0;
-      dev_tx_dl_if_rstn_d <= 'h0;
-      dev_tx_dl_if_rstn_dd <= 'h0;
-      dev_tx_dl_if.data <= 'h0;
-      dev_tx_dl_if_data_d <= 'h0;
-      holding_rdptr <= 'h0;
-      ack_cnt_tbs <= 'h0;
-      ack_cnt_snt <= 'h0;
-      insert_ack_d <= 'h0;
+      dev_tx_dl_if_pre_valid  <= 'h0;
+      dev_tx_dl_if_pre_data   <= 'h0;
+      dev_tx_dl_if.valid      <= 'h0;
+      dev_tx_dl_if_valid_d    <= 'h0;
+      dev_tx_dl_if_rstn_d     <= 'h0;
+      dev_tx_dl_if_rstn_dd    <= 'h0;
+      dev_tx_dl_if.data       <= 'h0;
+      dev_tx_dl_if_data_d     <= 'h0;
+      holding_rdptr           <= 'h0;
+      ack_cnt_tbs             <= 'h0;
+      ack_cnt_snt             <= 'h0;
+      insert_ack_d            <= 'h0;
     end else begin
       insert_ack_d <= insert_ack;
-      dev_tx_dl_if_valid_d <= dev_tx_dl_if_pre_valid;
-      dev_tx_dl_if_rstn_d <= dev_tx_dl_if.rstn;
-      dev_tx_dl_if_rstn_dd <= dev_tx_dl_if_rstn_d;
-      dev_tx_dl_if_data_d <= dev_tx_dl_if_pre_data;
-      dev_tx_dl_if.valid <= dev_tx_dl_if_pre_valid;
-      dev_tx_dl_if.data <= {dev_tx_dl_if_pre_crc[15:0], dev_tx_dl_if_pre_data[511:0]};
+      dev_tx_dl_if_valid_d    <= dev_tx_dl_if_pre_valid;
+      dev_tx_dl_if_rstn_d     <= dev_tx_dl_if.rstn;
+      dev_tx_dl_if_rstn_dd    <= dev_tx_dl_if_rstn_d;
+      dev_tx_dl_if_data_d     <= dev_tx_dl_if_pre_data;
+      dev_tx_dl_if.valid      <= dev_tx_dl_if_pre_valid;
+      dev_tx_dl_if.data       <= {dev_tx_dl_if_pre_crc[15:0], dev_tx_dl_if_pre_data[511:0]};
       if(ack) begin
-        ack_cnt_tbs <= ack_cnt_tbs + 1;
+        ack_cnt_tbs           <= ack_cnt_tbs + 1;
       end
       if(holding_q[holding_rdptr].valid) begin
-        dev_tx_dl_if_pre_valid <= holding_q[holding_rdptr].valid;
-        dev_tx_dl_if_pre_data <= holding_q[holding_rdptr].data;
-        holding_rdptr <= holding_rdptr + 1;
+        dev_tx_dl_if_pre_valid  <= holding_q[holding_rdptr].valid;
+        dev_tx_dl_if_pre_data   <= holding_q[holding_rdptr].data;
+        holding_rdptr           <= holding_rdptr + 1;
       end else begin
         if((dev_tx_dl_if_rstn_dd == 'h0) && (dev_tx_dl_if_rstn_d == 'h1)) begin
           dev_tx_dl_if_pre_valid          <= 'h1;
@@ -6364,6 +7820,7 @@ module host_rx_path #(
   logic retry_idle_detect;
   logic [3:0] data_slot[5];
   logic [3:0] data_slot_d[5];
+  logic [3:0] data_slot_dd[5];
   d2h_data_pkt_t d2h_data_pkt_d[4];
   s2m_drs_pkt_t s2m_drs_pkt_d[3];
   logic [2:0] ack_count;
@@ -7166,6 +8623,24 @@ module host_rx_path #(
 
   endfunction
 
+  always@(negedge host_rx_dl_if.clk) begin
+    if(!host_rx_dl_if.rstn) begin
+      data_slot[0] <= 'h0;
+      data_slot[1] <= 'h0;
+      data_slot[2] <= 'h0;
+      data_slot[3] <= 'h0;
+      data_slot[4] <= 'h0;
+    end else begin
+      if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
+        data_slot[0] <= data_slot[1]; 
+        data_slot[1] <= data_slot[2]; 
+        data_slot[2] <= data_slot[3]; 
+        data_slot[3] <= data_slot[4]; 
+        data_slot[4] <= 'h0;
+      end
+    end
+  end
+
   always@(posedge host_rx_dl_if.clk) begin
     if(!host_rx_dl_if.rstn) begin
       //TODO: not sure if this foreach will initialize for all indeces
@@ -7196,18 +8671,11 @@ module host_rx_path #(
       end else begin
         ack_ret_val <= 'h0;
       end
-      if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
-        data_slot[0] <= data_slot[1]; 
-        data_slot[1] <= data_slot[2]; 
-        data_slot[2] <= data_slot[3]; 
-        data_slot[3] <= data_slot[4]; 
-        data_slot[4] <= 'h0;
-      end
-      data_slot_d[0] <= data_slot[0];
-      data_slot_d[1] <= data_slot[1];
-      data_slot_d[2] <= data_slot[2];
-      data_slot_d[3] <= data_slot[3];
-      data_slot_d[4] <= data_slot[4];
+      data_slot_d[0]  <= data_slot[0];
+      data_slot_d[1]  <= data_slot[1];
+      data_slot_d[2]  <= data_slot[2];
+      data_slot_d[3]  <= data_slot[3];
+      data_slot_d[4]  <= data_slot[4];
       d2h_data_pkt_d[0].pending_data_slot <= d2h_data_pkt[0].pending_data_slot;
       d2h_data_pkt_d[1].pending_data_slot <= d2h_data_pkt[1].pending_data_slot;
       d2h_data_pkt_d[2].pending_data_slot <= d2h_data_pkt[2].pending_data_slot;
@@ -7215,62 +8683,62 @@ module host_rx_path #(
       s2m_drs_pkt_d[0].pending_data_slot  <= s2m_drs_pkt[0].pending_data_slot;
       s2m_drs_pkt_d[1].pending_data_slot  <= s2m_drs_pkt[1].pending_data_slot;
       s2m_drs_pkt_d[2].pending_data_slot  <= s2m_drs_pkt[2].pending_data_slot;
+      if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit) &&
+          (!data_slot_d[0][3] || 
+            ((data_slot_d[0] == 'hf) && 
+              ((d2h_data_pkt_d[0].pending_data_slot == 0) && (s2m_drs_pkt_d[0].pending_data_slot == 0)) &&
+              ((d2h_data_pkt_d[1].pending_data_slot == 0) && (s2m_drs_pkt_d[1].pending_data_slot == 0)) &&
+              ((d2h_data_pkt_d[2].pending_data_slot == 0) && (s2m_drs_pkt_d[2].pending_data_slot == 0)) &&
+              ((d2h_data_pkt_d[3].pending_data_slot == 0))
+            )
+          )
+        ) begin 
+        if(host_rx_dl_if_d_data[7:5] == 'h4) begin
+          data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;//need to add what happens when slot 1 is g slot
+          if((host_rx_dl_if_d_data[10:8] == 'h1) || (host_rx_dl_if_d_data[10:8] == 'h5)) begin
+            data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+            if((host_rx_dl_if_d_data[13:11] == 'h1) || (host_rx_dl_if_d_data[13:11] == 'h5)) begin
+              data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              if((host_rx_dl_if_d_data[16:14] == 'h1) || (host_rx_dl_if_d_data[16:14] == 'h5)) begin
+                data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              end else if((host_rx_dl_if_d_data[16:14] == 'h2) || (host_rx_dl_if_d_data[16:14] == 'h4)) begin  
+                data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              end else if(host_rx_dl_if_d_data[16:14] == 'h6) begin  
+                data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
+              end else begin
+                data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
+              end
+            end else if((host_rx_dl_if_d_data[10:8] == 'h2) || (host_rx_dl_if_d_data[10:8] == 'h4)) begin  
+              data_slot[0] <= 'h8; data_slot[1] <= 'h7; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+            end else if(host_rx_dl_if_d_data[10:8] == 'h6) begin  
+              data_slot[0] <= 'h8; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h7; data_slot[4] <= 'h0;
+            end else begin
+              data_slot[0] <= 'h8; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h7;
+            end
+          end else if((host_rx_dl_if_d_data[10:8] == 'h2) || (host_rx_dl_if_d_data[10:8] == 'h4)) begin  
+            data_slot[0] <= 'hc; data_slot[1] <= 'h3; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+          end else if(host_rx_dl_if_d_data[10:8] == 'h6) begin  
+            data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h3; data_slot[4] <= 'h0;
+          end else begin
+            data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h3;
+          end
+        end else if((host_rx_dl_if_d_data[7:5] == 'h0) || (host_rx_dl_if_d_data[7:5] == 'h1) || (host_rx_dl_if_d_data[7:5] == 'h3)) begin
+          data_slot[0] <= 'he; data_slot[1] <= 'h1; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+        end else if(host_rx_dl_if_d_data[7:5] == 'h5) begin
+          data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h1; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+        end else begin
+            data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h1;
+        end
+      //end else if(host_rx_dl_if_d_valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
+      //data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
+      end
+  
     end
   end
 
   //TODO: put the packing logic restrictions in the arbiter logic itself so here I do not need to worry why I am getting illegal pkts we can have assertions to catch the max sub pkts that can be packed
   //TODO: put asserts to catch if there any illegal values on Hslots or Gslots otherwise bellow logic will be very hard to debug
   always_comb begin
-    if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit) &&
-        (!data_slot_d[0][3] || 
-          ((data_slot_d[0] == 'hf) && 
-            ((d2h_data_pkt_d[0].pending_data_slot == 0) && (s2m_drs_pkt_d[0].pending_data_slot == 0)) &&
-            ((d2h_data_pkt_d[1].pending_data_slot == 0) && (s2m_drs_pkt_d[1].pending_data_slot == 0)) &&
-            ((d2h_data_pkt_d[2].pending_data_slot == 0) && (s2m_drs_pkt_d[2].pending_data_slot == 0)) &&
-            ((d2h_data_pkt_d[3].pending_data_slot == 0))
-          )
-        )
-      ) begin 
-      if(host_rx_dl_if_d_data[7:5] == 'h4) begin
-        data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;//need to add what happens when slot 1 is g slot
-        if((host_rx_dl_if_d_data[10:8] == 'h1) || (host_rx_dl_if_d_data[10:8] == 'h5)) begin
-          data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-          if((host_rx_dl_if_d_data[13:11] == 'h1) || (host_rx_dl_if_d_data[13:11] == 'h5)) begin
-            data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-            if((host_rx_dl_if_d_data[16:14] == 'h1) || (host_rx_dl_if_d_data[16:14] == 'h5)) begin
-              data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-            end else if((host_rx_dl_if_d_data[16:14] == 'h2) || (host_rx_dl_if_d_data[16:14] == 'h4)) begin  
-              data_slot[0] = 'h0; data_slot[1] = 'hf; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-            end else if(host_rx_dl_if_d_data[16:14] == 'h6) begin  
-              data_slot[0] = 'h0; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h0;
-            end else begin
-              data_slot[0] = 'h0; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'hf;
-            end
-          end else if((host_rx_dl_if_d_data[10:8] == 'h2) || (host_rx_dl_if_d_data[10:8] == 'h4)) begin  
-            data_slot[0] = 'h8; data_slot[1] = 'h7; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-          end else if(host_rx_dl_if_d_data[10:8] == 'h6) begin  
-            data_slot[0] = 'h8; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'h7; data_slot[4] = 'h0;
-          end else begin
-            data_slot[0] = 'h8; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h7;
-          end
-        end else if((host_rx_dl_if_d_data[10:8] == 'h2) || (host_rx_dl_if_d_data[10:8] == 'h4)) begin  
-          data_slot[0] = 'hc; data_slot[1] = 'h3; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-        end else if(host_rx_dl_if_d_data[10:8] == 'h6) begin  
-          data_slot[0] = 'hc; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'h3; data_slot[4] = 'h0;
-        end else begin
-          data_slot[0] = 'hc; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h3;
-        end
-      end else if((host_rx_dl_if_d_data[7:5] == 'h0) || (host_rx_dl_if_d_data[7:5] == 'h1) || (host_rx_dl_if_d_data[7:5] == 'h3)) begin
-        data_slot[0] = 'he; data_slot[1] = 'h1; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-      end else if(host_rx_dl_if_d_data[7:5] == 'h5) begin
-        data_slot[0] = 'he; data_slot[1] = 'hf; data_slot[2] = 'h1; data_slot[3] = 'h0; data_slot[4] = 'h0;
-      end else begin
-        data_slot[0] = 'he; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h1;
-      end
-    //end else if(host_rx_dl_if_d_valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
-      //data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
-    end
-  
     if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
       ack_count = ack_count + 1;
       if(!data_slot[0][0]) begin
@@ -8413,11 +9881,34 @@ module device_rx_path #(
 
   endfunction
 
+  always@(negedge dev_rx_dl_if.clk) begin
+    if(!dev_rx_dl_if.rstn) begin
+      data_slot[0] <= 'h0;
+      data_slot[1] <= 'h0;
+      data_slot[2] <= 'h0;
+      data_slot[3] <= 'h0;
+      data_slot[4] <= 'h0;
+    end else begin  
+      if(dev_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
+        data_slot[0] <= data_slot[1];
+        data_slot[1] <= data_slot[2];
+        data_slot[2] <= data_slot[3];
+        data_slot[3] <= data_slot[4];
+        data_slot[4] <= 'h0;
+      end
+    end
+  end
+
   always@(posedge dev_rx_dl_if.clk) begin
     if(!dev_rx_dl_if.rstn) begin
       //TODO: not sure if this foreach will initialize for all indeces
       //foreach(data_slot[i]) data_slot[i] <= 'h0;
       //foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
+      data_slot[0] <= 'h0;
+      data_slot[1] <= 'h0;
+      data_slot[2] <= 'h0;
+      data_slot[3] <= 'h0;
+      data_slot[4] <= 'h0;
       data_slot_d[0] <= 'h0;
       data_slot_d[1] <= 'h0;
       data_slot_d[2] <= 'h0;
@@ -8438,82 +9929,74 @@ module device_rx_path #(
       end else begin
         ack_ret_val <= 'h0;
       end
-      if(dev_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
-        data_slot[0] <= data_slot[1];
-        data_slot[1] <= data_slot[2];
-        data_slot[2] <= data_slot[3];
-        data_slot[3] <= data_slot[4];
-        data_slot[4] <= 'h0;
-      end
-      data_slot_d[0] <= data_slot[0];
-      data_slot_d[1] <= data_slot[1];
-      data_slot_d[2] <= data_slot[2];
-      data_slot_d[3] <= data_slot[3];
-      data_slot_d[4] <= data_slot[4];
+      data_slot_d[0]  <= data_slot[0];
+      data_slot_d[1]  <= data_slot[1];
+      data_slot_d[2]  <= data_slot[2];
+      data_slot_d[3]  <= data_slot[3];
+      data_slot_d[4]  <= data_slot[4];
       m2s_rwd_pkt_d.pending_data_slot     <= m2s_rwd_pkt.pending_data_slot;
       h2d_data_pkt_d[0].pending_data_slot <= h2d_data_pkt[0].pending_data_slot;
       h2d_data_pkt_d[1].pending_data_slot <= h2d_data_pkt[1].pending_data_slot;
       h2d_data_pkt_d[2].pending_data_slot <= h2d_data_pkt[2].pending_data_slot;
       h2d_data_pkt_d[3].pending_data_slot <= h2d_data_pkt[3].pending_data_slot;
+      if(dev_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit) && 
+          (!data_slot_d[0][3] || 
+            ((data_slot_d[0] == 'hf) && 
+              (
+                (h2d_data_pkt_d[0].pending_data_slot == 'h0) &&
+                (h2d_data_pkt_d[1].pending_data_slot == 'h0) &&
+                (h2d_data_pkt_d[2].pending_data_slot == 'h0) &&
+                (h2d_data_pkt_d[3].pending_data_slot == 'h0) &&
+                (m2s_rwd_pkt_d.pending_data_slot == 'h0)
+              )
+            )
+          )
+        ) begin 
+        if(dev_rx_dl_if_d_data[7:5] == 'h4) begin
+          data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;//need to add what happens when slot 1 is g slot
+          if((dev_rx_dl_if_d_data[10:8] == 'h1) || (dev_rx_dl_if_d_data[10:8] == 'h5)) begin
+            data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+            if((dev_rx_dl_if_d_data[13:11] == 'h1) || (dev_rx_dl_if_d_data[13:11] == 'h5)) begin
+              data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              if((dev_rx_dl_if_d_data[16:14] == 'h1) || (dev_rx_dl_if_d_data[16:14] == 'h5)) begin
+                data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              end else if((dev_rx_dl_if_d_data[16:14] == 'h2) || (dev_rx_dl_if_d_data[16:14] == 'h4)) begin  
+                data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              end else if(dev_rx_dl_if_d_data[16:14] == 'h6) begin  
+                data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
+              end else begin
+                data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
+              end
+            end else if((dev_rx_dl_if_d_data[10:8] == 'h2) || (dev_rx_dl_if_d_data[10:8] == 'h4)) begin  
+              data_slot[0] <= 'h8; data_slot[1] <= 'h7; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+            end else if(dev_rx_dl_if_d_data[10:8] == 'h6) begin  
+              data_slot[0] <= 'h8; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h7; data_slot[4] <= 'h0;
+            end else begin
+              data_slot[0] <= 'h8; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h7;
+            end
+          end else if((dev_rx_dl_if_d_data[10:8] == 'h2) || (dev_rx_dl_if_d_data[10:8] == 'h4)) begin  
+            data_slot[0] <= 'hc; data_slot[1] <= 'h3; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+          end else if(dev_rx_dl_if_d_data[10:8] == 'h6) begin  
+            data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h3; data_slot[4] <= 'h0;
+          end else begin
+            data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h3;
+          end
+        end else if((dev_rx_dl_if_d_data[7:5] == 'h0) || (dev_rx_dl_if_d_data[7:5] == 'h1) || (dev_rx_dl_if_d_data[7:5] == 'h3)) begin
+          data_slot[0] <= 'he; data_slot[1] <= 'h1; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+        end else if(dev_rx_dl_if_d_data[7:5] == 'h5) begin
+          data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h1; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+        end else begin
+          data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h1;
+        end
+      //end else if(dev_rx_dl_if_d_valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
+        //data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
+      end
     end
   end
   
   //TODO: put the packing logic restrictions in the arbiter logic itself so here I do not need to worry why I am getting illegal pkts we can have assertions to catch the max sub pkts that can be packed
   //TODO: put asserts to catch if there any illegal values on Hslots or Gslots otherwise bellow logic will be very hard to debug
   always_comb begin
-    if(dev_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit) && 
-        (!data_slot_d[0][3] || 
-          ((data_slot_d[0] == 'hf) && 
-            (
-              (h2d_data_pkt_d[0].pending_data_slot == 'h0) &&
-              (h2d_data_pkt_d[1].pending_data_slot == 'h0) &&
-              (h2d_data_pkt_d[2].pending_data_slot == 'h0) &&
-              (h2d_data_pkt_d[3].pending_data_slot == 'h0) &&
-              (m2s_rwd_pkt_d.pending_data_slot == 'h0)
-            )
-          )
-        )
-      ) begin 
-      if(dev_rx_dl_if_d_data[7:5] == 'h4) begin
-        data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;//need to add what happens when slot 1 is g slot
-        if((dev_rx_dl_if_d_data[10:8] == 'h1) || (dev_rx_dl_if_d_data[10:8] == 'h5)) begin
-          data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-          if((dev_rx_dl_if_d_data[13:11] == 'h1) || (dev_rx_dl_if_d_data[13:11] == 'h5)) begin
-            data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-            if((dev_rx_dl_if_d_data[16:14] == 'h1) || (dev_rx_dl_if_d_data[16:14] == 'h5)) begin
-              data_slot[0] = 'h0; data_slot[1] = 'h0; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-            end else if((dev_rx_dl_if_d_data[16:14] == 'h2) || (dev_rx_dl_if_d_data[16:14] == 'h4)) begin  
-              data_slot[0] = 'h0; data_slot[1] = 'hf; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-            end else if(dev_rx_dl_if_d_data[16:14] == 'h6) begin  
-              data_slot[0] = 'h0; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h0;
-            end else begin
-              data_slot[0] = 'h0; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'hf;
-            end
-          end else if((dev_rx_dl_if_d_data[10:8] == 'h2) || (dev_rx_dl_if_d_data[10:8] == 'h4)) begin  
-            data_slot[0] = 'h8; data_slot[1] = 'h7; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-          end else if(dev_rx_dl_if_d_data[10:8] == 'h6) begin  
-            data_slot[0] = 'h8; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'h7; data_slot[4] = 'h0;
-          end else begin
-            data_slot[0] = 'h8; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h7;
-          end
-        end else if((dev_rx_dl_if_d_data[10:8] == 'h2) || (dev_rx_dl_if_d_data[10:8] == 'h4)) begin  
-          data_slot[0] = 'hc; data_slot[1] = 'h3; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-        end else if(dev_rx_dl_if_d_data[10:8] == 'h6) begin  
-          data_slot[0] = 'hc; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'h3; data_slot[4] = 'h0;
-        end else begin
-          data_slot[0] = 'hc; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h3;
-        end
-      end else if((dev_rx_dl_if_d_data[7:5] == 'h0) || (dev_rx_dl_if_d_data[7:5] == 'h1) || (dev_rx_dl_if_d_data[7:5] == 'h3)) begin
-        data_slot[0] = 'he; data_slot[1] = 'h1; data_slot[2] = 'h0; data_slot[3] = 'h0; data_slot[4] = 'h0;
-      end else if(dev_rx_dl_if_d_data[7:5] == 'h5) begin
-        data_slot[0] = 'he; data_slot[1] = 'hf; data_slot[2] = 'h1; data_slot[3] = 'h0; data_slot[4] = 'h0;
-      end else begin
-        data_slot[0] = 'he; data_slot[1] = 'hf; data_slot[2] = 'hf; data_slot[3] = 'hf; data_slot[4] = 'h1;
-      end
-    //end else if(dev_rx_dl_if_d_valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
-      //data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
-    end
-    
     if(dev_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
       ack_count = ack_count + 1;
       if(!data_slot[0][0]) begin
@@ -8839,39 +10322,18 @@ module buffer#(
   logic [ADDR_WIDTH:0] wrptr;
  
   assign wptr = wrptr;
-  
+  assign occupancy = (wrptr - rdptr);
+  assign empty = (rdptr == wrptr)? 'h1: 'h0;
+  assign full = ((rdptr[ADDR_WIDTH] != wrptr[ADDR_WIDTH]) && (rdptr[(ADDR_WIDTH-1):0] == wrptr[(ADDR_WIDTH-1):0]))? 'h1: 'h0;
+  assign undrflw = ((empty && rval) || ((occupancy<2) && drval) || ((occupancy<3) && trval) || ((occupancy<4) && qrval))? 'h1: 'h0;
+  assign ovrflw = ((full == 'h1) && wval)? 'h1: 'h0;
+
  	always@(posedge clk) begin
     if(!rstn) begin
      	rdptr <= 0;
      	wrptr <= 0;
-     	empty <= 1;
-     	full <= 0;
-     	ovrflw <= 'h0;
-     	undrflw <= 'h0;
      	eseq <= 'h0;
-     	occupancy <= 'd0;
     end else begin
-      occupancy <= (wrptr - rdptr);
-      if(rdptr == wrptr) begin
-       	empty <= 'h1;
-      end else begin 
-       	empty <= 'h0;
-      end
-      if((rdptr[ADDR_WIDTH] != wrptr[ADDR_WIDTH]) && (rdptr[(ADDR_WIDTH-1):0] == wrptr[(ADDR_WIDTH-1):0])) begin
-       	full <= 'h1;
-      end else begin
-       	full <= 'h0;
-      end
-      if((empty && rval) || ((occupancy<2) && drval) || ((occupancy<3) && trval) || ((occupancy<4) && qrval)) begin
-       	undrflw <= 'h1;
-      end else begin
-       	undrflw <= 'h0;
-      end
-      if((full == 'h1) && wval) begin
-       	ovrflw <= 'h1;
-      end else begin
-       	ovrflw <= 'h0;
-      end
      	if(rval || wval) begin
         if((wval && !full) || (dwval && (occupancy < (DEPTH-3))) || (twval && (occupancy < (DEPTH-4))) || (qwval && (occupancy < (DEPTH-5)))) begin
          	casez({qwval,twval,dwval,wval})
@@ -9051,6 +10513,7 @@ module cxl_host
   int curr_m_crdt_req_cnt;
   int curr_c_crdt_data_cnt;
   int curr_m_crdt_data_cnt;
+  logic retry_ack_snt;
 
   always@(posedge host_m2s_req_if.clk) begin
     if(!host_m2s_req_if.rstn) begin
@@ -9155,6 +10618,7 @@ module cxl_host
     .tdatain(d2h_req_txn[2]),
     .qdatain(d2h_req_txn[3]),
     .dataout(d2h_req_dataout),
+    .ack_cnt('h0),
   	.eseq,
   	.wptr(d2h_req_wptr),
   	.empty(d2h_req_valid),
@@ -9179,6 +10643,7 @@ module cxl_host
     .ddatain(d2h_rsp_txn[1]),
     .dataout(d2h_rsp_dataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr(d2h_rsp_wptr),
   	.empty(d2h_rsp_valid),
   	.full,
@@ -9204,6 +10669,7 @@ module cxl_host
     .qdatain(d2h_data_pkt[3].d2h_data_txn),
     .dataout(d2h_data_dataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr(d2h_data_wptr),
   	.empty(d2h_data_valid),
   	.full,
@@ -9229,6 +10695,7 @@ module cxl_host
     .tdatain(s2m_ndr_txn[2]),
     .dataout(s2m_ndr_dataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr(s2m_ndr_wptr),
   	.empty(s2m_ndr_valid),
   	.full,
@@ -9254,6 +10721,7 @@ module cxl_host
     .tdatain(s2m_drs_pkt[2].s2m_drs_txn),
     .dataout(s2m_drs_dataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr(s2m_drs_wptr),
   	.empty(s2m_drs_valid),
   	.full,
@@ -9280,6 +10748,7 @@ module cxl_host
     .tdataout(m2s_req_tdataout),
     .qdataout(m2s_req_qdataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr,
   	.empty,
     .full(m2s_req_full),
@@ -9306,6 +10775,7 @@ module cxl_host
     .tdataout(m2s_rwd_tdataout),
     .qdataout(m2s_rwd_qdataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr,
   	.empty,
     .full(m2s_rwd_full),
@@ -9332,6 +10802,7 @@ module cxl_host
     .tdataout(h2d_req_tdataout),
     .qdataout(h2d_req_qdataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr,
   	.empty,
     .full(h2d_req_full),
@@ -9358,6 +10829,7 @@ module cxl_host
     .tdataout(h2d_rsp_tdataout),
     .qdataout(h2d_rsp_qdataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr,
   	.empty,
     .full(h2d_rsp_full),
@@ -9384,6 +10856,7 @@ module cxl_host
     .tdataout(h2d_data_tdataout),
     .qdataout(h2d_data_qdataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr,
   	.empty,
     .full(h2d_data_full),
@@ -9526,6 +10999,7 @@ module cxl_device
   int curr_m_crdt_req_cnt;
   int curr_c_crdt_data_cnt;
   int curr_m_crdt_data_cnt;
+  logic retry_ack_snt;
 
   always@(posedge dev_s2m_ndr_if.clk) begin
     if(!dev_s2m_ndr_if.rstn) begin
@@ -9630,6 +11104,7 @@ module cxl_device
     .ddataout(d2h_req_ddataout),
     .tdataout(d2h_req_tdataout),
     .qdataout(d2h_req_qdataout),
+    .ack_cnt('h0),
   	.eseq,
   	.wptr,
   	.empty,
@@ -9657,6 +11132,7 @@ module cxl_device
     .ddataout(d2h_rsp_ddataout),
     .tdataout(d2h_rsp_tdataout),
     .qdataout(d2h_rsp_qdataout),
+    .ack_cnt('h0),
   	.eseq,
   	.wptr,
   	.empty,
@@ -9685,6 +11161,7 @@ module cxl_device
     .tdataout(d2h_data_tdataout),
     .qdataout(d2h_data_qdataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr,
   	.empty,
   	.full(d2h_data_full),
@@ -9712,6 +11189,7 @@ module cxl_device
     .tdataout(s2m_ndr_tdataout),
     .qdataout(s2m_ndr_qdataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr,
   	.empty,
   	.full(s2m_ndr_full),
@@ -9739,6 +11217,7 @@ module cxl_device
     .tdataout(s2m_drs_tdataout),
     .qdataout(s2m_drs_qdataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr,
   	.empty,
   	.full(s2m_drs_full),
@@ -9762,6 +11241,7 @@ module cxl_device
     .ddatain(m2s_req_txn[1]),
     .dataout(m2s_req_dataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr(m2s_req_wptr),
   	.empty(m2s_req_valid),
   	.full,
@@ -9783,6 +11263,7 @@ module cxl_device
     .datain(m2s_rwd_pkt.m2s_rwd_txn),
     .dataout(m2s_rwd_dataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr(m2s_rwd_wptr),
   	.empty(m2s_rwd_valid),
   	.full,
@@ -9806,6 +11287,7 @@ module cxl_device
     .ddatain(h2d_req_txn[1]),
     .dataout(h2d_req_dataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr(h2d_req_wptr),
   	.empty(h2d_req_valid),
   	.full,
@@ -9833,6 +11315,7 @@ module cxl_device
     .qdatain(h2d_rsp_txn[3]),
     .dataout(h2d_rsp_dataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr(h2d_rsp_wptr),
   	.empty(h2d_rsp_valid),
   	.full,
@@ -9858,6 +11341,7 @@ module cxl_device
   	.qdatain(h2d_data_pkt[3].h2d_data_txn),
     .dataout(h2d_data_dataout),
   	.eseq,
+    .ack_cnt('h0),
   	.wptr(h2d_data_wptr),
   	.empty(h2d_data_valid),
   	.full,
@@ -9868,6 +11352,8 @@ module cxl_device
   );
 
   device_tx_path #(
+    .BUFFER_DEPTH(BUFFER_DEPTH),
+    .BUFFER_ADDR_WIDTH(BUFFER_ADDR_WIDTH)
   ) device_tx_path_inst (
     .*
   );
@@ -10074,6 +11560,11 @@ module tb_top;
     constraint hdm_c {
       (cxl_type == GEET_CXL_TYPE_1) -> (hdm == GEET_CXL_HDM_H);
       (cxl_type == GEET_CXL_TYPE_3) -> (hdm == GEET_CXL_HDM_H);
+    }
+
+    constraint default_mode_c{
+      soft cxl_type inside {GEET_CXL_TYPE_2};
+      soft hdm inside {GEET_CXL_HDM_H};
     }
 
     function new(string name = "cxl_cfg_obj");
@@ -10659,10 +12150,10 @@ module tb_top;
       dev_d2h_req_fifo    = new("dev_d2h_req_fifo",   this);
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
-
+/*
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
-      /*fork 
+      fork 
         begin
           forever begin
             wait_for_item_done();
@@ -10681,9 +12172,9 @@ module tb_top;
             end
           end
         end
-      join_none*/
+      join_none
     endtask 
-
+*/
   endclass
 
   class dev_d2h_rsp_sequencer#(type ITEM_TYPE = d2h_rsp_seq_item) extends uvm_sequencer#(ITEM_TYPE);
@@ -10702,10 +12193,10 @@ module tb_top;
       dev_d2h_rsp_fifo    = new("dev_d2h_rsp_fifo",   this);
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
-
+/*
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
-      /*fork 
+      fork 
         begin
           forever begin
             wait_for_item_done();
@@ -10723,9 +12214,9 @@ module tb_top;
             end
           end
         end
-      join_none*/
+      join_none
     endtask 
-
+*/
   endclass
 
   class dev_d2h_data_sequencer#(type ITEM_TYPE = d2h_data_seq_item) extends uvm_sequencer#(ITEM_TYPE);
@@ -10744,10 +12235,10 @@ module tb_top;
       dev_d2h_data_fifo    = new("dev_d2h_data_fifo",   this);
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
-
+/*
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
-      /*fork 
+      fork 
         begin
           forever begin
             wait_for_item_done();
@@ -10765,9 +12256,9 @@ module tb_top;
             end
           end
         end
-      join_none*/
+      join_none
     endtask 
-
+*/
   endclass
 
   class host_h2d_req_sequencer#(type ITEM_TYPE = h2d_req_seq_item) extends uvm_sequencer#(ITEM_TYPE);
@@ -10786,10 +12277,10 @@ module tb_top;
       host_h2d_req_fifo    = new("host_h2d_req_fifo",   this);
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
-
+/*
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
-      /*fork 
+      fork 
         begin
           forever begin
             wait_for_item_done();
@@ -10807,9 +12298,9 @@ module tb_top;
             end
           end
         end
-      join_none*/
+      join_none
     endtask 
-
+*/
   endclass
 
   class host_h2d_rsp_sequencer#(type ITEM_TYPE = h2d_rsp_seq_item) extends uvm_sequencer#(ITEM_TYPE);
@@ -10828,10 +12319,10 @@ module tb_top;
       host_h2d_rsp_fifo    = new("host_h2d_rsp_fifo",   this);
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
-
+/*
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
-      /*fork 
+      fork 
         begin
           forever begin
             wait_for_item_done();
@@ -10849,9 +12340,9 @@ module tb_top;
             end
           end  
         end
-      join_none*/
+      join_none
     endtask 
-
+*/
   endclass
 
   class host_h2d_data_sequencer#(type ITEM_TYPE = h2d_data_seq_item) extends uvm_sequencer#(ITEM_TYPE);
@@ -10870,10 +12361,10 @@ module tb_top;
       host_h2d_data_fifo    = new("host_h2d_data_fifo",   this);
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
-
+/*
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
-      /*fork 
+      fork 
         begin
           forever begin
             wait_for_item_done();
@@ -10891,9 +12382,9 @@ module tb_top;
             end
           end
         end
-      join_none*/
+      join_none
     endtask 
-
+*/
   endclass
 
   class host_m2s_req_sequencer#(type ITEM_TYPE = m2s_req_seq_item) extends uvm_sequencer#(ITEM_TYPE);
@@ -10912,10 +12403,10 @@ module tb_top;
       host_m2s_req_fifo    = new("host_m2s_req_fifo",   this);
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
-
+/*
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
-      /*fork 
+      fork 
         begin
           forever begin
             wait_for_item_done();
@@ -10934,9 +12425,9 @@ module tb_top;
           
           end
         end
-      join_none*/
+      join_none
     endtask 
-
+*/
   endclass
 
   class host_m2s_rwd_sequencer#(type ITEM_TYPE = m2s_rwd_seq_item) extends uvm_sequencer#(ITEM_TYPE);
@@ -10955,10 +12446,10 @@ module tb_top;
       host_m2s_rwd_fifo    = new("host_m2s_rwd_fifo",   this);
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
-
+/*
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
-      /*fork 
+      fork 
         begin
           forever begin
             wait_for_item_done();
@@ -10976,9 +12467,9 @@ module tb_top;
             end
           end
         end
-      join_none*/
+      join_none
     endtask 
-
+*/
   endclass
 
   class dev_s2m_ndr_sequencer#(type ITEM_TYPE = s2m_ndr_seq_item) extends uvm_sequencer#(ITEM_TYPE);
@@ -10997,10 +12488,10 @@ module tb_top;
       dev_s2m_ndr_fifo    = new("dev_s2m_ndr_fifo",   this);
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
-
+/*
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
-      /*fork 
+      fork 
         begin
           forever begin
             wait_for_item_done();
@@ -11018,9 +12509,9 @@ module tb_top;
             end
           end
         end
-      join_none*/
+      join_none
     endtask 
-
+*/
   endclass
 
   class dev_s2m_drs_sequencer#(type ITEM_TYPE = s2m_drs_seq_item) extends uvm_sequencer#(ITEM_TYPE);
@@ -11039,10 +12530,10 @@ module tb_top;
       dev_s2m_drs_fifo    = new("dev_s2m_drs_fifo",   this);
       `uvm_info(get_type_name(), $sformatf("constructed uvm sequencer : %s", name), UVM_DEBUG)
     endfunction
-
+/*
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
-      /*fork 
+      fork 
         begin
           forever begin
             wait_for_item_done();
@@ -11060,9 +12551,9 @@ module tb_top;
             end
           end   
         end
-        join_none*/
+        join_none
     endtask 
-
+*/
   endclass
 
   class dev_d2h_req_monitor extends uvm_monitor;
@@ -11902,32 +13393,22 @@ module tb_top;
     endfunction
 
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(d2h_req_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_req_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        host_d2h_req_if.rstn <= 'h0;
-        repeat(d2h_req_seq_item_h.reset_cycles) @(negedge host_d2h_req_if.clk) host_d2h_req_if.rstn <= 'h0;
-        host_d2h_req_if.rstn <= 'h1;
-        seq_item_port.item_done(d2h_req_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(d2h_req_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_req_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      host_d2h_req_if.rstn <= 'h0;
+      repeat(d2h_req_seq_item_h.reset_cycles) @(negedge host_d2h_req_if.clk) host_d2h_req_if.rstn <= 'h0;
+      host_d2h_req_if.rstn <= 'h1;
+      seq_item_port.item_done(d2h_req_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -11954,16 +13435,10 @@ module tb_top;
 
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
+      phase.raise_objection(this);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          run_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      host_d2h_req_if.ready <= 'h1;
+      phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -11997,33 +13472,23 @@ module tb_top;
     endfunction
 
     task reset_task(uvm_phase phase);
-      `uvm_info(get_type_name(), $sformatf("enter run_task in uvm driver : %s", get_full_name()), UVM_HIGH)
-      forever begin
-        seq_item_port.get_next_item(d2h_rsp_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_rsp_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        host_d2h_rsp_if.rstn <= 'h0;
-        repeat(d2h_rsp_seq_item_h.reset_cycles) @(negedge host_d2h_rsp_if.clk) host_d2h_rsp_if.rstn <= 'h0;
-        host_d2h_rsp_if.rstn <= 'h1;
-        seq_item_port.item_done(d2h_rsp_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      `uvm_info(get_type_name(), $sformatf("enter reset_task in uvm driver : %s", get_full_name()), UVM_HIGH)
+      seq_item_port.get_next_item(d2h_rsp_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_rsp_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      host_d2h_rsp_if.rstn <= 'h0;
+      repeat(d2h_rsp_seq_item_h.reset_cycles) @(negedge host_d2h_rsp_if.clk) host_d2h_rsp_if.rstn <= 'h0;
+      host_d2h_rsp_if.rstn <= 'h1;
+      seq_item_port.item_done(d2h_rsp_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+       reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -12047,7 +13512,7 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-    
+/*    
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12062,7 +13527,7 @@ module tb_top;
       disable fork;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-
+*/
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12093,32 +13558,22 @@ module tb_top;
     endfunction
     
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(d2h_data_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_data_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        host_d2h_data_if.rstn <= 'h0;
-        repeat(d2h_data_seq_item_h.reset_cycles) @(negedge host_d2h_data_if.clk) host_d2h_data_if.rstn <= 'h0;
-        host_d2h_data_if.rstn <= 'h1;
-        seq_item_port.item_done(d2h_data_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(d2h_data_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_data_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      host_d2h_data_if.rstn <= 'h0;
+      repeat(d2h_data_seq_item_h.reset_cycles) @(negedge host_d2h_data_if.clk) host_d2h_data_if.rstn <= 'h0;
+      host_d2h_data_if.rstn <= 'h1;
+      seq_item_port.item_done(d2h_data_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -12142,7 +13597,7 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-
+/*
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12157,7 +13612,7 @@ module tb_top;
       disable fork;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-    
+*/    
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12188,32 +13643,22 @@ module tb_top;
     endfunction
 
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(s2m_ndr_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_ndr_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        host_s2m_ndr_if.rstn <= 'h0;
-        repeat(s2m_ndr_seq_item_h.reset_cycles) @(negedge host_s2m_ndr_if.clk) host_s2m_ndr_if.rstn <= 'h0;
-        host_s2m_ndr_if.rstn <= 'h1;
-        seq_item_port.item_done(s2m_ndr_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(s2m_ndr_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_ndr_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      host_s2m_ndr_if.rstn <= 'h0;
+      repeat(s2m_ndr_seq_item_h.reset_cycles) @(negedge host_s2m_ndr_if.clk) host_s2m_ndr_if.rstn <= 'h0;
+      host_s2m_ndr_if.rstn <= 'h1;
+      seq_item_port.item_done(s2m_ndr_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -12237,7 +13682,7 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-    
+/*    
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12252,7 +13697,7 @@ module tb_top;
       disable fork;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-
+*/
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12283,32 +13728,22 @@ module tb_top;
     endfunction
 
     task reset_task(uvm_phase phase);
-     forever begin
-        seq_item_port.get_next_item(s2m_drs_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_drs_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        host_s2m_drs_if.rstn <= 'h0;
-        repeat(s2m_drs_seq_item_h.reset_cycles) @(negedge host_s2m_drs_if.clk) host_s2m_drs_if.rstn <= 'h0;
-        host_s2m_drs_if.rstn <= 'h1;
-        seq_item_port.item_done(s2m_drs_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(s2m_drs_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_drs_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      host_s2m_drs_if.rstn <= 'h0;
+      repeat(s2m_drs_seq_item_h.reset_cycles) @(negedge host_s2m_drs_if.clk) host_s2m_drs_if.rstn <= 'h0;
+      host_s2m_drs_if.rstn <= 'h1;
+      seq_item_port.item_done(s2m_drs_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -12332,7 +13767,7 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-
+/*
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12347,7 +13782,7 @@ module tb_top;
       disable fork;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-
+*/
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12378,32 +13813,22 @@ module tb_top;
     endfunction
     
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(h2d_req_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_req_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        dev_h2d_req_if.rstn <= 'h0;
-        repeat(h2d_req_seq_item_h.reset_cycles) @(negedge dev_h2d_req_if.clk) dev_h2d_req_if.rstn <= 'h0;
-        dev_h2d_req_if.rstn <= 'h1;
-        seq_item_port.item_done(h2d_req_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(h2d_req_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_req_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      dev_h2d_req_if.rstn <= 'h0;
+      repeat(h2d_req_seq_item_h.reset_cycles) @(negedge dev_h2d_req_if.clk) dev_h2d_req_if.rstn <= 'h0;
+      dev_h2d_req_if.rstn <= 'h1;
+      seq_item_port.item_done(h2d_req_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -12427,7 +13852,7 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-
+/*
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12442,7 +13867,7 @@ module tb_top;
       disable fork;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-
+*/
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12473,32 +13898,22 @@ module tb_top;
     endfunction
 
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(h2d_rsp_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_rsp_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        dev_h2d_rsp_if.rstn <= 'h0;
-        repeat(h2d_rsp_seq_item_h.reset_cycles) @(negedge dev_h2d_rsp_if.clk) dev_h2d_rsp_if.rstn <= 'h0;
-        dev_h2d_rsp_if.rstn <= 'h1;
-        seq_item_port.item_done(h2d_rsp_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(h2d_rsp_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_rsp_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      dev_h2d_rsp_if.rstn <= 'h0;
+      repeat(h2d_rsp_seq_item_h.reset_cycles) @(negedge dev_h2d_rsp_if.clk) dev_h2d_rsp_if.rstn <= 'h0;
+      dev_h2d_rsp_if.rstn <= 'h1;
+      seq_item_port.item_done(h2d_rsp_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -12522,7 +13937,7 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-
+/*
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12537,7 +13952,7 @@ module tb_top;
       disable fork;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-
+*/
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12568,32 +13983,22 @@ module tb_top;
     endfunction
 
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(h2d_data_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_data_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        dev_h2d_data_if.rstn <= 'h0;
-        repeat(h2d_data_seq_item_h.reset_cycles) @(negedge dev_h2d_data_if.clk) dev_h2d_data_if.rstn <= 'h0;
-        dev_h2d_data_if.rstn <= 'h1;
-        seq_item_port.item_done(h2d_data_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(h2d_data_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_data_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      dev_h2d_data_if.rstn <= 'h0;
+      repeat(h2d_data_seq_item_h.reset_cycles) @(negedge dev_h2d_data_if.clk) dev_h2d_data_if.rstn <= 'h0;
+      dev_h2d_data_if.rstn <= 'h1;
+      seq_item_port.item_done(h2d_data_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -12617,7 +14022,7 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-
+/*
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12632,7 +14037,7 @@ module tb_top;
       disable fork;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-
+*/
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12663,32 +14068,22 @@ module tb_top;
     endfunction
     
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(m2s_req_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_req_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        dev_m2s_req_if.rstn <= 'h0;
-        repeat(m2s_req_seq_item_h.reset_cycles) @(negedge dev_m2s_req_if.clk) dev_m2s_req_if.rstn <= 'h0;
-        dev_m2s_req_if.rstn <= 'h1;
-        seq_item_port.item_done(m2s_req_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(m2s_req_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_req_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      dev_m2s_req_if.rstn <= 'h0;
+      repeat(m2s_req_seq_item_h.reset_cycles) @(negedge dev_m2s_req_if.clk) dev_m2s_req_if.rstn <= 'h0;
+      dev_m2s_req_if.rstn <= 'h1;
+      seq_item_port.item_done(m2s_req_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -12712,7 +14107,7 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-
+/*
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12727,7 +14122,7 @@ module tb_top;
       disable fork;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-
+*/
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12758,32 +14153,22 @@ module tb_top;
     endfunction
 
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(m2s_rwd_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_rwd_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        dev_m2s_rwd_if.rstn <= 'h0;
-        repeat(m2s_rwd_seq_item_h.reset_cycles) @(negedge dev_m2s_rwd_if.clk) dev_m2s_rwd_if.rstn <= 'h0;
-        dev_m2s_rwd_if.rstn <= 'h1;
-        seq_item_port.item_done(m2s_rwd_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(m2s_rwd_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_rwd_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      dev_m2s_rwd_if.rstn <= 'h0;
+      repeat(m2s_rwd_seq_item_h.reset_cycles) @(negedge dev_m2s_rwd_if.clk) dev_m2s_rwd_if.rstn <= 'h0;
+      dev_m2s_rwd_if.rstn <= 'h1;
+      seq_item_port.item_done(m2s_rwd_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -12807,7 +14192,7 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-
+/*
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12822,7 +14207,7 @@ module tb_top;
       disable fork;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-
+*/
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -12853,35 +14238,25 @@ module tb_top;
     endfunction
       
     task reset_task(uvm_phase phase);  
-      forever begin
-        seq_item_port.get_next_item(d2h_req_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_req_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        dev_d2h_req_if.rstn <= 'h0;
-        repeat(d2h_req_seq_item_h.reset_cycles) @(negedge dev_d2h_req_if.clk) dev_d2h_req_if.rstn <= 'h0;
-        dev_d2h_req_if.rstn <= 'h1;
-        seq_item_port.item_done(d2h_req_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(d2h_req_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_req_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      dev_d2h_req_if.rstn <= 'h0;
+      repeat(d2h_req_seq_item_h.reset_cycles) @(negedge dev_d2h_req_if.clk) dev_d2h_req_if.rstn <= 'h0;
+      dev_d2h_req_if.rstn <= 'h1;
+      seq_item_port.item_done(d2h_req_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-    
+   
     task configure_task(uvm_phase phase);
       seq_item_port.get_next_item(d2h_req_seq_item_h);
       `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
@@ -12896,6 +14271,7 @@ module tb_top;
 
     task run_task(uvm_phase phase);
       forever begin
+        @(negedge dev_d2h_req_if.clk);
         seq_item_port.get_next_item(d2h_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_req_seq_item_h.sprint()), UVM_DEBUG)
@@ -12921,15 +14297,7 @@ module tb_top;
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          configure_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      configure_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -12962,32 +14330,22 @@ module tb_top;
     endfunction
     
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(d2h_rsp_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_rsp_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        dev_d2h_rsp_if.rstn <= 'h0;
-        repeat(d2h_rsp_seq_item_h.reset_cycles) @(negedge dev_d2h_rsp_if.clk) dev_d2h_rsp_if.rstn <= 'h0;
-        dev_d2h_rsp_if.rstn <= 'h1;
-        seq_item_port.item_done(d2h_rsp_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(d2h_rsp_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_rsp_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      dev_d2h_rsp_if.rstn <= 'h0;
+      repeat(d2h_rsp_seq_item_h.reset_cycles) @(negedge dev_d2h_rsp_if.clk) dev_d2h_rsp_if.rstn <= 'h0;
+      dev_d2h_rsp_if.rstn <= 'h1;
+      seq_item_port.item_done(d2h_rsp_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -13006,20 +14364,13 @@ module tb_top;
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          configure_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      configure_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
     task run_task(uvm_phase phase);
       forever begin
+        @(negedge dev_d2h_rsp_if.clk);
         seq_item_port.get_next_item(d2h_rsp_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_rsp_seq_item_h.sprint()), UVM_DEBUG)
@@ -13069,32 +14420,22 @@ module tb_top;
     endfunction
 
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(d2h_data_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_data_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        dev_d2h_data_if.rstn <= 'h0;
-        repeat(d2h_data_seq_item_h.reset_cycles) @(negedge dev_d2h_data_if.clk) dev_d2h_data_if.rstn <= 'h0;
-        dev_d2h_data_if.rstn <= 'h1;
-        seq_item_port.item_done(d2h_data_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(d2h_data_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_data_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      dev_d2h_data_if.rstn <= 'h0;
+      repeat(d2h_data_seq_item_h.reset_cycles) @(negedge dev_d2h_data_if.clk) dev_d2h_data_if.rstn <= 'h0;
+      dev_d2h_data_if.rstn <= 'h1;
+      seq_item_port.item_done(d2h_data_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -13113,20 +14454,13 @@ module tb_top;
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          configure_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      configure_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
     task run_task(uvm_phase phase);
       forever begin
+        @(negedge dev_d2h_data_if.clk);
         seq_item_port.get_next_item(d2h_data_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_data_seq_item_h.sprint()), UVM_DEBUG)
@@ -13179,32 +14513,22 @@ module tb_top;
     endfunction
     
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(h2d_req_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_req_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        host_h2d_req_if.rstn <= 'h0;
-        repeat(h2d_req_seq_item_h.reset_cycles) @(negedge host_h2d_req_if.clk) host_h2d_req_if.rstn <= 'h0;
-        host_h2d_req_if.rstn <= 'h1;
-        seq_item_port.item_done(h2d_req_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(h2d_req_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_req_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      host_h2d_req_if.rstn <= 'h0;
+      repeat(h2d_req_seq_item_h.reset_cycles) @(negedge host_h2d_req_if.clk) host_h2d_req_if.rstn <= 'h0;
+      host_h2d_req_if.rstn <= 'h1;
+      seq_item_port.item_done(h2d_req_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -13223,20 +14547,13 @@ module tb_top;
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          configure_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      configure_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
     task run_task(uvm_phase phase);
       forever begin
+        @(negedge host_h2d_req_if.clk);
         seq_item_port.get_next_item(h2d_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_req_seq_item_h.sprint()), UVM_DEBUG)
@@ -13287,32 +14604,22 @@ module tb_top;
     endfunction
     
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(h2d_rsp_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_rsp_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        host_h2d_rsp_if.rstn <= 'h0;
-        repeat(h2d_rsp_seq_item_h.reset_cycles) @(negedge host_h2d_rsp_if.clk) host_h2d_rsp_if.rstn <= 'h0;
-        host_h2d_rsp_if.rstn <= 'h1;
-        seq_item_port.item_done(h2d_rsp_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(h2d_rsp_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_rsp_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      host_h2d_rsp_if.rstn <= 'h0;
+      repeat(h2d_rsp_seq_item_h.reset_cycles) @(negedge host_h2d_rsp_if.clk) host_h2d_rsp_if.rstn <= 'h0;
+      host_h2d_rsp_if.rstn <= 'h1;
+      seq_item_port.item_done(h2d_rsp_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
@@ -13331,20 +14638,13 @@ module tb_top;
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          configure_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      configure_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
     task run_task(uvm_phase phase);
       forever begin
+        @(negedge host_h2d_rsp_if.clk);
         seq_item_port.get_next_item(h2d_rsp_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_rsp_seq_item_h.sprint()), UVM_DEBUG)
@@ -13396,32 +14696,22 @@ module tb_top;
     endfunction
     
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(h2d_data_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_data_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        host_h2d_data_if.rstn <= 'h0;
-        repeat(h2d_data_seq_item_h.reset_cycles) @(negedge host_h2d_data_if.clk) host_h2d_data_if.rstn <= 'h0;
-        host_h2d_data_if.rstn <= 'h1;
-        seq_item_port.item_done(h2d_data_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(h2d_data_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_data_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      host_h2d_data_if.rstn <= 'h0;
+      repeat(h2d_data_seq_item_h.reset_cycles) @(negedge host_h2d_data_if.clk) host_h2d_data_if.rstn <= 'h0;
+      host_h2d_data_if.rstn <= 'h1;
+      seq_item_port.item_done(h2d_data_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -13441,20 +14731,13 @@ module tb_top;
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          configure_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      configure_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
     task run_task(uvm_phase phase);
      forever begin
+        @(negedge host_h2d_data_if.clk);
         seq_item_port.get_next_item(h2d_data_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_data_seq_item_h.sprint()), UVM_DEBUG)
@@ -13507,32 +14790,22 @@ module tb_top;
     endfunction 
     
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(m2s_req_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_req_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        host_m2s_req_if.rstn <= 'h0;
-        repeat(m2s_req_seq_item_h.reset_cycles) @(negedge host_m2s_req_if.clk) host_m2s_req_if.rstn <= 'h0;
-        host_m2s_req_if.rstn <= 'h1;
-        seq_item_port.item_done(m2s_req_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(m2s_req_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_req_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      host_m2s_req_if.rstn <= 'h0;
+      repeat(m2s_req_seq_item_h.reset_cycles) @(negedge host_m2s_req_if.clk) host_m2s_req_if.rstn <= 'h0;
+      host_m2s_req_if.rstn <= 'h1;
+      seq_item_port.item_done(m2s_req_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -13551,20 +14824,13 @@ module tb_top;
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          configure_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      configure_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
     task run_task(uvm_phase phase);
       forever begin  
+        @(negedge host_m2s_req_if.clk);
         seq_item_port.get_next_item(m2s_req_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_req_seq_item_h.sprint()), UVM_DEBUG)
@@ -13619,32 +14885,22 @@ module tb_top;
     endfunction
     
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(m2s_rwd_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_rwd_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        host_m2s_rwd_if.rstn <= 'h0;
-        repeat(m2s_rwd_seq_item_h.reset_cycles) @(negedge host_m2s_rwd_if.clk) host_m2s_rwd_if.rstn <= 'h0;
-        host_m2s_rwd_if.rstn <= 'h1;
-        seq_item_port.item_done(m2s_rwd_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(m2s_rwd_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_rwd_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      host_m2s_rwd_if.rstn <= 'h0;
+      repeat(m2s_rwd_seq_item_h.reset_cycles) @(negedge host_m2s_rwd_if.clk) host_m2s_rwd_if.rstn <= 'h0;
+      host_m2s_rwd_if.rstn <= 'h1;
+      seq_item_port.item_done(m2s_rwd_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -13663,20 +14919,13 @@ module tb_top;
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          configure_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      configure_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
     task run_task(uvm_phase phase);
       forever begin  
+        @(negedge host_m2s_rwd_if.clk);
         seq_item_port.get_next_item(m2s_rwd_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_rwd_seq_item_h.sprint()), UVM_DEBUG)
@@ -13733,32 +14982,22 @@ module tb_top;
     endfunction
 
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(s2m_ndr_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_ndr_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        dev_s2m_ndr_if.rstn <= 'h0;
-        repeat(s2m_ndr_seq_item_h.reset_cycles) @(negedge dev_s2m_ndr_if.clk) dev_s2m_ndr_if.rstn <= 'h0;
-        dev_s2m_ndr_if.rstn <= 'h1;
-        seq_item_port.item_done(s2m_ndr_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(s2m_ndr_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_ndr_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      dev_s2m_ndr_if.rstn <= 'h0;
+      repeat(s2m_ndr_seq_item_h.reset_cycles) @(negedge dev_s2m_ndr_if.clk) dev_s2m_ndr_if.rstn <= 'h0;
+      dev_s2m_ndr_if.rstn <= 'h1;
+      seq_item_port.item_done(s2m_ndr_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
@@ -13777,20 +15016,13 @@ module tb_top;
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          configure_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      configure_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
     task run_task(uvm_phase phase);
       forever begin  
+        @(negedge dev_s2m_ndr_if.clk);
         seq_item_port.get_next_item(s2m_ndr_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_ndr_seq_item_h.sprint()), UVM_DEBUG)
@@ -13842,32 +15074,22 @@ module tb_top;
     endfunction
     
     task reset_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(s2m_drs_seq_item_h);
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_drs_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);  
-        dev_s2m_drs_if.rstn <= 'h0;
-        repeat(s2m_drs_seq_item_h.reset_cycles) @(negedge dev_s2m_drs_if.clk) dev_s2m_drs_if.rstn <= 'h0;
-        dev_s2m_drs_if.rstn <= 'h1;
-        seq_item_port.item_done(s2m_drs_seq_item_h);  
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
-      end
+      seq_item_port.get_next_item(s2m_drs_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+      `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_drs_seq_item_h.sprint()), UVM_DEBUG)
+      phase.raise_objection(this);  
+      dev_s2m_drs_if.rstn <= 'h0;
+      repeat(s2m_drs_seq_item_h.reset_cycles) @(negedge dev_s2m_drs_if.clk) dev_s2m_drs_if.rstn <= 'h0;
+      dev_s2m_drs_if.rstn <= 'h1;
+      seq_item_port.item_done(s2m_drs_seq_item_h);  
+      phase.drop_objection(this);
+      `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
     endtask
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      reset_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit reset_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
 
     endtask
@@ -13887,20 +15109,13 @@ module tb_top;
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          configure_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      configure_task(phase);
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
     
     task run_task(uvm_phase phase);
       forever begin  
+        @(negedge dev_s2m_drs_if.clk);
         seq_item_port.get_next_item(s2m_drs_seq_item_h);
         `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_drs_seq_item_h.sprint()), UVM_DEBUG)
@@ -15531,6 +16746,9 @@ module tb_top;
       if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
         if(dev_d2h_req_agent_h.is_active == UVM_ACTIVE) begin
           cxl_cm_vseqr.dev_d2h_req_seqr   = dev_d2h_req_agent_h.dev_d2h_req_sequencer_h;
+          if(cxl_cm_vseqr.dev_d2h_req_seqr == null) begin
+            `uvm_fatal(get_type_name, $sformatf("null object for d2h seqr"));
+          end
           //$cast(cxl_cm_vseqr.dev_d2h_req_seqr   , dev_d2h_req_agent_h.dev_d2h_req_sequencer_h);
         end
         dev_d2h_req_agent_h.dev_d2h_req_monitor_h.d2h_req_port.connect(cxl_cm_scoreboard_h.dev_d2h_req_fifo.analysis_export);
@@ -15661,6 +16879,7 @@ module tb_top;
     `uvm_object_param_utils(dev_d2h_req_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(dev_d2h_req_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE d2h_req_seq_item_h[];
+    ITEM_TYPE d2h_req_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -15675,24 +16894,27 @@ module tb_top;
     endfunction
 
     task body();
-      //foreach(d2h_req_seq_item_h[i]) begin
-        //d2h_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_h[%0d]",i));
-        //d2h_req_seq_item_h[0] = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_h"));
-        `uvm_do_on_with(d2h_req_seq_item_h[0], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(d2h_req_seq_item_h[i]);
-        if(!d2h_req_seq_item_h[i].randomize()) begin
+    bit rand_fail;
+      foreach(d2h_req_seq_item_h[i]) begin
+        d2h_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_h[%0d]",i));
+        d2h_req_seq_item_curr_h = d2h_req_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(d2h_req_seq_item_curr_h);
+        rand_fail = d2h_req_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(d2h_req_seq_item_h[i]);
-*/      //end
+        finish_item(d2h_req_seq_item_curr_h);
+      end
     endtask
 
   endclass
 
   class dev_d2h_rsp_seq#(type ITEM_TYPE = d2h_rsp_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_d2h_rsp_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(dev_d2h_rsp_sequencer)
+    `uvm_declare_p_sequencer(dev_d2h_rsp_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE d2h_rsp_seq_item_h[];
+    ITEM_TYPE d2h_rsp_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -15707,23 +16929,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(d2h_rsp_seq_item_h[i]) begin
-        //d2h_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_rsp_seq_item_h[%0d]",i));
-        `uvm_do_on_with(d2h_rsp_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(d2h_rsp_seq_item_h[i]);
-        if(!d2h_rsp_seq_item_h[i].randomize()) begin
+        d2h_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_rsp_seq_item_h[%0d]",i));
+        d2h_rsp_seq_item_curr_h = d2h_rsp_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(d2h_rsp_seq_item_curr_h);
+        rand_fail = d2h_rsp_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(d2h_rsp_seq_item_h[i]);
-*/      end
+        finish_item(d2h_rsp_seq_item_curr_h);
+      end
     endtask
 
   endclass
 
   class dev_d2h_data_seq#(type ITEM_TYPE = d2h_data_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_d2h_data_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(dev_d2h_data_sequencer)
+    `uvm_declare_p_sequencer(dev_d2h_data_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE d2h_data_seq_item_h[];
+    ITEM_TYPE d2h_data_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -15738,23 +16964,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(d2h_data_seq_item_h[i]) begin
-        //d2h_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_data_seq_item_h[%0d]",i));
-        `uvm_do_on_with(d2h_data_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(d2h_data_seq_item_h[i]);
-        if(!d2h_data_seq_item_h[i].randomize()) begin
+        d2h_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_data_seq_item_h[%0d]",i));
+        d2h_data_seq_item_curr_h = d2h_data_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(d2h_data_seq_item_curr_h);
+        rand_fail = d2h_data_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(d2h_data_seq_item_h[i]);
-*/      end
+        finish_item(d2h_data_seq_item_curr_h);
+      end
     endtask
 
   endclass
 
   class dev_h2d_req_seq#(type ITEM_TYPE = h2d_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_h2d_req_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(dev_h2d_req_sequencer)
+    `uvm_declare_p_sequencer(dev_h2d_req_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE h2d_req_seq_item_h[];
+    ITEM_TYPE h2d_req_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -15769,26 +16999,27 @@ module tb_top;
     endfunction
 
     task body();
-    if(p_sequencer == null) begin
-      `uvm_fatal(get_type_name,$sformatf("p_sequencer is null"))
-    end
+      bit rand_fail;
       foreach(h2d_req_seq_item_h[i]) begin
-        //h2d_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_req_seq_item_h[%0d]",i));
-        `uvm_do_on_with(h2d_req_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(h2d_req_seq_item_h[i]);
-        if(!h2d_req_seq_item_h[i].randomize()) begin
+        h2d_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_req_seq_item_h[%0d]",i));
+        h2d_req_seq_item_curr_h = h2d_req_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(h2d_req_seq_item_curr_h);
+        rand_fail = h2d_req_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(h2d_req_seq_item_h[i]);
-*/      end
+        finish_item(h2d_req_seq_item_curr_h);
+      end
     endtask
 
   endclass
 
   class dev_h2d_rsp_seq#(type ITEM_TYPE = h2d_rsp_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_h2d_rsp_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(dev_h2d_rsp_sequencer)
+    `uvm_declare_p_sequencer(dev_h2d_rsp_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE h2d_rsp_seq_item_h[];
+    ITEM_TYPE h2d_rsp_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -15803,23 +17034,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(h2d_rsp_seq_item_h[i]) begin
-        //h2d_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_rsp_seq_item_h[%0d]",i));
-        `uvm_do_on_with(h2d_rsp_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(h2d_rsp_seq_item_h[i]);
-        if(!h2d_rsp_seq_item_h[i].randomize()) begin
+        h2d_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_rsp_seq_item_h[%0d]",i));
+        h2d_rsp_seq_item_curr_h = h2d_rsp_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(h2d_rsp_seq_item_curr_h);
+        rand_fail = h2d_rsp_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(h2d_rsp_seq_item_h[i]);
-*/      end
+        finish_item(h2d_rsp_seq_item_curr_h);
+      end
     endtask
 
   endclass
   
   class dev_h2d_data_seq#(type ITEM_TYPE = h2d_data_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_h2d_data_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(dev_h2d_data_sequencer)
+    `uvm_declare_p_sequencer(dev_h2d_data_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE h2d_data_seq_item_h[];
+    ITEM_TYPE h2d_data_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -15834,23 +17069,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(h2d_data_seq_item_h[i]) begin
-        //h2d_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_data_seq_item_h[%0d]",i));
-        `uvm_do_on_with(h2d_data_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(h2d_data_seq_item_h[i]);
-        if(!h2d_data_seq_item_h[i].randomize()) begin
+        h2d_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_data_seq_item_h[%0d]",i));
+        h2d_data_seq_item_curr_h = h2d_data_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(h2d_data_seq_item_curr_h);
+        rand_fail = h2d_data_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(h2d_data_seq_item_h[i]);
-*/      end
+        finish_item(h2d_data_seq_item_curr_h);
+      end
     endtask
 
   endclass
   
   class dev_m2s_req_seq#(type ITEM_TYPE = m2s_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_m2s_req_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(dev_m2s_req_sequencer)
+    `uvm_declare_p_sequencer(dev_m2s_req_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE m2s_req_seq_item_h[];
+    ITEM_TYPE m2s_req_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -15865,23 +17104,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(m2s_req_seq_item_h[i]) begin
-        //m2s_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_req_seq_item_h[%0d]",i));
-        `uvm_do_on_with(m2s_req_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(m2s_req_seq_item_h[i]);
-        if(!m2s_req_seq_item_h[i].randomize()) begin
+        m2s_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_req_seq_item_h[%0d]",i));
+        m2s_req_seq_item_curr_h = m2s_req_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(m2s_req_seq_item_curr_h);
+        rand_fail = m2s_req_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(m2s_req_seq_item_h[i]);
-*/      end
+        finish_item(m2s_req_seq_item_curr_h);
+      end
     endtask
 
   endclass
 
   class dev_m2s_rwd_seq#(type ITEM_TYPE = m2s_rwd_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_m2s_rwd_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(dev_m2s_rwd_sequencer)
+    `uvm_declare_p_sequencer(dev_m2s_rwd_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE m2s_rwd_seq_item_h[];
+    ITEM_TYPE m2s_rwd_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -15896,15 +17139,18 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(m2s_rwd_seq_item_h[i]) begin
-        //m2s_rwd_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_rwd_seq_item_h[%0d]",i));
-        `uvm_do_on_with(m2s_rwd_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(m2s_rwd_seq_item_h[i]);
-        if(!m2s_rwd_seq_item_h[i].randomize()) begin
+        m2s_rwd_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_rwd_seq_item_h[%0d]",i));
+        m2s_rwd_seq_item_curr_h = m2s_rwd_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(m2s_rwd_seq_item_curr_h);
+        rand_fail = m2s_rwd_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(m2s_rwd_seq_item_h[i]);
-*/      end
+        finish_item(m2s_rwd_seq_item_curr_h);
+      end
     endtask
 
   endclass
@@ -15913,6 +17159,7 @@ module tb_top;
     `uvm_object_param_utils(dev_s2m_ndr_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(dev_s2m_ndr_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE s2m_ndr_seq_item_h[];
+    ITEM_TYPE s2m_ndr_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -15927,23 +17174,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(s2m_ndr_seq_item_h[i]) begin
-        //s2m_ndr_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_ndr_seq_item_h[%0d]",i));
-        `uvm_do_on_with(s2m_ndr_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(s2m_ndr_seq_item_h[i]);
-        if(!s2m_ndr_seq_item_h[i].randomize()) begin
+        s2m_ndr_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_ndr_seq_item_h[%0d]",i));
+        s2m_ndr_seq_item_curr_h = s2m_ndr_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(s2m_ndr_seq_item_curr_h);
+        rand_fail = s2m_ndr_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(s2m_ndr_seq_item_h[i]);
-*/      end
+        finish_item(s2m_ndr_seq_item_curr_h);
+      end
     endtask
 
   endclass
   
   class dev_s2m_drs_seq#(type ITEM_TYPE = uvm_sequence_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_s2m_drs_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(dev_s2m_drs_sequencer)
+    `uvm_declare_p_sequencer(dev_s2m_drs_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE s2m_drs_seq_item_h[];
+    ITEM_TYPE s2m_drs_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -15958,23 +17209,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(s2m_drs_seq_item_h[i]) begin
-        //s2m_drs_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_drs_seq_item_h[%0d]",i));
-        `uvm_do_on_with(s2m_drs_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(s2m_drs_seq_item_h[i]);
-        if(!s2m_drs_seq_item_h[i].randomize()) begin
+        s2m_drs_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_drs_seq_item_h[%0d]",i));
+        s2m_drs_seq_item_curr_h = s2m_drs_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(s2m_drs_seq_item_curr_h);
+        rand_fail = s2m_drs_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(s2m_drs_seq_item_h[i]);
-*/      end
+        finish_item(s2m_drs_seq_item_curr_h);
+      end
     endtask
 
   endclass
 
   class host_h2d_req_seq#(type ITEM_TYPE = h2d_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_h2d_req_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(host_h2d_req_sequencer)
+    `uvm_declare_p_sequencer(host_h2d_req_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE h2d_req_seq_item_h[];
+    ITEM_TYPE h2d_req_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -15989,23 +17244,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(h2d_req_seq_item_h[i]) begin
-        //h2d_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_req_seq_item_h[%0d]",i));
-        `uvm_do_on_with(h2d_req_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(h2d_req_seq_item_h[i]);
-        if(!h2d_req_seq_item_h[i].randomize()) begin
+        h2d_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_req_seq_item_h[%0d]",i));
+        h2d_req_seq_item_curr_h = h2d_req_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(h2d_req_seq_item_curr_h);
+        rand_fail = h2d_req_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(h2d_req_seq_item_h[i]);
-*/      end
+        finish_item(h2d_req_seq_item_curr_h);
+      end
     endtask
 
   endclass
 
   class host_h2d_rsp_seq#(type ITEM_TYPE = h2d_rsp_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_h2d_rsp_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(host_h2d_rsp_sequencer)
+    `uvm_declare_p_sequencer(host_h2d_rsp_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE h2d_rsp_seq_item_h[];
+    ITEM_TYPE h2d_rsp_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -16020,23 +17279,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(h2d_rsp_seq_item_h[i]) begin
-        //h2d_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_rsp_seq_item_h[%0d]",i));
-        `uvm_do_on_with(h2d_rsp_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(h2d_rsp_seq_item_h[i]);
-        if(!h2d_rsp_seq_item_h[i].randomize()) begin
+        h2d_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_rsp_seq_item_h[%0d]",i));
+        h2d_rsp_seq_item_curr_h = h2d_rsp_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(h2d_rsp_seq_item_curr_h);
+        rand_fail = h2d_rsp_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(h2d_rsp_seq_item_h[i]);
-*/      end
+        finish_item(h2d_rsp_seq_item_curr_h);
+      end
     endtask
 
   endclass
   
   class host_h2d_data_seq#(type ITEM_TYPE = h2d_data_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_h2d_data_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(host_h2d_data_sequencer)
+    `uvm_declare_p_sequencer(host_h2d_data_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE h2d_data_seq_item_h[];
+    ITEM_TYPE h2d_data_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -16051,23 +17314,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(h2d_data_seq_item_h[i]) begin
-        //h2d_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_data_seq_item_h[%0d]",i));
-        `uvm_do_on_with(h2d_data_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(h2d_data_seq_item_h[i]);
-        if(!h2d_data_seq_item_h[i].randomize()) begin
+        h2d_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_data_seq_item_h[%0d]",i));
+        h2d_data_seq_item_curr_h = h2d_data_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(h2d_data_seq_item_curr_h);
+        rand_fail = h2d_data_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(h2d_data_seq_item_h[i]);
-*/      end
+        finish_item(h2d_data_seq_item_curr_h);
+      end
     endtask
 
   endclass
   
   class host_d2h_req_seq#(type ITEM_TYPE = d2h_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_d2h_req_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(host_d2h_req_sequencer)
+    `uvm_declare_p_sequencer(host_d2h_req_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE d2h_req_seq_item_h[];
+    ITEM_TYPE d2h_req_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -16082,23 +17349,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(d2h_req_seq_item_h[i]) begin
-        //d2h_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_h[%0d]",i));
-        `uvm_do_on_with(d2h_req_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(d2h_req_seq_item_h[i]);
-        if(!d2h_req_seq_item_h[i].randomize()) begin
+        d2h_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_h[%0d]",i));
+        d2h_req_seq_item_curr_h = d2h_req_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(d2h_req_seq_item_curr_h);
+        rand_fail = d2h_req_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(d2h_req_seq_item_h[i]);
-*/      end
+        finish_item(d2h_req_seq_item_curr_h);
+      end
     endtask
 
   endclass
   
   class host_d2h_rsp_seq#(type ITEM_TYPE = d2h_rsp_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_d2h_rsp_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(host_d2h_rsp_sequencer)
+    `uvm_declare_p_sequencer(host_d2h_rsp_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE d2h_rsp_seq_item_h[];
+    ITEM_TYPE d2h_rsp_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -16113,23 +17384,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(d2h_rsp_seq_item_h[i]) begin
-        //d2h_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_rsp_seq_item_h[%0d]",i));
-        `uvm_do_on_with(d2h_rsp_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(d2h_rsp_seq_item_h[i]);
-        if(!d2h_rsp_seq_item_h[i].randomize()) begin
+        d2h_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_rsp_seq_item_h[%0d]",i));
+        d2h_rsp_seq_item_curr_h = d2h_rsp_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(d2h_rsp_seq_item_curr_h);
+        rand_fail = d2h_rsp_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(d2h_rsp_seq_item_h[i]);
-*/      end
+        finish_item(d2h_rsp_seq_item_curr_h);
+      end
     endtask
 
   endclass
 
   class host_d2h_data_seq#(type ITEM_TYPE = d2h_data_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_d2h_data_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(host_d2h_data_sequencer)
+    `uvm_declare_p_sequencer(host_d2h_data_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE d2h_data_seq_item_h[];
+    ITEM_TYPE d2h_data_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -16144,23 +17419,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(d2h_data_seq_item_h[i]) begin
-        //d2h_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_data_seq_item_h[%0d]",i));
-        `uvm_do_on_with(d2h_data_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(d2h_data_seq_item_h[i]);
-        if(!d2h_data_seq_item_h[i].randomize()) begin
+        d2h_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_data_seq_item_h[%0d]",i));
+        d2h_data_seq_item_curr_h = d2h_data_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(d2h_data_seq_item_curr_h);
+        rand_fail = d2h_data_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(d2h_data_seq_item_h[i]);
-*/      end
+        finish_item(d2h_data_seq_item_curr_h);
+      end
     endtask
 
   endclass
 
   class host_m2s_req_seq#(type ITEM_TYPE = m2s_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_m2s_req_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(host_m2s_req_sequencer)
+    `uvm_declare_p_sequencer(host_m2s_req_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE m2s_req_seq_item_h[];
+    ITEM_TYPE m2s_req_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -16175,23 +17454,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(m2s_req_seq_item_h[i]) begin
-        //m2s_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_req_seq_item_h[%0d]",i));
-        `uvm_do_on_with(m2s_req_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(m2s_req_seq_item_h[i]);
-        if(!m2s_req_seq_item_h[i].randomize()) begin
+        m2s_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_req_seq_item_h[%0d]",i));
+        m2s_req_seq_item_curr_h = m2s_req_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(m2s_req_seq_item_curr_h);
+        rand_fail = m2s_req_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(m2s_req_seq_item_h[i]);
-*/      end
+        finish_item(m2s_req_seq_item_curr_h);
+      end
     endtask
 
   endclass
 
   class host_m2s_rwd_seq#(type ITEM_TYPE = m2s_rwd_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_m2s_rwd_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(host_m2s_rwd_sequencer)
+    `uvm_declare_p_sequencer(host_m2s_rwd_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE m2s_rwd_seq_item_h[];
+    ITEM_TYPE m2s_rwd_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -16206,23 +17489,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(m2s_rwd_seq_item_h[i]) begin
-        //m2s_rwd_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_rwd_seq_item_h[%0d]",i));
-        `uvm_do_on_with(m2s_rwd_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-/*        start_item(m2s_rwd_seq_item_h[i]);
-        if(!m2s_rwd_seq_item_h[i].randomize()) begin
+        m2s_rwd_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_rwd_seq_item_h[%0d]",i));
+        m2s_rwd_seq_item_curr_h = m2s_rwd_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(m2s_rwd_seq_item_curr_h);
+        rand_fail = m2s_rwd_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(m2s_rwd_seq_item_h[i]);
-*/      end
+        finish_item(m2s_rwd_seq_item_curr_h);
+      end
     endtask
 
   endclass
 
   class host_s2m_ndr_seq#(type ITEM_TYPE = s2m_ndr_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_s2m_ndr_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(host_s2m_ndr_sequencer)
+    `uvm_declare_p_sequencer(host_s2m_ndr_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE s2m_ndr_seq_item_h[];
+    ITEM_TYPE s2m_ndr_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -16237,23 +17524,27 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(s2m_ndr_seq_item_h[i]) begin
-        //s2m_ndr_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_ndr_seq_item_h[%0d]",i));
-        `uvm_do_on_with(s2m_ndr_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-        /*start_item(s2m_ndr_seq_item_h[i]);
-        if(!s2m_ndr_seq_item_h[i].randomize()) begin
+        s2m_ndr_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_ndr_seq_item_h[%0d]",i));
+        s2m_ndr_seq_item_curr_h = s2m_ndr_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(s2m_ndr_seq_item_curr_h);
+        rand_fail = s2m_ndr_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(s2m_ndr_seq_item_h[i]);
-      */end
+        finish_item(s2m_ndr_seq_item_curr_h);
+      end
     endtask
 
   endclass
 
   class host_s2m_drs_seq#(type ITEM_TYPE = s2m_drs_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_s2m_drs_seq#(ITEM_TYPE))
-    `uvm_declare_p_sequencer(host_s2m_drs_sequencer)
+    `uvm_declare_p_sequencer(host_s2m_drs_sequencer#(ITEM_TYPE))
     rand ITEM_TYPE s2m_drs_seq_item_h[];
+    ITEM_TYPE s2m_drs_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -16268,15 +17559,18 @@ module tb_top;
     endfunction
 
     task body();
+      bit rand_fail;
       foreach(s2m_drs_seq_item_h[i]) begin
-        //s2m_drs_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_drs_seq_item_h[%0d]",i));
-        `uvm_do_on_with(s2m_drs_seq_item_h[i], p_sequencer, {reset_cycles == cycles_rst;});
-      /*  start_item(s2m_drs_seq_item_h[i]);
-        if(!s2m_drs_seq_item_h[i].randomize()) begin
+        s2m_drs_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_drs_seq_item_h[%0d]",i));
+        s2m_drs_seq_item_curr_h = s2m_drs_seq_item_h[i];
+        if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+        start_item(s2m_drs_seq_item_curr_h);
+        rand_fail = s2m_drs_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        if(!rand_fail) begin
           `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
-        finish_item(s2m_drs_seq_item_h[i]);
-      */end
+        finish_item(s2m_drs_seq_item_curr_h);
+      end
     endtask
 
   endclass
@@ -16285,25 +17579,25 @@ module tb_top;
   class cxl_cm_responder_seq extends uvm_sequence;
     `uvm_object_utils(cxl_cm_responder_seq)
     `uvm_declare_p_sequencer(cxl_cm_vsequencer)
-    bit                                   unset_set;
-    cxl_cfg_obj                           cxl_cfg_obj_h;
-    h2d_req_seq_item                      h2d_req_seq_item_rcvd;
-    h2d_rsp_seq_item                      h2d_rsp_seq_item_rcvd;
-    h2d_data_seq_item                     h2d_data_seq_item_rcvd;
-    d2h_req_seq_item                      d2h_req_seq_item_rcvd;
-    d2h_rsp_seq_item                      d2h_rsp_seq_item_rcvd;
-    d2h_data_seq_item                     d2h_data_seq_item_rcvd;
-    m2s_req_seq_item                      m2s_req_seq_item_rcvd;
-    m2s_rwd_seq_item                      m2s_rwd_seq_item_rcvd;
-    h2d_req_opcode_t                      h2d_req_id_aa[int];// this will be useful in future gen
-    rand dev_d2h_rsp_seq#(d2h_rsp_seq_item)    dev_d2h_rsp_seq_h;
-    rand dev_s2m_ndr_seq#(s2m_ndr_seq_item)    dev_s2m_req_ndr_seq_h;
-    rand dev_s2m_drs_seq#(s2m_drs_seq_item)    dev_s2m_req_drs_seq_h;
-    rand dev_s2m_ndr_seq#(s2m_ndr_seq_item)    dev_s2m_rwd_ndr_seq_h;
-    rand host_h2d_rsp_seq#(h2d_rsp_seq_item)   host_h2d_rsp_seq_h;
-    rand dev_d2h_data_seq#(d2h_data_seq_item)  dev_d2h_data_seq_h;
-    rand host_m2s_req_seq#(m2s_req_seq_item)   host_m2s_req_seq_h;
-    rand host_h2d_data_seq#(h2d_data_seq_item) host_h2d_data_seq_h;
+    bit                                         unset_set             ;
+    cxl_cfg_obj                                 cxl_cfg_obj_h         ;
+    h2d_req_seq_item                            h2d_req_seq_item_rcvd ;
+    h2d_rsp_seq_item                            h2d_rsp_seq_item_rcvd ;
+    h2d_data_seq_item                           h2d_data_seq_item_rcvd;
+    d2h_req_seq_item                            d2h_req_seq_item_rcvd ;
+    d2h_rsp_seq_item                            d2h_rsp_seq_item_rcvd ;
+    d2h_data_seq_item                           d2h_data_seq_item_rcvd;
+    m2s_req_seq_item                            m2s_req_seq_item_rcvd ;
+    m2s_rwd_seq_item                            m2s_rwd_seq_item_rcvd ;
+    h2d_req_opcode_t                            h2d_req_id_aa[int]    ;  // this will be useful in future gen
+    rand dev_d2h_rsp_seq#(d2h_rsp_seq_item)     dev_d2h_rsp_seq_h     ;
+    rand dev_s2m_ndr_seq#(s2m_ndr_seq_item)     dev_s2m_req_ndr_seq_h ;
+    rand dev_s2m_drs_seq#(s2m_drs_seq_item)     dev_s2m_req_drs_seq_h ;
+    rand dev_s2m_ndr_seq#(s2m_ndr_seq_item)     dev_s2m_rwd_ndr_seq_h ;
+    rand host_h2d_rsp_seq#(h2d_rsp_seq_item)    host_h2d_rsp_seq_h    ;
+    rand dev_d2h_data_seq#(d2h_data_seq_item)   dev_d2h_data_seq_h    ;
+    rand host_m2s_req_seq#(m2s_req_seq_item)    host_m2s_req_seq_h    ;
+    rand host_h2d_data_seq#(h2d_data_seq_item)  host_h2d_data_seq_h   ;
 
     function new(string name = "cxl_cm_responder_seq");
       super.new(name);
@@ -16314,11 +17608,11 @@ module tb_top;
         `uvm_fatal("CXL_CFG_OBJ", "cxl_cfg_obj not found")
       end
       fork 
-        begin
-          forever begin
+        //begin
+          //forever begin
             //d2h_req_responder_h2d_req(); understand why this is not possible in CXLv1.1 we can rearchitect for multiple devices in next version but v1.1 is 1 to one connection
-          end
-        end
+          //end
+        //end
         begin
           forever begin
             if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
@@ -16365,6 +17659,7 @@ module tb_top;
       p_sequencer.dev_h2d_rsp_seqr.dev_h2d_rsp_fifo.get(h2d_rsp_seq_item_rcvd);
       if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL, GEET_CXL_CACHE_OPCODE_GOWRITEPULL, GEET_CXL_CACHE_OPCODE_FASTGOWRPULL}) begin
         dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
+        if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         `uvm_do_on_with(
           dev_d2h_data_seq_h,
           p_sequencer.dev_d2h_data_seqr,
@@ -16375,6 +17670,7 @@ module tb_top;
         //not an issue writepull can only trigger wr rsp not just GO-ERR/Ibest way to find out if the uqid is a wrinv then save it in psequencer and refer to it through uqid and send that response that support needs to be added,
       end else if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_GOERRWRPULL}) begin
         dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
+        if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         `uvm_do_on_with(
           dev_d2h_data_seq_h,
           p_sequencer.dev_d2h_data_seqr,
@@ -16397,6 +17693,7 @@ module tb_top;
           wait(d2h_data_seq_item_rcvd_a.uqid == h2d_rsp_seq_item_rcvd.cqid);
           if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_FASTGOWRPULL}) begin
             host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_rsp_seq_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -16407,6 +17704,7 @@ module tb_top;
             );
           end else if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL}) begin
             host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_rsp_seq_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -16437,6 +17735,7 @@ module tb_top;
         begin
           if(m2s_req_seq_item_rcvd != null) begin
             dev_s2m_req_ndr_seq_h = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create("dev_s2m_req_ndr_seq_h");
+            if(p_sequencer.dev_s2m_ndr_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               dev_s2m_req_ndr_seq_h,
               p_sequencer.dev_s2m_ndr_seqr,
@@ -16464,6 +17763,7 @@ module tb_top;
         begin
           if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA})) begin
             dev_s2m_req_drs_seq_h = dev_s2m_drs_seq#(s2m_drs_seq_item)::type_id::create("dev_s2m_req_drs_seq_h");
+            if(p_sequencer.dev_s2m_drs_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               dev_s2m_req_drs_seq_h,
               p_sequencer.dev_s2m_drs_seqr,
@@ -16478,6 +17778,7 @@ module tb_top;
       join
       if(m2s_rwd_seq_item_rcvd != null) begin
         dev_s2m_rwd_ndr_seq_h = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create("dev_s2m_rwd_ndr_seq_h");
+        if(p_sequencer.dev_s2m_ndr_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         `uvm_do_on_with(
           dev_s2m_rwd_ndr_seq_h,
           p_sequencer.dev_s2m_ndr_seqr,
@@ -16507,6 +17808,7 @@ module tb_top;
         begin
           if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT})) begin
             dev_s2m_req_ndr_seq_h = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create("dev_s2m_req_ndr_seq_h");
+            if(p_sequencer.dev_s2m_ndr_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               dev_s2m_req_ndr_seq_h,
               p_sequencer.dev_s2m_ndr_seqr,
@@ -16521,6 +17823,7 @@ module tb_top;
         begin
           if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA})) begin
             dev_s2m_req_drs_seq_h = dev_s2m_drs_seq#(s2m_drs_seq_item)::type_id::create("dev_s2m_req_drs_seq_h");
+            if(p_sequencer.dev_s2m_drs_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               dev_s2m_req_drs_seq_h,
               p_sequencer.dev_s2m_drs_seqr,
@@ -16535,6 +17838,7 @@ module tb_top;
       join
       if(m2s_rwd_seq_item_rcvd != null) begin
         dev_s2m_rwd_ndr_seq_h = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create("dev_s2m_rwd_ndr_seq_h");
+        if(p_sequencer.dev_s2m_ndr_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         `uvm_do_on_with(
           dev_s2m_rwd_ndr_seq_h,
           p_sequencer.dev_s2m_ndr_seqr,
@@ -16572,6 +17876,7 @@ module tb_top;
         fork 
           begin
             dev_d2h_rsp_seq_h = dev_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create("dev_d2h_rsp_seq_h");
+            if(p_sequencer.dev_d2h_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               dev_d2h_rsp_seq_h,
               p_sequencer.dev_d2h_rsp_seqr,
@@ -16591,6 +17896,7 @@ module tb_top;
           end
           begin
             dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
+            if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               dev_d2h_data_seq_h,
               p_sequencer.dev_d2h_data_seqr,
@@ -16605,6 +17911,7 @@ module tb_top;
         fork
           begin
             dev_d2h_rsp_seq_h = dev_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create("dev_d2h_rsp_seq_h");
+            if(p_sequencer.dev_d2h_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               dev_d2h_rsp_seq_h,
               p_sequencer.dev_d2h_rsp_seqr,
@@ -16621,6 +17928,7 @@ module tb_top;
           end
           begin
             dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
+            if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               dev_d2h_data_seq_h,
               p_sequencer.dev_d2h_data_seqr,
@@ -16635,6 +17943,7 @@ module tb_top;
         fork 
           begin
             dev_d2h_rsp_seq_h = dev_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create("dev_d2h_rsp_seq_h");
+            if(p_sequencer.dev_d2h_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               dev_d2h_rsp_seq_h,
               p_sequencer.dev_d2h_rsp_seqr,
@@ -16652,6 +17961,7 @@ module tb_top;
           end
           begin
             dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
+            if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               dev_d2h_data_seq_h,
               p_sequencer.dev_d2h_data_seqr,
@@ -16694,6 +18004,7 @@ module tb_top;
             end
             if(unset_set) begin
               host_h2d_data_seq_h = host_h2d_data_seq#(h2d_data_seq_item)::type_id::create("host_h2d_data_seq_h");
+              if(p_sequencer.host_h2d_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
               `uvm_do_on_with(
                 host_h2d_data_seq_h,
                 p_sequencer.host_h2d_data_seqr,
@@ -16707,6 +18018,7 @@ module tb_top;
           join
         end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+          if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
           `uvm_do_on_with(
             host_m2s_req_seq_h,
             p_sequencer.host_m2s_req_seqr,
@@ -16725,6 +18037,7 @@ module tb_top;
           fork 
           begin
             host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_rsp_seq_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -16737,6 +18050,7 @@ module tb_top;
             );
             //both are not forked togather because there is a dependency of MESIERR making the data as all 1s
             host_h2d_data_seq_h = host_h2d_data_seq#(h2d_data_seq_item)::type_id::create("host_h2d_data_seq_h");
+            if(p_sequencer.host_h2d_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_data_seq_h,
               p_sequencer.host_h2d_data_seqr,
@@ -16750,6 +18064,7 @@ module tb_top;
           join
         end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+          if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
           `uvm_do_on_with(
             host_m2s_req_seq_h,
             p_sequencer.host_m2s_req_seqr,
@@ -16769,6 +18084,7 @@ module tb_top;
           fork 
           begin
             host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_rsp_seq_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -16781,6 +18097,7 @@ module tb_top;
             );
             //both are not forked togather because there is a dependency of MESIERR making the data as all 1s
             host_h2d_data_seq_h = host_h2d_data_seq#(h2d_data_seq_item)::type_id::create("host_h2d_data_seq_h");
+            if(p_sequencer.host_h2d_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_data_seq_h,
               p_sequencer.host_h2d_data_seqr,
@@ -16794,6 +18111,7 @@ module tb_top;
           join
         end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+            if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
           `uvm_do_on_with(
             host_m2s_req_seq_h,
             p_sequencer.host_m2s_req_seqr,
@@ -16813,6 +18131,7 @@ module tb_top;
           fork 
           begin
             host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_rsp_seq_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -16831,6 +18150,7 @@ module tb_top;
             );
             //both are not forked togather because there is a dependency of MESIERR making the data as all 1s
             host_h2d_data_seq_h = host_h2d_data_seq#(h2d_data_seq_item)::type_id::create("host_h2d_data_seq_h");
+            if(p_sequencer.host_h2d_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_data_seq_h,
               p_sequencer.host_h2d_data_seqr,
@@ -16844,6 +18164,7 @@ module tb_top;
           join
         end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+          if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
           `uvm_do_on_with(
             host_m2s_req_seq_h,
             p_sequencer.host_m2s_req_seqr,
@@ -16863,6 +18184,7 @@ module tb_top;
           fork 
           begin
             host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_rsp_seq_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -16890,6 +18212,7 @@ module tb_top;
           join
         end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+          if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
           `uvm_do_on_with(
             host_m2s_req_seq_h,
             p_sequencer.host_m2s_req_seqr,
@@ -16909,6 +18232,7 @@ module tb_top;
           fork 
           begin
             host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_rsp_seq_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -16936,6 +18260,7 @@ module tb_top;
           join
         end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+          if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
           `uvm_do_on_with(
             host_m2s_req_seq_h,
             p_sequencer.host_m2s_req_seqr,
@@ -16954,6 +18279,7 @@ module tb_top;
         fork 
           begin
             host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_rsp_seq_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -16983,6 +18309,7 @@ module tb_top;
           fork 
           begin
             host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_rsp_seq_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -17013,6 +18340,7 @@ module tb_top;
           fork 
           begin
             host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_rsp_seq_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -17043,6 +18371,7 @@ module tb_top;
           fork 
           begin
             host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_rsp_seq_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -17072,6 +18401,7 @@ module tb_top;
           fork 
           begin
             host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_rsp_seq_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -17096,6 +18426,7 @@ module tb_top;
           join
         end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
           host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+          if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
           `uvm_do_on_with(
             host_m2s_req_seq_h,
             p_sequencer.host_m2s_req_seqr,
@@ -17114,6 +18445,7 @@ module tb_top;
         fork 
           begin
             host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
               host_h2d_rsp_seq_h,
               p_sequencer.host_h2d_rsp_seqr,
@@ -17183,28 +18515,28 @@ module tb_top;
   class cxl_reset_seq extends uvm_sequence;
     `uvm_object_utils(cxl_reset_seq)
     `uvm_declare_p_sequencer(cxl_cm_vsequencer)
-    rand int           rst_cycles;
-    rand host_d2h_req_seq#(d2h_req_seq_item)   host_d2h_req_seq_h;
-    rand dev_d2h_req_seq#(d2h_req_seq_item)    dev_d2h_req_seq_h;
-    rand host_d2h_rsp_seq#(d2h_rsp_seq_item)   host_d2h_rsp_seq_h;
-    rand dev_d2h_rsp_seq#(d2h_rsp_seq_item)    dev_d2h_rsp_seq_h;
-    rand host_d2h_data_seq#(d2h_data_seq_item)  host_d2h_data_seq_h;
-    rand dev_d2h_data_seq#(d2h_data_seq_item)   dev_d2h_data_seq_h;
-    rand host_h2d_req_seq#(h2d_req_seq_item)   host_h2d_req_seq_h;
-    rand dev_h2d_req_seq#(h2d_req_seq_item)    dev_h2d_req_seq_h;
-    rand host_h2d_rsp_seq#(h2d_rsp_seq_item)   host_h2d_rsp_seq_h;
-    rand dev_h2d_rsp_seq#(h2d_rsp_seq_item)    dev_h2d_rsp_seq_h;
-    rand host_h2d_data_seq#(h2d_data_seq_item)  host_h2d_data_seq_h;
-    rand dev_h2d_data_seq#(h2d_data_seq_item)   dev_h2d_data_seq_h;
-    rand host_m2s_req_seq#(m2s_req_seq_item)   host_m2s_req_seq_h;
-    rand dev_m2s_req_seq#(m2s_req_seq_item)   dev_m2s_req_seq_h;
-    rand host_m2s_rwd_seq#(m2s_rwd_seq_item)   host_m2s_rwd_seq_h;
-    rand dev_m2s_rwd_seq#(m2s_rwd_seq_item)    dev_m2s_rwd_seq_h;
-    rand host_s2m_ndr_seq#(s2m_ndr_seq_item)   host_s2m_ndr_seq_h;
-    rand dev_s2m_ndr_seq#(s2m_ndr_seq_item)    dev_s2m_ndr_seq_h;
-    rand host_s2m_drs_seq#(s2m_drs_seq_item)   host_s2m_drs_seq_h;
-    rand dev_s2m_drs_seq#(s2m_drs_seq_item)    dev_s2m_drs_seq_h;
-    cxl_cfg_obj        cxl_cfg_obj_h;
+    rand int                                    rst_cycles          ;
+    rand host_d2h_req_seq#( d2h_req_seq_item)   host_d2h_req_seq_h  ;
+    rand dev_d2h_req_seq#(  d2h_req_seq_item)   dev_d2h_req_seq_h   ;
+    rand host_d2h_rsp_seq#( d2h_rsp_seq_item)   host_d2h_rsp_seq_h  ;
+    rand dev_d2h_rsp_seq#(  d2h_rsp_seq_item)   dev_d2h_rsp_seq_h   ;
+    rand host_d2h_data_seq#(d2h_data_seq_item)  host_d2h_data_seq_h ;
+    rand dev_d2h_data_seq#( d2h_data_seq_item)  dev_d2h_data_seq_h  ;
+    rand host_h2d_req_seq#( h2d_req_seq_item)   host_h2d_req_seq_h  ;
+    rand dev_h2d_req_seq#(  h2d_req_seq_item)   dev_h2d_req_seq_h   ;
+    rand host_h2d_rsp_seq#( h2d_rsp_seq_item)   host_h2d_rsp_seq_h  ;
+    rand dev_h2d_rsp_seq#(  h2d_rsp_seq_item)   dev_h2d_rsp_seq_h   ;
+    rand host_h2d_data_seq#(h2d_data_seq_item)  host_h2d_data_seq_h ;
+    rand dev_h2d_data_seq#( h2d_data_seq_item)  dev_h2d_data_seq_h  ;
+    rand host_m2s_req_seq#( m2s_req_seq_item)   host_m2s_req_seq_h  ;
+    rand dev_m2s_req_seq#(  m2s_req_seq_item)   dev_m2s_req_seq_h   ;
+    rand host_m2s_rwd_seq#( m2s_rwd_seq_item)   host_m2s_rwd_seq_h  ;
+    rand dev_m2s_rwd_seq#(  m2s_rwd_seq_item)   dev_m2s_rwd_seq_h   ;
+    rand host_s2m_ndr_seq#( s2m_ndr_seq_item)   host_s2m_ndr_seq_h  ;
+    rand dev_s2m_ndr_seq#(  s2m_ndr_seq_item)   dev_s2m_ndr_seq_h   ;
+    rand host_s2m_drs_seq#( s2m_drs_seq_item)   host_s2m_drs_seq_h  ; 
+    rand dev_s2m_drs_seq#(  s2m_drs_seq_item)   dev_s2m_drs_seq_h   ;
+    cxl_cfg_obj                                 cxl_cfg_obj_h       ;
 
     constraint rst_cycles_c{
       soft rst_cycles == 10;
@@ -17220,26 +18552,26 @@ module tb_top;
       if(!uvm_resource_db#(cxl_cfg_obj)::read_by_name("", "cxl_cfg_obj_h", cxl_cfg_obj_h)) begin
         `uvm_fatal("CXL_CFG_OBJ", "cxl_cfg_obj not found")
       end
-      host_d2h_req_seq_h   = host_d2h_req_seq#(d2h_req_seq_item)::type_id::create ("host_d2h_req_seq_h") ;
-      dev_d2h_req_seq_h    = dev_d2h_req_seq#(d2h_req_seq_item)::type_id::create ("dev_d2h_req_seq_h")  ;
-      host_d2h_rsp_seq_h   = host_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create ("host_d2h_rsp_seq_h") ;
-      dev_d2h_rsp_seq_h    = dev_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create ("dev_d2h_rsp_seq_h")  ;
+      host_d2h_req_seq_h   = host_d2h_req_seq#(d2h_req_seq_item)::type_id::create ("host_d2h_req_seq_h")  ;
+      dev_d2h_req_seq_h    = dev_d2h_req_seq#(d2h_req_seq_item)::type_id::create ("dev_d2h_req_seq_h")    ;
+      host_d2h_rsp_seq_h   = host_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create ("host_d2h_rsp_seq_h")  ;
+      dev_d2h_rsp_seq_h    = dev_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create ("dev_d2h_rsp_seq_h")    ;
       host_d2h_data_seq_h  = host_d2h_data_seq#(d2h_data_seq_item)::type_id::create("host_d2h_data_seq_h");
-      dev_d2h_data_seq_h   = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h") ;
-      host_h2d_req_seq_h   = host_h2d_req_seq#(h2d_req_seq_item)::type_id::create ("host_h2d_req_seq_h") ;
-      dev_h2d_req_seq_h    = dev_h2d_req_seq#(h2d_req_seq_item)::type_id::create ("dev_h2d_req_seq_h")  ;
-      host_h2d_rsp_seq_h   = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create ("host_h2d_rsp_seq_h") ;
-      dev_h2d_rsp_seq_h    = dev_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create ("dev_h2d_rsp_seq_h")  ;
+      dev_d2h_data_seq_h   = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h")  ;
+      host_h2d_req_seq_h   = host_h2d_req_seq#(h2d_req_seq_item)::type_id::create ("host_h2d_req_seq_h")  ;
+      dev_h2d_req_seq_h    = dev_h2d_req_seq#(h2d_req_seq_item)::type_id::create ("dev_h2d_req_seq_h")    ;
+      host_h2d_rsp_seq_h   = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create ("host_h2d_rsp_seq_h")  ;
+      dev_h2d_rsp_seq_h    = dev_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create ("dev_h2d_rsp_seq_h")    ;
       host_h2d_data_seq_h  = host_h2d_data_seq#(h2d_data_seq_item)::type_id::create("host_h2d_data_seq_h");
-      dev_h2d_data_seq_h   = dev_h2d_data_seq#(h2d_data_seq_item)::type_id::create("dev_h2d_data_seq_h") ;
-      host_m2s_req_seq_h   = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create ("host_m2s_req_seq_h") ;
-      dev_m2s_req_seq_h    = dev_m2s_req_seq#(m2s_req_seq_item)::type_id::create ("dev_m2s_req_seq_h")  ;
-      host_m2s_rwd_seq_h   = host_m2s_rwd_seq#(m2s_rwd_seq_item)::type_id::create ("host_m2s_rwd_seq_h") ;
-      dev_m2s_rwd_seq_h    = dev_m2s_rwd_seq#(m2s_rwd_seq_item)::type_id::create ("dev_m2s_rwd_seq_h")  ;
-      host_s2m_ndr_seq_h   = host_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create ("host_s2m_ndr_seq_h") ;
-      dev_s2m_ndr_seq_h    = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create ("dev_s2m_ndr_seq_h")  ;
-      host_s2m_drs_seq_h   = host_s2m_drs_seq#(s2m_drs_seq_item)::type_id::create ("host_s2m_drs_seq_h") ;
-      dev_s2m_drs_seq_h    = dev_s2m_drs_seq#(s2m_drs_seq_item)::type_id::create ("dev_s2m_drs_seq_h")  ;
+      dev_h2d_data_seq_h   = dev_h2d_data_seq#(h2d_data_seq_item)::type_id::create("dev_h2d_data_seq_h")  ;
+      host_m2s_req_seq_h   = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create ("host_m2s_req_seq_h")  ;
+      dev_m2s_req_seq_h    = dev_m2s_req_seq#(m2s_req_seq_item)::type_id::create ("dev_m2s_req_seq_h")    ; 
+      host_m2s_rwd_seq_h   = host_m2s_rwd_seq#(m2s_rwd_seq_item)::type_id::create ("host_m2s_rwd_seq_h")  ;
+      dev_m2s_rwd_seq_h    = dev_m2s_rwd_seq#(m2s_rwd_seq_item)::type_id::create ("dev_m2s_rwd_seq_h")    ;
+      host_s2m_ndr_seq_h   = host_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create ("host_s2m_ndr_seq_h")  ;
+      dev_s2m_ndr_seq_h    = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create ("dev_s2m_ndr_seq_h")    ;
+      host_s2m_drs_seq_h   = host_s2m_drs_seq#(s2m_drs_seq_item)::type_id::create ("host_s2m_drs_seq_h")  ;
+      dev_s2m_drs_seq_h    = dev_s2m_drs_seq#(s2m_drs_seq_item)::type_id::create ("dev_s2m_drs_seq_h")    ;
       fork
         if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_d2h_req_seq_h,    p_sequencer.dev_d2h_req_seqr,   {cycles_rst == rst_cycles;});
         if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) `uvm_do_on_with(dev_d2h_rsp_seq_h,    p_sequencer.dev_d2h_rsp_seqr,   {cycles_rst == rst_cycles;});
@@ -17271,17 +18603,17 @@ module tb_top;
     `uvm_object_utils(cxl_configure_seq)
     `uvm_declare_p_sequencer(cxl_cm_vsequencer)    
 
-    rand dev_d2h_req_seq#(d2h_req_seq_item)   dev_d2h_req_seq_h;
-    rand dev_d2h_rsp_seq#(d2h_rsp_seq_item)   dev_d2h_rsp_seq_h;
-    rand dev_d2h_data_seq#(d2h_data_seq_item)  dev_d2h_data_seq_h;
-    rand host_h2d_req_seq#(h2d_req_seq_item)   host_h2d_req_seq_h;
-    rand host_h2d_rsp_seq#(h2d_rsp_seq_item)   host_h2d_rsp_seq_h;
-    rand host_h2d_data_seq#(h2d_data_seq_item)  host_h2d_data_seq_h;
-    rand host_m2s_req_seq#(m2s_req_seq_item)   host_m2s_req_seq_h;
-    rand host_m2s_rwd_seq#(m2s_rwd_seq_item)   host_m2s_rwd_seq_h;
-    rand dev_s2m_ndr_seq#(s2m_ndr_seq_item)   dev_s2m_ndr_seq_h;
-    rand dev_s2m_drs_seq#(s2m_drs_seq_item)   dev_s2m_drs_seq_h;
-    cxl_cfg_obj        cxl_cfg_obj_h;
+    rand dev_d2h_req_seq#(d2h_req_seq_item)     dev_d2h_req_seq_h   ;
+    rand dev_d2h_rsp_seq#(d2h_rsp_seq_item)     dev_d2h_rsp_seq_h   ;
+    rand dev_d2h_data_seq#(d2h_data_seq_item)   dev_d2h_data_seq_h  ;
+    rand host_h2d_req_seq#(h2d_req_seq_item)    host_h2d_req_seq_h  ;
+    rand host_h2d_rsp_seq#(h2d_rsp_seq_item)    host_h2d_rsp_seq_h  ;
+    rand host_h2d_data_seq#(h2d_data_seq_item)  host_h2d_data_seq_h ;
+    rand host_m2s_req_seq#(m2s_req_seq_item)    host_m2s_req_seq_h  ;
+    rand host_m2s_rwd_seq#(m2s_rwd_seq_item)    host_m2s_rwd_seq_h  ;
+    rand dev_s2m_ndr_seq#(s2m_ndr_seq_item)     dev_s2m_ndr_seq_h   ;
+    rand dev_s2m_drs_seq#(s2m_drs_seq_item)     dev_s2m_drs_seq_h   ;
+    cxl_cfg_obj                                 cxl_cfg_obj_h       ;
 
     function new(string name = "cxl_configure_seq");
       super.new(name);
@@ -17316,7 +18648,6 @@ module tb_top;
         if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3, GEET_CXL_TYPE_2}) `uvm_do_on(dev_s2m_drs_seq_h,    p_sequencer.dev_s2m_drs_seqr);
       join
       `uvm_info(get_type_name(), $sformatf("stopping configure_seq"), UVM_HIGH)
-      `uvm_fatal(get_type_name(), $sformatf("stopping configure_seq"))
 
     endtask
 
@@ -17350,6 +18681,7 @@ module tb_top;
         begin
           if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
             `uvm_info(get_type_name(), $sformatf("starting dev_d2h_req_seq"), UVM_HIGH)
+            if(p_sequencer.dev_d2h_req_seqr == null) `uvm_fatal(get_type_name(), "dev_d2h_req_seqr is null")
             `uvm_do_on_with(dev_d2h_req_seq_h, p_sequencer.dev_d2h_req_seqr, {num_trans == 1;});
             `uvm_info(get_type_name(), $sformatf("completed dev_d2h_req_seq"), UVM_HIGH)  
           end
@@ -17357,6 +18689,7 @@ module tb_top;
         begin
           if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
             `uvm_info(get_type_name(), $sformatf("starting host_h2d_req_seq"), UVM_HIGH)
+            if(p_sequencer.host_h2d_req_seqr == null) `uvm_fatal(get_type_name(), "dev_d2h_req_seqr is null")
             `uvm_do_on_with(host_h2d_req_seq_h, p_sequencer.host_h2d_req_seqr, {num_trans == 1;});
             `uvm_info(get_type_name(), $sformatf("completed host_h2d_req_seq"), UVM_HIGH)
           end
@@ -17364,6 +18697,7 @@ module tb_top;
         begin
           if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
             `uvm_info(get_type_name(), $sformatf("starting host_m2s_req_seq"), UVM_HIGH)
+            if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name(), "dev_d2h_req_seqr is null")
             `uvm_do_on_with(host_m2s_req_seq_h, p_sequencer.host_m2s_req_seqr, {num_trans == 1;});
             `uvm_info(get_type_name(), $sformatf("completed host_m2s_req_seq"), UVM_HIGH)
           end
@@ -17371,13 +18705,14 @@ module tb_top;
         begin
           if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
             `uvm_info(get_type_name(), $sformatf("starting host_m2s_rwd_seq"), UVM_HIGH)
+            if(p_sequencer.host_m2s_rwd_seqr == null) `uvm_fatal(get_type_name(), "dev_d2h_req_seqr is null")
             `uvm_do_on_with(host_m2s_rwd_seq_h, p_sequencer.host_m2s_rwd_seqr, {num_trans == 1;});
             `uvm_info(get_type_name(), $sformatf("completed host_m2s_rwd_seq"), UVM_HIGH)
           end
         end
         begin
           `uvm_info(get_type_name(), $sformatf("starting cxl_cm_responder_seq"), UVM_HIGH)
-          `uvm_do_on(cxl_cm_responder_seq_h, p_sequencer);
+          //`uvm_do_on(cxl_cm_responder_seq_h, p_sequencer);
           `uvm_info(get_type_name(), $sformatf("completed cxl_cm_responder_seq"), UVM_HIGH)
         end
       join;
@@ -17401,12 +18736,77 @@ module tb_top;
       super.build_phase(phase);
       `uvm_info(get_type_name(), $sformatf("entering %s build_phase", get_full_name()), UVM_HIGH)
       cxl_cm_env_h = cxl_cm_env::type_id::create("cxl_cm_env_h", this);
+      //uvm_config_db#(uvm_object_wrapper)::set(null, "*.cxl_cm_env_h.cxl_cm_vseqr.reset_phase", "default_sequence", cxl_reset_seq::type_id::get());
+      //uvm_config_db#(uvm_object_wrapper)::set(null, "*.cxl_cm_env_h.cxl_cm_vseqr.config_phase", "default_sequence", cxl_configure_seq::type_id::get());
+      //uvm_config_db#(uvm_object_wrapper)::set(null, "*.cxl_cm_env_h.cxl_cm_vseqr.main_phase", "default_sequence", cxl_vseq::type_id::get());
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_h2d_req_agent_h.dev_h2d_req_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_h2d_req_agent_h.host_h2d_req_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_h2d_rsp_agent_h.dev_h2d_rsp_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_h2d_rsp_agent_h.host_h2d_rsp_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_h2d_data_agent_h.dev_h2d_data_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_h2d_data_agent_h.host_h2d_data_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_m2s_req_agent_h.dev_m2s_req_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_m2s_rwd_agent_h.dev_m2s_rwd_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_m2s_req_agent_h.host_m2s_req_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_m2s_rwd_agent_h.host_m2s_rwd_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_d2h_req_agent_h.dev_d2h_req_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_d2h_req_agent_h.host_d2h_req_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_d2h_rsp_agent_h.dev_d2h_rsp_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_d2h_rsp_agent_h.host_d2h_rsp_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_d2h_data_agent_h.dev_d2h_data_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_d2h_data_agent_h.host_d2h_data_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_s2m_ndr_agent_h.dev_s2m_ndr_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_s2m_drs_agent_h.dev_s2m_drs_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_s2m_ndr_agent_h.host_s2m_ndr_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_s2m_drs_agent_h.host_s2m_drs_sequencer.reset_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_h2d_req_agent_h.dev_h2d_req_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_h2d_req_agent_h.host_h2d_req_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_h2d_rsp_agent_h.dev_h2d_rsp_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_h2d_rsp_agent_h.host_h2d_rsp_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_h2d_data_agent_h.dev_h2d_data_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_h2d_data_agent_h.host_h2d_data_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_m2s_req_agent_h.dev_m2s_req_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_m2s_rwd_agent_h.dev_m2s_rwd_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_m2s_req_agent_h.host_m2s_req_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_m2s_rwd_agent_h.host_m2s_rwd_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_d2h_req_agent_h.dev_d2h_req_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_d2h_req_agent_h.host_d2h_req_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_d2h_rsp_agent_h.dev_d2h_rsp_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_d2h_rsp_agent_h.host_d2h_rsp_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_d2h_data_agent_h.dev_d2h_data_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_d2h_data_agent_h.host_d2h_data_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_s2m_ndr_agent_h.dev_s2m_ndr_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_s2m_drs_agent_h.dev_s2m_drs_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_s2m_ndr_agent_h.host_s2m_ndr_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_s2m_drs_agent_h.host_s2m_drs_sequencer.config_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_h2d_req_agent_h.dev_h2d_req_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_h2d_req_agent_h.host_h2d_req_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_h2d_rsp_agent_h.dev_h2d_rsp_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_h2d_rsp_agent_h.host_h2d_rsp_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_h2d_data_agent_h.dev_h2d_data_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_h2d_data_agent_h.host_h2d_data_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_m2s_req_agent_h.dev_m2s_req_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_m2s_rwd_agent_h.dev_m2s_rwd_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_m2s_req_agent_h.host_m2s_req_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_m2s_rwd_agent_h.host_m2s_rwd_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_d2h_req_agent_h.dev_d2h_req_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_d2h_req_agent_h.host_d2h_req_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_d2h_rsp_agent_h.dev_d2h_rsp_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_d2h_rsp_agent_h.host_d2h_rsp_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_d2h_data_agent_h.dev_d2h_data_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_d2h_data_agent_h.host_d2h_data_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_s2m_ndr_agent_h.dev_s2m_ndr_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.dev_s2m_drs_agent_h.dev_s2m_drs_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_s2m_ndr_agent_h.host_s2m_ndr_sequencer.main_phase", "default_sequence", null);
+      uvm_config_db#(uvm_object_wrapper)::set(null, "*.host_s2m_drs_agent_h.host_s2m_drs_sequencer.main_phase", "default_sequence", null);
       `uvm_info(get_type_name(), $sformatf("exiting %s build_phase", get_full_name()), UVM_HIGH)
+
     endfunction     
 
     virtual task reset_phase(uvm_phase phase);
       super.reset_phase(phase);
       `uvm_info(get_type_name(), $sformatf("entering %s reset_phase", get_full_name()), UVM_HIGH)
+      if(phase == null) `uvm_fatal(get_type_name(), "phase is null");
       phase.raise_objection(this);
       cxl_reset_seq_h = cxl_reset_seq::type_id::create("cxl_reset_seq_h", this);
       if(cxl_reset_seq_h.randomize() == 0) begin
@@ -17420,6 +18820,7 @@ module tb_top;
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("entering %s configure_phase", get_full_name()), UVM_HIGH)
+      if(phase == null) `uvm_fatal(get_type_name(), "phase is null");
       phase.raise_objection(this);
       cxl_configure_seq_h = cxl_configure_seq::type_id::create("cxl_configure_seq_h", this);
       if(cxl_configure_seq_h.randomize() == 0) begin
@@ -17433,7 +18834,9 @@ module tb_top;
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("entering %s main_phase", get_full_name()), UVM_HIGH)
+      if(phase == null) `uvm_fatal(get_type_name(), "phase is null");
       phase.raise_objection(this);
+      phase.phase_done.set_drain_time(this, 1us);
       cxl_vseq_h = cxl_vseq::type_id::create("cxl_vseq_h", this);
       cxl_vseq_h.start(cxl_cm_env_h.cxl_cm_vseqr);
       phase.drop_objection(this);
