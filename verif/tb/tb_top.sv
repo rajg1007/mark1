@@ -127,6 +127,14 @@ typedef enum {
 } delay_type_t;
 
 typedef struct {
+  rand logic valid;
+  rand d2h_req_opcode_t opcode;
+  rand logic [GEET_CXL_ADDR_WIDTH-1:0] address;
+  rand logic [GEET_CXL_CACHE_CQID_WIDTH-1:0] cqid;
+  rand logic nt;
+} rand_d2h_req_txn_t;
+
+typedef struct {
   logic valid;
   d2h_req_opcode_t opcode;
   logic [GEET_CXL_ADDR_WIDTH-1:0] address;
@@ -135,10 +143,25 @@ typedef struct {
 } d2h_req_txn_t;
 
 typedef struct {
+  rand logic valid;
+  rand d2h_rsp_opcode_t opcode;
+  rand logic [GEET_CXL_CACHE_UQID_WIDTH-1:0] uqid;
+} rand_d2h_rsp_txn_t;
+
+typedef struct {
   logic valid;
   d2h_rsp_opcode_t opcode;
   logic [GEET_CXL_CACHE_UQID_WIDTH-1:0] uqid;
 } d2h_rsp_txn_t;
+
+typedef struct {
+  rand logic valid;
+  rand logic [GEET_CXL_CACHE_UQID_WIDTH-1:0] uqid;
+  rand logic chunkvalid;
+  rand logic bogus;
+  rand logic poison;
+  rand logic [GEET_CXL_DATA_WIDTH-1:0] data;
+} rand_d2h_data_txn_t;
 
 typedef struct {
   logic valid;
@@ -150,9 +173,22 @@ typedef struct {
 } d2h_data_txn_t;
 
 typedef struct{
-  logic [3:0] pending_data_slot;
+  logic valid;
+  logic [3:0] pend;
+  logic [1:0] start_dslot_posi;
+} pending_data_slot_t;
+
+typedef struct{
+  pending_data_slot_t pending_data_slot;
   d2h_data_txn_t d2h_data_txn;
 } d2h_data_pkt_t;
+
+typedef struct {
+  rand logic valid;
+  rand h2d_req_opcode_t opcode;
+  rand logic [GEET_CXL_ADDR_WIDTH-1:0] address;
+  rand logic [GEET_CXL_CACHE_UQID_WIDTH-1:0] uqid;
+} rand_h2d_req_txn_t;
 
 typedef struct {
   logic valid;
@@ -162,12 +198,29 @@ typedef struct {
 } h2d_req_txn_t;
 
 typedef struct {
+  rand logic valid;
+  rand h2d_rsp_opcode_t opcode;
+  rand h2d_rsp_data_opcode_t rspdata;
+  rand logic [1:0] rsppre;
+  rand logic [GEET_CXL_CACHE_CQID_WIDTH-1:0] cqid;
+} rand_h2d_rsp_txn_t;
+
+typedef struct {
   logic valid;
   h2d_rsp_opcode_t opcode;
   h2d_rsp_data_opcode_t rspdata;
   logic [1:0] rsppre;
   logic [GEET_CXL_CACHE_CQID_WIDTH-1:0] cqid;
 } h2d_rsp_txn_t;
+
+typedef struct {
+  rand logic valid;
+  rand logic [GEET_CXL_CACHE_CQID_WIDTH-1:0] cqid;
+  rand logic chunkvalid;
+  rand logic poison;
+  rand logic goerr;
+  rand logic [GEET_CXL_DATA_WIDTH-1:0] data;
+} rand_h2d_data_txn_t;
 
 typedef struct {
   logic valid;
@@ -179,9 +232,20 @@ typedef struct {
 } h2d_data_txn_t;
 
 typedef struct{
-  logic [3:0] pending_data_slot;
+  pending_data_slot_t pending_data_slot;
   h2d_data_txn_t h2d_data_txn;
 } h2d_data_pkt_t;
+
+typedef struct {
+  rand logic valid;
+  rand m2s_req_opcode_t memopcode;
+  rand metafield_t metafield;
+  rand metavalue_t metavalue;
+  rand snptype_t snptype;
+  rand logic [GEET_CXL_ADDR_WIDTH-1:0] address;
+  rand logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
+  rand logic [GEET_CXL_MEM_TC_WIDTH-1:0] tc;
+} rand_m2s_req_txn_t;
 
 typedef struct {
   logic valid;
@@ -193,6 +257,19 @@ typedef struct {
   logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
   logic [GEET_CXL_MEM_TC_WIDTH-1:0] tc;
 } m2s_req_txn_t;
+
+typedef struct {
+  rand logic valid;
+  rand m2s_rwd_opcode_t memopcode;
+  rand metafield_t metafield;
+  rand metavalue_t metavalue;
+  rand snptype_t snptype;
+  rand logic [GEET_CXL_ADDR_WIDTH-1:0] address;
+  rand logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
+  rand logic [GEET_CXL_MEM_TC_WIDTH-1:0] tc;
+  rand logic poison;
+  rand logic [GEET_CXL_DATA_WIDTH-1:0] data;
+} rand_m2s_rwd_txn_t;
 
 typedef struct {
   logic valid;
@@ -208,9 +285,17 @@ typedef struct {
 } m2s_rwd_txn_t;
 
 typedef struct{
-  logic [3:0] pending_data_slot;
+  pending_data_slot_t pending_data_slot;
   m2s_rwd_txn_t m2s_rwd_txn;
 } m2s_rwd_pkt_t;
+
+typedef struct {
+  rand logic valid;
+  rand s2m_ndr_opcode_t opcode;
+  rand metafield_t metafield;
+  rand metavalue_t metavalue;
+  rand logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
+} rand_s2m_ndr_txn_t;
 
 typedef struct {
   logic valid;
@@ -219,6 +304,16 @@ typedef struct {
   metavalue_t metavalue;
   logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
 } s2m_ndr_txn_t;
+
+typedef struct {
+  rand logic valid;
+  rand s2m_drs_opcode_t opcode;
+  rand metafield_t metafield;
+  rand metavalue_t metavalue;
+  rand logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
+  rand logic poison;
+  rand logic [GEET_CXL_DATA_WIDTH-1:0] data;
+} rand_s2m_drs_txn_t;
 
 typedef struct {
   logic valid;
@@ -231,7 +326,7 @@ typedef struct {
 } s2m_drs_txn_t;
 
 typedef struct{
-  logic [3:0] pending_data_slot;
+  pending_data_slot_t pending_data_slot;
   s2m_drs_txn_t s2m_drs_txn;
 } s2m_drs_pkt_t;
 
@@ -2371,95 +2466,95 @@ module host_tx_path#(
   localparam SLOT1_OFFSET = 128;
   localparam SLOT2_OFFSET = 256;
   localparam SLOT3_OFFSET = 384;
-  logic [5:0] h_val;
-  logic [5:0] h_req;
-  logic [5:0] h_gnt;
-  logic [5:0] h_gnt_d;
-  logic [5:0] g_val;
-  logic [5:0] g_req;
-  logic [5:0] g_gnt;
-  logic [5:0] g_gnt_d;
+  logic [5:0]   h_val;
+  logic [5:0]   h_req;
+  logic [5:0]   h_gnt;
+  logic [5:0]   h_gnt_d;
+  logic [5:0]   g_val;
+  logic [5:0]   g_req;
+  logic [5:0]   g_gnt;
+  logic [5:0]   g_gnt_d;
   typedef enum {
-    XSLOT   = 'h0,
-    H_SLOT0 = 'h1,
-    G_SLOT1 = 'h2,
-    G_SLOT2 = 'h4,
-    G_SLOT3 = 'h8
-  } slot_sel_t;
-  slot_sel_t slot_sel;
-  slot_sel_t slot_sel_d;
-  slot_sel_t slot_sel_d_d;
-  logic [7:0] holding_rdptr;
-  logic [7:0] holding_wrptr;
+    XSLOT   =   'h0,
+    H_SLOT0 =   'h1,
+    G_SLOT1 =   'h2,
+    G_SLOT2 =   'h4,
+    G_SLOT3 =   'h8
+  }             slot_sel_t;
+  slot_sel_t    slot_sel;
+  slot_sel_t    slot_sel_d;
+  slot_sel_t    slot_sel_d_d;
+  logic [7:0]   holding_rdptr;
+  logic [7:0]   holding_wrptr;
   typedef struct {
-    logic valid;
+    logic         valid;
     logic [511:0] data;
-  } holding_q_t;
-  holding_q_t holding_q[256];
-  logic rsp_lru;
-  logic data_lru;
-  int d2h_req_outstanding_credits;
-  int d2h_req_outstanding_credits_0;
-  int d2h_req_outstanding_credits_1;
-  int d2h_req_outstanding_credits_2;
-  int d2h_req_outstanding_credits_3;
-  int d2h_req_consumed_credits;
-  int d2h_req_occ_d;
-  int d2h_rsp_outstanding_credits;
-  int d2h_rsp_outstanding_credits_0;
-  int d2h_rsp_outstanding_credits_1;
-  int d2h_rsp_outstanding_credits_2;
-  int d2h_rsp_outstanding_credits_3;
-  int d2h_rsp_consumed_credits;
-  int d2h_rsp_occ_d;
-  int d2h_data_outstanding_credits;
-  int d2h_data_outstanding_credits_0;
-  int d2h_data_outstanding_credits_1;
-  int d2h_data_outstanding_credits_2;
-  int d2h_data_outstanding_credits_3;
-  int d2h_data_consumed_credits;
-  int d2h_data_occ_d;
-  int s2m_ndr_outstanding_credits;
-  int s2m_ndr_outstanding_credits_0;
-  int s2m_ndr_outstanding_credits_1;
-  int s2m_ndr_outstanding_credits_2;
-  int s2m_ndr_outstanding_credits_3;
-  int s2m_ndr_consumed_credits;
-  int s2m_ndr_occ_d;
-  int s2m_drs_outstanding_credits;
-  int s2m_drs_outstanding_credits_0;
-  int s2m_drs_outstanding_credits_1;
-  int s2m_drs_outstanding_credits_2;
-  int s2m_drs_outstanding_credits_3;
-  int s2m_drs_consumed_credits;
-  int s2m_drs_occ_d;
+  }             holding_q_t;
+  holding_q_t   holding_q[256];
+  logic         rsp_lru;
+  logic         data_lru;
+  int           d2h_req_outstanding_credits;
+  int           d2h_req_outstanding_credits_0;
+  int           d2h_req_outstanding_credits_1;
+  int           d2h_req_outstanding_credits_2;
+  int           d2h_req_outstanding_credits_3;
+  int           d2h_req_consumed_credits;
+  int           d2h_req_occ_d;
+  int           d2h_rsp_outstanding_credits;
+  int           d2h_rsp_outstanding_credits_0;
+  int           d2h_rsp_outstanding_credits_1;
+  int           d2h_rsp_outstanding_credits_2;
+  int           d2h_rsp_outstanding_credits_3;
+  int           d2h_rsp_consumed_credits;
+  int           d2h_rsp_occ_d;
+  int           d2h_data_outstanding_credits;
+  int           d2h_data_outstanding_credits_0;
+  int           d2h_data_outstanding_credits_1;
+  int           d2h_data_outstanding_credits_2;
+  int           d2h_data_outstanding_credits_3;
+  int           d2h_data_consumed_credits;
+  int           d2h_data_occ_d;
+  int           s2m_ndr_outstanding_credits;
+  int           s2m_ndr_outstanding_credits_0;
+  int           s2m_ndr_outstanding_credits_1;
+  int           s2m_ndr_outstanding_credits_2;
+  int           s2m_ndr_outstanding_credits_3;
+  int           s2m_ndr_consumed_credits;
+  int           s2m_ndr_occ_d;
+  int           s2m_drs_outstanding_credits;
+  int           s2m_drs_outstanding_credits_0;
+  int           s2m_drs_outstanding_credits_1;
+  int           s2m_drs_outstanding_credits_2;
+  int           s2m_drs_outstanding_credits_3;
+  int           s2m_drs_consumed_credits;
+  int           s2m_drs_occ_d;
   typedef struct{
-    bit pending;
+    bit          pending;
     int unsigned credit_to_be_sent;
   } crdt_tbs_t;
-  crdt_tbs_t d2h_req_crdt_tbs[4];
-  crdt_tbs_t d2h_rsp_crdt_tbs[4];
-  crdt_tbs_t d2h_data_crdt_tbs[4];
-  crdt_tbs_t s2m_ndr_crdt_tbs[4];
-  crdt_tbs_t s2m_drs_crdt_tbs[4];
-  logic [2:0] d2h_req_crdt_send;
-  logic [2:0] d2h_rsp_crdt_send;
-  logic [2:0] d2h_data_crdt_send;
-  logic [2:0] s2m_ndr_crdt_send;
-  logic [2:0] s2m_drs_crdt_send;
-  int ack_cnt_tbs;//ack count to be sent 
-  int ack_cnt_snt;//current ack count sent 
-  logic insert_ack;
-  logic insert_ack_d;
-  logic [3:0] data_slot[5];
-  logic [3:0] data_slot_d[5];
-  logic host_tx_dl_if_pre_valid;
-  logic [15:0] host_tx_dl_if_pre_crc;
+  crdt_tbs_t    d2h_req_crdt_tbs[4];
+  crdt_tbs_t    d2h_rsp_crdt_tbs[4];
+  crdt_tbs_t    d2h_data_crdt_tbs[4];
+  crdt_tbs_t    s2m_ndr_crdt_tbs[4];
+  crdt_tbs_t    s2m_drs_crdt_tbs[4];
+  logic [2:0]   d2h_req_crdt_send;
+  logic [2:0]   d2h_rsp_crdt_send;
+  logic [2:0]   d2h_data_crdt_send;
+  logic [2:0]   s2m_ndr_crdt_send;
+  logic [2:0]   s2m_drs_crdt_send;
+  int           ack_cnt_tbs;//ack count to be sent 
+  int           ack_cnt_snt;//current ack count sent 
+  logic         insert_ack;
+  logic         insert_ack_d;
+  logic [3:0]   data_slot[5];
+  logic [3:0]   data_slot_d[5];
+  logic         host_tx_dl_if_pre_valid;
+  logic [15:0]  host_tx_dl_if_pre_crc;
   logic [511:0] host_tx_dl_if_pre_data;
-  logic host_tx_dl_if_rstn_d;
-  logic host_tx_dl_if_rstn_dd;
-  logic host_tx_dl_if_valid_d;
-  logic [15:0] host_tx_dl_if_crc_d;
+  logic         host_tx_dl_if_rstn_d;
+  logic         host_tx_dl_if_rstn_dd;
+  logic         host_tx_dl_if_valid_d;
+  logic [15:0]  host_tx_dl_if_crc_d;
   logic [511:0] host_tx_dl_if_data_d;
   //IMP INFO:consider s2m ndr as rsp credits and s2m drs as data credits
 
@@ -3256,8 +3351,8 @@ module host_tx_path#(
 
   always@(posedge host_tx_dl_if.clk) begin
     if(!host_tx_dl_if.rstn) begin
-      rsp_lru <= 'h0;
-      data_lru <= 'h0;
+      rsp_lru         <= 'h0;
+      data_lru        <= 'h0;
       d2h_req_occ_d   <= 'd0;
       d2h_rsp_occ_d   <= 'd0;
       d2h_data_occ_d  <= 'd0;
@@ -3277,22 +3372,22 @@ module host_tx_path#(
         s2m_ndr_crdt_tbs[i].credit_to_be_sent <= 'h64;
       end
 */
-      d2h_rsp_crdt_tbs[0].pending <= 'h1;
-      d2h_rsp_crdt_tbs[1].pending <= 'h0;
-      d2h_rsp_crdt_tbs[2].pending <= 'h0;
-      d2h_rsp_crdt_tbs[3].pending <= 'h0;
-      d2h_rsp_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
-      d2h_rsp_crdt_tbs[1].credit_to_be_sent <= 'h0;
-      d2h_rsp_crdt_tbs[2].credit_to_be_sent <= 'h0;
-      d2h_rsp_crdt_tbs[3].credit_to_be_sent <= 'h0;
-      s2m_ndr_crdt_tbs[0].pending <= 'h1;
-      s2m_ndr_crdt_tbs[1].pending <= 'h0;
-      s2m_ndr_crdt_tbs[2].pending <= 'h0;
-      s2m_ndr_crdt_tbs[3].pending <= 'h0;
-      s2m_ndr_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
-      s2m_ndr_crdt_tbs[1].credit_to_be_sent <= 'h0;
-      s2m_ndr_crdt_tbs[2].credit_to_be_sent <= 'h0;
-      s2m_ndr_crdt_tbs[3].credit_to_be_sent <= 'h0;
+      d2h_rsp_crdt_tbs[0].pending             <= 'h1;
+      d2h_rsp_crdt_tbs[1].pending             <= 'h0;
+      d2h_rsp_crdt_tbs[2].pending             <= 'h0;
+      d2h_rsp_crdt_tbs[3].pending             <= 'h0;
+      d2h_rsp_crdt_tbs[0].credit_to_be_sent   <= BUFFER_DEPTH;
+      d2h_rsp_crdt_tbs[1].credit_to_be_sent   <= 'h0;
+      d2h_rsp_crdt_tbs[2].credit_to_be_sent   <= 'h0;
+      d2h_rsp_crdt_tbs[3].credit_to_be_sent   <= 'h0;
+      s2m_ndr_crdt_tbs[0].pending             <= 'h1;
+      s2m_ndr_crdt_tbs[1].pending             <= 'h0;
+      s2m_ndr_crdt_tbs[2].pending             <= 'h0;
+      s2m_ndr_crdt_tbs[3].pending             <= 'h0;
+      s2m_ndr_crdt_tbs[0].credit_to_be_sent   <= BUFFER_DEPTH;
+      s2m_ndr_crdt_tbs[1].credit_to_be_sent   <= 'h0;
+      s2m_ndr_crdt_tbs[2].credit_to_be_sent   <= 'h0;
+      s2m_ndr_crdt_tbs[3].credit_to_be_sent   <= 'h0;
 
 /*
       foreach(d2h_req_crdt_tbs[i].pending) begin
@@ -3302,14 +3397,14 @@ module host_tx_path#(
         d2h_req_crdt_tbs[i].credit_to_be_sent <= 'h64;
       end
 */
-      d2h_req_crdt_tbs[0].pending <= 'h1;
-      d2h_req_crdt_tbs[1].pending <= 'h0;
-      d2h_req_crdt_tbs[2].pending <= 'h0;
-      d2h_req_crdt_tbs[3].pending <= 'h0;
-      d2h_req_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
-      d2h_req_crdt_tbs[1].credit_to_be_sent <= 'h0;
-      d2h_req_crdt_tbs[2].credit_to_be_sent <= 'h0;
-      d2h_req_crdt_tbs[3].credit_to_be_sent <= 'h0;
+      d2h_req_crdt_tbs[0].pending             <= 'h1;
+      d2h_req_crdt_tbs[1].pending             <= 'h0;
+      d2h_req_crdt_tbs[2].pending             <= 'h0;
+      d2h_req_crdt_tbs[3].pending             <= 'h0;
+      d2h_req_crdt_tbs[0].credit_to_be_sent   <= BUFFER_DEPTH;
+      d2h_req_crdt_tbs[1].credit_to_be_sent   <= 'h0;
+      d2h_req_crdt_tbs[2].credit_to_be_sent   <= 'h0;
+      d2h_req_crdt_tbs[3].credit_to_be_sent   <= 'h0;
 
 /*
       foreach(d2h_data_crdt_tbs[i].pending) begin
@@ -3325,43 +3420,43 @@ module host_tx_path#(
         s2m_drs_crdt_tbs[i].credit_to_be_sent <= 'h64;
       end
 */
-      d2h_data_crdt_tbs[0].pending <= 'h1;
-      d2h_data_crdt_tbs[1].pending <= 'h0;
-      d2h_data_crdt_tbs[2].pending <= 'h0;
-      d2h_data_crdt_tbs[3].pending <= 'h0;
-      d2h_data_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
-      d2h_data_crdt_tbs[1].credit_to_be_sent <= 'h0;
-      d2h_data_crdt_tbs[2].credit_to_be_sent <= 'h0;
-      d2h_data_crdt_tbs[3].credit_to_be_sent <= 'h0;
-      s2m_drs_crdt_tbs[0].pending <= 'h1;
-      s2m_drs_crdt_tbs[1].pending <= 'h0;
-      s2m_drs_crdt_tbs[2].pending <= 'h0;
-      s2m_drs_crdt_tbs[3].pending <= 'h0;
-      s2m_drs_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
-      s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'h0;
-      s2m_drs_crdt_tbs[2].credit_to_be_sent <= 'h0;
-      s2m_drs_crdt_tbs[3].credit_to_be_sent <= 'h0;
+      d2h_data_crdt_tbs[0].pending            <= 'h1;
+      d2h_data_crdt_tbs[1].pending            <= 'h0;
+      d2h_data_crdt_tbs[2].pending            <= 'h0;
+      d2h_data_crdt_tbs[3].pending            <= 'h0;
+      d2h_data_crdt_tbs[0].credit_to_be_sent  <= BUFFER_DEPTH;
+      d2h_data_crdt_tbs[1].credit_to_be_sent  <= 'h0;
+      d2h_data_crdt_tbs[2].credit_to_be_sent  <= 'h0;
+      d2h_data_crdt_tbs[3].credit_to_be_sent  <= 'h0;
+      s2m_drs_crdt_tbs[0].pending             <= 'h1;
+      s2m_drs_crdt_tbs[1].pending             <= 'h0;
+      s2m_drs_crdt_tbs[2].pending             <= 'h0;
+      s2m_drs_crdt_tbs[3].pending             <= 'h0;
+      s2m_drs_crdt_tbs[0].credit_to_be_sent   <= BUFFER_DEPTH;
+      s2m_drs_crdt_tbs[1].credit_to_be_sent   <= 'h0;
+      s2m_drs_crdt_tbs[2].credit_to_be_sent   <= 'h0;
+      s2m_drs_crdt_tbs[3].credit_to_be_sent   <= 'h0;
     end else begin 
-      d2h_req_occ_d   <= d2h_req_occ;
-      d2h_rsp_occ_d   <= d2h_rsp_occ;
-      d2h_data_occ_d  <= d2h_data_occ;
-      s2m_ndr_occ_d   <= s2m_ndr_occ;
-      s2m_drs_occ_d   <= s2m_drs_occ;
+      d2h_req_occ_d                           <= d2h_req_occ;
+      d2h_rsp_occ_d                           <= d2h_rsp_occ;
+      d2h_data_occ_d                          <= d2h_data_occ;
+      s2m_ndr_occ_d                           <= s2m_ndr_occ;
+      s2m_drs_occ_d                           <= s2m_drs_occ;
       if((d2h_req_crdt_tbs[0].credit_to_be_sent + d2h_req_outstanding_credits) <= 'd64) begin
-        d2h_req_crdt_tbs[0].pending <= ((d2h_req_crdt_tbs[0].credit_to_be_sent + d2h_req_outstanding_credits) == 'd0)? 'h0: 'h1;
-        d2h_req_crdt_tbs[1].pending <= 'h0;
-        d2h_req_crdt_tbs[2].pending <= 'h0;
-        d2h_req_crdt_tbs[3].pending <= 'h0;
+        d2h_req_crdt_tbs[0].pending           <= ((d2h_req_crdt_tbs[0].credit_to_be_sent + d2h_req_outstanding_credits) == 'd0)? 'h0: 'h1;
+        d2h_req_crdt_tbs[1].pending           <= 'h0;
+        d2h_req_crdt_tbs[2].pending           <= 'h0;
+        d2h_req_crdt_tbs[3].pending           <= 'h0;
         if(((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack) && (slot_sel_d_d == H_SLOT0)) begin
           d2h_req_crdt_tbs[0].credit_to_be_sent <= d2h_req_crdt_tbs[0].credit_to_be_sent + d2h_req_outstanding_credits_0 - ((d2h_req_crdt_send == 'h7)? 'd64: (d2h_req_crdt_send == 'h6)? 'd32: (d2h_req_crdt_send == 'h5)? 'd16: (d2h_req_crdt_send == 'h4)? 'd8: (d2h_req_crdt_send == 'h3)? 'd4: d2h_req_crdt_send);
         end else begin
           d2h_req_crdt_tbs[0].credit_to_be_sent <= d2h_req_crdt_tbs[0].credit_to_be_sent + d2h_req_outstanding_credits_0;
         end
       end else if(((d2h_req_crdt_tbs[0].credit_to_be_sent + d2h_req_outstanding_credits) > 'd64) && ((d2h_req_crdt_tbs[1].credit_to_be_sent + d2h_req_outstanding_credits_0) <= 'd64)) begin
-        d2h_req_crdt_tbs[0].pending <= 'h1;
-        d2h_req_crdt_tbs[1].pending <= 'h1;
-        d2h_req_crdt_tbs[2].pending <= 'h0;
-        d2h_req_crdt_tbs[3].pending <= 'h0;
+        d2h_req_crdt_tbs[0].pending           <= 'h1;
+        d2h_req_crdt_tbs[1].pending           <= 'h1;
+        d2h_req_crdt_tbs[2].pending           <= 'h0;
+        d2h_req_crdt_tbs[3].pending           <= 'h0;
         d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
         if(((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack) && (slot_sel_d_d == H_SLOT0)) begin
           d2h_req_crdt_tbs[1].credit_to_be_sent <= d2h_req_crdt_tbs[1].credit_to_be_sent + d2h_req_outstanding_credits_1 - ((d2h_req_crdt_send == 'h7)? 'd64: (d2h_req_crdt_send == 'h6)? 'd32: (d2h_req_crdt_send == 'h5)? 'd16: (d2h_req_crdt_send == 'h4)? 'd8: (d2h_req_crdt_send == 'h3)? 'd4: d2h_req_crdt_send);
@@ -3369,10 +3464,10 @@ module host_tx_path#(
           d2h_req_crdt_tbs[1].credit_to_be_sent <= d2h_req_crdt_tbs[1].credit_to_be_sent + d2h_req_outstanding_credits_1;
         end
       end else if(((d2h_req_crdt_tbs[1].credit_to_be_sent + d2h_req_outstanding_credits_0) > 'd64) && ((d2h_req_crdt_tbs[2].credit_to_be_sent + d2h_req_outstanding_credits_1) <= 'd64)) begin
-        d2h_req_crdt_tbs[0].pending <= 'h1;
-        d2h_req_crdt_tbs[1].pending <= 'h1;
-        d2h_req_crdt_tbs[2].pending <= 'h1;
-        d2h_req_crdt_tbs[3].pending <= 'h0;
+        d2h_req_crdt_tbs[0].pending           <= 'h1;
+        d2h_req_crdt_tbs[1].pending           <= 'h1;
+        d2h_req_crdt_tbs[2].pending           <= 'h1;
+        d2h_req_crdt_tbs[3].pending           <= 'h0;
         d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
         d2h_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
         if(((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack) && (slot_sel_d_d == H_SLOT0)) begin
@@ -3381,10 +3476,10 @@ module host_tx_path#(
           d2h_req_crdt_tbs[2].credit_to_be_sent <= d2h_req_crdt_tbs[2].credit_to_be_sent + d2h_req_outstanding_credits_2;
         end
       end else if(((d2h_req_crdt_tbs[2].credit_to_be_sent + d2h_req_outstanding_credits_1) > 'd64) && ((d2h_req_crdt_tbs[3].credit_to_be_sent + d2h_req_outstanding_credits_2) <= 'd64)) begin
-        d2h_req_crdt_tbs[0].pending <= 'h1;
-        d2h_req_crdt_tbs[1].pending <= 'h1;
-        d2h_req_crdt_tbs[2].pending <= 'h1;
-        d2h_req_crdt_tbs[3].pending <= 'h1;
+        d2h_req_crdt_tbs[0].pending           <= 'h1;
+        d2h_req_crdt_tbs[1].pending           <= 'h1;
+        d2h_req_crdt_tbs[2].pending           <= 'h1;
+        d2h_req_crdt_tbs[3].pending           <= 'h1;
         d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
         d2h_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
         d2h_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -3394,10 +3489,10 @@ module host_tx_path#(
           d2h_req_crdt_tbs[3].credit_to_be_sent <= d2h_req_crdt_tbs[3].credit_to_be_sent + d2h_req_outstanding_credits_3;
         end
       end else if(d2h_req_crdt_tbs[3].credit_to_be_sent + d2h_req_outstanding_credits_2 > 'd64) begin
-        d2h_req_crdt_tbs[0].pending <= 'h1;
-        d2h_req_crdt_tbs[1].pending <= 'h1;
-        d2h_req_crdt_tbs[2].pending <= 'h1;
-        d2h_req_crdt_tbs[3].pending <= 'h1;
+        d2h_req_crdt_tbs[0].pending           <= 'h1;
+        d2h_req_crdt_tbs[1].pending           <= 'h1;
+        d2h_req_crdt_tbs[2].pending           <= 'h1;
+        d2h_req_crdt_tbs[3].pending           <= 'h1;
         d2h_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
         d2h_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
         d2h_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -3405,10 +3500,10 @@ module host_tx_path#(
       end
 
       if((d2h_rsp_crdt_tbs[0].credit_to_be_sent + d2h_rsp_outstanding_credits) <= 'd64) begin
-        d2h_rsp_crdt_tbs[0].pending <= ((d2h_rsp_crdt_tbs[0].credit_to_be_sent + d2h_rsp_outstanding_credits) == 'd0)? 'h0: 'h1;
-        d2h_rsp_crdt_tbs[1].pending <= 'h0;
-        d2h_rsp_crdt_tbs[2].pending <= 'h0;
-        d2h_rsp_crdt_tbs[3].pending <= 'h0;
+        d2h_rsp_crdt_tbs[0].pending           <= ((d2h_rsp_crdt_tbs[0].credit_to_be_sent + d2h_rsp_outstanding_credits) == 'd0)? 'h0: 'h1;
+        d2h_rsp_crdt_tbs[1].pending           <= 'h0;
+        d2h_rsp_crdt_tbs[2].pending           <= 'h0;
+        d2h_rsp_crdt_tbs[3].pending           <= 'h0;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack) && (slot_sel_d_d == H_SLOT0)) && (((s2m_ndr_crdt_send > 0) && (rsp_lru == 0)) || (s2m_ndr_crdt_send == 0))) begin
           d2h_rsp_crdt_tbs[0].credit_to_be_sent <= d2h_rsp_crdt_tbs[0].credit_to_be_sent + d2h_rsp_outstanding_credits_0 - ((d2h_rsp_crdt_send == 'h7)? 'd64: (d2h_rsp_crdt_send == 'h6)? 'd32: (d2h_rsp_crdt_send == 'h5)? 'd16: (d2h_rsp_crdt_send == 'h4)? 'd8: (d2h_rsp_crdt_send == 'h3)? 'd4: d2h_rsp_crdt_send);
           if(s2m_ndr_crdt_send > 0) begin
@@ -3418,10 +3513,10 @@ module host_tx_path#(
           d2h_rsp_crdt_tbs[0].credit_to_be_sent <= d2h_rsp_crdt_tbs[0].credit_to_be_sent + d2h_rsp_outstanding_credits_0;
         end
       end else if(((d2h_rsp_crdt_tbs[0].credit_to_be_sent + d2h_rsp_outstanding_credits) > 'd64) && ((d2h_rsp_crdt_tbs[1].credit_to_be_sent + d2h_rsp_outstanding_credits_0) <= 'd64)) begin
-        d2h_rsp_crdt_tbs[0].pending <= 'h1;
-        d2h_rsp_crdt_tbs[1].pending <= 'h1;
-        d2h_rsp_crdt_tbs[2].pending <= 'h0;
-        d2h_rsp_crdt_tbs[3].pending <= 'h0;
+        d2h_rsp_crdt_tbs[0].pending           <= 'h1;
+        d2h_rsp_crdt_tbs[1].pending           <= 'h1;
+        d2h_rsp_crdt_tbs[2].pending           <= 'h0;
+        d2h_rsp_crdt_tbs[3].pending           <= 'h0;
         d2h_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack) && (slot_sel_d_d == H_SLOT0)) && (((s2m_ndr_crdt_send > 0) && (rsp_lru == 0)) || (s2m_ndr_crdt_send == 0))) begin
           d2h_rsp_crdt_tbs[1].credit_to_be_sent <= d2h_rsp_crdt_tbs[1].credit_to_be_sent + d2h_rsp_outstanding_credits_1 - ((d2h_rsp_crdt_send == 'h7)? 'd64: (d2h_rsp_crdt_send == 'h6)? 'd32: (d2h_rsp_crdt_send == 'h5)? 'd16: (d2h_rsp_crdt_send == 'h4)? 'd8: (d2h_rsp_crdt_send == 'h3)? 'd4: d2h_rsp_crdt_send);
@@ -3432,10 +3527,10 @@ module host_tx_path#(
           d2h_rsp_crdt_tbs[1].credit_to_be_sent <= d2h_rsp_crdt_tbs[1].credit_to_be_sent + d2h_rsp_outstanding_credits_1;
         end
       end else if(((d2h_rsp_crdt_tbs[1].credit_to_be_sent + d2h_rsp_outstanding_credits_0) > 'd64) && ((d2h_rsp_crdt_tbs[2].credit_to_be_sent + d2h_rsp_outstanding_credits_1) <= 'd64)) begin
-        d2h_rsp_crdt_tbs[0].pending <= 'h1;
-        d2h_rsp_crdt_tbs[1].pending <= 'h1;
-        d2h_rsp_crdt_tbs[2].pending <= 'h1;
-        d2h_rsp_crdt_tbs[3].pending <= 'h0;
+        d2h_rsp_crdt_tbs[0].pending           <= 'h1;
+        d2h_rsp_crdt_tbs[1].pending           <= 'h1;
+        d2h_rsp_crdt_tbs[2].pending           <= 'h1;
+        d2h_rsp_crdt_tbs[3].pending           <= 'h0;
         d2h_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
         d2h_rsp_crdt_tbs[1].credit_to_be_sent <= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack) && (slot_sel_d_d == H_SLOT0)) && (((s2m_ndr_crdt_send > 0) && (rsp_lru == 0)) || (s2m_ndr_crdt_send == 0))) begin
@@ -3447,10 +3542,10 @@ module host_tx_path#(
           d2h_rsp_crdt_tbs[2].credit_to_be_sent <= d2h_rsp_crdt_tbs[2].credit_to_be_sent + d2h_rsp_outstanding_credits_2;
         end
       end else if(((d2h_rsp_crdt_tbs[2].credit_to_be_sent + d2h_rsp_outstanding_credits_1) > 'd64) && ((d2h_rsp_crdt_tbs[3].credit_to_be_sent + d2h_rsp_outstanding_credits_2) <= 'd64)) begin
-        d2h_rsp_crdt_tbs[0].pending <= 'h1;
-        d2h_rsp_crdt_tbs[1].pending <= 'h1;
-        d2h_rsp_crdt_tbs[2].pending <= 'h1;
-        d2h_rsp_crdt_tbs[3].pending <= 'h1;
+        d2h_rsp_crdt_tbs[0].pending           <= 'h1;
+        d2h_rsp_crdt_tbs[1].pending           <= 'h1;
+        d2h_rsp_crdt_tbs[2].pending           <= 'h1;
+        d2h_rsp_crdt_tbs[3].pending           <= 'h1;
         d2h_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
         d2h_rsp_crdt_tbs[1].credit_to_be_sent <= 'd64;
         d2h_rsp_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -3463,10 +3558,10 @@ module host_tx_path#(
           d2h_rsp_crdt_tbs[3].credit_to_be_sent <= d2h_rsp_crdt_tbs[3].credit_to_be_sent + d2h_rsp_outstanding_credits_3;
         end
       end else if(d2h_rsp_crdt_tbs[3].credit_to_be_sent + d2h_rsp_outstanding_credits_2 > 'd64) begin
-        d2h_rsp_crdt_tbs[0].pending <= 'h1;
-        d2h_rsp_crdt_tbs[1].pending <= 'h1;
-        d2h_rsp_crdt_tbs[2].pending <= 'h1;
-        d2h_rsp_crdt_tbs[3].pending <= 'h1;
+        d2h_rsp_crdt_tbs[0].pending           <= 'h1;
+        d2h_rsp_crdt_tbs[1].pending           <= 'h1;
+        d2h_rsp_crdt_tbs[2].pending           <= 'h1;
+        d2h_rsp_crdt_tbs[3].pending           <= 'h1;
         d2h_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
         d2h_rsp_crdt_tbs[1].credit_to_be_sent <= 'd64;
         d2h_rsp_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -3474,10 +3569,10 @@ module host_tx_path#(
       end
 
       if((d2h_data_crdt_tbs[0].credit_to_be_sent + d2h_data_outstanding_credits) <= 'd64) begin
-        d2h_data_crdt_tbs[0].pending <= ((d2h_data_crdt_tbs[0].credit_to_be_sent + d2h_data_outstanding_credits) == 'd0)? 'h0: 'h1;
-        d2h_data_crdt_tbs[1].pending <= 'h0;
-        d2h_data_crdt_tbs[2].pending <= 'h0;
-        d2h_data_crdt_tbs[3].pending <= 'h0;
+        d2h_data_crdt_tbs[0].pending          <= ((d2h_data_crdt_tbs[0].credit_to_be_sent + d2h_data_outstanding_credits) == 'd0)? 'h0: 'h1;
+        d2h_data_crdt_tbs[1].pending          <= 'h0;
+        d2h_data_crdt_tbs[2].pending          <= 'h0;
+        d2h_data_crdt_tbs[3].pending          <= 'h0;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack) && (slot_sel_d_d == H_SLOT0)) && (((s2m_drs_crdt_send > 0) && (data_lru == 0)) || (s2m_drs_crdt_send == 0))) begin
           d2h_data_crdt_tbs[0].credit_to_be_sent <= d2h_data_crdt_tbs[0].credit_to_be_sent + d2h_data_outstanding_credits_0 - ((d2h_data_crdt_send == 'h7)? 'd64: (d2h_data_crdt_send == 'h6)? 'd32: (d2h_data_crdt_send == 'h5)? 'd16: (d2h_data_crdt_send == 'h4)? 'd8: (d2h_data_crdt_send == 'h3)? 'd4: d2h_data_crdt_send);
           if(s2m_drs_crdt_send > 0) begin
@@ -3487,11 +3582,11 @@ module host_tx_path#(
           d2h_data_crdt_tbs[0].credit_to_be_sent <= d2h_data_crdt_tbs[0].credit_to_be_sent + d2h_data_outstanding_credits_0;
         end
       end else if(((d2h_data_crdt_tbs[0].credit_to_be_sent + d2h_data_outstanding_credits) > 'd64) && ((d2h_data_crdt_tbs[1].credit_to_be_sent + d2h_data_outstanding_credits_0) <= 'd64)) begin
-        d2h_data_crdt_tbs[0].pending <= 'h1;
-        d2h_data_crdt_tbs[1].pending <= 'h1;
-        d2h_data_crdt_tbs[2].pending <= 'h0;
-        d2h_data_crdt_tbs[3].pending <= 'h0;
-        d2h_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        d2h_data_crdt_tbs[0].pending          <= 'h1;
+        d2h_data_crdt_tbs[1].pending          <= 'h1;
+        d2h_data_crdt_tbs[2].pending          <= 'h0;
+        d2h_data_crdt_tbs[3].pending          <= 'h0;
+        d2h_data_crdt_tbs[0].credit_to_be_sent<= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack) && (slot_sel_d_d == H_SLOT0)) && (((s2m_drs_crdt_send > 0) && (data_lru == 0)) || (s2m_drs_crdt_send == 0))) begin
           d2h_data_crdt_tbs[1].credit_to_be_sent <= d2h_data_crdt_tbs[1].credit_to_be_sent + d2h_data_outstanding_credits_1 - ((d2h_data_crdt_send == 'h7)? 'd64: (d2h_data_crdt_send == 'h6)? 'd32: (d2h_data_crdt_send == 'h5)? 'd16: (d2h_data_crdt_send == 'h4)? 'd8: (d2h_data_crdt_send == 'h3)? 'd4: d2h_data_crdt_send);
           if(s2m_drs_crdt_send > 0) begin
@@ -3501,12 +3596,12 @@ module host_tx_path#(
           d2h_data_crdt_tbs[1].credit_to_be_sent <= d2h_data_crdt_tbs[1].credit_to_be_sent + d2h_data_outstanding_credits_1;
         end
       end else if(((d2h_data_crdt_tbs[1].credit_to_be_sent + d2h_data_outstanding_credits_0) > 'd64) && ((d2h_data_crdt_tbs[2].credit_to_be_sent + d2h_data_outstanding_credits_1) <= 'd64)) begin
-        d2h_data_crdt_tbs[0].pending <= 'h1;
-        d2h_data_crdt_tbs[1].pending <= 'h1;
-        d2h_data_crdt_tbs[2].pending <= 'h1;
-        d2h_data_crdt_tbs[3].pending <= 'h0;
-        d2h_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
-        d2h_data_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        d2h_data_crdt_tbs[0].pending          <= 'h1;
+        d2h_data_crdt_tbs[1].pending          <= 'h1;
+        d2h_data_crdt_tbs[2].pending          <= 'h1;
+        d2h_data_crdt_tbs[3].pending          <= 'h0;
+        d2h_data_crdt_tbs[0].credit_to_be_sent<= 'd64;
+        d2h_data_crdt_tbs[1].credit_to_be_sent<= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack) && (slot_sel_d_d == H_SLOT0)) && (((s2m_drs_crdt_send > 0) && (data_lru == 0)) || (s2m_drs_crdt_send == 0))) begin
           d2h_data_crdt_tbs[2].credit_to_be_sent <= d2h_data_crdt_tbs[2].credit_to_be_sent + d2h_data_outstanding_credits_2 - ((d2h_data_crdt_send == 'h7)? 'd64: (d2h_data_crdt_send == 'h6)? 'd32: (d2h_data_crdt_send == 'h5)? 'd16: (d2h_data_crdt_send == 'h4)? 'd8: (d2h_data_crdt_send == 'h3)? 'd4: d2h_data_crdt_send);
           if(s2m_drs_crdt_send > 0) begin
@@ -3516,13 +3611,13 @@ module host_tx_path#(
           d2h_data_crdt_tbs[2].credit_to_be_sent <= d2h_data_crdt_tbs[2].credit_to_be_sent + d2h_data_outstanding_credits_2;
         end
       end else if(((d2h_data_crdt_tbs[2].credit_to_be_sent + d2h_data_outstanding_credits_1) > 'd64) && ((d2h_data_crdt_tbs[3].credit_to_be_sent + d2h_data_outstanding_credits_2) <= 'd64)) begin
-        d2h_data_crdt_tbs[0].pending <= 'h1;
-        d2h_data_crdt_tbs[1].pending <= 'h1;
-        d2h_data_crdt_tbs[2].pending <= 'h1;
-        d2h_data_crdt_tbs[3].pending <= 'h1;
-        d2h_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
-        d2h_data_crdt_tbs[1].credit_to_be_sent <= 'd64;
-        d2h_data_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        d2h_data_crdt_tbs[0].pending          <= 'h1;
+        d2h_data_crdt_tbs[1].pending          <= 'h1;
+        d2h_data_crdt_tbs[2].pending          <= 'h1;
+        d2h_data_crdt_tbs[3].pending          <= 'h1;
+        d2h_data_crdt_tbs[0].credit_to_be_sent<= 'd64;
+        d2h_data_crdt_tbs[1].credit_to_be_sent<= 'd64;
+        d2h_data_crdt_tbs[2].credit_to_be_sent<= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack) && (slot_sel_d_d == H_SLOT0)) && (((s2m_drs_crdt_send > 0) && (data_lru == 0)) || (s2m_drs_crdt_send == 0))) begin
           d2h_data_crdt_tbs[3].credit_to_be_sent <= d2h_data_crdt_tbs[3].credit_to_be_sent + d2h_data_outstanding_credits_3 - ((d2h_data_crdt_send == 'h7)? 'd64: (d2h_data_crdt_send == 'h6)? 'd32: (d2h_data_crdt_send == 'h5)? 'd16: (d2h_data_crdt_send == 'h4)? 'd8: (d2h_data_crdt_send == 'h3)? 'd4: d2h_data_crdt_send);
           if(s2m_drs_crdt_send > 0) begin
@@ -3532,21 +3627,21 @@ module host_tx_path#(
           d2h_data_crdt_tbs[3].credit_to_be_sent <= d2h_data_crdt_tbs[3].credit_to_be_sent + d2h_data_outstanding_credits_3;
         end
       end else if(d2h_data_crdt_tbs[3].credit_to_be_sent + d2h_data_outstanding_credits_2 > 'd64) begin
-        d2h_data_crdt_tbs[0].pending <= 'h1;
-        d2h_data_crdt_tbs[1].pending <= 'h1;
-        d2h_data_crdt_tbs[2].pending <= 'h1;
-        d2h_data_crdt_tbs[3].pending <= 'h1;
-        d2h_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
-        d2h_data_crdt_tbs[1].credit_to_be_sent <= 'd64;
-        d2h_data_crdt_tbs[2].credit_to_be_sent <= 'd64;
-        d2h_data_crdt_tbs[3].credit_to_be_sent <= 'd64;
+        d2h_data_crdt_tbs[0].pending          <= 'h1;
+        d2h_data_crdt_tbs[1].pending          <= 'h1;
+        d2h_data_crdt_tbs[2].pending          <= 'h1;
+        d2h_data_crdt_tbs[3].pending          <= 'h1;
+        d2h_data_crdt_tbs[0].credit_to_be_sent<= 'd64;
+        d2h_data_crdt_tbs[1].credit_to_be_sent<= 'd64;
+        d2h_data_crdt_tbs[2].credit_to_be_sent<= 'd64;
+        d2h_data_crdt_tbs[3].credit_to_be_sent<= 'd64;
       end
 
       if((s2m_ndr_crdt_tbs[0].credit_to_be_sent + s2m_ndr_outstanding_credits) <= 'd64) begin
-        s2m_ndr_crdt_tbs[0].pending <= ((s2m_ndr_crdt_tbs[0].credit_to_be_sent + s2m_ndr_outstanding_credits) == 'd0)? 'h0: 'h1;
-        s2m_ndr_crdt_tbs[1].pending <= 'h0;
-        s2m_ndr_crdt_tbs[2].pending <= 'h0;
-        s2m_ndr_crdt_tbs[3].pending <= 'h0;
+        s2m_ndr_crdt_tbs[0].pending           <= ((s2m_ndr_crdt_tbs[0].credit_to_be_sent + s2m_ndr_outstanding_credits) == 'd0)? 'h0: 'h1;
+        s2m_ndr_crdt_tbs[1].pending           <= 'h0;
+        s2m_ndr_crdt_tbs[2].pending           <= 'h0;
+        s2m_ndr_crdt_tbs[3].pending           <= 'h0;
         if(((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack_d) && (slot_sel_d_d == H_SLOT0) && (((d2h_rsp_crdt_send > 0) && (rsp_lru == 1)) || (d2h_rsp_crdt_send == 0))) begin
           s2m_ndr_crdt_tbs[0].credit_to_be_sent <= s2m_ndr_crdt_tbs[0].credit_to_be_sent + s2m_ndr_outstanding_credits_0 - ((s2m_ndr_crdt_send == 'h7)? 'd64: (s2m_ndr_crdt_send == 'h6)? 'd32: (s2m_ndr_crdt_send == 'h5)? 'd16: (s2m_ndr_crdt_send == 'h4)? 'd8: (s2m_ndr_crdt_send == 'h3)? 'd4: s2m_ndr_crdt_send);
           if(d2h_rsp_crdt_send > 0) begin
@@ -3556,10 +3651,10 @@ module host_tx_path#(
           s2m_ndr_crdt_tbs[0].credit_to_be_sent <= s2m_ndr_crdt_tbs[0].credit_to_be_sent + s2m_ndr_outstanding_credits_0;
         end
       end else if(((s2m_ndr_crdt_tbs[0].credit_to_be_sent + s2m_ndr_outstanding_credits) > 'd64) && ((s2m_ndr_crdt_tbs[1].credit_to_be_sent + s2m_ndr_outstanding_credits_0) <= 'd64)) begin
-        s2m_ndr_crdt_tbs[0].pending <= 'h1;
-        s2m_ndr_crdt_tbs[1].pending <= 'h1;
-        s2m_ndr_crdt_tbs[2].pending <= 'h0;
-        s2m_ndr_crdt_tbs[3].pending <= 'h0;
+        s2m_ndr_crdt_tbs[0].pending           <= 'h1;
+        s2m_ndr_crdt_tbs[1].pending           <= 'h1;
+        s2m_ndr_crdt_tbs[2].pending           <= 'h0;
+        s2m_ndr_crdt_tbs[3].pending           <= 'h0;
         s2m_ndr_crdt_tbs[0].credit_to_be_sent <= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack_d) && (slot_sel_d_d == H_SLOT0)) && (((d2h_rsp_crdt_send > 0) && (rsp_lru == 1)) || (d2h_rsp_crdt_send == 0))) begin
           s2m_ndr_crdt_tbs[1].credit_to_be_sent <= s2m_ndr_crdt_tbs[1].credit_to_be_sent + s2m_ndr_outstanding_credits_1 - ((s2m_ndr_crdt_send == 'h7)? 'd64: (s2m_ndr_crdt_send == 'h6)? 'd32: (s2m_ndr_crdt_send == 'h5)? 'd16: (s2m_ndr_crdt_send == 'h4)? 'd8: (s2m_ndr_crdt_send == 'h3)? 'd4: s2m_ndr_crdt_send);
@@ -3570,10 +3665,10 @@ module host_tx_path#(
           s2m_ndr_crdt_tbs[1].credit_to_be_sent <= s2m_ndr_crdt_tbs[1].credit_to_be_sent + s2m_ndr_outstanding_credits_1;
         end
       end else if(((s2m_ndr_crdt_tbs[1].credit_to_be_sent + s2m_ndr_outstanding_credits_0) > 'd64) && ((s2m_ndr_crdt_tbs[2].credit_to_be_sent + s2m_ndr_outstanding_credits_1) <= 'd64)) begin
-        s2m_ndr_crdt_tbs[0].pending <= 'h1;
-        s2m_ndr_crdt_tbs[1].pending <= 'h1;
-        s2m_ndr_crdt_tbs[2].pending <= 'h1;
-        s2m_ndr_crdt_tbs[3].pending <= 'h0;
+        s2m_ndr_crdt_tbs[0].pending           <= 'h1;
+        s2m_ndr_crdt_tbs[1].pending           <= 'h1;
+        s2m_ndr_crdt_tbs[2].pending           <= 'h1;
+        s2m_ndr_crdt_tbs[3].pending           <= 'h0;
         s2m_ndr_crdt_tbs[0].credit_to_be_sent <= 'd64;
         s2m_ndr_crdt_tbs[1].credit_to_be_sent <= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack_d) && (slot_sel_d_d == H_SLOT0)) && (((d2h_rsp_crdt_send > 0) && (rsp_lru == 1)) || (d2h_rsp_crdt_send == 0))) begin
@@ -3585,10 +3680,10 @@ module host_tx_path#(
           s2m_ndr_crdt_tbs[2].credit_to_be_sent <= s2m_ndr_crdt_tbs[2].credit_to_be_sent + s2m_ndr_outstanding_credits_2;
         end
       end else if(((s2m_ndr_crdt_tbs[2].credit_to_be_sent + s2m_ndr_outstanding_credits_1) > 'd64) && ((s2m_ndr_crdt_tbs[3].credit_to_be_sent + s2m_ndr_outstanding_credits_2) <= 'd64)) begin
-        s2m_ndr_crdt_tbs[0].pending <= 'h1;
-        s2m_ndr_crdt_tbs[1].pending <= 'h1;
-        s2m_ndr_crdt_tbs[2].pending <= 'h1;
-        s2m_ndr_crdt_tbs[3].pending <= 'h1;
+        s2m_ndr_crdt_tbs[0].pending           <= 'h1;
+        s2m_ndr_crdt_tbs[1].pending           <= 'h1;
+        s2m_ndr_crdt_tbs[2].pending           <= 'h1;
+        s2m_ndr_crdt_tbs[3].pending           <= 'h1;
         s2m_ndr_crdt_tbs[0].credit_to_be_sent <= 'd64;
         s2m_ndr_crdt_tbs[1].credit_to_be_sent <= 'd64;
         s2m_ndr_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -3601,10 +3696,10 @@ module host_tx_path#(
           s2m_ndr_crdt_tbs[3].credit_to_be_sent <= s2m_ndr_crdt_tbs[3].credit_to_be_sent + s2m_ndr_outstanding_credits_3;
         end
       end else if(s2m_ndr_crdt_tbs[3].credit_to_be_sent + s2m_ndr_outstanding_credits_2 > 'd64) begin
-        s2m_ndr_crdt_tbs[0].pending <= 'h1;
-        s2m_ndr_crdt_tbs[1].pending <= 'h1;
-        s2m_ndr_crdt_tbs[2].pending <= 'h1;
-        s2m_ndr_crdt_tbs[3].pending <= 'h1;
+        s2m_ndr_crdt_tbs[0].pending           <= 'h1;
+        s2m_ndr_crdt_tbs[1].pending           <= 'h1;
+        s2m_ndr_crdt_tbs[2].pending           <= 'h1;
+        s2m_ndr_crdt_tbs[3].pending           <= 'h1;
         s2m_ndr_crdt_tbs[0].credit_to_be_sent <= 'd64;
         s2m_ndr_crdt_tbs[1].credit_to_be_sent <= 'd64;
         s2m_ndr_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -3612,10 +3707,10 @@ module host_tx_path#(
       end
 
       if((s2m_drs_crdt_tbs[0].credit_to_be_sent + s2m_drs_outstanding_credits) <= 'd64) begin
-        s2m_drs_crdt_tbs[0].pending <= ((s2m_drs_crdt_tbs[0].credit_to_be_sent + s2m_drs_outstanding_credits) == 'd0)? 'h0: 'h1;
-        s2m_drs_crdt_tbs[1].pending <= 'h0;
-        s2m_drs_crdt_tbs[2].pending <= 'h0;
-        s2m_drs_crdt_tbs[3].pending <= 'h0;
+        s2m_drs_crdt_tbs[0].pending           <= ((s2m_drs_crdt_tbs[0].credit_to_be_sent + s2m_drs_outstanding_credits) == 'd0)? 'h0: 'h1;
+        s2m_drs_crdt_tbs[1].pending           <= 'h0;
+        s2m_drs_crdt_tbs[2].pending           <= 'h0;
+        s2m_drs_crdt_tbs[3].pending           <= 'h0;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack_d) && (slot_sel_d_d == H_SLOT0)) && (((d2h_data_crdt_send > 0) && (data_lru == 1)) || (d2h_data_crdt_send == 0))) begin
           s2m_drs_crdt_tbs[0].credit_to_be_sent <= s2m_drs_crdt_tbs[0].credit_to_be_sent + s2m_drs_outstanding_credits_0 - ((s2m_drs_crdt_send == 'h7)? 'd64: (s2m_drs_crdt_send == 'h6)? 'd32: (s2m_drs_crdt_send == 'h5)? 'd16: (s2m_drs_crdt_send == 'h4)? 'h8: (s2m_drs_crdt_send == 'h3)? 'h4: s2m_drs_crdt_send);
           if(d2h_data_crdt_send > 0) begin
@@ -3625,10 +3720,10 @@ module host_tx_path#(
           s2m_drs_crdt_tbs[0].credit_to_be_sent <= s2m_drs_crdt_tbs[0].credit_to_be_sent + s2m_drs_outstanding_credits_0;
         end
       end else if(((s2m_drs_crdt_tbs[0].credit_to_be_sent + s2m_drs_outstanding_credits) > 'd64) && ((s2m_drs_crdt_tbs[1].credit_to_be_sent + s2m_drs_outstanding_credits_0) <= 'd64)) begin
-        s2m_drs_crdt_tbs[0].pending <= 'h1;
-        s2m_drs_crdt_tbs[1].pending <= 'h1;
-        s2m_drs_crdt_tbs[2].pending <= 'h0;
-        s2m_drs_crdt_tbs[3].pending <= 'h0;
+        s2m_drs_crdt_tbs[0].pending           <= 'h1;
+        s2m_drs_crdt_tbs[1].pending           <= 'h1;
+        s2m_drs_crdt_tbs[2].pending           <= 'h0;
+        s2m_drs_crdt_tbs[3].pending           <= 'h0;
         s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack_d) && (slot_sel_d_d == H_SLOT0)) && (((d2h_data_crdt_send > 0) && (data_lru == 1)) || (d2h_data_crdt_send == 0))) begin
           s2m_drs_crdt_tbs[1].credit_to_be_sent <= s2m_drs_crdt_tbs[1].credit_to_be_sent + s2m_drs_outstanding_credits_1 - ((s2m_drs_crdt_send == 'h7)? 'd64: (s2m_drs_crdt_send == 'h6)? 'd32: (s2m_drs_crdt_send == 'h5)? 'd16: (s2m_drs_crdt_send == 'h4)? 'h8: (s2m_drs_crdt_send == 'h3)? 'h4: s2m_drs_crdt_send);
@@ -3639,10 +3734,10 @@ module host_tx_path#(
           s2m_drs_crdt_tbs[1].credit_to_be_sent <= s2m_drs_crdt_tbs[1].credit_to_be_sent + s2m_drs_outstanding_credits_1;
         end
       end else if(((s2m_drs_crdt_tbs[1].credit_to_be_sent + s2m_drs_outstanding_credits_0) > 'd64) && ((s2m_drs_crdt_tbs[2].credit_to_be_sent + s2m_drs_outstanding_credits_1) <= 'd64)) begin
-        s2m_drs_crdt_tbs[0].pending <= 'h1;
-        s2m_drs_crdt_tbs[1].pending <= 'h1;
-        s2m_drs_crdt_tbs[2].pending <= 'h1;
-        s2m_drs_crdt_tbs[3].pending <= 'h0;
+        s2m_drs_crdt_tbs[0].pending           <= 'h1;
+        s2m_drs_crdt_tbs[1].pending           <= 'h1;
+        s2m_drs_crdt_tbs[2].pending           <= 'h1;
+        s2m_drs_crdt_tbs[3].pending           <= 'h0;
         s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd64;
         s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt[1] || h_gnt[2] || h_gnt[3] || h_gnt[4] || insert_ack_d) && (slot_sel_d_d == H_SLOT0)) && (((d2h_data_crdt_send > 0) && (data_lru == 1)) || (d2h_data_crdt_send == 0))) begin
@@ -3654,10 +3749,10 @@ module host_tx_path#(
           s2m_drs_crdt_tbs[2].credit_to_be_sent <= s2m_drs_crdt_tbs[2].credit_to_be_sent + s2m_drs_outstanding_credits_2;
         end
       end else if(((s2m_drs_crdt_tbs[2].credit_to_be_sent + s2m_drs_outstanding_credits_1) > 'd64) && ((s2m_drs_crdt_tbs[3].credit_to_be_sent + s2m_drs_outstanding_credits_2) <= 'd64)) begin
-        s2m_drs_crdt_tbs[0].pending <= 'h1;
-        s2m_drs_crdt_tbs[1].pending <= 'h1;
-        s2m_drs_crdt_tbs[2].pending <= 'h1;
-        s2m_drs_crdt_tbs[3].pending <= 'h1;
+        s2m_drs_crdt_tbs[0].pending           <= 'h1;
+        s2m_drs_crdt_tbs[1].pending           <= 'h1;
+        s2m_drs_crdt_tbs[2].pending           <= 'h1;
+        s2m_drs_crdt_tbs[3].pending           <= 'h1;
         s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd64;
         s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'd64;
         s2m_drs_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -3670,10 +3765,10 @@ module host_tx_path#(
           s2m_drs_crdt_tbs[3].credit_to_be_sent <= s2m_drs_crdt_tbs[3].credit_to_be_sent + s2m_drs_outstanding_credits_3;
         end
       end else if(s2m_drs_crdt_tbs[3].credit_to_be_sent + s2m_drs_outstanding_credits_2 > 'd64) begin
-        s2m_drs_crdt_tbs[0].pending <= 'h1;
-        s2m_drs_crdt_tbs[1].pending <= 'h1;
-        s2m_drs_crdt_tbs[2].pending <= 'h1;
-        s2m_drs_crdt_tbs[3].pending <= 'h1;
+        s2m_drs_crdt_tbs[0].pending           <= 'h1;
+        s2m_drs_crdt_tbs[1].pending           <= 'h1;
+        s2m_drs_crdt_tbs[2].pending           <= 'h1;
+        s2m_drs_crdt_tbs[3].pending           <= 'h1;
         s2m_drs_crdt_tbs[0].credit_to_be_sent <= 'd64;
         s2m_drs_crdt_tbs[1].credit_to_be_sent <= 'd64;
         s2m_drs_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -3687,11 +3782,11 @@ module host_tx_path#(
 
   always@(negedge host_tx_dl_if.clk) begin
     if(!host_tx_dl_if.rstn) begin
-      data_slot[0] <= 'h0;
-      data_slot[1] <= 'h0;
-      data_slot[2] <= 'h0;
-      data_slot[3] <= 'h0;
-      data_slot[4] <= 'h0;
+      data_slot[0]   <= 'h0;
+      data_slot[1]   <= 'h0;
+      data_slot[2]   <= 'h0;
+      data_slot[3]   <= 'h0;
+      data_slot[4]   <= 'h0;
     end else begin
       if(data_slot[1] == 'hf) begin
         data_slot[0] <= data_slot[1];
@@ -3705,25 +3800,25 @@ module host_tx_path#(
 
   always@(posedge host_tx_dl_if.clk) begin
     if(!host_tx_dl_if.rstn) begin
-      slot_sel <= H_SLOT0;
-      slot_sel_d <= H_SLOT0;
-      slot_sel_d_d <= H_SLOT0;
-      holding_wrptr <= 'h0;
-      data_slot[0] <= 'h0;
-      data_slot[1] <= 'h0;
-      data_slot[2] <= 'h0;
-      data_slot[3] <= 'h0;
-      data_slot[4] <= 'h0;
+      slot_sel       <= H_SLOT0;
+      slot_sel_d     <= H_SLOT0;
+      slot_sel_d_d   <= H_SLOT0;
+      holding_wrptr  <= 'h0;
+      data_slot[0]   <= 'h0;
+      data_slot[1]   <= 'h0;
+      data_slot[2]   <= 'h0;
+      data_slot[3]   <= 'h0;
+      data_slot[4]   <= 'h0;
       data_slot_d[0] <= 'h0;
       data_slot_d[1] <= 'h0;
       data_slot_d[2] <= 'h0;
       data_slot_d[3] <= 'h0;
       data_slot_d[4] <= 'h0;
     end else begin
-      h_gnt_d <= h_gnt;
-      g_gnt_d <= g_gnt;
-      slot_sel_d <= slot_sel;
-      slot_sel_d_d <= slot_sel_d;
+      h_gnt_d        <= h_gnt;
+      g_gnt_d        <= g_gnt;
+      slot_sel_d     <= slot_sel;
+      slot_sel_d_d   <= slot_sel_d;
       data_slot_d[0] <= data_slot[0];
       data_slot_d[1] <= data_slot[1];
       data_slot_d[2] <= data_slot[2];
@@ -3749,26 +3844,42 @@ module host_tx_path#(
             end else if(h_gnt[1] || h_gnt[2] || h_gnt[4]) begin
               slot_sel <= H_SLOT0;
               if((data_slot[0] == 'h0) /*|| (data_slot[0] == 'hf)*/) begin //TODO: I doubt you would get data_slot as 'hf
-                data_slot[0] <= 'he; data_slot[1] <= 'h2; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; data_slot[1] <= 'h2; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'h2; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h2) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'h6; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h6) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'he; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'he) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(h_gnt[3]) begin
               slot_sel <= H_SLOT0;
               if((data_slot[0] == 'h0) || (data_slot[0] == 'hf)) begin //TODO: I doubt you would get data_slot as 'hf
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h2;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h2;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h2; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h2) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h6) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'he; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'he) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
               end else begin
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
@@ -3790,14 +3901,18 @@ module host_tx_path#(
             end else if((g_gnt[2]) || (g_gnt[4]) || (g_gnt[5])) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= H_SLOT0;
-                data_slot[0] <= 'hc; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'hc; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'hc; 
+                data_slot[0] <= 'h6; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
               end
             end else if(g_gnt[3]) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= H_SLOT0;
-                data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
+                //data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
+                //data_slot[0] <= 'hc; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
               end
@@ -3819,14 +3934,18 @@ module host_tx_path#(
             end else if((g_gnt[2]) || (g_gnt[4]) || (g_gnt[5])) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
                 slot_sel <= H_SLOT0;
-                data_slot[0] <= ((data_slot[0] == 'h2)? 'ha: 'h8); data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= ((data_slot[0] == 'h2)? 'ha: 'h8); data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= ((data_slot[0] == 'h2)? 'ha: 'h8); 
+                data_slot[0] <= 'he; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
               end
             end else if(g_gnt[3]) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
                 slot_sel <= H_SLOT0;
-                data_slot[0] <=  ((data_slot[0] == 'h2)? 'ha: 'h8); data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
+                //data_slot[0] <=  ((data_slot[0] == 'h2)? 'ha: 'h8); data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
+                //data_slot[0] <=  ((data_slot[0] == 'h2)? 'ha: 'h8); 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'he; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
               end
@@ -3848,14 +3967,18 @@ module host_tx_path#(
             end else if((g_gnt[2]) || (g_gnt[4]) || (g_gnt[5])) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
                 slot_sel <= H_SLOT0;
-            /*data_slot[0] <= 'h6;*/ data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+            ///*data_slot[0] <= 'h6;*/ data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+            ///*data_slot[0] <= 'h6;*/ 
+                data_slot[0] <= 'hf; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
               end
             end else if(g_gnt[3]) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
                 slot_sel <= H_SLOT0;
-            /*data_slot[0] <= 'h6;*/ data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
+            ///*data_slot[0] <= 'h6;*/ data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
+            ///*data_slot[0] <= 'h6;*/ 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
               end
@@ -4122,92 +4245,92 @@ module host_tx_path#(
                 end
               end
               6'b010000: begin
-                holding_q[holding_wrptr].data[0]          <= 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[holding_wrptr].data[1]          <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]          <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
-                ack_cnt_snt                               <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
-                holding_q[holding_wrptr].data[3]          <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[4]          <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[7:5]        <= 'h4;//slot0 fmt is H0 so 0
-                holding_q[holding_wrptr].data[10:8]       <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[13:11]      <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[16:14]      <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[19:17]      <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]      <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (rsp_lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!rsp_lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]      <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]      <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (data_lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!data_lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[32]         <= m2s_rwd_dataout.valid;
-                holding_q[holding_wrptr].data[36:33]      <= m2s_rwd_dataout.memopcode;
-                holding_q[holding_wrptr].data[39:37]      <= m2s_rwd_dataout.snptype;
-                holding_q[holding_wrptr].data[41:40]      <= m2s_rwd_dataout.metafield;
-                holding_q[holding_wrptr].data[43:42]      <= m2s_rwd_dataout.metavalue;
-                holding_q[holding_wrptr].data[58:44]      <= m2s_rwd_dataout.tag;
-                holding_q[holding_wrptr].data[105:59]     <= m2s_rwd_dataout.address[51:6];
-                holding_q[holding_wrptr].data[106]        <= m2s_rwd_dataout.poison;
-                holding_q[holding_wrptr].data[108:107]    <= m2s_rwd_dataout.tc;
-                holding_q[holding_wrptr].data[118:109]    <= 'h0; //spare bit set to 0
-                holding_q[holding_wrptr].data[127:119]    <= 'h0; // rsvd bits set tp 0
+                holding_q[holding_wrptr].data[0]           <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]           <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]           <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                                <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
+                holding_q[holding_wrptr].data[3]           <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]           <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]         <= 'h4;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]        <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]       <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]       <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (rsp_lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!rsp_lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]       <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]       <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (data_lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!data_lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]          <= m2s_rwd_dataout.valid;
+                holding_q[holding_wrptr].data[36:33]       <= m2s_rwd_dataout.memopcode;
+                holding_q[holding_wrptr].data[39:37]       <= m2s_rwd_dataout.snptype;
+                holding_q[holding_wrptr].data[41:40]       <= m2s_rwd_dataout.metafield;
+                holding_q[holding_wrptr].data[43:42]       <= m2s_rwd_dataout.metavalue;
+                holding_q[holding_wrptr].data[58:44]       <= m2s_rwd_dataout.tag;
+                holding_q[holding_wrptr].data[105:59]      <= m2s_rwd_dataout.address[51:6];
+                holding_q[holding_wrptr].data[106]         <= m2s_rwd_dataout.poison;
+                holding_q[holding_wrptr].data[108:107]     <= m2s_rwd_dataout.tc;
+                holding_q[holding_wrptr].data[118:109]     <= 'h0; //spare bit set to 0
+                holding_q[holding_wrptr].data[127:119]     <= 'h0; // rsvd bits set tp 0
                 if(data_slot_d[0] == 'h0) begin
-                  holding_q[holding_wrptr].data[511:128]  <= m2s_rwd_dataout.data[383:0];
-                  holding_q[holding_wrptr].valid          <= 'h1;
-                  holding_q[holding_wrptr+1].data[127:0]  <= m2s_rwd_dataout.data[511:384];
-                  holding_q[holding_wrptr+1].valid        <= 'h0;
-                  holding_wrptr                           <= holding_wrptr + 1;
+                  holding_q[holding_wrptr].data[511:128]   <= m2s_rwd_dataout.data[383:0];
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[127:0]   <= m2s_rwd_dataout.data[511:384];
+                  holding_q[holding_wrptr+1].valid         <= 'h0;
+                  holding_wrptr                            <= holding_wrptr + 1;
                 end else if(data_slot_d[0] == 'h2) begin
-                  holding_q[holding_wrptr].data[511:256]  <= m2s_rwd_dataout.data[255:0];
-                  holding_q[holding_wrptr].valid          <= 'h1;
-                  holding_q[holding_wrptr+1].data[255:0]  <= m2s_rwd_dataout.data[511:256];
-                  holding_q[holding_wrptr+1].valid        <= 'h0;
-                  holding_wrptr                           <= holding_wrptr + 1;
+                  holding_q[holding_wrptr].data[511:256]   <= m2s_rwd_dataout.data[255:0];
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[255:0]   <= m2s_rwd_dataout.data[511:256];
+                  holding_q[holding_wrptr+1].valid         <= 'h0;
+                  holding_wrptr                            <= holding_wrptr + 1;
                 end else if(data_slot_d[0] == 'h6) begin
-                  holding_q[holding_wrptr].data[511:384]  <= m2s_rwd_dataout.data[127:0];
-                  holding_q[holding_wrptr].valid          <= 'h1;
-                  holding_q[holding_wrptr+1].data[511:128]<= m2s_rwd_dataout.data[511:128];
-                  holding_q[holding_wrptr+1].valid        <= 'h0;
-                  holding_wrptr                           <= holding_wrptr + 1;
+                  holding_q[holding_wrptr].data[511:384]   <= m2s_rwd_dataout.data[127:0];
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[511:128] <= m2s_rwd_dataout.data[511:128];
+                  holding_q[holding_wrptr+1].valid         <= 'h0;
+                  holding_wrptr                            <= holding_wrptr + 1;
                 end else if(data_slot_d[0] =='he) begin
-                  holding_q[holding_wrptr].valid          <= 'h1;
-                  holding_q[holding_wrptr+1].data[511:0]  <= m2s_rwd_dataout.data[511:0];
-                  holding_q[holding_wrptr+1].valid        <= 'h1;
-                  holding_wrptr                           <= holding_wrptr + 2;
-                  holding_q[holding_wrptr+2].valid        <= 'h0;
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_q[holding_wrptr+1].data[511:0]   <= m2s_rwd_dataout.data[511:0];
+                  holding_q[holding_wrptr+1].valid         <= 'h1;
+                  holding_wrptr                            <= holding_wrptr + 2;
+                  holding_q[holding_wrptr+2].valid         <= 'h0;
                 end
               end
               6'b100000: begin
-                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
-                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
-                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[7:5]      <= 'h5;//slot0 fmt is H0 so 0
-                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (rsp_lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!rsp_lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (data_lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!data_lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[32]       <= m2s_req_dataout.valid;
-                holding_q[holding_wrptr].data[36:33]    <= m2s_req_dataout.memopcode;
-                holding_q[holding_wrptr].data[39:37]    <= m2s_req_dataout.snptype;
-                holding_q[holding_wrptr].data[41:40]    <= m2s_req_dataout.metafield;
-                holding_q[holding_wrptr].data[43:42]    <= m2s_req_dataout.metavalue;
-                holding_q[holding_wrptr].data[58:44]    <= m2s_req_dataout.tag;
-                holding_q[holding_wrptr].data[106:59]   <= m2s_req_dataout.address[51:5];
-                holding_q[holding_wrptr].data[108:107]  <= m2s_req_dataout.tc;
-                holding_q[holding_wrptr].data[118:109]  <= 'h0; //spare bit set to 0
-                holding_q[holding_wrptr].data[127:119]  <= 'h0; // rsvd bits set tp 0
+                holding_q[holding_wrptr].data[0]           <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]           <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]           <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                                <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
+                holding_q[holding_wrptr].data[3]           <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]           <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]         <= 'h5;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]        <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]       <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]       <= ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (rsp_lru))? ({1'h1, s2m_ndr_crdt_send[2:0]}): ((d2h_rsp_crdt_send > 0) && (s2m_ndr_crdt_send > 0) && (!rsp_lru))? ({1'h0, d2h_rsp_crdt_send[2:0]}): (s2m_ndr_crdt_send > 0)? ({1'h1, s2m_ndr_crdt_send[2:0]}): (d2h_rsp_crdt_send > 0)? ({1'h0, d2h_rsp_crdt_send[2:0]}): 'h0;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]       <= d2h_req_crdt_send;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]       <= ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (data_lru))? ({1'h1, s2m_drs_crdt_send[2:0]}): ((d2h_data_crdt_send > 0) && (s2m_drs_crdt_send > 0) && (!data_lru))? ({1'h0, d2h_data_crdt_send[2:0]}): (s2m_drs_crdt_send > 0)? ({1'h1, s2m_drs_crdt_send[2:0]}): (d2h_data_crdt_send > 0)? ({1'h0, d2h_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]          <= m2s_req_dataout.valid;
+                holding_q[holding_wrptr].data[36:33]       <= m2s_req_dataout.memopcode;
+                holding_q[holding_wrptr].data[39:37]       <= m2s_req_dataout.snptype;
+                holding_q[holding_wrptr].data[41:40]       <= m2s_req_dataout.metafield;
+                holding_q[holding_wrptr].data[43:42]       <= m2s_req_dataout.metavalue;
+                holding_q[holding_wrptr].data[58:44]       <= m2s_req_dataout.tag;
+                holding_q[holding_wrptr].data[106:59]      <= m2s_req_dataout.address[51:5];
+                holding_q[holding_wrptr].data[108:107]     <= m2s_req_dataout.tc;
+                holding_q[holding_wrptr].data[118:109]     <= 'h0; //spare bit set to 0
+                holding_q[holding_wrptr].data[127:119]     <= 'h0; // rsvd bits set tp 0
                 if(data_slot_d[0] == 'he) begin
-                  holding_q[holding_wrptr].valid          <= 'h1;
-                  holding_wrptr                           <= holding_wrptr + 1;
-                  holding_q[holding_wrptr+1].valid        <= 'h0;
+                  holding_q[holding_wrptr].valid           <= 'h1;
+                  holding_wrptr                            <= holding_wrptr + 1;
+                  holding_q[holding_wrptr+1].valid         <= 'h0;
                 end else begin
-                  holding_q[holding_wrptr].valid          <= 'h0;
+                  holding_q[holding_wrptr].valid           <= 'h0;
                 end
               end
               default: begin //TBD: do you want to keeep default to assign data pkt or want some other value
-                holding_q[holding_wrptr].valid          <= 'hX;
+                holding_q[holding_wrptr].valid             <= 'hX;
               end
             endcase
           end
@@ -5809,8 +5932,8 @@ module device_tx_path#(
 
   always@(posedge dev_tx_dl_if.clk) begin
     if(!dev_tx_dl_if.rstn) begin
-      req_lru <= 'h0;
-      data_lru <= 'h0;
+      req_lru         <= 'h0;
+      data_lru        <= 'h0;
       h2d_req_occ_d   <= 'd0;
       h2d_rsp_occ_d   <= 'd0;
       h2d_data_occ_d  <= 'd0;
@@ -5824,14 +5947,14 @@ module device_tx_path#(
         h2d_rsp_crdt_tbs[i].credit_to_be_sent <= 'h64;
       end
 */
-      h2d_rsp_crdt_tbs[0].pending <= 'h1;
-      h2d_rsp_crdt_tbs[1].pending <= 'h0;
-      h2d_rsp_crdt_tbs[2].pending <= 'h0;
-      h2d_rsp_crdt_tbs[3].pending <= 'h0;
-      h2d_rsp_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
-      h2d_rsp_crdt_tbs[1].credit_to_be_sent <= 'h0;
-      h2d_rsp_crdt_tbs[2].credit_to_be_sent <= 'h0;
-      h2d_rsp_crdt_tbs[3].credit_to_be_sent <= 'h0;
+      h2d_rsp_crdt_tbs[0].pending             <= 'h1;
+      h2d_rsp_crdt_tbs[1].pending             <= 'h0;
+      h2d_rsp_crdt_tbs[2].pending             <= 'h0;
+      h2d_rsp_crdt_tbs[3].pending             <= 'h0;
+      h2d_rsp_crdt_tbs[0].credit_to_be_sent   <= BUFFER_DEPTH;
+      h2d_rsp_crdt_tbs[1].credit_to_be_sent   <= 'h0;
+      h2d_rsp_crdt_tbs[2].credit_to_be_sent   <= 'h0;
+      h2d_rsp_crdt_tbs[3].credit_to_be_sent   <= 'h0;
 /*
       foreach(h2d_req_crdt_tbs[i].pending) begin
         h2d_req_crdt_tbs[i].pending <= 'h1;
@@ -5840,14 +5963,14 @@ module device_tx_path#(
         h2d_req_crdt_tbs[i].credit_to_be_sent <= 'h64;
       end
 */
-      h2d_req_crdt_tbs[0].pending <= 'h1;
-      h2d_req_crdt_tbs[1].pending <= 'h0;
-      h2d_req_crdt_tbs[2].pending <= 'h0;
-      h2d_req_crdt_tbs[3].pending <= 'h0;
-      h2d_req_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
-      h2d_req_crdt_tbs[1].credit_to_be_sent <= 'h0;
-      h2d_req_crdt_tbs[2].credit_to_be_sent <= 'h0;
-      h2d_req_crdt_tbs[3].credit_to_be_sent <= 'h0;
+      h2d_req_crdt_tbs[0].pending             <= 'h1;
+      h2d_req_crdt_tbs[1].pending             <= 'h0;
+      h2d_req_crdt_tbs[2].pending             <= 'h0;
+      h2d_req_crdt_tbs[3].pending             <= 'h0;
+      h2d_req_crdt_tbs[0].credit_to_be_sent   <= BUFFER_DEPTH;
+      h2d_req_crdt_tbs[1].credit_to_be_sent   <= 'h0;
+      h2d_req_crdt_tbs[2].credit_to_be_sent   <= 'h0;
+      h2d_req_crdt_tbs[3].credit_to_be_sent   <= 'h0;
 /*
       foreach(m2s_req_crdt_tbs[i].pending) begin
         m2s_req_crdt_tbs[i].pending <= 'h1;
@@ -5856,14 +5979,14 @@ module device_tx_path#(
         m2s_req_crdt_tbs[i].credit_to_be_sent <= 'h64;
       end
 */
-      m2s_req_crdt_tbs[0].pending <= 'h1;
-      m2s_req_crdt_tbs[1].pending <= 'h0;
-      m2s_req_crdt_tbs[2].pending <= 'h0;
-      m2s_req_crdt_tbs[3].pending <= 'h0;
-      m2s_req_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
-      m2s_req_crdt_tbs[1].credit_to_be_sent <= 'h0;
-      m2s_req_crdt_tbs[2].credit_to_be_sent <= 'h0;
-      m2s_req_crdt_tbs[3].credit_to_be_sent <= 'h0;
+      m2s_req_crdt_tbs[0].pending             <= 'h1;
+      m2s_req_crdt_tbs[1].pending             <= 'h0;
+      m2s_req_crdt_tbs[2].pending             <= 'h0;
+      m2s_req_crdt_tbs[3].pending             <= 'h0;
+      m2s_req_crdt_tbs[0].credit_to_be_sent   <= BUFFER_DEPTH;
+      m2s_req_crdt_tbs[1].credit_to_be_sent   <= 'h0;
+      m2s_req_crdt_tbs[2].credit_to_be_sent   <= 'h0;
+      m2s_req_crdt_tbs[3].credit_to_be_sent   <= 'h0;
 /*
       foreach(h2d_data_crdt_tbs[i].pending) begin
         h2d_data_crdt_tbs[i].pending <= 'h1;
@@ -5872,14 +5995,14 @@ module device_tx_path#(
         h2d_data_crdt_tbs[i].credit_to_be_sent <= 'h64;
       end
 */
-      h2d_data_crdt_tbs[0].pending <= 'h1;
-      h2d_data_crdt_tbs[1].pending <= 'h0;
-      h2d_data_crdt_tbs[2].pending <= 'h0;
-      h2d_data_crdt_tbs[3].pending <= 'h0;
-      h2d_data_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
-      h2d_data_crdt_tbs[1].credit_to_be_sent <= 'h0;
-      h2d_data_crdt_tbs[2].credit_to_be_sent <= 'h0;
-      h2d_data_crdt_tbs[3].credit_to_be_sent <= 'h0;
+      h2d_data_crdt_tbs[0].pending            <= 'h1;
+      h2d_data_crdt_tbs[1].pending            <= 'h0;
+      h2d_data_crdt_tbs[2].pending            <= 'h0;
+      h2d_data_crdt_tbs[3].pending            <= 'h0;
+      h2d_data_crdt_tbs[0].credit_to_be_sent  <= BUFFER_DEPTH;
+      h2d_data_crdt_tbs[1].credit_to_be_sent  <= 'h0;
+      h2d_data_crdt_tbs[2].credit_to_be_sent  <= 'h0;
+      h2d_data_crdt_tbs[3].credit_to_be_sent  <= 'h0;
 /*
       foreach(m2s_rwd_crdt_tbs[i].pending) begin
         m2s_rwd_crdt_tbs[i].pending <= 'h1;
@@ -5888,27 +6011,27 @@ module device_tx_path#(
         m2s_rwd_crdt_tbs[i].credit_to_be_sent <= 'h64;
       end
 */
-      m2s_rwd_crdt_tbs[0].pending <= 'h1;
-      m2s_rwd_crdt_tbs[1].pending <= 'h0;
-      m2s_rwd_crdt_tbs[2].pending <= 'h0;
-      m2s_rwd_crdt_tbs[3].pending <= 'h0;
-      m2s_rwd_crdt_tbs[0].credit_to_be_sent <= BUFFER_DEPTH;
-      m2s_rwd_crdt_tbs[1].credit_to_be_sent <= 'h0;
-      m2s_rwd_crdt_tbs[2].credit_to_be_sent <= 'h0;
-      m2s_rwd_crdt_tbs[3].credit_to_be_sent <= 'h0;
+      m2s_rwd_crdt_tbs[0].pending             <= 'h1;
+      m2s_rwd_crdt_tbs[1].pending             <= 'h0;
+      m2s_rwd_crdt_tbs[2].pending             <= 'h0;
+      m2s_rwd_crdt_tbs[3].pending             <= 'h0;
+      m2s_rwd_crdt_tbs[0].credit_to_be_sent   <= BUFFER_DEPTH;
+      m2s_rwd_crdt_tbs[1].credit_to_be_sent   <= 'h0;
+      m2s_rwd_crdt_tbs[2].credit_to_be_sent   <= 'h0;
+      m2s_rwd_crdt_tbs[3].credit_to_be_sent   <= 'h0;
 
     end else begin 
-      h2d_req_occ_d   <= h2d_req_occ;
-      h2d_rsp_occ_d   <= h2d_rsp_occ;
-      h2d_data_occ_d  <= h2d_data_occ;
-      m2s_req_occ_d   <= m2s_req_occ;
-      m2s_rwd_occ_d   <= m2s_rwd_occ;
+      h2d_req_occ_d                           <= h2d_req_occ;
+      h2d_rsp_occ_d                           <= h2d_rsp_occ;
+      h2d_data_occ_d                          <= h2d_data_occ;
+      m2s_req_occ_d                           <= m2s_req_occ;
+      m2s_rwd_occ_d                           <= m2s_rwd_occ;
       
       if((h2d_req_crdt_tbs[0].credit_to_be_sent + h2d_req_outstanding_credits) <= 'd64) begin
-        h2d_req_crdt_tbs[0].pending <= ((h2d_req_crdt_tbs[0].credit_to_be_sent + h2d_req_outstanding_credits) == 'd0)? 'h0: 'h1;
-        h2d_req_crdt_tbs[1].pending <= 'h0;
-        h2d_req_crdt_tbs[2].pending <= 'h0;
-        h2d_req_crdt_tbs[3].pending <= 'h0;
+        h2d_req_crdt_tbs[0].pending           <= ((h2d_req_crdt_tbs[0].credit_to_be_sent + h2d_req_outstanding_credits) == 'd0)? 'h0: 'h1;
+        h2d_req_crdt_tbs[1].pending           <= 'h0;
+        h2d_req_crdt_tbs[2].pending           <= 'h0;
+        h2d_req_crdt_tbs[3].pending           <= 'h0;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack) && (slot_sel_d_d == H_SLOT0)) && (((m2s_req_crdt_send > 0) && (req_lru == 0)) || (m2s_req_crdt_send == 0))) begin
           h2d_req_crdt_tbs[0].credit_to_be_sent <= h2d_req_crdt_tbs[0].credit_to_be_sent + h2d_req_outstanding_credits_0 - ((h2d_req_crdt_send == 'h7)? 'd64: (h2d_req_crdt_send == 'h6)? 'd32: (h2d_req_crdt_send == 'h5)? 'd16: (h2d_req_crdt_send == 'h4)? 'h8: (h2d_req_crdt_send == 'h3)? 'h4: h2d_req_crdt_send);
           if(m2s_req_crdt_send > 0) begin
@@ -5918,10 +6041,10 @@ module device_tx_path#(
           h2d_req_crdt_tbs[0].credit_to_be_sent <= h2d_req_crdt_tbs[0].credit_to_be_sent + h2d_req_outstanding_credits_0;
         end
       end else if(((h2d_req_crdt_tbs[0].credit_to_be_sent + h2d_req_outstanding_credits) > 'd64) && ((h2d_req_crdt_tbs[1].credit_to_be_sent + h2d_req_outstanding_credits_0) <= 'd64)) begin
-        h2d_req_crdt_tbs[0].pending <= 'h1;
-        h2d_req_crdt_tbs[1].pending <= 'h1;
-        h2d_req_crdt_tbs[2].pending <= 'h0;
-        h2d_req_crdt_tbs[3].pending <= 'h0;
+        h2d_req_crdt_tbs[0].pending           <= 'h1;
+        h2d_req_crdt_tbs[1].pending           <= 'h1;
+        h2d_req_crdt_tbs[2].pending           <= 'h0;
+        h2d_req_crdt_tbs[3].pending           <= 'h0;
         h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack) && (slot_sel_d_d == H_SLOT0)) && (((m2s_req_crdt_send > 0) && (req_lru == 0)) || (m2s_req_crdt_send == 0))) begin
           h2d_req_crdt_tbs[1].credit_to_be_sent <= h2d_req_crdt_tbs[1].credit_to_be_sent + h2d_req_outstanding_credits_1 - ((h2d_req_crdt_send == 'h7)? 'd64: (h2d_req_crdt_send == 'h6)? 'd32: (h2d_req_crdt_send == 'h5)? 'd16: (h2d_req_crdt_send == 'h4)? 'h8: (h2d_req_crdt_send == 'h3)? 'h4: h2d_req_crdt_send);
@@ -5932,10 +6055,10 @@ module device_tx_path#(
           h2d_req_crdt_tbs[1].credit_to_be_sent <= h2d_req_crdt_tbs[1].credit_to_be_sent + h2d_req_outstanding_credits_1;
         end
       end else if(((h2d_req_crdt_tbs[1].credit_to_be_sent + h2d_req_outstanding_credits_0) > 'd64) && ((h2d_req_crdt_tbs[2].credit_to_be_sent + h2d_req_outstanding_credits_1) <= 'd64)) begin
-        h2d_req_crdt_tbs[0].pending <= 'h1;
-        h2d_req_crdt_tbs[1].pending <= 'h1;
-        h2d_req_crdt_tbs[2].pending <= 'h1;
-        h2d_req_crdt_tbs[3].pending <= 'h0;
+        h2d_req_crdt_tbs[0].pending           <= 'h1;
+        h2d_req_crdt_tbs[1].pending           <= 'h1;
+        h2d_req_crdt_tbs[2].pending           <= 'h1;
+        h2d_req_crdt_tbs[3].pending           <= 'h0;
         h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
         h2d_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack) && (slot_sel_d_d == H_SLOT0)) && (((m2s_req_crdt_send > 0) && (req_lru == 0)) || (m2s_req_crdt_send == 0))) begin
@@ -5947,10 +6070,10 @@ module device_tx_path#(
           h2d_req_crdt_tbs[2].credit_to_be_sent <= h2d_req_crdt_tbs[2].credit_to_be_sent + h2d_req_outstanding_credits_2;
         end
       end else if(((h2d_req_crdt_tbs[2].credit_to_be_sent + h2d_req_outstanding_credits_1) > 'd64) && ((h2d_req_crdt_tbs[3].credit_to_be_sent + h2d_req_outstanding_credits_2) <= 'd64)) begin
-        h2d_req_crdt_tbs[0].pending <= 'h1;
-        h2d_req_crdt_tbs[1].pending <= 'h1;
-        h2d_req_crdt_tbs[2].pending <= 'h1;
-        h2d_req_crdt_tbs[3].pending <= 'h1;
+        h2d_req_crdt_tbs[0].pending           <= 'h1;
+        h2d_req_crdt_tbs[1].pending           <= 'h1;
+        h2d_req_crdt_tbs[2].pending           <= 'h1;
+        h2d_req_crdt_tbs[3].pending           <= 'h1;
         h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
         h2d_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
         h2d_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -5963,10 +6086,10 @@ module device_tx_path#(
           h2d_req_crdt_tbs[3].credit_to_be_sent <= h2d_req_crdt_tbs[3].credit_to_be_sent + h2d_req_outstanding_credits_3;
         end
       end else if(h2d_req_crdt_tbs[3].credit_to_be_sent + h2d_req_outstanding_credits_2 > 'd64) begin
-        h2d_req_crdt_tbs[0].pending <= 'h1;
-        h2d_req_crdt_tbs[1].pending <= 'h1;
-        h2d_req_crdt_tbs[2].pending <= 'h1;
-        h2d_req_crdt_tbs[3].pending <= 'h1;
+        h2d_req_crdt_tbs[0].pending           <= 'h1;
+        h2d_req_crdt_tbs[1].pending           <= 'h1;
+        h2d_req_crdt_tbs[2].pending           <= 'h1;
+        h2d_req_crdt_tbs[3].pending           <= 'h1;
         h2d_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
         h2d_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
         h2d_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -5974,20 +6097,20 @@ module device_tx_path#(
       end
 
       if((h2d_rsp_crdt_tbs[0].credit_to_be_sent + h2d_rsp_outstanding_credits) <= 'd64) begin
-        h2d_rsp_crdt_tbs[0].pending <= ((h2d_rsp_crdt_tbs[0].credit_to_be_sent + h2d_rsp_outstanding_credits) == 'd0)? 'h0: 'h1;
-        h2d_rsp_crdt_tbs[1].pending <= 'h0;
-        h2d_rsp_crdt_tbs[2].pending <= 'h0;
-        h2d_rsp_crdt_tbs[3].pending <= 'h0;
+        h2d_rsp_crdt_tbs[0].pending           <= ((h2d_rsp_crdt_tbs[0].credit_to_be_sent + h2d_rsp_outstanding_credits) == 'd0)? 'h0: 'h1;
+        h2d_rsp_crdt_tbs[1].pending           <= 'h0;
+        h2d_rsp_crdt_tbs[2].pending           <= 'h0;
+        h2d_rsp_crdt_tbs[3].pending           <= 'h0;
         if(((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack) && (slot_sel_d_d == H_SLOT0)) begin
           h2d_rsp_crdt_tbs[0].credit_to_be_sent <= h2d_rsp_crdt_tbs[0].credit_to_be_sent + h2d_rsp_outstanding_credits_0 - ((h2d_rsp_crdt_send == 'h7)? 'd64: (h2d_rsp_crdt_send == 'h6)? 'd32: (h2d_rsp_crdt_send == 'h5)? 'd16: (h2d_rsp_crdt_send == 'h4)? 'h8: (h2d_rsp_crdt_send == 'h3)? 'h4: h2d_rsp_crdt_send);
         end else begin
           h2d_rsp_crdt_tbs[0].credit_to_be_sent <= h2d_rsp_crdt_tbs[0].credit_to_be_sent + h2d_rsp_outstanding_credits_0;
         end
       end else if(((h2d_rsp_crdt_tbs[0].credit_to_be_sent + h2d_rsp_outstanding_credits) > 'd64) && ((h2d_rsp_crdt_tbs[1].credit_to_be_sent + h2d_rsp_outstanding_credits_0) <= 'd64)) begin
-        h2d_rsp_crdt_tbs[0].pending <= 'h1;
-        h2d_rsp_crdt_tbs[1].pending <= 'h1;
-        h2d_rsp_crdt_tbs[2].pending <= 'h0;
-        h2d_rsp_crdt_tbs[3].pending <= 'h0;
+        h2d_rsp_crdt_tbs[0].pending           <= 'h1;
+        h2d_rsp_crdt_tbs[1].pending           <= 'h1;
+        h2d_rsp_crdt_tbs[2].pending           <= 'h0;
+        h2d_rsp_crdt_tbs[3].pending           <= 'h0;
         h2d_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
         if(((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack) && (slot_sel_d_d == H_SLOT0)) begin
           h2d_rsp_crdt_tbs[1].credit_to_be_sent <= h2d_rsp_crdt_tbs[1].credit_to_be_sent + h2d_rsp_outstanding_credits_1 - ((h2d_rsp_crdt_send == 'h7)? 'd64: (h2d_rsp_crdt_send == 'h6)? 'd32: (h2d_rsp_crdt_send == 'h5)? 'd16: (h2d_rsp_crdt_send == 'h4)? 'h8: (h2d_rsp_crdt_send == 'h3)? 'h4: h2d_rsp_crdt_send);
@@ -5995,10 +6118,10 @@ module device_tx_path#(
           h2d_rsp_crdt_tbs[1].credit_to_be_sent <= h2d_rsp_crdt_tbs[1].credit_to_be_sent + h2d_rsp_outstanding_credits_1;
         end
       end else if(((h2d_rsp_crdt_tbs[1].credit_to_be_sent + h2d_rsp_outstanding_credits_0) > 'd64) && ((h2d_rsp_crdt_tbs[2].credit_to_be_sent + h2d_rsp_outstanding_credits_1) <= 'd64)) begin
-        h2d_rsp_crdt_tbs[0].pending <= 'h1;
-        h2d_rsp_crdt_tbs[1].pending <= 'h1;
-        h2d_rsp_crdt_tbs[2].pending <= 'h1;
-        h2d_rsp_crdt_tbs[3].pending <= 'h0;
+        h2d_rsp_crdt_tbs[0].pending           <= 'h1;
+        h2d_rsp_crdt_tbs[1].pending           <= 'h1;
+        h2d_rsp_crdt_tbs[2].pending           <= 'h1;
+        h2d_rsp_crdt_tbs[3].pending           <= 'h0;
         h2d_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
         h2d_rsp_crdt_tbs[1].credit_to_be_sent <= 'd64;
         if(((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack) && (slot_sel_d_d == H_SLOT0)) begin
@@ -6007,10 +6130,10 @@ module device_tx_path#(
           h2d_rsp_crdt_tbs[2].credit_to_be_sent <= h2d_rsp_crdt_tbs[2].credit_to_be_sent + h2d_rsp_outstanding_credits_2;
         end
       end else if(((h2d_rsp_crdt_tbs[2].credit_to_be_sent + h2d_rsp_outstanding_credits_1) > 'd64) && ((h2d_rsp_crdt_tbs[3].credit_to_be_sent + h2d_rsp_outstanding_credits_2) <= 'd64)) begin
-        h2d_rsp_crdt_tbs[0].pending <= 'h1;
-        h2d_rsp_crdt_tbs[1].pending <= 'h1;
-        h2d_rsp_crdt_tbs[2].pending <= 'h1;
-        h2d_rsp_crdt_tbs[3].pending <= 'h1;
+        h2d_rsp_crdt_tbs[0].pending           <= 'h1;
+        h2d_rsp_crdt_tbs[1].pending           <= 'h1;
+        h2d_rsp_crdt_tbs[2].pending           <= 'h1;
+        h2d_rsp_crdt_tbs[3].pending           <= 'h1;
         h2d_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
         h2d_rsp_crdt_tbs[1].credit_to_be_sent <= 'd64;
         h2d_rsp_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -6020,10 +6143,10 @@ module device_tx_path#(
           h2d_rsp_crdt_tbs[3].credit_to_be_sent <= h2d_rsp_crdt_tbs[3].credit_to_be_sent + h2d_rsp_outstanding_credits_3;
         end
       end else if(h2d_rsp_crdt_tbs[3].credit_to_be_sent + h2d_rsp_outstanding_credits_2 > 'd64) begin
-        h2d_rsp_crdt_tbs[0].pending <= 'h1;
-        h2d_rsp_crdt_tbs[1].pending <= 'h1;
-        h2d_rsp_crdt_tbs[2].pending <= 'h1;
-        h2d_rsp_crdt_tbs[3].pending <= 'h1;
+        h2d_rsp_crdt_tbs[0].pending           <= 'h1;
+        h2d_rsp_crdt_tbs[1].pending           <= 'h1;
+        h2d_rsp_crdt_tbs[2].pending           <= 'h1;
+        h2d_rsp_crdt_tbs[3].pending           <= 'h1;
         h2d_rsp_crdt_tbs[0].credit_to_be_sent <= 'd64;
         h2d_rsp_crdt_tbs[1].credit_to_be_sent <= 'd64;
         h2d_rsp_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -6031,10 +6154,10 @@ module device_tx_path#(
       end
 
       if((h2d_data_crdt_tbs[0].credit_to_be_sent + h2d_data_outstanding_credits) <= 'd64) begin
-        h2d_data_crdt_tbs[0].pending <= ((h2d_data_crdt_tbs[0].credit_to_be_sent + h2d_data_outstanding_credits) == 'd0)? 'h0: 'h1;
-        h2d_data_crdt_tbs[1].pending <= 'h0;
-        h2d_data_crdt_tbs[2].pending <= 'h0;
-        h2d_data_crdt_tbs[3].pending <= 'h0;
+        h2d_data_crdt_tbs[0].pending          <= ((h2d_data_crdt_tbs[0].credit_to_be_sent + h2d_data_outstanding_credits) == 'd0)? 'h0: 'h1;
+        h2d_data_crdt_tbs[1].pending          <= 'h0;
+        h2d_data_crdt_tbs[2].pending          <= 'h0;
+        h2d_data_crdt_tbs[3].pending          <= 'h0;
         if(((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack) && (slot_sel_d_d == H_SLOT0) && (((m2s_rwd_crdt_send > 0) && (data_lru == 0)) || (m2s_rwd_crdt_send == 0))) begin
           h2d_data_crdt_tbs[0].credit_to_be_sent <= h2d_data_crdt_tbs[0].credit_to_be_sent + h2d_data_outstanding_credits_0 - ((h2d_data_crdt_send == 'h7)? 'd64: (h2d_data_crdt_send == 'h6)? 'd32: (h2d_data_crdt_send == 'h5)? 'd16: (h2d_data_crdt_send == 'h4)? 'h8: (h2d_data_crdt_send == 'h3)? 'h4: h2d_data_crdt_send);
           if(m2s_rwd_crdt_send > 0) begin
@@ -6044,11 +6167,11 @@ module device_tx_path#(
           h2d_data_crdt_tbs[0].credit_to_be_sent <= h2d_data_crdt_tbs[0].credit_to_be_sent + h2d_data_outstanding_credits_0;
         end
       end else if(((h2d_data_crdt_tbs[0].credit_to_be_sent + h2d_data_outstanding_credits) > 'd64) && ((h2d_data_crdt_tbs[1].credit_to_be_sent + h2d_data_outstanding_credits_0) <= 'd64)) begin
-        h2d_data_crdt_tbs[0].pending <= 'h1;
-        h2d_data_crdt_tbs[1].pending <= 'h1;
-        h2d_data_crdt_tbs[2].pending <= 'h0;
-        h2d_data_crdt_tbs[3].pending <= 'h0;
-        h2d_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
+        h2d_data_crdt_tbs[0].pending          <= 'h1;
+        h2d_data_crdt_tbs[1].pending          <= 'h1;
+        h2d_data_crdt_tbs[2].pending          <= 'h0;
+        h2d_data_crdt_tbs[3].pending          <= 'h0;
+        h2d_data_crdt_tbs[0].credit_to_be_sent<= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack) && (slot_sel_d_d == H_SLOT0)) && (((m2s_rwd_crdt_send > 0) && (data_lru == 0)) || (m2s_rwd_crdt_send == 0))) begin
           h2d_data_crdt_tbs[1].credit_to_be_sent <= h2d_data_crdt_tbs[1].credit_to_be_sent + h2d_data_outstanding_credits_1 - ((h2d_data_crdt_send == 'h7)? 'd64: (h2d_data_crdt_send == 'h6)? 'd32: (h2d_data_crdt_send == 'h5)? 'd16: (h2d_data_crdt_send == 'h4)? 'h8: (h2d_data_crdt_send == 'h3)? 'h4: h2d_data_crdt_send);
           if(m2s_rwd_crdt_send > 0) begin
@@ -6058,12 +6181,12 @@ module device_tx_path#(
           h2d_data_crdt_tbs[1].credit_to_be_sent <= h2d_data_crdt_tbs[1].credit_to_be_sent + h2d_data_outstanding_credits_1;
         end
       end else if(((h2d_data_crdt_tbs[1].credit_to_be_sent + h2d_data_outstanding_credits_0) > 'd64) && ((h2d_data_crdt_tbs[2].credit_to_be_sent + h2d_data_outstanding_credits_1) <= 'd64)) begin
-        h2d_data_crdt_tbs[0].pending <= 'h1;
-        h2d_data_crdt_tbs[1].pending <= 'h1;
-        h2d_data_crdt_tbs[2].pending <= 'h1;
-        h2d_data_crdt_tbs[3].pending <= 'h0;
-        h2d_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
-        h2d_data_crdt_tbs[1].credit_to_be_sent <= 'd64;
+        h2d_data_crdt_tbs[0].pending          <= 'h1;
+        h2d_data_crdt_tbs[1].pending          <= 'h1;
+        h2d_data_crdt_tbs[2].pending          <= 'h1;
+        h2d_data_crdt_tbs[3].pending          <= 'h0;
+        h2d_data_crdt_tbs[0].credit_to_be_sent<= 'd64;
+        h2d_data_crdt_tbs[1].credit_to_be_sent<= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack) && (slot_sel_d_d == H_SLOT0)) && (((m2s_rwd_crdt_send > 0) && (data_lru == 0)) || (m2s_rwd_crdt_send == 0))) begin
           h2d_data_crdt_tbs[2].credit_to_be_sent <= h2d_data_crdt_tbs[2].credit_to_be_sent + h2d_data_outstanding_credits_2 - ((h2d_data_crdt_send == 'h7)? 'd64: (h2d_data_crdt_send == 'h6)? 'd32: (h2d_data_crdt_send == 'h5)? 'd16: (h2d_data_crdt_send == 'h4)? 'h8: (h2d_data_crdt_send == 'h3)? 'h4: h2d_data_crdt_send);
           if(m2s_rwd_crdt_send > 0) begin
@@ -6073,13 +6196,13 @@ module device_tx_path#(
           h2d_data_crdt_tbs[2].credit_to_be_sent <= h2d_data_crdt_tbs[2].credit_to_be_sent + h2d_data_outstanding_credits_2;
         end
       end else if(((h2d_data_crdt_tbs[2].credit_to_be_sent + h2d_data_outstanding_credits_1) > 'd64) && ((h2d_data_crdt_tbs[3].credit_to_be_sent + h2d_data_outstanding_credits_2) <= 'd64)) begin
-        h2d_data_crdt_tbs[0].pending <= 'h1;
-        h2d_data_crdt_tbs[1].pending <= 'h1;
-        h2d_data_crdt_tbs[2].pending <= 'h1;
-        h2d_data_crdt_tbs[3].pending <= 'h1;
-        h2d_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
-        h2d_data_crdt_tbs[1].credit_to_be_sent <= 'd64;
-        h2d_data_crdt_tbs[2].credit_to_be_sent <= 'd64;
+        h2d_data_crdt_tbs[0].pending          <= 'h1;
+        h2d_data_crdt_tbs[1].pending          <= 'h1;
+        h2d_data_crdt_tbs[2].pending          <= 'h1;
+        h2d_data_crdt_tbs[3].pending          <= 'h1;
+        h2d_data_crdt_tbs[0].credit_to_be_sent<= 'd64;
+        h2d_data_crdt_tbs[1].credit_to_be_sent<= 'd64;
+        h2d_data_crdt_tbs[2].credit_to_be_sent<= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack) && (slot_sel_d_d == H_SLOT0)) && (((m2s_rwd_crdt_send > 0) && (data_lru == 0)) || (m2s_rwd_crdt_send == 0))) begin
           h2d_data_crdt_tbs[3].credit_to_be_sent <= h2d_data_crdt_tbs[3].credit_to_be_sent + h2d_data_outstanding_credits_3 - ((h2d_data_crdt_send == 'h7)? 'd64: (h2d_data_crdt_send == 'h6)? 'd32: (h2d_data_crdt_send == 'h5)? 'd16: (h2d_data_crdt_send == 'h4)? 'h8: (h2d_data_crdt_send == 'h3)? 'h4: h2d_data_crdt_send);
           if(m2s_rwd_crdt_send > 0) begin
@@ -6089,21 +6212,21 @@ module device_tx_path#(
           h2d_data_crdt_tbs[3].credit_to_be_sent <= h2d_data_crdt_tbs[3].credit_to_be_sent + h2d_data_outstanding_credits_3;
         end
       end else if(h2d_data_crdt_tbs[3].credit_to_be_sent + h2d_data_outstanding_credits_2 > 'd64) begin
-        h2d_data_crdt_tbs[0].pending <= 'h1;
-        h2d_data_crdt_tbs[1].pending <= 'h1;
-        h2d_data_crdt_tbs[2].pending <= 'h1;
-        h2d_data_crdt_tbs[3].pending <= 'h1;
-        h2d_data_crdt_tbs[0].credit_to_be_sent <= 'd64;
-        h2d_data_crdt_tbs[1].credit_to_be_sent <= 'd64;
-        h2d_data_crdt_tbs[2].credit_to_be_sent <= 'd64;
-        h2d_data_crdt_tbs[3].credit_to_be_sent <= 'd64;
+        h2d_data_crdt_tbs[0].pending          <= 'h1;
+        h2d_data_crdt_tbs[1].pending          <= 'h1;
+        h2d_data_crdt_tbs[2].pending          <= 'h1;
+        h2d_data_crdt_tbs[3].pending          <= 'h1;
+        h2d_data_crdt_tbs[0].credit_to_be_sent<= 'd64;
+        h2d_data_crdt_tbs[1].credit_to_be_sent<= 'd64;
+        h2d_data_crdt_tbs[2].credit_to_be_sent<= 'd64;
+        h2d_data_crdt_tbs[3].credit_to_be_sent<= 'd64;
       end
 
       if((m2s_req_crdt_tbs[0].credit_to_be_sent + m2s_req_outstanding_credits) <= 'd64) begin
-        m2s_req_crdt_tbs[0].pending <= ((m2s_req_crdt_tbs[0].credit_to_be_sent + m2s_req_outstanding_credits) == 'd0)? 'h0 : 'h1;
-        m2s_req_crdt_tbs[1].pending <= 'h0;
-        m2s_req_crdt_tbs[2].pending <= 'h0;
-        m2s_req_crdt_tbs[3].pending <= 'h0;
+        m2s_req_crdt_tbs[0].pending           <= ((m2s_req_crdt_tbs[0].credit_to_be_sent + m2s_req_outstanding_credits) == 'd0)? 'h0 : 'h1;
+        m2s_req_crdt_tbs[1].pending           <= 'h0;
+        m2s_req_crdt_tbs[2].pending           <= 'h0;
+        m2s_req_crdt_tbs[3].pending           <= 'h0;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack_d) && (slot_sel_d_d == H_SLOT0)) && (((h2d_req_crdt_send > 0) && (req_lru == 1)) || (h2d_req_crdt_send == 0))) begin
           m2s_req_crdt_tbs[0].credit_to_be_sent <= m2s_req_crdt_tbs[0].credit_to_be_sent + m2s_req_outstanding_credits_0 - ((m2s_req_crdt_send == 'h7)? 'd64: (m2s_req_crdt_send == 'h6)? 'd32: (m2s_req_crdt_send == 'h5)? 'd16: (m2s_req_crdt_send == 'h4)? 'h8: (m2s_req_crdt_send == 'h3)? 'h4: m2s_req_crdt_send);
           if(h2d_req_crdt_send > 0) begin
@@ -6113,10 +6236,10 @@ module device_tx_path#(
           m2s_req_crdt_tbs[0].credit_to_be_sent <= m2s_req_crdt_tbs[0].credit_to_be_sent + m2s_req_outstanding_credits_0;
         end
       end else if(((m2s_req_crdt_tbs[0].credit_to_be_sent + m2s_req_outstanding_credits) > 'd64) && ((m2s_req_crdt_tbs[1].credit_to_be_sent + m2s_req_outstanding_credits_0) <= 'd64)) begin
-        m2s_req_crdt_tbs[0].pending <= 'h1;
-        m2s_req_crdt_tbs[1].pending <= 'h1;
-        m2s_req_crdt_tbs[2].pending <= 'h0;
-        m2s_req_crdt_tbs[3].pending <= 'h0;
+        m2s_req_crdt_tbs[0].pending           <= 'h1;
+        m2s_req_crdt_tbs[1].pending           <= 'h1;
+        m2s_req_crdt_tbs[2].pending           <= 'h0;
+        m2s_req_crdt_tbs[3].pending           <= 'h0;
         m2s_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack_d) && (slot_sel_d_d == H_SLOT0)) && (((h2d_req_crdt_send > 0) && (req_lru == 1)) || (h2d_req_crdt_send == 0))) begin
           m2s_req_crdt_tbs[1].credit_to_be_sent <= m2s_req_crdt_tbs[1].credit_to_be_sent + m2s_req_outstanding_credits_1 - ((m2s_req_crdt_send == 'h7)? 'd64: (m2s_req_crdt_send == 'h6)? 'd32: (m2s_req_crdt_send == 'h5)? 'd16: (m2s_req_crdt_send == 'h4)? 'h8: (m2s_req_crdt_send == 'h3)? 'h4: m2s_req_crdt_send);
@@ -6127,10 +6250,10 @@ module device_tx_path#(
           m2s_req_crdt_tbs[1].credit_to_be_sent <= m2s_req_crdt_tbs[1].credit_to_be_sent + m2s_req_outstanding_credits_1;
         end
       end else if(((m2s_req_crdt_tbs[1].credit_to_be_sent + m2s_req_outstanding_credits_0) > 'd64) && ((m2s_req_crdt_tbs[2].credit_to_be_sent + m2s_req_outstanding_credits_1) <= 'd64)) begin
-        m2s_req_crdt_tbs[0].pending <= 'h1;
-        m2s_req_crdt_tbs[1].pending <= 'h1;
-        m2s_req_crdt_tbs[2].pending <= 'h1;
-        m2s_req_crdt_tbs[3].pending <= 'h0;
+        m2s_req_crdt_tbs[0].pending           <= 'h1;
+        m2s_req_crdt_tbs[1].pending           <= 'h1;
+        m2s_req_crdt_tbs[2].pending           <= 'h1;
+        m2s_req_crdt_tbs[3].pending           <= 'h0;
         m2s_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
         m2s_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack_d) && (slot_sel_d_d == H_SLOT0)) && (((h2d_req_crdt_send > 0) && (req_lru == 1)) || (h2d_req_crdt_send == 0))) begin
@@ -6142,10 +6265,10 @@ module device_tx_path#(
           m2s_req_crdt_tbs[2].credit_to_be_sent <= m2s_req_crdt_tbs[2].credit_to_be_sent + m2s_req_outstanding_credits_2;
         end
       end else if(((m2s_req_crdt_tbs[2].credit_to_be_sent + m2s_req_outstanding_credits_1) > 'd64) && ((m2s_req_crdt_tbs[3].credit_to_be_sent + m2s_req_outstanding_credits_2) <= 'd64)) begin
-        m2s_req_crdt_tbs[0].pending <= 'h1;
-        m2s_req_crdt_tbs[1].pending <= 'h1;
-        m2s_req_crdt_tbs[2].pending <= 'h1;
-        m2s_req_crdt_tbs[3].pending <= 'h1;
+        m2s_req_crdt_tbs[0].pending           <= 'h1;
+        m2s_req_crdt_tbs[1].pending           <= 'h1;
+        m2s_req_crdt_tbs[2].pending           <= 'h1;
+        m2s_req_crdt_tbs[3].pending           <= 'h1;
         m2s_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
         m2s_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
         m2s_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -6158,10 +6281,10 @@ module device_tx_path#(
           m2s_req_crdt_tbs[3].credit_to_be_sent <= m2s_req_crdt_tbs[3].credit_to_be_sent + m2s_req_outstanding_credits_3;
         end
       end else if(m2s_req_crdt_tbs[3].credit_to_be_sent + m2s_req_outstanding_credits_2 > 'd64) begin
-        m2s_req_crdt_tbs[0].pending <= 'h1;
-        m2s_req_crdt_tbs[1].pending <= 'h1;
-        m2s_req_crdt_tbs[2].pending <= 'h1;
-        m2s_req_crdt_tbs[3].pending <= 'h1;
+        m2s_req_crdt_tbs[0].pending           <= 'h1;
+        m2s_req_crdt_tbs[1].pending           <= 'h1;
+        m2s_req_crdt_tbs[2].pending           <= 'h1;
+        m2s_req_crdt_tbs[3].pending           <= 'h1;
         m2s_req_crdt_tbs[0].credit_to_be_sent <= 'd64;
         m2s_req_crdt_tbs[1].credit_to_be_sent <= 'd64;
         m2s_req_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -6169,10 +6292,10 @@ module device_tx_path#(
       end
 
       if((m2s_rwd_crdt_tbs[0].credit_to_be_sent + m2s_rwd_outstanding_credits) <= 'd64) begin
-        m2s_rwd_crdt_tbs[0].pending <= ((m2s_rwd_crdt_tbs[0].credit_to_be_sent+ m2s_rwd_outstanding_credits) == 'd0)? 'h0: 'h1;
-        m2s_rwd_crdt_tbs[1].pending <= 'h0;
-        m2s_rwd_crdt_tbs[2].pending <= 'h0;
-        m2s_rwd_crdt_tbs[3].pending <= 'h0;
+        m2s_rwd_crdt_tbs[0].pending           <= ((m2s_rwd_crdt_tbs[0].credit_to_be_sent+ m2s_rwd_outstanding_credits) == 'd0)? 'h0: 'h1;
+        m2s_rwd_crdt_tbs[1].pending           <= 'h0;
+        m2s_rwd_crdt_tbs[2].pending           <= 'h0;
+        m2s_rwd_crdt_tbs[3].pending           <= 'h0;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack_d) && (slot_sel_d_d == H_SLOT0)) && (((h2d_data_crdt_send > 0) && (data_lru == 1)) || (h2d_data_crdt_send == 0))) begin
           m2s_rwd_crdt_tbs[0].credit_to_be_sent <= m2s_rwd_crdt_tbs[0].credit_to_be_sent + m2s_rwd_outstanding_credits_0 - ((m2s_rwd_crdt_send == 'h7)? 'd64: (m2s_rwd_crdt_send == 'h6)? 'd32: (m2s_rwd_crdt_send == 'h5)? 'd16: (m2s_rwd_crdt_send == 'h4)? 'h8: (m2s_rwd_crdt_send == 'h3)? 'h4: m2s_rwd_crdt_send);
           if(h2d_data_crdt_send > 0) begin
@@ -6182,10 +6305,10 @@ module device_tx_path#(
           m2s_rwd_crdt_tbs[0].credit_to_be_sent <= m2s_rwd_crdt_tbs[0].credit_to_be_sent + m2s_rwd_outstanding_credits_0;
         end
       end else if(((m2s_rwd_crdt_tbs[0].credit_to_be_sent + m2s_rwd_outstanding_credits) > 'd64) && ((m2s_rwd_crdt_tbs[1].credit_to_be_sent + m2s_rwd_outstanding_credits_0) <= 'd64)) begin
-        m2s_rwd_crdt_tbs[0].pending <= 'h1;
-        m2s_rwd_crdt_tbs[1].pending <= 'h1;
-        m2s_rwd_crdt_tbs[2].pending <= 'h0;
-        m2s_rwd_crdt_tbs[3].pending <= 'h0;
+        m2s_rwd_crdt_tbs[0].pending           <= 'h1;
+        m2s_rwd_crdt_tbs[1].pending           <= 'h1;
+        m2s_rwd_crdt_tbs[2].pending           <= 'h0;
+        m2s_rwd_crdt_tbs[3].pending           <= 'h0;
         m2s_rwd_crdt_tbs[0].credit_to_be_sent <= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack_d) && (slot_sel_d_d == H_SLOT0)) && (((h2d_data_crdt_send > 0) && (data_lru == 1)) || (h2d_data_crdt_send == 0))) begin
           m2s_rwd_crdt_tbs[1].credit_to_be_sent <= m2s_rwd_crdt_tbs[1].credit_to_be_sent + m2s_rwd_outstanding_credits_1 - ((m2s_rwd_crdt_send == 'h7)? 'd64: (m2s_rwd_crdt_send == 'h6)? 'd32: (m2s_rwd_crdt_send == 'h5)? 'd16: (m2s_rwd_crdt_send == 'h4)? 'h8: (m2s_rwd_crdt_send == 'h3)? 'h4: m2s_rwd_crdt_send);
@@ -6196,10 +6319,10 @@ module device_tx_path#(
           m2s_rwd_crdt_tbs[1].credit_to_be_sent <= m2s_rwd_crdt_tbs[1].credit_to_be_sent + m2s_rwd_outstanding_credits_1;
         end
       end else if(((m2s_rwd_crdt_tbs[1].credit_to_be_sent + m2s_rwd_outstanding_credits_0) > 'd64) && ((m2s_rwd_crdt_tbs[2].credit_to_be_sent + m2s_rwd_outstanding_credits_1) <= 'd64)) begin
-        m2s_rwd_crdt_tbs[0].pending <= 'h1;
-        m2s_rwd_crdt_tbs[1].pending <= 'h1;
-        m2s_rwd_crdt_tbs[2].pending <= 'h1;
-        m2s_rwd_crdt_tbs[3].pending <= 'h0;
+        m2s_rwd_crdt_tbs[0].pending           <= 'h1;
+        m2s_rwd_crdt_tbs[1].pending           <= 'h1;
+        m2s_rwd_crdt_tbs[2].pending           <= 'h1;
+        m2s_rwd_crdt_tbs[3].pending           <= 'h0;
         m2s_rwd_crdt_tbs[0].credit_to_be_sent <= 'd64;
         m2s_rwd_crdt_tbs[1].credit_to_be_sent <= 'd64;
         if((((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5] || insert_ack_d) && (slot_sel_d_d == H_SLOT0)) && (((h2d_data_crdt_send > 0) && (data_lru == 1)) || (h2d_data_crdt_send == 0))) begin
@@ -6211,10 +6334,10 @@ module device_tx_path#(
           m2s_rwd_crdt_tbs[2].credit_to_be_sent <= m2s_rwd_crdt_tbs[2].credit_to_be_sent + m2s_rwd_outstanding_credits_2;
         end
       end else if(((m2s_rwd_crdt_tbs[2].credit_to_be_sent + m2s_rwd_outstanding_credits_1) > 'd64) && ((m2s_rwd_crdt_tbs[3].credit_to_be_sent + m2s_rwd_outstanding_credits_2) <= 'd64)) begin
-        m2s_rwd_crdt_tbs[0].pending <= 'h1;
-        m2s_rwd_crdt_tbs[1].pending <= 'h1;
-        m2s_rwd_crdt_tbs[2].pending <= 'h1;
-        m2s_rwd_crdt_tbs[3].pending <= 'h1;
+        m2s_rwd_crdt_tbs[0].pending           <= 'h1;
+        m2s_rwd_crdt_tbs[1].pending           <= 'h1;
+        m2s_rwd_crdt_tbs[2].pending           <= 'h1;
+        m2s_rwd_crdt_tbs[3].pending           <= 'h1;
         m2s_rwd_crdt_tbs[0].credit_to_be_sent <= 'd64;
         m2s_rwd_crdt_tbs[1].credit_to_be_sent <= 'd64;
         m2s_rwd_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -6227,10 +6350,10 @@ module device_tx_path#(
           m2s_rwd_crdt_tbs[3].credit_to_be_sent <= m2s_rwd_crdt_tbs[3].credit_to_be_sent + m2s_rwd_outstanding_credits_3;
         end
       end else if(m2s_rwd_crdt_tbs[3].credit_to_be_sent + m2s_rwd_outstanding_credits_2 > 'd64) begin
-        m2s_rwd_crdt_tbs[0].pending <= 'h1;
-        m2s_rwd_crdt_tbs[1].pending <= 'h1;
-        m2s_rwd_crdt_tbs[2].pending <= 'h1;
-        m2s_rwd_crdt_tbs[3].pending <= 'h1;
+        m2s_rwd_crdt_tbs[0].pending           <= 'h1;
+        m2s_rwd_crdt_tbs[1].pending           <= 'h1;
+        m2s_rwd_crdt_tbs[2].pending           <= 'h1;
+        m2s_rwd_crdt_tbs[3].pending           <= 'h1;
         m2s_rwd_crdt_tbs[0].credit_to_be_sent <= 'd64;
         m2s_rwd_crdt_tbs[1].credit_to_be_sent <= 'd64;
         m2s_rwd_crdt_tbs[2].credit_to_be_sent <= 'd64;
@@ -6244,48 +6367,48 @@ module device_tx_path#(
   //ll pkt buffer
   always@(negedge dev_tx_dl_if.clk) begin
     if(!dev_tx_dl_if.rstn) begin
-      data_slot[0] <= 'h0;
-      data_slot[1] <= 'h0;
-      data_slot[2] <= 'h0;
-      data_slot[3] <= 'h0;
-      data_slot[4] <= 'h0;
+      data_slot[0]    <= 'h0;
+      data_slot[1]    <= 'h0;
+      data_slot[2]    <= 'h0;
+      data_slot[3]    <= 'h0;
+      data_slot[4]    <= 'h0;
     end else begin
       if(data_slot[1] == 'hf) begin
-        data_slot[0] <= data_slot[1];
-        data_slot[1] <= data_slot[2];
-        data_slot[2] <= data_slot[3];
-        data_slot[3] <= data_slot[4];
-        data_slot[4] <= 'h0;
+        data_slot[0]  <= data_slot[1];
+        data_slot[1]  <= data_slot[2];
+        data_slot[2]  <= data_slot[3];
+        data_slot[3]  <= data_slot[4];
+        data_slot[4]  <= 'h0;
       end
     end
   end
 
   always@(posedge dev_tx_dl_if.clk) begin
     if(!dev_tx_dl_if.rstn) begin
-      slot_sel <= H_SLOT0;
-      slot_sel_d <= H_SLOT0;
-      slot_sel_d_d <= H_SLOT0;
-      holding_wrptr <= 'h0;
-      data_slot[0] <= 'h0;
-      data_slot[1] <= 'h0;
-      data_slot[2] <= 'h0;
-      data_slot[3] <= 'h0;
-      data_slot[4] <= 'h0;
-      data_slot_d[0] <= 'h0;
-      data_slot_d[1] <= 'h0;
-      data_slot_d[2] <= 'h0;
-      data_slot_d[3] <= 'h0;
-      data_slot_d[4] <= 'h0;
+      slot_sel        <= H_SLOT0;
+      slot_sel_d      <= H_SLOT0;
+      slot_sel_d_d    <= H_SLOT0;
+      holding_wrptr   <= 'h0;
+      data_slot[0]    <= 'h0;
+      data_slot[1]    <= 'h0;
+      data_slot[2]    <= 'h0;
+      data_slot[3]    <= 'h0;
+      data_slot[4]    <= 'h0;
+      data_slot_d[0]  <= 'h0;
+      data_slot_d[1]  <= 'h0;
+      data_slot_d[2]  <= 'h0;
+      data_slot_d[3]  <= 'h0;
+      data_slot_d[4]  <= 'h0;
     end else begin
-      h_gnt_d <= h_gnt;
-      g_gnt_d <= g_gnt;
-      slot_sel_d <= slot_sel;
-      slot_sel_d_d <= slot_sel_d;
-      data_slot_d[0] <= data_slot[0];
-      data_slot_d[1] <= data_slot[1];
-      data_slot_d[2] <= data_slot[2];
-      data_slot_d[3] <= data_slot[3];
-      data_slot_d[4] <= data_slot[4];
+      h_gnt_d         <= h_gnt;
+      g_gnt_d         <= g_gnt;
+      slot_sel_d      <= slot_sel;
+      slot_sel_d_d    <= slot_sel_d;
+      data_slot_d[0]  <= data_slot[0];
+      data_slot_d[1]  <= data_slot[1];
+      data_slot_d[2]  <= data_slot[2];
+      data_slot_d[3]  <= data_slot[3];
+      data_slot_d[4]  <= data_slot[4];
       case(slot_sel)
         H_SLOT0: begin
           if(h_gnt == 0) begin
@@ -6304,39 +6427,63 @@ module device_tx_path#(
             end else if(h_gnt[0] || h_gnt[1] || h_gnt[3]) begin
               slot_sel <= H_SLOT0;
               if(data_slot[0] == 'h0) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'h2; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; data_slot[1] <= 'h2; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'h2; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h2) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'h6; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h6) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'he; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'he) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(h_gnt[5]) begin
               slot_sel <= H_SLOT0;
               if(data_slot[0] == 'h0) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h2; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h2; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'h2; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h2) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h6; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h6; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h6) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'he; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'he; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'he) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(h_gnt[2]) begin
               slot_sel <= H_SLOT0;
               if(data_slot[0] == 'h0) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h2;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h2;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h2; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h2) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h6) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'he; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'he) begin
-                data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
+                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
+                //data_slot[0] <= 'he; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
               end else begin
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
@@ -6359,7 +6506,9 @@ module device_tx_path#(
             end else if(g_gnt[2] || g_gnt[4]) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= G_SLOT2;
-                data_slot[0] <= 'hc; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'hc; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'hc; 
+                data_slot[0] <= 'h6; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
@@ -6367,7 +6516,9 @@ module device_tx_path#(
             end else if(g_gnt[6]) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= G_SLOT2;
-                data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
+                //data_slot[0] <= 'hc; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'h6; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
@@ -6375,7 +6526,9 @@ module device_tx_path#(
             end else if(g_gnt[3]) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= G_SLOT2;
-                data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
+                //data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
+                //data_slot[0] <= 'hc; 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
@@ -6400,7 +6553,9 @@ module device_tx_path#(
               end
             end else if(g_gnt[2] || g_gnt[4]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2)) begin
-                data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                //data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); 
+                data_slot[0] <= 'he; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
                 slot_sel <= XSLOT;
@@ -6408,7 +6563,9 @@ module device_tx_path#(
               end
             end else if(g_gnt[6]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2)) begin
-                data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'he; data_slot[4] <= 'h0;
+                //data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'he; data_slot[4] <= 'h0;
+                //data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'he; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
                 slot_sel <= XSLOT;
@@ -6416,7 +6573,9 @@ module device_tx_path#(
               end
             end else if(g_gnt[3]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2)) begin
-                data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
+                //data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
+                //data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); 
+                data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'he; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
                 slot_sel <= XSLOT;
@@ -6442,7 +6601,9 @@ module device_tx_path#(
               end
             end else if(g_gnt[2] || g_gnt[4]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
-              /*data_slot[0] <=  ;*/ data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              ///*data_slot[0] <=  ;*/ data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+              ///*data_slot[0] <=  ;*/ 
+              data_slot[0] <= 'hf; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
                 slot_sel <= XSLOT;
@@ -6450,7 +6611,9 @@ module device_tx_path#(
               end
             end else if(g_gnt[6]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
-              /*data_slot[0] <=  ;*/ data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
+              ///*data_slot[0] <=  ;*/ data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
+              ///*data_slot[0] <=  ;*/ 
+              data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
                 slot_sel <= XSLOT;
@@ -6458,7 +6621,9 @@ module device_tx_path#(
               end
             end else if(g_gnt[3]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
-              /*data_slot[0] <=  ;*/ data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
+              ///*data_slot[0] <=  ;*/ data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
+              ///*data_slot[0] <=  ;*/ 
+              data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
                 slot_sel <= XSLOT;
@@ -6541,33 +6706,33 @@ module device_tx_path#(
                 end
               end
               6'b000010: begin
-                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1 : 'h0;//TBD: logic for crdt ack to be added later
-                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
-                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[7:5]      <= 'h1;//slot0 fmt is H0 so 0
-                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (req_lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!req_lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (data_lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!data_lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[32]       <= d2h_req_dataout.valid;
-                holding_q[holding_wrptr].data[37:33]    <= d2h_req_dataout.opcode;
-                holding_q[holding_wrptr].data[49:38]    <= d2h_req_dataout.cqid;
-                holding_q[holding_wrptr].data[50]       <= d2h_req_dataout.nt;
-                holding_q[holding_wrptr].data[57:51]    <= 'h0;//spare always is 0
-                holding_q[holding_wrptr].data[103:58]   <= d2h_req_dataout.address;
-                holding_q[holding_wrptr].data[110:104]  <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[111]      <= d2h_data_dataout.valid;
-                holding_q[holding_wrptr].data[123:112]  <= d2h_data_dataout.uqid;
-                holding_q[holding_wrptr].data[124]      <= d2h_data_dataout.chunkvalid;
-                holding_q[holding_wrptr].data[125]      <= d2h_data_dataout.bogus;
-                holding_q[holding_wrptr].data[126]      <= d2h_data_dataout.poison;
-                holding_q[holding_wrptr].data[127]      <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[0]          <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]          <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]          <= (ack_cnt_tbs > ack_cnt_snt)? 'h1 : 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                               <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
+                holding_q[holding_wrptr].data[3]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]        <= 'h1;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]      <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]      <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]      <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (req_lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!req_lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]      <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (data_lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!data_lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;//TBD: data crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[32]         <= d2h_req_dataout.valid;
+                holding_q[holding_wrptr].data[37:33]      <= d2h_req_dataout.opcode;
+                holding_q[holding_wrptr].data[49:38]      <= d2h_req_dataout.cqid;
+                holding_q[holding_wrptr].data[50]         <= d2h_req_dataout.nt;
+                holding_q[holding_wrptr].data[57:51]      <= 'h0;//spare always is 0
+                holding_q[holding_wrptr].data[103:58]     <= d2h_req_dataout.address;
+                holding_q[holding_wrptr].data[110:104]    <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[111]        <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[123:112]    <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[124]        <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[125]        <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[126]        <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[127]        <= 'h0;//spare bits always 0
                 if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:128]  <= d2h_data_dataout.data[383:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
@@ -6595,49 +6760,49 @@ module device_tx_path#(
                 end
               end
               6'b000100: begin
-                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
-                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
-                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[7:5]      <= 'h2;//slot0 fmt is H0 so 0
-                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (req_lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!req_lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (data_lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!data_lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
-                holding_q[holding_wrptr].data[32]       <= d2h_data_dataout.valid;
-                holding_q[holding_wrptr].data[44:33]    <= d2h_data_dataout.uqid;
-                holding_q[holding_wrptr].data[45]       <= d2h_data_dataout.chunkvalid;
-                holding_q[holding_wrptr].data[46]       <= d2h_data_dataout.bogus;
-                holding_q[holding_wrptr].data[47]       <= d2h_data_dataout.poison;
-                holding_q[holding_wrptr].data[48]       <= 'h0;//spare bit is always 0
-                holding_q[holding_wrptr].data[49]       <= d2h_data_ddataout.valid;
-                holding_q[holding_wrptr].data[61:50]    <= d2h_data_ddataout.uqid;
-                holding_q[holding_wrptr].data[62]       <= d2h_data_ddataout.chunkvalid;
-                holding_q[holding_wrptr].data[63]       <= d2h_data_ddataout.bogus;
-                holding_q[holding_wrptr].data[64]       <= d2h_data_ddataout.poison;
-                holding_q[holding_wrptr].data[65]       <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[66]       <= d2h_data_tdataout.valid;
-                holding_q[holding_wrptr].data[78:67]    <= d2h_data_tdataout.uqid;
-                holding_q[holding_wrptr].data[79]       <= d2h_data_tdataout.chunkvalid;
-                holding_q[holding_wrptr].data[80]       <= d2h_data_tdataout.bogus;
-                holding_q[holding_wrptr].data[81]       <= d2h_data_tdataout.poison;
-                holding_q[holding_wrptr].data[82]       <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[83]       <= d2h_data_qdataout.valid;
-                holding_q[holding_wrptr].data[95:84]    <= d2h_data_qdataout.uqid;
-                holding_q[holding_wrptr].data[96]       <= d2h_data_qdataout.chunkvalid;
-                holding_q[holding_wrptr].data[97]       <= d2h_data_qdataout.bogus;
-                holding_q[holding_wrptr].data[98]       <= d2h_data_qdataout.poison;
-                holding_q[holding_wrptr].data[99]       <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[100]      <= d2h_rsp_dataout.valid;
-                holding_q[holding_wrptr].data[105:101]  <= d2h_rsp_dataout.opcode;
-                holding_q[holding_wrptr].data[117:106]  <= d2h_rsp_dataout.uqid;
-                holding_q[holding_wrptr].data[119:118]  <= 'h0; //spare bits always 0
-                holding_q[holding_wrptr].data[127:120]  <= 'h0;//rsvd bits always 0
+                holding_q[holding_wrptr].data[0]          <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]          <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]          <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                               <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
+                holding_q[holding_wrptr].data[3]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]        <= 'h2;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]      <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]      <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]      <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (req_lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!req_lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]      <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (data_lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!data_lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
+                holding_q[holding_wrptr].data[32]         <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[44:33]      <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[45]         <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[46]         <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[47]         <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[48]         <= 'h0;//spare bit is always 0
+                holding_q[holding_wrptr].data[49]         <= d2h_data_ddataout.valid;
+                holding_q[holding_wrptr].data[61:50]      <= d2h_data_ddataout.uqid;
+                holding_q[holding_wrptr].data[62]         <= d2h_data_ddataout.chunkvalid;
+                holding_q[holding_wrptr].data[63]         <= d2h_data_ddataout.bogus;
+                holding_q[holding_wrptr].data[64]         <= d2h_data_ddataout.poison;
+                holding_q[holding_wrptr].data[65]         <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[66]         <= d2h_data_tdataout.valid;
+                holding_q[holding_wrptr].data[78:67]      <= d2h_data_tdataout.uqid;
+                holding_q[holding_wrptr].data[79]         <= d2h_data_tdataout.chunkvalid;
+                holding_q[holding_wrptr].data[80]         <= d2h_data_tdataout.bogus;
+                holding_q[holding_wrptr].data[81]         <= d2h_data_tdataout.poison;
+                holding_q[holding_wrptr].data[82]         <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[83]         <= d2h_data_qdataout.valid;
+                holding_q[holding_wrptr].data[95:84]      <= d2h_data_qdataout.uqid;
+                holding_q[holding_wrptr].data[96]         <= d2h_data_qdataout.chunkvalid;
+                holding_q[holding_wrptr].data[97]         <= d2h_data_qdataout.bogus;
+                holding_q[holding_wrptr].data[98]         <= d2h_data_qdataout.poison;
+                holding_q[holding_wrptr].data[99]         <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[100]        <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[105:101]    <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[117:106]    <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[119:118]    <= 'h0; //spare bits always 0
+                holding_q[holding_wrptr].data[127:120]    <= 'h0;//rsvd bits always 0
                 if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:128]  <= d2h_data_dataout.data[383:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
@@ -6697,34 +6862,34 @@ module device_tx_path#(
                 end
               end
               6'b001000: begin
-                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
-                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
-                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[7:5]      <= 'h3;//slot0 fmt is H0 so 0
-                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (req_lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!req_lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (data_lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!data_lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
-                holding_q[holding_wrptr].data[32]       <= s2m_drs_dataout.valid;
-                holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.opcode;
-                holding_q[holding_wrptr].data[37:36]    <= s2m_drs_dataout.metafield;
-                holding_q[holding_wrptr].data[39:38]    <= s2m_drs_dataout.metavalue;
-                holding_q[holding_wrptr].data[55:40]    <= s2m_drs_dataout.tag;
-                holding_q[holding_wrptr].data[56]       <= s2m_drs_dataout.poison;
-                holding_q[holding_wrptr].data[71:57]    <= 'h0;// spare bits always 0
-                holding_q[holding_wrptr].data[72]       <= s2m_ndr_dataout.valid;
-                holding_q[holding_wrptr].data[75:73]    <= s2m_ndr_dataout.opcode;
-                holding_q[holding_wrptr].data[77:76]    <= s2m_ndr_dataout.metafield;
-                holding_q[holding_wrptr].data[79:78]    <= s2m_ndr_dataout.metavalue;
-                holding_q[holding_wrptr].data[95:80]    <= s2m_ndr_dataout.tag;
-                holding_q[holding_wrptr].data[99:96]    <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[127:100]  <= 'h0;//rsvd bits always 0
+                holding_q[holding_wrptr].data[0]          <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]          <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]          <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                               <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
+                holding_q[holding_wrptr].data[3]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]        <= 'h3;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]      <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]      <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]      <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (req_lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!req_lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]      <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (data_lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!data_lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
+                holding_q[holding_wrptr].data[32]         <= s2m_drs_dataout.valid;
+                holding_q[holding_wrptr].data[35:33]      <= s2m_drs_dataout.opcode;
+                holding_q[holding_wrptr].data[37:36]      <= s2m_drs_dataout.metafield;
+                holding_q[holding_wrptr].data[39:38]      <= s2m_drs_dataout.metavalue;
+                holding_q[holding_wrptr].data[55:40]      <= s2m_drs_dataout.tag;
+                holding_q[holding_wrptr].data[56]         <= s2m_drs_dataout.poison;
+                holding_q[holding_wrptr].data[71:57]      <= 'h0;// spare bits always 0
+                holding_q[holding_wrptr].data[72]         <= s2m_ndr_dataout.valid;
+                holding_q[holding_wrptr].data[75:73]      <= s2m_ndr_dataout.opcode;
+                holding_q[holding_wrptr].data[77:76]      <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[79:78]      <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[95:80]      <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[99:96]      <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[127:100]    <= 'h0;//rsvd bits always 0
                 if(data_slot_d[0]) begin
                   holding_q[holding_wrptr].data[511:128]  <= s2m_drs_dataout.data[383:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
@@ -6752,33 +6917,33 @@ module device_tx_path#(
                 end
               end
               6'b010000: begin
-                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
-                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
-                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[7:5]      <= 'h4;//slot0 fmt is H0 so 0
-                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (req_lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!req_lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (data_lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!data_lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
-                holding_q[holding_wrptr].data[32]       <= s2m_ndr_dataout.valid;
-                holding_q[holding_wrptr].data[35:33]    <= s2m_ndr_dataout.opcode;
-                holding_q[holding_wrptr].data[37:36]    <= s2m_ndr_dataout.metafield;
-                holding_q[holding_wrptr].data[39:38]    <= s2m_ndr_dataout.metavalue;
-                holding_q[holding_wrptr].data[55:40]    <= s2m_ndr_dataout.tag;
-                holding_q[holding_wrptr].data[59:56]    <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[60]       <= s2m_ndr_ddataout.valid;
-                holding_q[holding_wrptr].data[63:61]    <= s2m_ndr_ddataout.opcode;
-                holding_q[holding_wrptr].data[65:64]    <= s2m_ndr_ddataout.metafield;
-                holding_q[holding_wrptr].data[67:66]    <= s2m_ndr_ddataout.metavalue;
-                holding_q[holding_wrptr].data[83:68]    <= s2m_ndr_ddataout.tag;
-                holding_q[holding_wrptr].data[87:84]    <= 'h0;//spare are always 0
-                holding_q[holding_wrptr].data[127:88]   <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[0]          <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]          <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]          <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                               <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
+                holding_q[holding_wrptr].data[3]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]        <= 'h4;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]      <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]      <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]      <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (req_lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!req_lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]      <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (data_lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!data_lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
+                holding_q[holding_wrptr].data[32]         <= s2m_ndr_dataout.valid;
+                holding_q[holding_wrptr].data[35:33]      <= s2m_ndr_dataout.opcode;
+                holding_q[holding_wrptr].data[37:36]      <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[39:38]      <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[55:40]      <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[59:56]      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[60]         <= s2m_ndr_ddataout.valid;
+                holding_q[holding_wrptr].data[63:61]      <= s2m_ndr_ddataout.opcode;
+                holding_q[holding_wrptr].data[65:64]      <= s2m_ndr_ddataout.metafield;
+                holding_q[holding_wrptr].data[67:66]      <= s2m_ndr_ddataout.metavalue;
+                holding_q[holding_wrptr].data[83:68]      <= s2m_ndr_ddataout.tag;
+                holding_q[holding_wrptr].data[87:84]      <= 'h0;//spare are always 0
+                holding_q[holding_wrptr].data[127:88]     <= 'h0;//rsvd bits are always 0
                 if(data_slot_d[0] == 'he) begin
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
@@ -6788,35 +6953,35 @@ module device_tx_path#(
                 end
               end
               6'b100000: begin
-                holding_q[holding_wrptr].data[0]        <= 'h0;//protocol flit encoding is 0 & for control type is 1
-                holding_q[holding_wrptr].data[1]        <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
-                holding_q[holding_wrptr].data[2]        <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
-                ack_cnt_snt                             <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
-                holding_q[holding_wrptr].data[3]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[4]        <= 'h0;//non data header so 0
-                holding_q[holding_wrptr].data[7:5]      <= 'h5;//slot0 fmt is H0 so 0
-                holding_q[holding_wrptr].data[10:8]     <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[13:11]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[16:14]    <= 'h0;//this field will be reupdated after g slot is selected
-                holding_q[holding_wrptr].data[19:17]    <= 'h0;//reserved must be 0
-                holding_q[holding_wrptr].data[23:20]    <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[27:24]    <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (req_lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!req_lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;;//TBD: req crdt logic for crdt to be added later
-                holding_q[holding_wrptr].data[31:28]    <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (data_lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!data_lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
-                holding_q[holding_wrptr].data[32]       <= s2m_drs_dataout.valid;
-                holding_q[holding_wrptr].data[35:33]    <= s2m_drs_dataout.opcode;
-                holding_q[holding_wrptr].data[37:36]    <= s2m_drs_dataout.metafield;
-                holding_q[holding_wrptr].data[39:38]    <= s2m_drs_dataout.metavalue;
-                holding_q[holding_wrptr].data[55:40]    <= s2m_drs_dataout.tag;
-                holding_q[holding_wrptr].data[56]       <= s2m_drs_dataout.poison;
-                holding_q[holding_wrptr].data[71:57]    <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[72]       <= s2m_drs_ddataout.valid;
-                holding_q[holding_wrptr].data[75:73]    <= s2m_drs_ddataout.opcode;
-                holding_q[holding_wrptr].data[77:76]    <= s2m_drs_ddataout.metafield;
-                holding_q[holding_wrptr].data[79:78]    <= s2m_drs_ddataout.metavalue;
-                holding_q[holding_wrptr].data[95:80]    <= s2m_drs_ddataout.tag;
-                holding_q[holding_wrptr].data[96]       <= s2m_drs_ddataout.poison;
-                holding_q[holding_wrptr].data[111:97]   <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[127:112]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[0]          <= 'h0;//protocol flit encoding is 0 & for control type is 1
+                holding_q[holding_wrptr].data[1]          <= 'h0;//reserved must be 0 otherwise will be flagged as error on the other side
+                holding_q[holding_wrptr].data[2]          <= (ack_cnt_tbs > ack_cnt_snt)? 'h1: 'h0;//TBD: logic for crdt ack to be added later
+                ack_cnt_snt                               <= ((ack_cnt_tbs > ack_cnt_snt)? (ack_cnt_snt + 1) : ack_cnt_snt);
+                holding_q[holding_wrptr].data[3]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[4]          <= 'h0;//non data header so 0
+                holding_q[holding_wrptr].data[7:5]        <= 'h5;//slot0 fmt is H0 so 0
+                holding_q[holding_wrptr].data[10:8]       <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[13:11]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[16:14]      <= 'h0;//this field will be reupdated after g slot is selected
+                holding_q[holding_wrptr].data[19:17]      <= 'h0;//reserved must be 0
+                holding_q[holding_wrptr].data[23:20]      <= h2d_rsp_crdt_send;//TBD: rsp crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[27:24]      <= ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (req_lru))? ({1'h1, m2s_req_crdt_send[2:0]}): ((h2d_req_crdt_send > 0) && (m2s_req_crdt_send > 0) && (!req_lru))? ({1'h0, h2d_req_crdt_send[2:0]}): (m2s_req_crdt_send > 0)? ({1'h1, m2s_req_crdt_send[2:0]}): (h2d_req_crdt_send > 0)? ({1'h0, h2d_req_crdt_send[2:0]}): 'h0;;//TBD: req crdt logic for crdt to be added later
+                holding_q[holding_wrptr].data[31:28]      <= ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (data_lru))? ({1'h1, m2s_rwd_crdt_send[2:0]}): ((h2d_data_crdt_send > 0) && (m2s_rwd_crdt_send > 0) && (!data_lru))? ({1'h0, h2d_data_crdt_send[2:0]}): (m2s_rwd_crdt_send > 0)? ({1'h1, m2s_rwd_crdt_send[2:0]}): (h2d_data_crdt_send > 0)? ({1'h0, h2d_data_crdt_send[2:0]}): 'h0;
+                holding_q[holding_wrptr].data[32]         <= s2m_drs_dataout.valid;
+                holding_q[holding_wrptr].data[35:33]      <= s2m_drs_dataout.opcode;
+                holding_q[holding_wrptr].data[37:36]      <= s2m_drs_dataout.metafield;
+                holding_q[holding_wrptr].data[39:38]      <= s2m_drs_dataout.metavalue;
+                holding_q[holding_wrptr].data[55:40]      <= s2m_drs_dataout.tag;
+                holding_q[holding_wrptr].data[56]         <= s2m_drs_dataout.poison;
+                holding_q[holding_wrptr].data[71:57]      <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[72]         <= s2m_drs_ddataout.valid;
+                holding_q[holding_wrptr].data[75:73]      <= s2m_drs_ddataout.opcode;
+                holding_q[holding_wrptr].data[77:76]      <= s2m_drs_ddataout.metafield;
+                holding_q[holding_wrptr].data[79:78]      <= s2m_drs_ddataout.metavalue;
+                holding_q[holding_wrptr].data[95:80]      <= s2m_drs_ddataout.tag;
+                holding_q[holding_wrptr].data[96]         <= s2m_drs_ddataout.poison;
+                holding_q[holding_wrptr].data[111:97]     <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[127:112]    <= 'h0;//rsvd bits are always 0
                 if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:128]  <= s2m_drs_dataout.data[383:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
@@ -6855,29 +7020,29 @@ module device_tx_path#(
                 end
               end
               default: begin
-                holding_q[holding_wrptr].valid          <= 'h0;
+                holding_q[holding_wrptr].valid            <= 'h0;
               end
             endcase
           end
           G_SLOT1: begin
             case(g_gnt_d)
               7'b0000010: begin
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= d2h_req_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]      <= d2h_req_dataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)]     <= d2h_req_dataout.cqid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+18)]                      <= d2h_req_dataout.nt;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+25):(SLOT1_OFFSET+19)]    <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)]    <= d2h_req_dataout.address[51:6];
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+78):(SLOT1_OFFSET+72)]    <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79)]                      <= d2h_rsp_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+80)]    <= d2h_rsp_dataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+96):(SLOT1_OFFSET+85)]    <= d2h_rsp_dataout.uqid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+98):(SLOT1_OFFSET+97)]    <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+99)]                      <= d2h_rsp_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+100)]  <= d2h_rsp_ddataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+116):(SLOT1_OFFSET+105)]  <= d2h_rsp_ddataout.uqid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+117)]  <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+119)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                         <= d2h_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]        <= d2h_req_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)]       <= d2h_req_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+18)]                        <= d2h_req_dataout.nt;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+25):(SLOT1_OFFSET+19)]      <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)]      <= d2h_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+78):(SLOT1_OFFSET+72)]      <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79)]                        <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+80)]      <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+96):(SLOT1_OFFSET+85)]      <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+98):(SLOT1_OFFSET+97)]      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+99)]                        <= d2h_rsp_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+100)]    <= d2h_rsp_ddataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+116):(SLOT1_OFFSET+105)]    <= d2h_rsp_ddataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+117)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+119)]    <= 'h0;//rsvd bits are always 0
                 if(data_slot_d[0] == 'he) begin
                   holding_q[holding_wrptr].valid                                        <= 'h0;
                 end else begin
@@ -6887,24 +7052,24 @@ module device_tx_path#(
                 end
               end
               7'b0000100: begin
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= d2h_req_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]      <= d2h_req_dataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)]     <= d2h_req_dataout.cqid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+18)]                      <= d2h_req_dataout.nt;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+25):(SLOT1_OFFSET+19)]    <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)]    <= d2h_req_dataout.address[51:6];
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+78):(SLOT1_OFFSET+72)]    <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79)]                      <= d2h_data_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+80)]    <= d2h_data_dataout.uqid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+92)]                      <= d2h_data_dataout.chunkvalid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+93)]                      <= d2h_data_dataout.bogus;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+94)]                      <= d2h_data_dataout.poison;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+95)]                      <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+96)]                      <= d2h_rsp_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+101):(SLOT1_OFFSET+97)]   <= d2h_rsp_dataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+113):(SLOT1_OFFSET+102)]  <= d2h_rsp_dataout.uqid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+115):(SLOT1_OFFSET+114)]  <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+116)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                         <= d2h_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]        <= d2h_req_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)]       <= d2h_req_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+18)]                        <= d2h_req_dataout.nt;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+25):(SLOT1_OFFSET+19)]      <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)]      <= d2h_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+78):(SLOT1_OFFSET+72)]      <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79)]                        <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+80)]      <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+92)]                        <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+93)]                        <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+94)]                        <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+95)]                        <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+96)]                        <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+101):(SLOT1_OFFSET+97)]     <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+113):(SLOT1_OFFSET+102)]    <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+115):(SLOT1_OFFSET+114)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+116)]    <= 'h0;//rsvd bits are always 0
                 if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:256]                                <= d2h_data_dataout.data[255:0];
                   holding_q[holding_wrptr].valid                                        <= 'h1;
@@ -6916,31 +7081,31 @@ module device_tx_path#(
                 end
               end  
               7'b0001000: begin
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= d2h_data_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)]     <= d2h_data_dataout.uqid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+13)]                      <= d2h_data_dataout.chunkvalid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+14)]                      <= d2h_data_dataout.bogus;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+15)]                      <= d2h_data_dataout.poison;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+16)]                      <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+17)]                      <= d2h_data_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+29):(SLOT1_OFFSET+18)]    <= d2h_data_ddataout.uqid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+30)]                      <= d2h_data_ddataout.chunkvalid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+31)]                      <= d2h_data_ddataout.bogus;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+32)]                      <= d2h_data_ddataout.poison;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+33)]                      <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+34)]                      <= d2h_data_tdataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+46):(SLOT1_OFFSET+35)]    <= d2h_data_tdataout.uqid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+47)]                      <= d2h_data_tdataout.chunkvalid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+48)]                      <= d2h_data_tdataout.bogus;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+49)]                      <= d2h_data_tdataout.poison;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+50)]                      <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+51)]                      <= d2h_data_qdataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+52)]    <= d2h_data_qdataout.uqid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+64)]                      <= d2h_data_qdataout.chunkvalid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+65)]                      <= d2h_data_qdataout.bogus;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+66)]                      <= d2h_data_qdataout.poison;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+67)]                      <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+68)]   <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                         <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)]       <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+13)]                        <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+14)]                        <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+15)]                        <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+16)]                        <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+17)]                        <= d2h_data_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+29):(SLOT1_OFFSET+18)]      <= d2h_data_ddataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+30)]                        <= d2h_data_ddataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+31)]                        <= d2h_data_ddataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+32)]                        <= d2h_data_ddataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+33)]                        <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+34)]                        <= d2h_data_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+46):(SLOT1_OFFSET+35)]      <= d2h_data_tdataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+47)]                        <= d2h_data_tdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+48)]                        <= d2h_data_tdataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+49)]                        <= d2h_data_tdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+50)]                        <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+51)]                        <= d2h_data_qdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+52)]      <= d2h_data_qdataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+64)]                        <= d2h_data_qdataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+65)]                        <= d2h_data_qdataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+66)]                        <= d2h_data_qdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+67)]                        <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+68)]     <= 'h0;//rsvd bits are always 0
                 if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:256]                                <= d2h_data_dataout.data[255:0];
                   holding_q[holding_wrptr].valid                                        <= 'h1;
@@ -6961,26 +7126,26 @@ module device_tx_path#(
                 end
               end
               7'b0010000: begin
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= s2m_drs_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_drs_dataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      <= s2m_drs_dataout.metafield;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]     <= s2m_drs_dataout.tag;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+24)]                      <= s2m_drs_dataout.poison;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+39):(SLOT1_OFFSET+25)]    <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+40)]                      <= s2m_ndr_dataout.valid; 
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]    <= s2m_ndr_dataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]    <= s2m_ndr_dataout.metafield;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]    <= s2m_ndr_dataout.metavalue;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)]    <= s2m_ndr_dataout.tag;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+67):(SLOT1_OFFSET+64)]    <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+68)]                      <= s2m_ndr_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+69)]    <= s2m_ndr_ddataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+72)]    <= s2m_ndr_ddataout.metafield;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+75):(SLOT1_OFFSET+74)]    <= s2m_ndr_ddataout.metavalue;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+76)]    <= s2m_ndr_ddataout.tag;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+95):(SLOT1_OFFSET+92)]    <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+96)]   <= 'h0;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                         <= s2m_drs_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]        <= s2m_drs_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]        <= s2m_drs_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]        <= s2m_drs_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]       <= s2m_drs_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+24)]                        <= s2m_drs_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+39):(SLOT1_OFFSET+25)]      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+40)]                        <= s2m_ndr_dataout.valid; 
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]      <= s2m_ndr_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]      <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]      <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)]      <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+67):(SLOT1_OFFSET+64)]      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+68)]                        <= s2m_ndr_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+69)]      <= s2m_ndr_ddataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+72)]      <= s2m_ndr_ddataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+75):(SLOT1_OFFSET+74)]      <= s2m_ndr_ddataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+76)]      <= s2m_ndr_ddataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+95):(SLOT1_OFFSET+92)]      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+96)]     <= 'h0;
                 if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:256]                                <= s2m_drs_dataout.data[255:0];
                   holding_q[holding_wrptr].valid                                        <= 'h1;
@@ -6992,50 +7157,50 @@ module device_tx_path#(
                 end
               end
               7'b0100000: begin
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= s2m_ndr_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_ndr_dataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      <= s2m_ndr_dataout.metafield;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]      <= s2m_ndr_dataout.metavalue;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]     <= s2m_ndr_dataout.tag;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+24)]    <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+28)]                      <= s2m_ndr_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+31):(SLOT1_OFFSET+29)]    <= s2m_ndr_ddataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+33):(SLOT1_OFFSET+32)]    <= s2m_ndr_ddataout.metafield;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+35):(SLOT1_OFFSET+34)]    <= s2m_ndr_ddataout.metavalue;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+51):(SLOT1_OFFSET+36)]    <= s2m_ndr_ddataout.tag;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+55):(SLOT1_OFFSET+52)]    <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+56)]                      <= s2m_ndr_tdataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)]    <= s2m_ndr_tdataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)]    <= s2m_ndr_tdataout.metafield;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]    <= s2m_ndr_tdataout.metavalue;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+64)]    <= s2m_ndr_tdataout.tag;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+80)]    <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+84)]   <= 'h0;//rsvd bits are always 0
-                holding_q[holding_wrptr].valid                                        <= 'h0;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                         <= s2m_ndr_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]        <= s2m_ndr_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]        <= s2m_ndr_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]        <= s2m_ndr_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]       <= s2m_ndr_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+24)]      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+28)]                        <= s2m_ndr_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+31):(SLOT1_OFFSET+29)]      <= s2m_ndr_ddataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+33):(SLOT1_OFFSET+32)]      <= s2m_ndr_ddataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+35):(SLOT1_OFFSET+34)]      <= s2m_ndr_ddataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+51):(SLOT1_OFFSET+36)]      <= s2m_ndr_ddataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+55):(SLOT1_OFFSET+52)]      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+56)]                        <= s2m_ndr_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)]      <= s2m_ndr_tdataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)]      <= s2m_ndr_tdataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]      <= s2m_ndr_tdataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+64)]      <= s2m_ndr_tdataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+80)]      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+84)]     <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].valid                                          <= 'h0;
               end
               7'b1000000: begin
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                       <= s2m_drs_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]      <= s2m_drs_dataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]      <=  s2m_drs_dataout.metafield;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]      <= s2m_drs_dataout.metavalue;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]     <= s2m_drs_dataout.tag;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+24)]                      <= s2m_drs_dataout.poison;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+39):(SLOT1_OFFSET+25)]    <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+40)]                      <= s2m_drs_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]    <= s2m_drs_ddataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]    <= s2m_drs_ddataout.metafield;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]    <= s2m_drs_ddataout.metavalue;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)]    <= s2m_drs_ddataout.tag;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+64)]                      <= s2m_drs_ddataout.poison;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+65)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+0)]                         <= s2m_drs_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]        <= s2m_drs_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]        <=  s2m_drs_dataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]        <= s2m_drs_dataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)]       <= s2m_drs_dataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+24)]                        <= s2m_drs_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+39):(SLOT1_OFFSET+25)]      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+40)]                        <= s2m_drs_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]      <= s2m_drs_ddataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]      <= s2m_drs_ddataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]      <= s2m_drs_ddataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)]      <= s2m_drs_ddataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+64)]                        <= s2m_drs_ddataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+65)]      <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+80)] <= s2m_drs_tdataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+81)]    <= s2m_drs_tdataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+85):(SLOT1_OFFSET+84)]    <= s2m_drs_tdataout.metafield;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+87):(SLOT1_OFFSET+86)]    <= s2m_drs_tdataout.metavalue;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+103):(SLOT1_OFFSET+88)]   <= s2m_drs_tdataout.tag;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+104)]                     <= s2m_drs_tdataout.poison;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+119):(SLOT1_OFFSET+105)]  <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+120)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+81)]      <= s2m_drs_tdataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+85):(SLOT1_OFFSET+84)]      <= s2m_drs_tdataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+87):(SLOT1_OFFSET+86)]      <= s2m_drs_tdataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+103):(SLOT1_OFFSET+88)]     <= s2m_drs_tdataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+104)]                       <= s2m_drs_tdataout.poison;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+119):(SLOT1_OFFSET+105)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+120)]    <= 'h0;//rsvd bits are always 0
                 if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:256]                                <= s2m_drs_dataout.data[255:0];
                   holding_q[holding_wrptr].valid                                        <= 'h1;
@@ -7053,50 +7218,50 @@ module device_tx_path#(
                 end
               end          
               default: begin
-                holding_q[holding_wrptr].valid                                        <= 'h0;
+                holding_q[holding_wrptr].valid                                          <= 'h0;
               end
             endcase
           end
           G_SLOT2: begin
             case(g_gnt_d)    
               7'b0000010: begin
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= d2h_req_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]      <= d2h_req_dataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)]     <= d2h_req_dataout.cqid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+18)]                      <= d2h_req_dataout.nt;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+25):(SLOT2_OFFSET+19)]    <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)]    <= d2h_req_dataout.address[51:6];
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+78):(SLOT2_OFFSET+72)]    <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+79)]                      <= d2h_rsp_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+80)]    <= d2h_rsp_dataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+96):(SLOT2_OFFSET+85)]    <= d2h_rsp_dataout.uqid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+98):(SLOT2_OFFSET+97)]    <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+99)]                      <= d2h_rsp_ddataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+100)]  <= d2h_rsp_ddataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+116):(SLOT2_OFFSET+105)]  <= d2h_rsp_ddataout.uqid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+117)]  <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+119)]  <= 'h0;//rsvd bits are always 0
-                holding_q[holding_wrptr].valid                                        <= 'h0;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                         <= d2h_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]        <= d2h_req_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)]       <= d2h_req_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+18)]                        <= d2h_req_dataout.nt;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+25):(SLOT2_OFFSET+19)]      <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)]      <= d2h_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+78):(SLOT2_OFFSET+72)]      <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+79)]                        <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+80)]      <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+96):(SLOT2_OFFSET+85)]      <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+98):(SLOT2_OFFSET+97)]      <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+99)]                        <= d2h_rsp_ddataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+100)]    <= d2h_rsp_ddataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+116):(SLOT2_OFFSET+105)]    <= d2h_rsp_ddataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+117)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+119)]    <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].valid                                          <= 'h0;
               end
               7'b0000100: begin
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                       <= d2h_req_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]      <= d2h_req_dataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)]     <= d2h_req_dataout.cqid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+18)]                      <= d2h_req_dataout.nt;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+25):(SLOT2_OFFSET+19)]    <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)]    <= d2h_req_dataout.address[51:6];
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+78):(SLOT2_OFFSET+72)]    <= 'h0;//spare bits always 0
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+79)]                      <= d2h_data_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+80)]    <= d2h_data_dataout.uqid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+92)]                      <= d2h_data_dataout.chunkvalid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+93)]                      <= d2h_data_dataout.bogus;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+94)]                      <= d2h_data_dataout.poison;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+95)]                      <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+96)]                      <= d2h_rsp_dataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+101):(SLOT2_OFFSET+97)]   <= d2h_rsp_dataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+113):(SLOT2_OFFSET+102)]  <= d2h_rsp_dataout.uqid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+115):(SLOT2_OFFSET+114)]  <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+116)]  <= 'h0;//rsvd bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+0)]                         <= d2h_req_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]        <= d2h_req_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)]       <= d2h_req_dataout.cqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+18)]                        <= d2h_req_dataout.nt;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+25):(SLOT2_OFFSET+19)]      <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)]      <= d2h_req_dataout.address[51:6];
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+78):(SLOT2_OFFSET+72)]      <= 'h0;//spare bits always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+79)]                        <= d2h_data_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+80)]      <= d2h_data_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+92)]                        <= d2h_data_dataout.chunkvalid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+93)]                        <= d2h_data_dataout.bogus;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+94)]                        <= d2h_data_dataout.poison;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+95)]                        <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+96)]                        <= d2h_rsp_dataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+101):(SLOT2_OFFSET+97)]     <= d2h_rsp_dataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+113):(SLOT2_OFFSET+102)]    <= d2h_rsp_dataout.uqid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+115):(SLOT2_OFFSET+114)]    <= 'h0;//spare bits are always 0
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+116)]    <= 'h0;//rsvd bits are always 0
                 if((data_slot_d[0] == 'h0) || (data_slot_d[0] == 'h2)) begin
                   holding_q[holding_wrptr].data[511:384]                                <= d2h_data_dataout.data[127:0];
                   holding_q[holding_wrptr].valid                                        <= 'h1;
@@ -7840,9 +8005,9 @@ module host_rx_path #(
   input logic phy_link_up,
   output d2h_req_txn_t d2h_req_txn[4],
   output d2h_rsp_txn_t d2h_rsp_txn[2],
-  output d2h_data_pkt_t d2h_data_pkt[4],
+  output d2h_data_pkt_t d2h_data_pkt,
   output s2m_ndr_txn_t s2m_ndr_txn[3],
-  output s2m_drs_pkt_t s2m_drs_pkt[3],
+  output s2m_drs_pkt_t s2m_drs_pkt,
   output logic ack,
   output logic ack_ret_val,
   output logic [7:0] ack_ret,
@@ -7886,9 +8051,17 @@ module host_rx_path #(
   logic retry_idle_detect;
   logic [3:0] data_slot[5];
   logic [3:0] data_slot_d[5];
-  logic [3:0] data_slot_dd[5];
   d2h_data_pkt_t d2h_data_pkt_d[4];
-  s2m_drs_pkt_t s2m_drs_pkt_d[3];
+  s2m_drs_pkt_t s2m_drs_pkt_d[4];
+  d2h_data_pkt_t d2h_data_pkt_iob[32];
+  s2m_drs_pkt_t s2m_drs_pkt_iob[32];
+  bit [4:0] d2h_data_wr_ptr;
+  bit [4:0] s2m_drs_wr_ptr;
+  bit [4:0] d2h_data_rd_ptr;
+  bit [4:0] s2m_drs_rd_ptr;
+  d2h_req_txn_t  d2h_req_txn_w[4];
+  d2h_rsp_txn_t  d2h_rsp_txn_w[2];
+  s2m_ndr_txn_t  s2m_ndr_txn_w[3];
   logic [2:0] ack_count;
   logic [2:0] ack_count_d;
   logic llcrd_flit;
@@ -7908,421 +8081,1271 @@ module host_rx_path #(
   assign crdt_req           = (crdt_val)? host_rx_dl_if_d_data[26:24] : 'h0;
   assign crdt_rsp_cm        = (crdt_val)? host_rx_dl_if_d_data[23]    : 'h0;
   assign crdt_rsp           = (crdt_val)? host_rx_dl_if_d_data[22:20] : 'h0;
+
+  function automatic d2h_posi_comp(
+    ref d2h_data_pkt_t d2h_data_pkt_iob[32],
+    ref bit [4:0] d2h_data_wr_ptr, 
+    output bit [1:0] cond
+  );
+    bit cond_flag = 0;
+    bit [3:0] arr[4] = {4'b1110, 4'b1100, 4'b1000, 4'b1111};
+    for(int i = 0; i < 4; i = i+1) begin
+      if((d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.pend) == arr[i]) begin
+        cond = d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.start_dslot_posi; 
+        break;
+      end else begin
+        if((d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend) == arr[i]) begin
+          cond = d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.start_dslot_posi;
+          break;
+        end else begin
+          if((d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend) == arr[i]) begin
+            cond = d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.start_dslot_posi;
+            break;
+          end else begin
+            if((d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend) == arr[i]) begin
+              cond = d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.start_dslot_posi;
+              break;
+            end else begin
+              if((d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend) == arr[i]) begin
+                cond = d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi;
+                break;
+              end else begin
+                if(i == 3) break;
+              end
+            end
+          end
+        end
+      end
+    end
+  endfunction
   
+  function automatic s2m_posi_comp(
+    ref s2m_drs_pkt_t s2m_drs_pkt_iob[32],
+    ref bit [4:0] s2m_drs_wr_ptr, 
+    output bit [1:0] cond
+  );
+    bit cond_flag = 0;
+    bit [3:0] arr[4] = {4'b1110, 4'b1100, 4'b1000, 4'b1111};
+    for(int i = 0; i < 4; i = i+1) begin
+      if((s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].pending_data_slot.pend) == arr[i]) begin
+        cond = s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].pending_data_slot.start_dslot_posi;
+        break;
+      end else begin
+        if((s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend) == arr[i]) begin
+          cond = s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.start_dslot_posi;
+          break;
+        end else begin
+          if((s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend) == arr[i]) begin
+            cond = s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.start_dslot_posi;
+            break;
+          end else begin
+            if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend) == arr[i]) begin
+              cond = s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi;
+              break;
+            end else begin
+              if(i == 3) break;
+            end
+          end
+        end
+      end
+    end
+  endfunction
+
   function automatic void header0(
     input logic [511:0] data, 
-    ref d2h_data_pkt_t d2h_data_pkt[4], 
-    ref d2h_rsp_txn_t d2h_rsp_txn[2], 
-    ref s2m_ndr_txn_t s2m_ndr_txn[3]
+    ref d2h_data_pkt_t d2h_data_pkt_iob[32],
+    ref bit [4:0] d2h_data_wr_ptr, 
+    ref d2h_rsp_txn_t d2h_rsp_txn_w[2], 
+    ref s2m_ndr_txn_t s2m_ndr_txn_w[3]
   );
 
-    d2h_data_pkt[0].pending_data_slot          = 'hf;
-    d2h_data_pkt[0].d2h_data_txn.valid         = data[32];
-    d2h_data_pkt[0].d2h_data_txn.uqid          = data[44:33];
-    d2h_data_pkt[0].d2h_data_txn.chunkvalid    = data[45];
-    d2h_data_pkt[0].d2h_data_txn.bogus         = data[46];
-    d2h_data_pkt[0].d2h_data_txn.poison        = data[47];
-    d2h_rsp_txn[0].valid                       = data[49];
-    d2h_rsp_txn[0].opcode                      = d2h_rsp_opcode_t'(data[54:50]);//get elab error if you directly assign
-    d2h_rsp_txn[0].uqid                        = data[66:55];
-    d2h_rsp_txn[1].valid                       = data[69];
-    d2h_rsp_txn[1].opcode                      = d2h_rsp_opcode_t'(data[74:70]);
-    d2h_rsp_txn[1].uqid                        = data[86:75];
-    s2m_ndr_txn[0].valid                       = data[89];
-    s2m_ndr_txn[0].opcode                      = s2m_ndr_opcode_t'(data[92:90]);
-    s2m_ndr_txn[0].metafield                   = metafield_t'(data[94:93]);
-    s2m_ndr_txn[0].metavalue                   = metavalue_t'(data[96:95]);
-    s2m_ndr_txn[0].tag                         = data[112:97];
+    bit [1:0] posi;
+    if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b10;
+    else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1100) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b11;
+    else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1110) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1110)) posi = 2'b00;
+    else posi = 2'b01;
+    d2h_data_wr_ptr++;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[32];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[44:33];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[45];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[46];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[47];
+    d2h_rsp_txn_w[0].valid                                               = data[49];
+    d2h_rsp_txn_w[0].opcode                                              = d2h_rsp_opcode_t'(data[54:50]);//get elab error if you directly assign
+    d2h_rsp_txn_w[0].uqid                                                = data[66:55];
+    d2h_rsp_txn_w[1].valid                                               = data[69];
+    d2h_rsp_txn_w[1].opcode                                              = d2h_rsp_opcode_t'(data[74:70]);
+    d2h_rsp_txn_w[1].uqid                                                = data[86:75];
+    s2m_ndr_txn_w[0].valid                                               = data[89];
+    s2m_ndr_txn_w[0].opcode                                              = s2m_ndr_opcode_t'(data[92:90]);
+    s2m_ndr_txn_w[0].metafield                                           = metafield_t'(data[94:93]);
+    s2m_ndr_txn_w[0].metavalue                                           = metavalue_t'(data[96:95]);
+    s2m_ndr_txn_w[0].tag                                                 = data[112:97];
 
   endfunction
 
   function automatic void header1(
     input logic [511:0] data, 
-    ref d2h_req_txn_t d2h_req_txn[4], 
-    ref d2h_data_pkt_t d2h_data_pkt[4]
+    ref d2h_req_txn_t d2h_req_txn_w[4], 
+    ref d2h_data_pkt_t d2h_data_pkt_iob[32],
+    ref bit [4:0] d2h_data_wr_ptr
   );
+    bit [1:0] posi;
 
-    d2h_req_txn[0].valid                     = data[32];
-    d2h_req_txn[0].opcode                    = d2h_req_opcode_t'(data[37:33]);
-    d2h_req_txn[0].cqid                      = data[49:38];
-    d2h_req_txn[0].nt                        = data[50];
-    d2h_req_txn[0].address                   = data[103:58];
-    d2h_data_pkt[0].pending_data_slot        = 'hf;
-    d2h_data_pkt[0].d2h_data_txn.valid       = data[111];
-    d2h_data_pkt[0].d2h_data_txn.uqid        = data[123:112];
-    d2h_data_pkt[0].d2h_data_txn.chunkvalid  = data[124];
-    d2h_data_pkt[0].d2h_data_txn.bogus       = data[125];
-    d2h_data_pkt[0].d2h_data_txn.poison      = data[126];
+    d2h_req_txn_w[0].valid                                               = data[32];
+    d2h_req_txn_w[0].opcode                                              = d2h_req_opcode_t'(data[37:33]);
+    d2h_req_txn_w[0].cqid                                                = data[49:38];
+    d2h_req_txn_w[0].nt                                                  = data[50];
+    d2h_req_txn_w[0].address                                             = data[103:58];
+    if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b10;
+    else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1100) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b11;
+    else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1110) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1110)) posi = 2'b00;
+    else posi = 2'b01;
+    d2h_data_wr_ptr++;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[111];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[123:112];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[124];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[125];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[126];
 
   endfunction
 
   function automatic void header2(
     input logic [511:0] data, 
-    ref d2h_data_pkt_t d2h_data_pkt[4], 
-    ref d2h_rsp_txn_t d2h_rsp_txn[2]
+    ref d2h_data_pkt_t d2h_data_pkt_iob[32], 
+    ref bit [4:0] d2h_data_wr_ptr,
+    ref d2h_rsp_txn_t d2h_rsp_txn_w[2]
   );
+    bit [1:0] posi;
 
-    d2h_data_pkt[0].pending_data_slot        = 'hf;
-    d2h_data_pkt[0].d2h_data_txn.valid       = data[32];
-    d2h_data_pkt[0].d2h_data_txn.uqid        = data[44:33];
-    d2h_data_pkt[0].d2h_data_txn.chunkvalid  = data[45];
-    d2h_data_pkt[0].d2h_data_txn.bogus       = data[46];
-    d2h_data_pkt[0].d2h_data_txn.poison      = data[47];
-    d2h_data_pkt[1].pending_data_slot        = 'hf;
-    d2h_data_pkt[1].d2h_data_txn.valid       = data[49];
-    d2h_data_pkt[1].d2h_data_txn.uqid        = data[61:50];
-    d2h_data_pkt[1].d2h_data_txn.chunkvalid  = data[62];
-    d2h_data_pkt[1].d2h_data_txn.bogus       = data[63];
-    d2h_data_pkt[1].d2h_data_txn.poison      = data[64];
-    d2h_data_pkt[2].pending_data_slot        = 'hf;
-    d2h_data_pkt[2].d2h_data_txn.valid       = data[66];
-    d2h_data_pkt[2].d2h_data_txn.uqid        = data[78:67];
-    d2h_data_pkt[2].d2h_data_txn.chunkvalid  = data[79];
-    d2h_data_pkt[2].d2h_data_txn.bogus       = data[80];
-    d2h_data_pkt[2].d2h_data_txn.poison      = data[81];
-    d2h_data_pkt[3].pending_data_slot        = 'hf;
-    d2h_data_pkt[3].d2h_data_txn.valid       = data[83];
-    d2h_data_pkt[3].d2h_data_txn.uqid        = data[95:84];
-    d2h_data_pkt[3].d2h_data_txn.chunkvalid  = data[96];
-    d2h_data_pkt[3].d2h_data_txn.bogus       = data[97];
-    d2h_data_pkt[3].d2h_data_txn.poison      = data[98];
-    d2h_rsp_txn[0].valid                     = data[100];
-    d2h_rsp_txn[0].opcode                    = d2h_rsp_opcode_t'(data[105:101]);
-    d2h_rsp_txn[0].uqid                      = data[117:106];
+    if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b10;
+    else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1100) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b11;
+    else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1110) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1110)) posi = 2'b00;
+    else posi = 2'b01;
+    d2h_data_wr_ptr++;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[32];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[44:33];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[45];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[46];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[47];
+    d2h_data_wr_ptr++;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[49];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[61:50];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[62];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[63];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[64];
+    d2h_data_wr_ptr++;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[66];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[78:67];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[79];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[80];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[81];
+    d2h_data_wr_ptr++;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[83];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[95:84];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[96];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[97];
+    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[98];
+    d2h_rsp_txn_w[0].valid                                               = data[100];
+    d2h_rsp_txn_w[0].opcode                                              = d2h_rsp_opcode_t'(data[105:101]);
+    d2h_rsp_txn_w[0].uqid                                                = data[117:106];
 
   endfunction
 
   function automatic void header3(
     input logic [511:0] data, 
-    ref s2m_drs_pkt_t s2m_drs_pkt[3], 
-    ref s2m_ndr_txn_t s2m_ndr_txn[3]
+    ref s2m_drs_pkt_t s2m_drs_pkt_iob[32], 
+    ref bit [4:0] s2m_drs_wr_ptr,
+    ref s2m_ndr_txn_t s2m_ndr_txn_w[3]
   );
+    bit [1:0] posi;
 
-    s2m_drs_pkt[0].pending_data_slot        = 'hf;
-    s2m_drs_pkt[0].s2m_drs_txn.valid        = data[32];
-    s2m_drs_pkt[0].s2m_drs_txn.opcode       = s2m_drs_opcode_t'(data[35:33]);
-    s2m_drs_pkt[0].s2m_drs_txn.metafield    = metafield_t'(data[37:36]);
-    s2m_drs_pkt[0].s2m_drs_txn.metavalue    = metavalue_t'(data[39:38]);
-    s2m_drs_pkt[0].s2m_drs_txn.tag          = data[55:40];
-    s2m_drs_pkt[0].s2m_drs_txn.poison       = data[56];
-    s2m_ndr_txn[0].valid                    = data[72];
-    s2m_ndr_txn[0].opcode                   = s2m_ndr_opcode_t'(data[75:73]);
-    s2m_ndr_txn[0].metafield                = metafield_t'(data[77:76]);
-    s2m_ndr_txn[0].metavalue                = metavalue_t'(data[79:78]);
-    s2m_ndr_txn[0].tag                      = data[95:80];
+    if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b10;
+    else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1100) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b11;
+    else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1110) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1110)) posi = 2'b00;
+    else posi = 2'b01;
+    s2m_drs_wr_ptr++;
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi   = posi;
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend               = 'hf;
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid              = 'h1;
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                    = data[32];
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                   = s2m_drs_opcode_t'(data[35:33]);
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield                = metafield_t'(data[37:36]);
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue                = metavalue_t'(data[39:38]);
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                      = data[55:40];
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                   = data[56];
+    s2m_ndr_txn_w[0].valid                                               = data[72];
+    s2m_ndr_txn_w[0].opcode                                              = s2m_ndr_opcode_t'(data[75:73]);
+    s2m_ndr_txn_w[0].metafield                                           = metafield_t'(data[77:76]);
+    s2m_ndr_txn_w[0].metavalue                                           = metavalue_t'(data[79:78]);
+    s2m_ndr_txn_w[0].tag                                                 = data[95:80];
 
   endfunction
 
   function automatic void header4(
     input logic [511:0] data, 
-    ref s2m_ndr_txn_t s2m_ndr_txn[3]
+    ref s2m_ndr_txn_t s2m_ndr_txn_w[3]
   );
 
-    s2m_ndr_txn[0].valid        = data[32];
-    s2m_ndr_txn[0].opcode       = s2m_ndr_opcode_t'(data[35:33]);
-    s2m_ndr_txn[0].metafield    = metafield_t'(data[37:36]);
-    s2m_ndr_txn[0].metavalue    = metavalue_t'(data[39:38]);
-    s2m_ndr_txn[0].tag          = data[55:40];
-    s2m_ndr_txn[1].valid        = data[60];
-    s2m_ndr_txn[1].opcode       = s2m_ndr_opcode_t'(data[63:61]);
-    s2m_ndr_txn[1].metafield    = metafield_t'(data[65:64]);
-    s2m_ndr_txn[1].metavalue    = metavalue_t'(data[67:66]);
-    s2m_ndr_txn[1].tag          = data[83:68];
+    s2m_ndr_txn_w[0].valid        = data[32];
+    s2m_ndr_txn_w[0].opcode       = s2m_ndr_opcode_t'(data[35:33]);
+    s2m_ndr_txn_w[0].metafield    = metafield_t'(data[37:36]);
+    s2m_ndr_txn_w[0].metavalue    = metavalue_t'(data[39:38]);
+    s2m_ndr_txn_w[0].tag          = data[55:40];
+    s2m_ndr_txn_w[1].valid        = data[60];
+    s2m_ndr_txn_w[1].opcode       = s2m_ndr_opcode_t'(data[63:61]);
+    s2m_ndr_txn_w[1].metafield    = metafield_t'(data[65:64]);
+    s2m_ndr_txn_w[1].metavalue    = metavalue_t'(data[67:66]);
+    s2m_ndr_txn_w[1].tag          = data[83:68];
 
   endfunction
 
   function automatic void header5(
     input logic [511:0] data, 
-    ref s2m_drs_pkt_t s2m_drs_pkt[3]
+    ref s2m_drs_pkt_t s2m_drs_pkt[32],
+    ref bit [4:0] s2m_drs_wr_ptr
   );
+    bit [1:0] posi;
 
-    s2m_drs_pkt[0].pending_data_slot        = 'hf;
-    s2m_drs_pkt[0].s2m_drs_txn.valid        = data[32];
-    s2m_drs_pkt[0].s2m_drs_txn.opcode       = s2m_drs_opcode_t'(data[35:33]);
-    s2m_drs_pkt[0].s2m_drs_txn.metafield    = metafield_t'(data[37:36]);
-    s2m_drs_pkt[0].s2m_drs_txn.metavalue    = metavalue_t'(data[39:38]);
-    s2m_drs_pkt[0].s2m_drs_txn.tag          = data[55:40];
-    s2m_drs_pkt[0].s2m_drs_txn.poison       = data[56];
-    s2m_drs_pkt[1].pending_data_slot        = 'hf;
-    s2m_drs_pkt[1].s2m_drs_txn.valid        = data[72];
-    s2m_drs_pkt[1].s2m_drs_txn.opcode       = s2m_drs_opcode_t'(data[75:73]);
-    s2m_drs_pkt[1].s2m_drs_txn.metafield    = metafield_t'(data[77:76]);
-    s2m_drs_pkt[1].s2m_drs_txn.metavalue    = metavalue_t'(data[79:78]);
-    s2m_drs_pkt[1].s2m_drs_txn.tag          = data[95:80];
-    s2m_drs_pkt[1].s2m_drs_txn.poison       = data[96];
+    if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b10;
+    else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1100) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b11;
+    else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1110) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1110)) posi = 2'b00;
+    else posi = 2'b01;
+    s2m_drs_wr_ptr++;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                    = data[32];
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                   = s2m_drs_opcode_t'(data[35:33]);
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield                = metafield_t'(data[37:36]);
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue                = metavalue_t'(data[39:38]);
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                      = data[55:40];
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                   = data[56];
+    s2m_drs_wr_ptr++;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                    = data[72];
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                   = s2m_drs_opcode_t'(data[75:73]);
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield                = metafield_t'(data[77:76]);
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue                = metavalue_t'(data[79:78]);
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                      = data[95:80];
+    s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                   = data[96];
 
   endfunction
 
   function automatic void generic0(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    ref d2h_data_pkt_t d2h_data_pkt[4],
-    ref s2m_drs_pkt_t s2m_drs_pkt[3]
-    //inout d2h_req_txn_t d2h_data_pkt[4],
-    //inout s2m_drs_pkt_t s2m_drs_pkt[3]
+    ref d2h_data_pkt_t d2h_data_pkt_iob[32],
+    ref bit [4:0] d2h_data_wr_ptr,
+    ref s2m_drs_pkt_t s2m_drs_pkt_iob[32],
+    ref bit [4:0] s2m_drs_wr_ptr
   );
-    
-    if(s2m_drs_pkt[0].pending_data_slot == 'hf) begin
-      if(slot_sel == 1) begin
-        s2m_drs_pkt[0].s2m_drs_txn.data[SLOT3_OFFSET-1:0] = data[SLOT3_OFFSET-1:0]; 
-        s2m_drs_pkt[0].pending_data_slot = 'h8;
-      end else if(slot_sel == 2) begin
-        s2m_drs_pkt[0].s2m_drs_txn.data[SLOT2_OFFSET-1:0] = data[SLOT2_OFFSET-1:0]; 
-        s2m_drs_pkt[0].pending_data_slot = 'hc;
-      end else if(slot_sel == 3) begin
-        s2m_drs_pkt[0].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0]; 
-        s2m_drs_pkt[0].pending_data_slot = 'he;
-      end else if(slot_sel == 0) begin
-        s2m_drs_pkt[0].s2m_drs_txn.data = data; 
-        s2m_drs_pkt[0].pending_data_slot = 'h0;
-      end 
-    end else if(s2m_drs_pkt[0].pending_data_slot == 'he) begin
-      s2m_drs_pkt[0].s2m_drs_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0]; 
-      s2m_drs_pkt[0].pending_data_slot = 'h0;
-      if(s2m_drs_pkt[1].pending_data_slot != 0) begin
-        s2m_drs_pkt[1].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
-        s2m_drs_pkt[1].pending_data_slot = 'he;
-      end
-    end else if(s2m_drs_pkt[0].pending_data_slot == 'hc) begin
-      s2m_drs_pkt[0].s2m_drs_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0]; 
-      s2m_drs_pkt[0].pending_data_slot = 'h0;
-      if(s2m_drs_pkt[1].pending_data_slot != 0) begin
-        s2m_drs_pkt[1].s2m_drs_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
-        s2m_drs_pkt[1].pending_data_slot = 'hc;
-      end
-    end else if(s2m_drs_pkt[0].pending_data_slot == 'h8) begin
-      s2m_drs_pkt[0].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0]; 
-      s2m_drs_pkt[0].pending_data_slot = 'h0;
-      if(s2m_drs_pkt[1].pending_data_slot != 0) begin
-        s2m_drs_pkt[1].s2m_drs_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
-        s2m_drs_pkt[1].pending_data_slot = 'h8;
-      end
-    end else begin
-      if(s2m_drs_pkt[1].pending_data_slot == 'hf) begin
-        s2m_drs_pkt[1].s2m_drs_txn.data = data;
-        s2m_drs_pkt[1].pending_data_slot = 'h0;
-      end else if(s2m_drs_pkt[1].pending_data_slot == 'he) begin
-        s2m_drs_pkt[1].s2m_drs_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0];
-        s2m_drs_pkt[1].pending_data_slot = 'h0;
-        if(s2m_drs_pkt[2].pending_data_slot != 'h0) begin
-          s2m_drs_pkt[2].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
-          s2m_drs_pkt[2].pending_data_slot = 'he;
-        end
-      end else if(s2m_drs_pkt[1].pending_data_slot == 'hc) begin
-        s2m_drs_pkt[1].s2m_drs_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0];
-        s2m_drs_pkt[1].pending_data_slot = 'h0;
-        if(s2m_drs_pkt[2].pending_data_slot != 'h0) begin
-          s2m_drs_pkt[2].s2m_drs_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
-          s2m_drs_pkt[2].pending_data_slot = 'hc;
-        end
-      end else if(s2m_drs_pkt[1].pending_data_slot == 'h8) begin
-        s2m_drs_pkt[1].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
-        s2m_drs_pkt[1].pending_data_slot = 'h0;
-        if(s2m_drs_pkt[2].pending_data_slot != 'h0) begin
-          s2m_drs_pkt[2].s2m_drs_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
-          s2m_drs_pkt[2].pending_data_slot = 'h8;
-        end
-      end else begin
-        if(s2m_drs_pkt[2].pending_data_slot == 'hf) begin
-          s2m_drs_pkt[2].s2m_drs_txn.data = data;
-          s2m_drs_pkt[2].pending_data_slot = 'h0;
-        end else if(s2m_drs_pkt[2].pending_data_slot == 'he) begin
-          s2m_drs_pkt[2].s2m_drs_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0];
-          s2m_drs_pkt[2].pending_data_slot = 'h0;
-          /*if(s2m_drs_pkt[3].pending_data_slot != 'h0) begin
-            s2m_drs_pkt[3].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
-            s2m_drs_pkt[3].pending_data_slot = 'he;
-          end*/
-        end else if(s2m_drs_pkt[2].pending_data_slot == 'hc) begin
-          s2m_drs_pkt[2].s2m_drs_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0];
-          s2m_drs_pkt[2].pending_data_slot = 'h0;
-          /*if(s2m_drs_pkt[3].pending_data_slot != 'h0) begin
-            s2m_drs_pkt[3].s2m_drs_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
-            s2m_drs_pkt[3].pending_data_slot = 'hc;
-          end*/
-        end else if(s2m_drs_pkt[2].pending_data_slot == 'h8) begin
-          s2m_drs_pkt[2].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
-          s2m_drs_pkt[2].pending_data_slot = 'h0;
-          //TODO: next gen upgrade if s2m drs max size increases to 4
-          /*if(s2m_drs_pkt[3].pending_data_slot != 'h0) begin
-            s2m_drs_pkt[3].s2m_drs_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
-            s2m_drs_pkt[3].pending_data_slot = 'h8;
-          end*/
-        end else begin
-          //TODO: next gen upgrade if s2m drs max size increases to 4
-          /*if(s2m_drs_pkt[3].pending_data_slot == 'hf) begin
-            s2m_drs_pkt[3].s2m_drs_txn.data = data;
-            s2m_drs_pkt[3].pending_data_slot = 'h0;
-          end else if(s2m_drs_pkt[3].pending_data_slot == 'he) begin
-            s2m_drs_pkt[3].s2m_drs_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0];
-            s2m_drs_pkt[3].pending_data_slot = 'h0;
-          end else if(s2m_drs_pkt[3].pending_data_slot == 'hc) begin
-            s2m_drs_pkt[3].s2m_drs_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0];
-            s2m_drs_pkt[3].pending_data_slot = 'h0;
-          end else if(s2m_drs_pkt[3].pending_data_slot == 'h8) begin
-            s2m_drs_pkt[3].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
-            s2m_drs_pkt[3].pending_data_slot = 'h0;
+    bit [1:0] cond;
+
+    if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid == 'h1) begin
+      case(slot_sel)
+      2'b00:
+      begin
+        s2m_posi_comp(s2m_drs_pkt_iob, s2m_drs_wr_ptr, cond);
+        case(cond)
+        2'b00:                                                                                                                      
+        begin                                                                                                                       
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'hf) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1110;
           end else begin
-            
-          end*/
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1110;
+            end else begin
+              if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'hf) begin
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b1110;
+              end else begin
+                $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+              end
+            end
+          end
         end
+        2'b01:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b0000;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b0000;
+            end else begin
+              $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+            end
+          end
+        end
+        2'b10:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT1_OFFSET-1:0];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1000;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT1_OFFSET-1:0];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1000;
+            end else begin
+              $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+            end
+          end
+        end
+        2'b11:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1110) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT1_OFFSET-1:0];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1100;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT1_OFFSET-1:0];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1100;
+            end else begin
+              $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+            end
+          end
+        end
+        default:
+        begin
+          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+        end
+        endcase
       end
+      2'b01:
+      begin
+        s2m_posi_comp(s2m_drs_pkt_iob, s2m_drs_wr_ptr, cond);
+        case(cond)                                                    
+        2'b00:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1110) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1100;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'b1110) begin
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b1100;
+              end else begin
+                $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+              end
+            end
+          end
+        end
+        2'b01:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b0000;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'hf) begin
+                  s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                  s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1110;
+                end else begin
+                  if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+                    s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                    s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1110;
+                  end else begin
+                    if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'hf) begin
+                      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b1110;
+                    end else begin
+                      $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+        2'b10:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].pending_data_slot.pend == 'b1100) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].pending_data_slot.pend = 'b1000;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1000;
+              end else begin
+                if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                  s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                  s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b1000;
+                end else begin
+                  if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+                    s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                    s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b0000;
+                  end else begin
+                    if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                      s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                      s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b0000;
+                    end else begin
+                      $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+        2'b11:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].pending_data_slot.pend == 'b1110) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+           s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].pending_data_slot.pend = 'b1100;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1110) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1100;
+              end else begin
+                if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'b1110) begin
+                  s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                  s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b1100;
+                end else begin
+                  if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+                    s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                    s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1000;
+                  end else begin
+                    if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                      s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                      s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1000;
+                    end else begin
+                      $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+        default:
+        begin
+          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+        end
+        endcase
+      end
+      2'b10:
+      begin
+        s2m_posi_comp(s2m_drs_pkt_iob, s2m_drs_wr_ptr, cond);
+        case(cond)                                                    
+        2'b00:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1000;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b1000;
+              end else begin
+                $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+              end
+            end
+          end
+        end
+        2'b01:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1110) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1100;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'b1110) begin
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b1100;
+              end else begin
+                $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+              end
+            end
+          end
+        end
+        2'b10:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].pending_data_slot.pend == 'b1000) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].pending_data_slot.pend = 'b0000;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                  s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                  s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b0000;
+                end else begin
+                  if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'hf) begin
+                    s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                    s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1110;
+                  end else begin
+                    if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+                      s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                      s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1110;
+                    end else begin
+                      if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'hf) begin
+                        s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                        s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b1110;
+                      end else begin
+                        $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+        2'b11:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].pending_data_slot.pend == 'b1100) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].pending_data_slot.pend = 'b0000;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                  s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                  s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b0000;
+                end else begin
+                  if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+                    s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                    s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b0000;
+                  end else begin
+                    if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                      s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                      s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b0000;
+                    end else begin
+                      $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+        default:
+        begin
+          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+        end
+        endcase
+      end
+      2'b11:
+      begin
+        s2m_posi_comp(s2m_drs_pkt_iob, s2m_drs_wr_ptr, cond);
+        case(cond)                                                    
+        2'b00:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b0000;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b0000;
+              end else begin
+                $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+              end
+            end
+          end
+        end
+        2'b01:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[511:SLOT3_OFFSET];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1000;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[511:SLOT3_OFFSET];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[511:SLOT3_OFFSET];
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b1000;
+              end else begin
+                $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+              end
+            end
+          end
+        end
+        2'b10:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1110) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[511:SLOT3_OFFSET];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1100;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[511:SLOT3_OFFSET];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'b1110) begin
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[511:SLOT3_OFFSET];
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b1100;
+              end else begin
+                $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+              end
+            end
+          end
+        end
+        2'b11:
+        begin
+          if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].pending_data_slot.pend == 'b1000) begin
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+            s2m_drs_pkt_iob[s2m_drs_wr_ptr-3].pending_data_slot.pend = 'b0000;
+          end else begin
+            if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+              s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                  s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                  s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b0000;
+                end else begin
+                  if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend == 'hf) begin
+                    s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
+                    s2m_drs_pkt_iob[s2m_drs_wr_ptr-2].pending_data_slot.pend = 'b1110;
+                  end else begin
+                    if(s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+                      s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
+                      s2m_drs_pkt_iob[s2m_drs_wr_ptr-1].pending_data_slot.pend = 'b1110;
+                    end else begin
+                      if(s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 'hf) begin
+                        s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
+                        s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend = 'b1110;
+                      end else begin
+                        $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+        default:
+        begin
+          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+        end
+        endcase
+      end
+      default: 
+      begin
+        $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+      end
+      endcase
     end
 
-    if(d2h_data_pkt[0].pending_data_slot == 'hf) begin
-      if(slot_sel == 1) begin
-        d2h_data_pkt[0].d2h_data_txn.data[SLOT3_OFFSET-1:0] = data[SLOT3_OFFSET-1:0]; 
-        d2h_data_pkt[0].pending_data_slot = 'h8;
-      end else if(slot_sel == 2) begin
-        d2h_data_pkt[0].d2h_data_txn.data[SLOT2_OFFSET-1:0] = data[SLOT2_OFFSET-1:0]; 
-        d2h_data_pkt[0].pending_data_slot = 'hc;
-      end else if(slot_sel == 3) begin
-        d2h_data_pkt[0].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0]; 
-        d2h_data_pkt[0].pending_data_slot = 'he;
-      end else if(slot_sel == 0) begin
-        d2h_data_pkt[0].d2h_data_txn.data = data; 
-        d2h_data_pkt[0].pending_data_slot = 'h0;
-      end 
-    end else if(d2h_data_pkt[0].pending_data_slot == 'he) begin
-      d2h_data_pkt[0].d2h_data_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0]; 
-      d2h_data_pkt[0].pending_data_slot = 'h0;
-      if(d2h_data_pkt[1].pending_data_slot != 0) begin
-        d2h_data_pkt[1].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
-        d2h_data_pkt[1].pending_data_slot = 'he;
-      end
-    end else if(d2h_data_pkt[0].pending_data_slot == 'hc) begin
-      d2h_data_pkt[0].d2h_data_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0]; 
-      d2h_data_pkt[0].pending_data_slot = 'h0;
-      if(d2h_data_pkt[1].pending_data_slot != 0) begin
-        d2h_data_pkt[1].d2h_data_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
-        d2h_data_pkt[1].pending_data_slot = 'hc;
-      end
-    end else if(d2h_data_pkt[0].pending_data_slot == 'h8) begin
-      d2h_data_pkt[0].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0]; 
-      d2h_data_pkt[0].pending_data_slot = 'h0;
-      if(d2h_data_pkt[1].pending_data_slot != 0) begin
-        d2h_data_pkt[1].d2h_data_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
-        d2h_data_pkt[1].pending_data_slot = 'h8;
-      end
-    end else begin
-      if(d2h_data_pkt[1].pending_data_slot == 'hf) begin
-        d2h_data_pkt[1].d2h_data_txn.data = data;
-        d2h_data_pkt[1].pending_data_slot = 'h0;
-      end else if(d2h_data_pkt[1].pending_data_slot == 'he) begin
-        d2h_data_pkt[1].d2h_data_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0];
-        d2h_data_pkt[1].pending_data_slot = 'h0;
-        if(d2h_data_pkt[2].pending_data_slot != 'h0) begin
-          d2h_data_pkt[2].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
-          d2h_data_pkt[2].pending_data_slot = 'he;
-        end
-      end else if(d2h_data_pkt[1].pending_data_slot == 'hc) begin
-        d2h_data_pkt[1].d2h_data_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0];
-        d2h_data_pkt[1].pending_data_slot = 'h0;
-        if(d2h_data_pkt[2].pending_data_slot != 'h0) begin
-          d2h_data_pkt[2].d2h_data_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
-          d2h_data_pkt[2].pending_data_slot = 'hc;
-        end
-      end else if(d2h_data_pkt[1].pending_data_slot == 'h8) begin
-        d2h_data_pkt[1].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
-        d2h_data_pkt[1].pending_data_slot = 'h0;
-        if(d2h_data_pkt[2].pending_data_slot != 'h0) begin
-          d2h_data_pkt[2].d2h_data_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
-          d2h_data_pkt[2].pending_data_slot = 'h8;
-        end
-      end else begin
-        if(d2h_data_pkt[2].pending_data_slot == 'hf) begin
-          d2h_data_pkt[2].d2h_data_txn.data = data;
-          d2h_data_pkt[2].pending_data_slot = 'h0;
-        end else if(d2h_data_pkt[2].pending_data_slot == 'he) begin
-          d2h_data_pkt[2].d2h_data_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0];
-          d2h_data_pkt[2].pending_data_slot = 'h0;
-          if(d2h_data_pkt[3].pending_data_slot != 'h0) begin
-            d2h_data_pkt[3].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
-            d2h_data_pkt[3].pending_data_slot = 'he;
+    if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid == 'h1) begin
+      case(slot_sel) 
+        2'b00:
+        begin
+          d2h_posi_comp(d2h_data_pkt_iob, d2h_data_wr_ptr, cond);
+          case(cond)                                                    
+          2'b00:
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'hf) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b1110;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'hf) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b1110;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1110;
+                end else begin
+                  if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'hf) begin
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b1110;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
           end
-        end else if(d2h_data_pkt[2].pending_data_slot == 'hc) begin
-          d2h_data_pkt[2].d2h_data_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0];
-          d2h_data_pkt[2].pending_data_slot = 'h0;
-          if(d2h_data_pkt[3].pending_data_slot != 'h0) begin
-            d2h_data_pkt[3].d2h_data_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
-            d2h_data_pkt[3].pending_data_slot = 'hc;
+          2'b01:
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'b1000) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET:0];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET:0];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET:0];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+                end else begin
+                  $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                end
+              end
+            end
           end
-        end else if(d2h_data_pkt[2].pending_data_slot == 'h8) begin
-          d2h_data_pkt[2].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
-          d2h_data_pkt[2].pending_data_slot = 'h0;
-          if(d2h_data_pkt[3].pending_data_slot != 'h0) begin
-            d2h_data_pkt[3].d2h_data_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
-            d2h_data_pkt[3].pending_data_slot = 'h8;
+          2'b10:
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'b1100) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT1_OFFSET:0];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT1_OFFSET:0];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b1000;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT1_OFFSET:0];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1000;
+                end else begin
+                  $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                end
+              end
+            end
           end
-        end else begin
-          if(d2h_data_pkt[3].pending_data_slot == 'hf) begin
-            d2h_data_pkt[3].d2h_data_txn.data = data;
-            d2h_data_pkt[3].pending_data_slot = 'h0;
-          end else if(d2h_data_pkt[3].pending_data_slot == 'he) begin
-            d2h_data_pkt[3].d2h_data_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0];
-            d2h_data_pkt[3].pending_data_slot = 'h0;
-          end else if(d2h_data_pkt[3].pending_data_slot == 'hc) begin
-            d2h_data_pkt[3].d2h_data_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0];
-            d2h_data_pkt[3].pending_data_slot = 'h0;
-          end else if(d2h_data_pkt[3].pending_data_slot == 'h8) begin
-            d2h_data_pkt[3].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
-            d2h_data_pkt[3].pending_data_slot = 'h0;
-          end else begin
-            
+          2'b11:                                                                                                        
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'b1110) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT1_OFFSET:0];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'b1110) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT1_OFFSET:0];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b1100;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT1_OFFSET:0];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1100;
+                end else begin
+                  $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                end
+              end
+            end
           end
+          default: 
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+          end
+          endcase
         end
-      end
+        2'b01:
+        begin
+          d2h_posi_comp(d2h_data_pkt_iob, d2h_data_wr_ptr, cond);
+          case(cond)                                                    
+          2'b00:
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'b1110) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'b1110) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b1100;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1100;
+                end else begin
+                  if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'b1110) begin
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b1100;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
+          end
+          2'b01:
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.pend == 'b1000) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-4].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b0000;
+                end else begin
+                  if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'hf) begin
+                    d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                    d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b1110;
+                  end else begin
+                    if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'hf) begin
+                      d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                      d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b1110;
+                    end else begin
+                      if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+                        d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                        d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1110;
+                      end else begin
+                        if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'hf) begin
+                          d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                          d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b1110;
+                        end else begin
+                          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+          2'b10:                                                                                                        
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.pend == 'b1100) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-4].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1000;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b1000;
+                end else begin
+                  if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'b1000) begin
+                    d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                    d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b0000;
+                  end else begin
+                    if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+                      d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                      d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b0000;
+                    end else begin
+                      if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                        d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                        d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+                      end else begin
+                        if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                          d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                          d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b0000;
+                        end else begin
+                          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+          2'b11:
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.pend == 'b1110) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-4].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1100;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'b1110) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b1100;
+                end else begin
+                  if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'b1100) begin
+                    d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                    d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b1000;
+                  end else begin
+                    if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+                      d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                      d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b1000;
+                    end else begin
+                      if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                        d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                        d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1000;
+                      end else begin
+                        $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+          default:
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+          end
+          endcase
+        end
+        2'b10:
+        begin
+          d2h_posi_comp(d2h_data_pkt_iob, d2h_data_wr_ptr, cond);
+          case(cond)                                                    
+          2'b00:
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'b1100) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b1000;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1000;
+                end else begin
+                  if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b1000;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
+          end
+          2'b01:
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'b1110) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'b1110) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b1100;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1100;
+                end else begin
+                  if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'b1110) begin
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b1100;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
+          end
+          2'b10:
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.pend == 'b1000) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-4].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[511:SLOT3_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b0000;
+                end else begin
+                  if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'hf) begin
+                    d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                    d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b1110;
+                  end else begin
+                    if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'hf) begin
+                      d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                      d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b1110;
+                    end else begin
+                      if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+                        d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                        d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1110;
+                      end else begin
+                        if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'hf) begin
+                          d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                          d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b1110;
+                        end else begin
+                          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+          2'b11:
+          begin                                 
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.pend == 'b1100) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-4].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1000;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b1000;
+                end else begin
+                  if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'b1000) begin
+                    d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                    d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b0000;
+                  end else begin
+                    if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+                      d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                      d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b0000;
+                    end else begin
+                      if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                        d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                        d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+                      end else begin
+                        $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+          default:
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+          end
+          endcase
+        end
+        2'b11:
+        begin
+          d2h_posi_comp(d2h_data_pkt_iob, d2h_data_wr_ptr, cond);
+          case(cond)                                                    
+          2'b00:
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'b1000) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+                end else begin
+                  if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b0000;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
+          end
+          2'b01:
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'b1100) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[511:SLOT3_OFFSET];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[511:SLOT3_OFFSET];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b1000;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[511:SLOT3_OFFSET];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1000;
+                end else begin
+                  if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[511:SLOT3_OFFSET];
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b1000;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
+          end
+          2'b10:
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'b1110) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[511:SLOT3_OFFSET];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'b1110) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[511:SLOT3_OFFSET];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b1100;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[511:SLOT3_OFFSET];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1100;
+                end else begin
+                  if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'b1110) begin
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[511:SLOT3_OFFSET];
+                    d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b1100;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
+          end
+          2'b11:
+          begin
+            if(d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.pend == 'b1000) begin
+              d2h_data_pkt_iob[d2h_data_wr_ptr-4].d2h_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+              d2h_data_pkt_iob[d2h_data_wr_ptr-4].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                  d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                  d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend = 'b0000;
+                end else begin
+                  if(d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend == 'hf) begin
+                    d2h_data_pkt_iob[d2h_data_wr_ptr-3].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
+                    d2h_data_pkt_iob[d2h_data_wr_ptr-3].pending_data_slot.pend = 'b1110;
+                  end else begin
+                    if(d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend == 'hf) begin
+                      d2h_data_pkt_iob[d2h_data_wr_ptr-2].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
+                      d2h_data_pkt_iob[d2h_data_wr_ptr-2].pending_data_slot.pend = 'b1110;
+                    end else begin
+                      if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+                        d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
+                        d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1110;
+                      end else begin
+                        if(d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+                          d2h_data_pkt_iob[d2h_data_wr_ptr-1].d2h_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
+                          d2h_data_pkt_iob[d2h_data_wr_ptr-1].pending_data_slot.pend = 'b1110;
+                        end else begin
+                          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+          default: 
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+          end
+          endcase
+        end
+        default: begin
+          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+        end
+      endcase
     end
-    
+
   endfunction
   
   function automatic void generic1(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    ref d2h_req_txn_t d2h_req_txn[4],
-    ref d2h_rsp_txn_t d2h_rsp_txn[2]
+    ref d2h_req_txn_t d2h_req_txn_w[4],
+    ref d2h_rsp_txn_t d2h_rsp_txn_w[2]
   );
 
     if(slot_sel == 'h1) begin
-      d2h_req_txn[0].valid        = data[(SLOT1_OFFSET+0)];
-      d2h_req_txn[0].opcode       = d2h_req_opcode_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]);
-      d2h_req_txn[0].cqid         = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
-      d2h_req_txn[0].nt           = data[(SLOT1_OFFSET+18)];
-      d2h_req_txn[0].address      = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
-      d2h_rsp_txn[0].valid        = data[(SLOT1_OFFSET+79)];
-      d2h_rsp_txn[0].opcode       = d2h_rsp_opcode_t'(data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+80)]);
-      d2h_rsp_txn[0].uqid         = data[(SLOT1_OFFSET+96):(SLOT1_OFFSET+85)];
-      d2h_rsp_txn[1].valid        = data[(SLOT1_OFFSET+99)];
-      d2h_rsp_txn[1].opcode       = d2h_rsp_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+100)]);
-      d2h_rsp_txn[1].uqid         = data[(SLOT1_OFFSET+116):(SLOT1_OFFSET+105)];
+      d2h_req_txn_w[0].valid        = data[(SLOT1_OFFSET+0)];
+      d2h_req_txn_w[0].opcode       = d2h_req_opcode_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]);
+      d2h_req_txn_w[0].cqid         = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
+      d2h_req_txn_w[0].nt           = data[(SLOT1_OFFSET+18)];
+      d2h_req_txn_w[0].address      = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
+      d2h_rsp_txn_w[0].valid        = data[(SLOT1_OFFSET+79)];
+      d2h_rsp_txn_w[0].opcode       = d2h_rsp_opcode_t'(data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+80)]);
+      d2h_rsp_txn_w[0].uqid         = data[(SLOT1_OFFSET+96):(SLOT1_OFFSET+85)];
+      d2h_rsp_txn_w[1].valid        = data[(SLOT1_OFFSET+99)];
+      d2h_rsp_txn_w[1].opcode       = d2h_rsp_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+100)]);
+      d2h_rsp_txn_w[1].uqid         = data[(SLOT1_OFFSET+116):(SLOT1_OFFSET+105)];
     end else if(slot_sel == 'h2) begin
-      d2h_req_txn[0].valid        = data[(SLOT2_OFFSET+0)];
-      d2h_req_txn[0].opcode       = d2h_req_opcode_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]);
-      d2h_req_txn[0].cqid         = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
-      d2h_req_txn[0].nt           = data[(SLOT2_OFFSET+18)];
-      d2h_req_txn[0].address      = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
-      d2h_rsp_txn[0].valid        = data[(SLOT2_OFFSET+79)];
-      d2h_rsp_txn[0].opcode       = d2h_rsp_opcode_t'(data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+80)]);
-      d2h_rsp_txn[0].uqid         = data[(SLOT2_OFFSET+96):(SLOT2_OFFSET+85)];
-      d2h_rsp_txn[1].valid        = data[(SLOT2_OFFSET+99)];
-      d2h_rsp_txn[1].opcode       = d2h_rsp_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+100)]);
-      d2h_rsp_txn[1].uqid         = data[(SLOT2_OFFSET+116):(SLOT2_OFFSET+105)];
+      d2h_req_txn_w[0].valid        = data[(SLOT2_OFFSET+0)];
+      d2h_req_txn_w[0].opcode       = d2h_req_opcode_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]);
+      d2h_req_txn_w[0].cqid         = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
+      d2h_req_txn_w[0].nt           = data[(SLOT2_OFFSET+18)];
+      d2h_req_txn_w[0].address      = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
+      d2h_rsp_txn_w[0].valid        = data[(SLOT2_OFFSET+79)];
+      d2h_rsp_txn_w[0].opcode       = d2h_rsp_opcode_t'(data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+80)]);
+      d2h_rsp_txn_w[0].uqid         = data[(SLOT2_OFFSET+96):(SLOT2_OFFSET+85)];
+      d2h_rsp_txn_w[1].valid        = data[(SLOT2_OFFSET+99)];
+      d2h_rsp_txn_w[1].opcode       = d2h_rsp_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+100)]);
+      d2h_rsp_txn_w[1].uqid         = data[(SLOT2_OFFSET+116):(SLOT2_OFFSET+105)];
     end else if(slot_sel == 'h3) begin
-      d2h_req_txn[0].valid        = data[(SLOT3_OFFSET+0)];
-      d2h_req_txn[0].opcode       = d2h_req_opcode_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]);
-      d2h_req_txn[0].cqid         = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
-      d2h_req_txn[0].nt           = data[(SLOT3_OFFSET+18)];
-      d2h_req_txn[0].address      = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
-      d2h_rsp_txn[0].valid        = data[(SLOT3_OFFSET+79)];
-      d2h_rsp_txn[0].opcode       = d2h_rsp_opcode_t'(data[(SLOT3_OFFSET+84):(SLOT3_OFFSET+80)]);
-      d2h_rsp_txn[0].uqid         = data[(SLOT3_OFFSET+96):(SLOT3_OFFSET+85)];
-      d2h_rsp_txn[1].valid        = data[(SLOT3_OFFSET+99)];
-      d2h_rsp_txn[1].opcode       = d2h_rsp_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+100)]);
-      d2h_rsp_txn[1].uqid         = data[(SLOT3_OFFSET+116):(SLOT3_OFFSET+105)];
+      d2h_req_txn_w[0].valid        = data[(SLOT3_OFFSET+0)];
+      d2h_req_txn_w[0].opcode       = d2h_req_opcode_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]);
+      d2h_req_txn_w[0].cqid         = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
+      d2h_req_txn_w[0].nt           = data[(SLOT3_OFFSET+18)];
+      d2h_req_txn_w[0].address      = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
+      d2h_rsp_txn_w[0].valid        = data[(SLOT3_OFFSET+79)];
+      d2h_rsp_txn_w[0].opcode       = d2h_rsp_opcode_t'(data[(SLOT3_OFFSET+84):(SLOT3_OFFSET+80)]);
+      d2h_rsp_txn_w[0].uqid         = data[(SLOT3_OFFSET+96):(SLOT3_OFFSET+85)];
+      d2h_rsp_txn_w[1].valid        = data[(SLOT3_OFFSET+99)];
+      d2h_rsp_txn_w[1].opcode       = d2h_rsp_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+100)]);
+      d2h_rsp_txn_w[1].uqid         = data[(SLOT3_OFFSET+116):(SLOT3_OFFSET+105)];
     end else begin
-      d2h_req_txn[0].valid        = 'hX;
-      d2h_rsp_txn[0].valid        = 'hX;
-      d2h_rsp_txn[1].valid        = 'hX;
+      d2h_req_txn_w[0].valid        = 'hX;
+      d2h_rsp_txn_w[0].valid        = 'hX;
+      d2h_rsp_txn_w[1].valid        = 'hX;
     end
 
   endfunction
@@ -8330,60 +9353,76 @@ module host_rx_path #(
   function automatic void generic2(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    ref d2h_req_txn_t d2h_req_txn[4],
-    ref d2h_data_pkt_t d2h_data_pkt[4],
-    ref d2h_rsp_txn_t d2h_rsp_txn[2]
+    ref d2h_req_txn_t d2h_req_txn_w[4],
+    ref d2h_data_pkt_t d2h_data_pkt_iob[32],
+    ref bit [4:0] d2h_data_wr_ptr,
+    ref d2h_rsp_txn_t d2h_rsp_txn_w[2]
   );
+    bit [1:0] posi;
 
     if(slot_sel == 'h1) begin
-      d2h_req_txn[0].valid                    = data[(SLOT1_OFFSET+0)];
-      d2h_req_txn[0].opcode                   = d2h_req_opcode_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]);
-      d2h_req_txn[0].cqid                     = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
-      d2h_req_txn[0].nt                       = data[(SLOT1_OFFSET+18)];
-      d2h_req_txn[0].address                  = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
-      d2h_data_pkt[0].pending_data_slot       = 'hf;
-      d2h_data_pkt[0].d2h_data_txn.valid      = data[(SLOT1_OFFSET+79)];
-      d2h_data_pkt[0].d2h_data_txn.uqid       = data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+80)];
-      d2h_data_pkt[0].d2h_data_txn.chunkvalid = data[(SLOT1_OFFSET+92)];
-      d2h_data_pkt[0].d2h_data_txn.bogus      = data[(SLOT1_OFFSET+93)];
-      d2h_data_pkt[0].d2h_data_txn.poison     = data[(SLOT1_OFFSET+94)];
-      d2h_rsp_txn[0].valid                    = data[(SLOT1_OFFSET+96)];
-      d2h_rsp_txn[0].opcode                   = d2h_rsp_opcode_t'(data[(SLOT1_OFFSET+101):(SLOT1_OFFSET+97)]);
-      d2h_rsp_txn[0].uqid                     = data[(SLOT1_OFFSET+113):(SLOT1_OFFSET+102)];
+      d2h_req_txn_w[0].valid                                               = data[(SLOT1_OFFSET+0)];
+      d2h_req_txn_w[0].opcode                                              = d2h_req_opcode_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]);
+      d2h_req_txn_w[0].cqid                                                = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
+      d2h_req_txn_w[0].nt                                                  = data[(SLOT1_OFFSET+18)];
+      d2h_req_txn_w[0].address                                             = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
+      if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b11;
+      else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1100) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b00;
+      else posi = 2'b10;
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT1_OFFSET+79)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+80)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT1_OFFSET+92)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT1_OFFSET+93)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT1_OFFSET+94)];
+      d2h_rsp_txn_w[0].valid                                               = data[(SLOT1_OFFSET+96)];
+      d2h_rsp_txn_w[0].opcode                                              = d2h_rsp_opcode_t'(data[(SLOT1_OFFSET+101):(SLOT1_OFFSET+97)]);
+      d2h_rsp_txn_w[0].uqid                                                = data[(SLOT1_OFFSET+113):(SLOT1_OFFSET+102)];
     end else if(slot_sel == 'h2) begin
-      d2h_req_txn[0].valid                    = data[(SLOT2_OFFSET+0)];
-      d2h_req_txn[0].opcode                   = d2h_req_opcode_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]);
-      d2h_req_txn[0].cqid                     = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
-      d2h_req_txn[0].nt                       = data[(SLOT2_OFFSET+18)];
-      d2h_req_txn[0].address                  = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
-      d2h_data_pkt[0].pending_data_slot       = 'hf;
-      d2h_data_pkt[0].d2h_data_txn.valid      = data[(SLOT2_OFFSET+79)];
-      d2h_data_pkt[0].d2h_data_txn.uqid       = data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+80)];
-      d2h_data_pkt[0].d2h_data_txn.chunkvalid = data[(SLOT2_OFFSET+92)];
-      d2h_data_pkt[0].d2h_data_txn.bogus      = data[(SLOT2_OFFSET+93)];
-      d2h_data_pkt[0].d2h_data_txn.poison     = data[(SLOT2_OFFSET+94)];
-      d2h_rsp_txn[0].valid                    = data[(SLOT2_OFFSET+96)];
-      d2h_rsp_txn[0].opcode                   = d2h_rsp_opcode_t'(data[(SLOT2_OFFSET+101):(SLOT2_OFFSET+97)]);
-      d2h_rsp_txn[0].uqid                     = data[(SLOT2_OFFSET+113):(SLOT2_OFFSET+102)];
+      d2h_req_txn_w[0].valid                                               = data[(SLOT2_OFFSET+0)];
+      d2h_req_txn_w[0].opcode                                              = d2h_req_opcode_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]);
+      d2h_req_txn_w[0].cqid                                                = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
+      d2h_req_txn_w[0].nt                                                  = data[(SLOT2_OFFSET+18)];
+      d2h_req_txn_w[0].address                                             = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
+      if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b00;
+      else posi = 2'b11;
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT2_OFFSET+79)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+80)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT2_OFFSET+92)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT2_OFFSET+93)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT2_OFFSET+94)];
+      d2h_rsp_txn_w[0].valid                                               = data[(SLOT2_OFFSET+96)];
+      d2h_rsp_txn_w[0].opcode                                              = d2h_rsp_opcode_t'(data[(SLOT2_OFFSET+101):(SLOT2_OFFSET+97)]);
+      d2h_rsp_txn_w[0].uqid                                                = data[(SLOT2_OFFSET+113):(SLOT2_OFFSET+102)];
     end else if(slot_sel == 'h3) begin
-      d2h_req_txn[0].valid                    = data[(SLOT3_OFFSET+0)];
-      d2h_req_txn[0].opcode                   = d2h_req_opcode_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]);
-      d2h_req_txn[0].cqid                     = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
-      d2h_req_txn[0].nt                       = data[(SLOT3_OFFSET+18)];
-      d2h_req_txn[0].address                  = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
-      d2h_data_pkt[0].pending_data_slot       = 'hf;
-      d2h_data_pkt[0].d2h_data_txn.valid      = data[(SLOT3_OFFSET+79)];
-      d2h_data_pkt[0].d2h_data_txn.uqid       = data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+80)];
-      d2h_data_pkt[0].d2h_data_txn.chunkvalid = data[(SLOT3_OFFSET+92)];
-      d2h_data_pkt[0].d2h_data_txn.bogus      = data[(SLOT3_OFFSET+93)];
-      d2h_data_pkt[0].d2h_data_txn.poison     = data[(SLOT3_OFFSET+94)];
-      d2h_rsp_txn[0].valid                    = data[(SLOT3_OFFSET+96)];
-      d2h_rsp_txn[0].opcode                   = d2h_rsp_opcode_t'(data[(SLOT3_OFFSET+101):(SLOT3_OFFSET+97)]);
-      d2h_rsp_txn[0].uqid                     = data[(SLOT3_OFFSET+113):(SLOT3_OFFSET+102)];
+      d2h_req_txn_w[0].valid                                               = data[(SLOT3_OFFSET+0)];
+      d2h_req_txn_w[0].opcode                                              = d2h_req_opcode_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]);
+      d2h_req_txn_w[0].cqid                                                = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
+      d2h_req_txn_w[0].nt                                                  = data[(SLOT3_OFFSET+18)];
+      d2h_req_txn_w[0].address                                             = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = 'h0;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT3_OFFSET+79)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+80)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT3_OFFSET+92)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT3_OFFSET+93)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT3_OFFSET+94)];
+      d2h_rsp_txn_w[0].valid                                               = data[(SLOT3_OFFSET+96)];
+      d2h_rsp_txn_w[0].opcode                                              = d2h_rsp_opcode_t'(data[(SLOT3_OFFSET+101):(SLOT3_OFFSET+97)]);
+      d2h_rsp_txn_w[0].uqid                                                = data[(SLOT3_OFFSET+113):(SLOT3_OFFSET+102)];
     end else begin
-      d2h_req_txn[0].valid                    = 'hX;
-      d2h_data_pkt[0].d2h_data_txn.valid      = 'hX;
-      d2h_rsp_txn[0].valid                    = 'hX;
+      d2h_req_txn_w[0].valid                                               = 'hX;
+      d2h_data_pkt_iob[0].d2h_data_txn.valid                               = 'hX;
+      d2h_rsp_txn_w[0].valid                                               = 'hX;
     end
 
   endfunction
@@ -8391,89 +9430,133 @@ module host_rx_path #(
   function automatic void generic3(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    ref d2h_data_pkt_t d2h_data_pkt[4]
+    ref d2h_data_pkt_t d2h_data_pkt_iob[32],
+    ref bit [4:0] d2h_data_wr_ptr
   );
+    bit [1:0] posi;
 
     if(slot_sel == 'h1) begin      
-      d2h_data_pkt[0].pending_data_slot         = 'hf;
-      d2h_data_pkt[0].d2h_data_txn.valid        = data[(SLOT1_OFFSET+0)];
-      d2h_data_pkt[0].d2h_data_txn.uqid         = data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)];
-      d2h_data_pkt[0].d2h_data_txn.chunkvalid   = data[(SLOT1_OFFSET+13)];
-      d2h_data_pkt[0].d2h_data_txn.bogus        = data[(SLOT1_OFFSET+14)];
-      d2h_data_pkt[0].d2h_data_txn.poison       = data[(SLOT1_OFFSET+15)];
-      d2h_data_pkt[1].pending_data_slot         = 'hf;
-      d2h_data_pkt[1].d2h_data_txn.valid        = data[(SLOT1_OFFSET+17)];
-      d2h_data_pkt[1].d2h_data_txn.uqid         = data[(SLOT1_OFFSET+29):(SLOT1_OFFSET+18)];
-      d2h_data_pkt[1].d2h_data_txn.chunkvalid   = data[(SLOT1_OFFSET+30)];
-      d2h_data_pkt[1].d2h_data_txn.bogus        = data[(SLOT1_OFFSET+31)];
-      d2h_data_pkt[1].d2h_data_txn.poison       = data[(SLOT1_OFFSET+32)];
-      d2h_data_pkt[2].pending_data_slot         = 'hf;
-      d2h_data_pkt[2].d2h_data_txn.valid        = data[(SLOT1_OFFSET+34)];
-      d2h_data_pkt[2].d2h_data_txn.uqid         = data[(SLOT1_OFFSET+46):(SLOT1_OFFSET+35)];
-      d2h_data_pkt[2].d2h_data_txn.chunkvalid   = data[(SLOT1_OFFSET+47)];
-      d2h_data_pkt[2].d2h_data_txn.bogus        = data[(SLOT1_OFFSET+48)];
-      d2h_data_pkt[2].d2h_data_txn.poison       = data[(SLOT1_OFFSET+49)];
-      d2h_data_pkt[3].pending_data_slot         = 'hf;
-      d2h_data_pkt[3].d2h_data_txn.valid        = data[(SLOT1_OFFSET+51)];
-      d2h_data_pkt[3].d2h_data_txn.uqid         = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+52)];
-      d2h_data_pkt[3].d2h_data_txn.chunkvalid   = data[(SLOT1_OFFSET+64)];
-      d2h_data_pkt[3].d2h_data_txn.bogus        = data[(SLOT1_OFFSET+65)];
-      d2h_data_pkt[3].d2h_data_txn.poison       = data[(SLOT1_OFFSET+66)];
+      if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b11;
+      else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1100) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b00;
+      else posi = 2'b10;
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT1_OFFSET+0)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT1_OFFSET+13)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT1_OFFSET+14)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT1_OFFSET+15)];
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT1_OFFSET+17)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT1_OFFSET+29):(SLOT1_OFFSET+18)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT1_OFFSET+30)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT1_OFFSET+31)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT1_OFFSET+32)];
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT1_OFFSET+34)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT1_OFFSET+46):(SLOT1_OFFSET+35)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT1_OFFSET+47)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT1_OFFSET+48)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT1_OFFSET+49)];
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT1_OFFSET+51)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+52)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT1_OFFSET+64)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT1_OFFSET+65)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT1_OFFSET+66)];
     end else if(slot_sel == 'h2) begin
-      d2h_data_pkt[0].pending_data_slot         = 'hf;
-      d2h_data_pkt[0].d2h_data_txn.valid        = data[(SLOT2_OFFSET+0)];
-      d2h_data_pkt[0].d2h_data_txn.uqid         = data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)];
-      d2h_data_pkt[0].d2h_data_txn.chunkvalid   = data[(SLOT2_OFFSET+13)];
-      d2h_data_pkt[0].d2h_data_txn.bogus        = data[(SLOT2_OFFSET+14)];
-      d2h_data_pkt[0].d2h_data_txn.poison       = data[(SLOT2_OFFSET+15)];
-      d2h_data_pkt[1].pending_data_slot         = 'hf;
-      d2h_data_pkt[1].d2h_data_txn.valid        = data[(SLOT2_OFFSET+17)];
-      d2h_data_pkt[1].d2h_data_txn.uqid         = data[(SLOT2_OFFSET+29):(SLOT2_OFFSET+18)];
-      d2h_data_pkt[1].d2h_data_txn.chunkvalid   = data[(SLOT2_OFFSET+30)];
-      d2h_data_pkt[1].d2h_data_txn.bogus        = data[(SLOT2_OFFSET+31)];
-      d2h_data_pkt[1].d2h_data_txn.poison       = data[(SLOT2_OFFSET+32)];
-      d2h_data_pkt[2].pending_data_slot         = 'hf;
-      d2h_data_pkt[2].d2h_data_txn.valid        = data[(SLOT2_OFFSET+34)];
-      d2h_data_pkt[2].d2h_data_txn.uqid         = data[(SLOT2_OFFSET+46):(SLOT2_OFFSET+35)];
-      d2h_data_pkt[2].d2h_data_txn.chunkvalid   = data[(SLOT2_OFFSET+47)];
-      d2h_data_pkt[2].d2h_data_txn.bogus        = data[(SLOT2_OFFSET+48)];
-      d2h_data_pkt[2].d2h_data_txn.poison       = data[(SLOT2_OFFSET+49)];
-      d2h_data_pkt[3].pending_data_slot         = 'hf;
-      d2h_data_pkt[3].d2h_data_txn.valid        = data[(SLOT2_OFFSET+51)];
-      d2h_data_pkt[3].d2h_data_txn.uqid         = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+52)];
-      d2h_data_pkt[3].d2h_data_txn.chunkvalid   = data[(SLOT2_OFFSET+64)];
-      d2h_data_pkt[3].d2h_data_txn.bogus        = data[(SLOT2_OFFSET+65)];
-      d2h_data_pkt[3].d2h_data_txn.poison       = data[(SLOT2_OFFSET+66)];
+      if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b00;
+      else posi = 2'b11;
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT2_OFFSET+0)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT2_OFFSET+13)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT2_OFFSET+14)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT2_OFFSET+15)];
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT2_OFFSET+17)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT2_OFFSET+29):(SLOT2_OFFSET+18)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT2_OFFSET+30)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT2_OFFSET+31)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT2_OFFSET+32)];
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT2_OFFSET+34)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT2_OFFSET+46):(SLOT2_OFFSET+35)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT2_OFFSET+47)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT2_OFFSET+48)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT2_OFFSET+49)];
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT2_OFFSET+51)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+52)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT2_OFFSET+64)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT2_OFFSET+65)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT2_OFFSET+66)];
     end else if(slot_sel == 'h3) begin
-      d2h_data_pkt[0].pending_data_slot         = 'hf;
-      d2h_data_pkt[0].d2h_data_txn.valid        = data[(SLOT3_OFFSET+0)];
-      d2h_data_pkt[0].d2h_data_txn.uqid         = data[(SLOT3_OFFSET+12):(SLOT3_OFFSET+1)];
-      d2h_data_pkt[0].d2h_data_txn.chunkvalid   = data[(SLOT3_OFFSET+13)];
-      d2h_data_pkt[0].d2h_data_txn.bogus        = data[(SLOT3_OFFSET+14)];
-      d2h_data_pkt[0].d2h_data_txn.poison       = data[(SLOT3_OFFSET+15)];
-      d2h_data_pkt[1].pending_data_slot         = 'hf;
-      d2h_data_pkt[1].d2h_data_txn.valid        = data[(SLOT3_OFFSET+17)];
-      d2h_data_pkt[1].d2h_data_txn.uqid         = data[(SLOT3_OFFSET+29):(SLOT3_OFFSET+18)];
-      d2h_data_pkt[1].d2h_data_txn.chunkvalid   = data[(SLOT3_OFFSET+30)];
-      d2h_data_pkt[1].d2h_data_txn.bogus        = data[(SLOT3_OFFSET+31)];
-      d2h_data_pkt[1].d2h_data_txn.poison       = data[(SLOT3_OFFSET+32)];
-      d2h_data_pkt[2].pending_data_slot         = 'hf;
-      d2h_data_pkt[2].d2h_data_txn.valid        = data[(SLOT3_OFFSET+34)];
-      d2h_data_pkt[2].d2h_data_txn.uqid         = data[(SLOT3_OFFSET+46):(SLOT3_OFFSET+35)];
-      d2h_data_pkt[2].d2h_data_txn.chunkvalid   = data[(SLOT3_OFFSET+47)];
-      d2h_data_pkt[2].d2h_data_txn.bogus        = data[(SLOT3_OFFSET+48)];
-      d2h_data_pkt[2].d2h_data_txn.poison       = data[(SLOT3_OFFSET+49)];
-      d2h_data_pkt[3].pending_data_slot         = 'hf;
-      d2h_data_pkt[3].d2h_data_txn.valid        = data[(SLOT3_OFFSET+51)];
-      d2h_data_pkt[3].d2h_data_txn.uqid         = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+52)];
-      d2h_data_pkt[3].d2h_data_txn.chunkvalid   = data[(SLOT3_OFFSET+64)];
-      d2h_data_pkt[3].d2h_data_txn.bogus        = data[(SLOT3_OFFSET+65)];
-      d2h_data_pkt[3].d2h_data_txn.poison       = data[(SLOT3_OFFSET+66)];
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = 'h0;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT3_OFFSET+0)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT3_OFFSET+12):(SLOT3_OFFSET+1)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT3_OFFSET+13)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT3_OFFSET+14)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT3_OFFSET+15)];
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = 'h0;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT3_OFFSET+17)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT3_OFFSET+29):(SLOT3_OFFSET+18)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT3_OFFSET+30)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT3_OFFSET+31)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT3_OFFSET+32)];
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = 'h0;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT3_OFFSET+34)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT3_OFFSET+46):(SLOT3_OFFSET+35)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT3_OFFSET+47)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT3_OFFSET+48)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT3_OFFSET+49)];
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = 'h0;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.valid            = 'h1;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = data[(SLOT3_OFFSET+51)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.uqid                  = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+52)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.chunkvalid            = data[(SLOT3_OFFSET+64)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.bogus                 = data[(SLOT3_OFFSET+65)];
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.poison                = data[(SLOT3_OFFSET+66)];
     end else begin
-      d2h_data_pkt[0].d2h_data_txn.valid        = 'hX;
-      d2h_data_pkt[1].d2h_data_txn.valid        = 'hX;
-      d2h_data_pkt[2].d2h_data_txn.valid        = 'hX;
-      d2h_data_pkt[3].d2h_data_txn.valid        = 'hX;
+      d2h_data_wr_ptr++;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = 'hX;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = 'hX;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = 'hX;
+      d2h_data_pkt_iob[d2h_data_wr_ptr].d2h_data_txn.valid                 = 'hX;
     end
 
   endfunction
@@ -8481,68 +9564,85 @@ module host_rx_path #(
   function automatic void generic4(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    ref s2m_drs_pkt_t s2m_drs_pkt[3],
-    ref s2m_ndr_txn_t s2m_ndr_txn[3]
+    ref s2m_drs_pkt_t s2m_drs_pkt_iob[32],
+    ref bit [4:0] s2m_drs_wr_ptr,
+    ref s2m_ndr_txn_t s2m_ndr_txn_w[3]
   );
+    bit [1:0] posi;
 
     if(slot_sel == 'h1) begin
-      s2m_drs_pkt[0].pending_data_slot     = 'hf;
-      s2m_drs_pkt[0].s2m_drs_txn.valid     = data[(SLOT1_OFFSET+0)];
-      s2m_drs_pkt[0].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
-      s2m_drs_pkt[0].s2m_drs_txn.metafield = metafield_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]);
-      s2m_drs_pkt[0].s2m_drs_txn.metavalue = metavalue_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]);
-      s2m_drs_pkt[0].s2m_drs_txn.tag       = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
-      s2m_drs_pkt[0].s2m_drs_txn.poison    = data[(SLOT1_OFFSET+24)];
-      s2m_ndr_txn[0].valid                 = data[(SLOT1_OFFSET+40)];
-      s2m_ndr_txn[0].opcode                = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]);
-      s2m_ndr_txn[0].metafield             = metafield_t'(data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]);
-      s2m_ndr_txn[0].metavalue             = metavalue_t'(data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]);
-      s2m_ndr_txn[0].tag                   = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)];
-      s2m_ndr_txn[1].valid                 = data[(SLOT1_OFFSET+68)];
-      s2m_ndr_txn[1].opcode                = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+69)]);
-      s2m_ndr_txn[1].metafield             = metafield_t'(data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+72)]);
-      s2m_ndr_txn[1].metavalue             = metavalue_t'(data[(SLOT1_OFFSET+75):(SLOT1_OFFSET+74)]);
-      s2m_ndr_txn[1].tag                   = data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+76)];
+      if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b11;
+      else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1100) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b00;
+      else posi = 2'b10;
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend             = 'hf;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid            = 'h1;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = data[(SLOT1_OFFSET+0)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                 = s2m_drs_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield              = metafield_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue              = metavalue_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                    = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                 = data[(SLOT1_OFFSET+24)];
+      s2m_ndr_txn_w[0].valid                                             = data[(SLOT1_OFFSET+40)];
+      s2m_ndr_txn_w[0].opcode                                            = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]);
+      s2m_ndr_txn_w[0].metafield                                         = metafield_t'(data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]);
+      s2m_ndr_txn_w[0].metavalue                                         = metavalue_t'(data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]);
+      s2m_ndr_txn_w[0].tag                                               = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)];
+      s2m_ndr_txn_w[1].valid                                             = data[(SLOT1_OFFSET+68)];
+      s2m_ndr_txn_w[1].opcode                                            = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+69)]);
+      s2m_ndr_txn_w[1].metafield                                         = metafield_t'(data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+72)]);
+      s2m_ndr_txn_w[1].metavalue                                         = metavalue_t'(data[(SLOT1_OFFSET+75):(SLOT1_OFFSET+74)]);
+      s2m_ndr_txn_w[1].tag                                               = data[(SLOT1_OFFSET+91):(SLOT1_OFFSET+76)];
     end else if(slot_sel == 'h2) begin
-      s2m_drs_pkt[0].pending_data_slot     = 'hf;
-      s2m_drs_pkt[0].s2m_drs_txn.valid     = data[(SLOT2_OFFSET+0)];
-      s2m_drs_pkt[0].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
-      s2m_drs_pkt[0].s2m_drs_txn.metafield = metafield_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]);
-      s2m_drs_pkt[0].s2m_drs_txn.metavalue = metavalue_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]);
-      s2m_drs_pkt[0].s2m_drs_txn.tag       = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
-      s2m_drs_pkt[0].s2m_drs_txn.poison    = data[(SLOT2_OFFSET+24)];
-      s2m_ndr_txn[0].valid                 = data[(SLOT2_OFFSET+40)];
-      s2m_ndr_txn[0].opcode                = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]);
-      s2m_ndr_txn[0].metafield             = metafield_t'(data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)]);
-      s2m_ndr_txn[0].metavalue             = metavalue_t'(data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)]);
-      s2m_ndr_txn[0].tag                   = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)];
-      s2m_ndr_txn[1].valid                 = data[(SLOT2_OFFSET+68)];
-      s2m_ndr_txn[1].opcode                = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+69)]);
-      s2m_ndr_txn[1].metafield             = metafield_t'(data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+72)]);
-      s2m_ndr_txn[1].metavalue             = metavalue_t'(data[(SLOT2_OFFSET+75):(SLOT2_OFFSET+74)]);
-      s2m_ndr_txn[1].tag                   = data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+76)];
+      if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b00;
+      else posi = 2'b11;
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend             = 'hf;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid            = 'h1;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = data[(SLOT2_OFFSET+0)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                 = s2m_drs_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield              = metafield_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue              = metavalue_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                    = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                 = data[(SLOT2_OFFSET+24)];
+      s2m_ndr_txn_w[0].valid                                             = data[(SLOT2_OFFSET+40)];
+      s2m_ndr_txn_w[0].opcode                                            = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]);
+      s2m_ndr_txn_w[0].metafield                                         = metafield_t'(data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)]);
+      s2m_ndr_txn_w[0].metavalue                                         = metavalue_t'(data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)]);
+      s2m_ndr_txn_w[0].tag                                               = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)];
+      s2m_ndr_txn_w[1].valid                                             = data[(SLOT2_OFFSET+68)];
+      s2m_ndr_txn_w[1].opcode                                            = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+69)]);
+      s2m_ndr_txn_w[1].metafield                                         = metafield_t'(data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+72)]);
+      s2m_ndr_txn_w[1].metavalue                                         = metavalue_t'(data[(SLOT2_OFFSET+75):(SLOT2_OFFSET+74)]);
+      s2m_ndr_txn_w[1].tag                                               = data[(SLOT2_OFFSET+91):(SLOT2_OFFSET+76)];
     end else if(slot_sel == 'h3) begin
-      s2m_drs_pkt[0].pending_data_slot     = 'hf;
-      s2m_drs_pkt[0].s2m_drs_txn.valid     = data[(SLOT3_OFFSET+0)];
-      s2m_drs_pkt[0].s2m_drs_txn.opcode    = s2m_drs_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
-      s2m_drs_pkt[0].s2m_drs_txn.metafield = metafield_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]);
-      s2m_drs_pkt[0].s2m_drs_txn.metavalue = metavalue_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]);
-      s2m_drs_pkt[0].s2m_drs_txn.tag       = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
-      s2m_drs_pkt[0].s2m_drs_txn.poison    = data[(SLOT3_OFFSET+24)];
-      s2m_ndr_txn[0].valid                 = data[(SLOT3_OFFSET+40)];
-      s2m_ndr_txn[0].opcode                = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]);
-      s2m_ndr_txn[0].metafield             = metafield_t'(data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)]);
-      s2m_ndr_txn[0].metavalue             = metavalue_t'(data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)]);
-      s2m_ndr_txn[0].tag                   = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)];
-      s2m_ndr_txn[1].valid                 = data[(SLOT3_OFFSET+68)];
-      s2m_ndr_txn[1].opcode                = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+69)]);
-      s2m_ndr_txn[1].metafield             = metafield_t'(data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+72)]);
-      s2m_ndr_txn[1].metavalue             = metavalue_t'(data[(SLOT3_OFFSET+75):(SLOT3_OFFSET+74)]);
-      s2m_ndr_txn[1].tag                   = data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+76)];
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi = 'h0;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend             = 'hf;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid            = 'h1;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = data[(SLOT3_OFFSET+0)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                 = s2m_drs_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield              = metafield_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue              = metavalue_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                    = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                 = data[(SLOT3_OFFSET+24)];
+      s2m_ndr_txn_w[0].valid                                             = data[(SLOT3_OFFSET+40)];
+      s2m_ndr_txn_w[0].opcode                                            = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]);
+      s2m_ndr_txn_w[0].metafield                                         = metafield_t'(data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)]);
+      s2m_ndr_txn_w[0].metavalue                                         = metavalue_t'(data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)]);
+      s2m_ndr_txn_w[0].tag                                               = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)];
+      s2m_ndr_txn_w[1].valid                                             = data[(SLOT3_OFFSET+68)];
+      s2m_ndr_txn_w[1].opcode                                            = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+69)]);
+      s2m_ndr_txn_w[1].metafield                                         = metafield_t'(data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+72)]);
+      s2m_ndr_txn_w[1].metavalue                                         = metavalue_t'(data[(SLOT3_OFFSET+75):(SLOT3_OFFSET+74)]);
+      s2m_ndr_txn_w[1].tag                                               = data[(SLOT3_OFFSET+91):(SLOT3_OFFSET+76)];
     end else begin
-      s2m_drs_pkt[0].s2m_drs_txn.valid     = 'hX;
-      s2m_ndr_txn[0].valid                 = 'hX;
-      s2m_ndr_txn[1].valid                 = 'hX;
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = 'hX;
+      s2m_ndr_txn_w[0].valid                                             = 'hX;
+      s2m_ndr_txn_w[1].valid                                             = 'hX;
     end
 
   endfunction
@@ -8550,61 +9650,61 @@ module host_rx_path #(
   function automatic void generic5(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    ref s2m_ndr_txn_t s2m_ndr_txn[3]
+    ref s2m_ndr_txn_t s2m_ndr_txn_w[3]
   );
 
     if(slot_sel == 'h1) begin
-      s2m_ndr_txn[0].valid        = data[(SLOT1_OFFSET+0)];
-      s2m_ndr_txn[0].opcode       = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
-      s2m_ndr_txn[0].metafield    = metafield_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]);
-      s2m_ndr_txn[0].metavalue    = metavalue_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]);
-      s2m_ndr_txn[0].tag          = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
-      s2m_ndr_txn[1].valid        = data[(SLOT1_OFFSET+28)];
-      s2m_ndr_txn[1].opcode       = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+31):(SLOT1_OFFSET+29)]);
-      s2m_ndr_txn[1].metafield    = metafield_t'(data[(SLOT1_OFFSET+33):(SLOT1_OFFSET+32)]);
-      s2m_ndr_txn[1].metavalue    = metavalue_t'(data[(SLOT1_OFFSET+35):(SLOT1_OFFSET+34)]);
-      s2m_ndr_txn[1].tag          = data[(SLOT1_OFFSET+51):(SLOT1_OFFSET+36)];
-      s2m_ndr_txn[2].valid        = data[(SLOT1_OFFSET+56)];
-      s2m_ndr_txn[2].opcode       = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)]);
-      s2m_ndr_txn[2].metafield    = metafield_t'(data[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)]);
-      s2m_ndr_txn[2].metavalue    = metavalue_t'(data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]);
-      s2m_ndr_txn[2].tag          = data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+64)];
+      s2m_ndr_txn_w[0].valid        = data[(SLOT1_OFFSET+0)];
+      s2m_ndr_txn_w[0].opcode       = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
+      s2m_ndr_txn_w[0].metafield    = metafield_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]);
+      s2m_ndr_txn_w[0].metavalue    = metavalue_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]);
+      s2m_ndr_txn_w[0].tag          = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
+      s2m_ndr_txn_w[1].valid        = data[(SLOT1_OFFSET+28)];
+      s2m_ndr_txn_w[1].opcode       = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+31):(SLOT1_OFFSET+29)]);
+      s2m_ndr_txn_w[1].metafield    = metafield_t'(data[(SLOT1_OFFSET+33):(SLOT1_OFFSET+32)]);
+      s2m_ndr_txn_w[1].metavalue    = metavalue_t'(data[(SLOT1_OFFSET+35):(SLOT1_OFFSET+34)]);
+      s2m_ndr_txn_w[1].tag          = data[(SLOT1_OFFSET+51):(SLOT1_OFFSET+36)];
+      s2m_ndr_txn_w[2].valid        = data[(SLOT1_OFFSET+56)];
+      s2m_ndr_txn_w[2].opcode       = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)]);
+      s2m_ndr_txn_w[2].metafield    = metafield_t'(data[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)]);
+      s2m_ndr_txn_w[2].metavalue    = metavalue_t'(data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]);
+      s2m_ndr_txn_w[2].tag          = data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+64)];
     end else if(slot_sel == 'h2) begin
-      s2m_ndr_txn[0].valid        = data[(SLOT2_OFFSET+0)];
-      s2m_ndr_txn[0].opcode       = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
-      s2m_ndr_txn[0].metafield    = metafield_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]);
-      s2m_ndr_txn[0].metavalue    = metavalue_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]);
-      s2m_ndr_txn[0].tag          = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
-      s2m_ndr_txn[1].valid        = data[(SLOT2_OFFSET+28)];
-      s2m_ndr_txn[1].opcode       = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+31):(SLOT2_OFFSET+29)]);
-      s2m_ndr_txn[1].metafield    = metafield_t'(data[(SLOT2_OFFSET+33):(SLOT2_OFFSET+32)]);
-      s2m_ndr_txn[1].metavalue    = metavalue_t'(data[(SLOT2_OFFSET+35):(SLOT2_OFFSET+34)]);
-      s2m_ndr_txn[1].tag          = data[(SLOT2_OFFSET+51):(SLOT2_OFFSET+36)];
-      s2m_ndr_txn[2].valid        = data[(SLOT2_OFFSET+56)];
-      s2m_ndr_txn[2].opcode       = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+59):(SLOT2_OFFSET+57)]);
-      s2m_ndr_txn[2].metafield    = metafield_t'(data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+60)]);
-      s2m_ndr_txn[2].metavalue    = metavalue_t'(data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)]);
-      s2m_ndr_txn[2].tag          = data[(SLOT2_OFFSET+79):(SLOT2_OFFSET+64)];
+      s2m_ndr_txn_w[0].valid        = data[(SLOT2_OFFSET+0)];
+      s2m_ndr_txn_w[0].opcode       = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
+      s2m_ndr_txn_w[0].metafield    = metafield_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]);
+      s2m_ndr_txn_w[0].metavalue    = metavalue_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]);
+      s2m_ndr_txn_w[0].tag          = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
+      s2m_ndr_txn_w[1].valid        = data[(SLOT2_OFFSET+28)];
+      s2m_ndr_txn_w[1].opcode       = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+31):(SLOT2_OFFSET+29)]);
+      s2m_ndr_txn_w[1].metafield    = metafield_t'(data[(SLOT2_OFFSET+33):(SLOT2_OFFSET+32)]);
+      s2m_ndr_txn_w[1].metavalue    = metavalue_t'(data[(SLOT2_OFFSET+35):(SLOT2_OFFSET+34)]);
+      s2m_ndr_txn_w[1].tag          = data[(SLOT2_OFFSET+51):(SLOT2_OFFSET+36)];
+      s2m_ndr_txn_w[2].valid        = data[(SLOT2_OFFSET+56)];
+      s2m_ndr_txn_w[2].opcode       = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+59):(SLOT2_OFFSET+57)]);
+      s2m_ndr_txn_w[2].metafield    = metafield_t'(data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+60)]);
+      s2m_ndr_txn_w[2].metavalue    = metavalue_t'(data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)]);
+      s2m_ndr_txn_w[2].tag          = data[(SLOT2_OFFSET+79):(SLOT2_OFFSET+64)];
     end else if(slot_sel == 'h3) begin
-      s2m_ndr_txn[0].valid        = data[(SLOT3_OFFSET+0)];
-      s2m_ndr_txn[0].opcode       = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
-      s2m_ndr_txn[0].metafield    = metafield_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]);
-      s2m_ndr_txn[0].metavalue    = metavalue_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]);
-      s2m_ndr_txn[0].tag          = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
-      s2m_ndr_txn[1].valid        = data[(SLOT3_OFFSET+28)];
-      s2m_ndr_txn[1].opcode       = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+31):(SLOT3_OFFSET+29)]);
-      s2m_ndr_txn[1].metafield    = metafield_t'(data[(SLOT3_OFFSET+33):(SLOT3_OFFSET+32)]);
-      s2m_ndr_txn[1].metavalue    = metavalue_t'(data[(SLOT3_OFFSET+35):(SLOT3_OFFSET+34)]);
-      s2m_ndr_txn[1].tag          = data[(SLOT3_OFFSET+51):(SLOT3_OFFSET+36)];
-      s2m_ndr_txn[2].valid        = data[(SLOT3_OFFSET+56)];
-      s2m_ndr_txn[2].opcode       = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+59):(SLOT3_OFFSET+57)]);
-      s2m_ndr_txn[2].metafield    = metafield_t'(data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+60)]);
-      s2m_ndr_txn[2].metavalue    = metavalue_t'(data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)]);
-      s2m_ndr_txn[2].tag          = data[(SLOT3_OFFSET+79):(SLOT3_OFFSET+64)];
+      s2m_ndr_txn_w[0].valid        = data[(SLOT3_OFFSET+0)];
+      s2m_ndr_txn_w[0].opcode       = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
+      s2m_ndr_txn_w[0].metafield    = metafield_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]);
+      s2m_ndr_txn_w[0].metavalue    = metavalue_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]);
+      s2m_ndr_txn_w[0].tag          = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
+      s2m_ndr_txn_w[1].valid        = data[(SLOT3_OFFSET+28)];
+      s2m_ndr_txn_w[1].opcode       = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+31):(SLOT3_OFFSET+29)]);
+      s2m_ndr_txn_w[1].metafield    = metafield_t'(data[(SLOT3_OFFSET+33):(SLOT3_OFFSET+32)]);
+      s2m_ndr_txn_w[1].metavalue    = metavalue_t'(data[(SLOT3_OFFSET+35):(SLOT3_OFFSET+34)]);
+      s2m_ndr_txn_w[1].tag          = data[(SLOT3_OFFSET+51):(SLOT3_OFFSET+36)];
+      s2m_ndr_txn_w[2].valid        = data[(SLOT3_OFFSET+56)];
+      s2m_ndr_txn_w[2].opcode       = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+59):(SLOT3_OFFSET+57)]);
+      s2m_ndr_txn_w[2].metafield    = metafield_t'(data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+60)]);
+      s2m_ndr_txn_w[2].metavalue    = metavalue_t'(data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)]);
+      s2m_ndr_txn_w[2].tag          = data[(SLOT3_OFFSET+79):(SLOT3_OFFSET+64)];
     end else begin
-      s2m_ndr_txn[0].valid        = 'hX;
-      s2m_ndr_txn[1].valid        = 'hX;
-      s2m_ndr_txn[2].valid        = 'hX;
+      s2m_ndr_txn_w[0].valid        = 'hX;
+      s2m_ndr_txn_w[1].valid        = 'hX;
+      s2m_ndr_txn_w[2].valid        = 'hX;
     end
 
   endfunction
@@ -8612,79 +9712,114 @@ module host_rx_path #(
   function automatic void generic6(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    ref s2m_drs_pkt_t s2m_drs_pkt[3]
+    ref s2m_drs_pkt_t s2m_drs_pkt_iob[32],
+    ref bit [4:0] s2m_drs_wr_ptr
   );
+    bit [1:0] posi;
 
     if(slot_sel == 'h1) begin
-      s2m_drs_pkt[0].pending_data_slot        = 'hf;
-      s2m_drs_pkt[0].s2m_drs_txn.valid        = data[(SLOT1_OFFSET+0)];
-      s2m_drs_pkt[0].s2m_drs_txn.opcode       = s2m_drs_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
-      s2m_drs_pkt[0].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]);
-      s2m_drs_pkt[0].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]);
-      s2m_drs_pkt[0].s2m_drs_txn.tag          = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
-      s2m_drs_pkt[0].s2m_drs_txn.poison       = data[(SLOT1_OFFSET+24)];
-      s2m_drs_pkt[1].pending_data_slot        = 'hf;
-      s2m_drs_pkt[1].s2m_drs_txn.valid        = data[(SLOT1_OFFSET+40)];
-      s2m_drs_pkt[1].s2m_drs_txn.opcode       = s2m_drs_opcode_t'(data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]);
-      s2m_drs_pkt[1].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]);
-      s2m_drs_pkt[1].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]);
-      s2m_drs_pkt[1].s2m_drs_txn.tag          = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)];
-      s2m_drs_pkt[1].s2m_drs_txn.poison       = data[(SLOT1_OFFSET+64)];
-      s2m_drs_pkt[2].pending_data_slot        = 'hf;
-      s2m_drs_pkt[2].s2m_drs_txn.valid        = data[(SLOT1_OFFSET+80)];
-      s2m_drs_pkt[2].s2m_drs_txn.opcode       = s2m_drs_opcode_t'(data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+81)]);
-      s2m_drs_pkt[2].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT1_OFFSET+85):(SLOT1_OFFSET+84)]);
-      s2m_drs_pkt[2].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT1_OFFSET+87):(SLOT1_OFFSET+86)]);
-      s2m_drs_pkt[2].s2m_drs_txn.tag          = data[(SLOT1_OFFSET+103):(SLOT1_OFFSET+88)];
-      s2m_drs_pkt[2].s2m_drs_txn.poison       = data[(SLOT1_OFFSET+104)];
+      if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b11;
+      else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1100) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b00;
+      else posi = 2'b10;
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend             = 'hf;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid            = 'h1;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = data[(SLOT1_OFFSET+0)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                 = s2m_drs_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield              = metafield_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+4)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue              = metavalue_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+6)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                    = data[(SLOT1_OFFSET+23):(SLOT1_OFFSET+8)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                 = data[(SLOT1_OFFSET+24)];
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend             = 'hf;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid            = 'h1;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = data[(SLOT1_OFFSET+40)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                 = s2m_drs_opcode_t'(data[(SLOT1_OFFSET+43):(SLOT1_OFFSET+41)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield              = metafield_t'(data[(SLOT1_OFFSET+45):(SLOT1_OFFSET+44)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue              = metavalue_t'(data[(SLOT1_OFFSET+47):(SLOT1_OFFSET+46)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                    = data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+48)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                 = data[(SLOT1_OFFSET+64)];
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend             = 'hf;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid            = 'h1;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = data[(SLOT1_OFFSET+80)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                 = s2m_drs_opcode_t'(data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+81)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield              = metafield_t'(data[(SLOT1_OFFSET+85):(SLOT1_OFFSET+84)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue              = metavalue_t'(data[(SLOT1_OFFSET+87):(SLOT1_OFFSET+86)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                    = data[(SLOT1_OFFSET+103):(SLOT1_OFFSET+88)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                 = data[(SLOT1_OFFSET+104)];
     end else if(slot_sel == 'h2) begin
-      s2m_drs_pkt[0].pending_data_slot        = 'hf;
-      s2m_drs_pkt[0].s2m_drs_txn.valid        = data[(SLOT2_OFFSET+0)];
-      s2m_drs_pkt[0].s2m_drs_txn.opcode       = s2m_drs_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
-      s2m_drs_pkt[0].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]);
-      s2m_drs_pkt[0].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]);
-      s2m_drs_pkt[0].s2m_drs_txn.tag          = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
-      s2m_drs_pkt[0].s2m_drs_txn.poison       = data[(SLOT2_OFFSET+24)];
-      s2m_drs_pkt[1].pending_data_slot        = 'hf;
-      s2m_drs_pkt[1].s2m_drs_txn.valid        = data[(SLOT2_OFFSET+40)];
-      s2m_drs_pkt[1].s2m_drs_txn.opcode       = s2m_drs_opcode_t'(data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]);
-      s2m_drs_pkt[1].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)]);
-      s2m_drs_pkt[1].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)]);
-      s2m_drs_pkt[1].s2m_drs_txn.tag          = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)];
-      s2m_drs_pkt[1].s2m_drs_txn.poison       = data[(SLOT2_OFFSET+64)];
-      s2m_drs_pkt[2].pending_data_slot        = 'hf;
-      s2m_drs_pkt[2].s2m_drs_txn.valid        = data[(SLOT2_OFFSET+80)];
-      s2m_drs_pkt[2].s2m_drs_txn.opcode       = s2m_drs_opcode_t'(data[(SLOT2_OFFSET+83):(SLOT2_OFFSET+81)]);
-      s2m_drs_pkt[2].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT2_OFFSET+85):(SLOT2_OFFSET+84)]);
-      s2m_drs_pkt[2].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT2_OFFSET+87):(SLOT2_OFFSET+86)]);
-      s2m_drs_pkt[2].s2m_drs_txn.tag          = data[(SLOT2_OFFSET+103):(SLOT2_OFFSET+88)];
-      s2m_drs_pkt[2].s2m_drs_txn.poison       = data[(SLOT2_OFFSET+104)];
+      if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b00;
+      else posi = 2'b11;
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend             = 'hf;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid            = 'h1;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = data[(SLOT2_OFFSET+0)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                 = s2m_drs_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield              = metafield_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+4)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue              = metavalue_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+6)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                    = data[(SLOT2_OFFSET+23):(SLOT2_OFFSET+8)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                 = data[(SLOT2_OFFSET+24)];
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend             = 'hf;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid            = 'h1;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = data[(SLOT2_OFFSET+40)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                 = s2m_drs_opcode_t'(data[(SLOT2_OFFSET+43):(SLOT2_OFFSET+41)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield              = metafield_t'(data[(SLOT2_OFFSET+45):(SLOT2_OFFSET+44)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue              = metavalue_t'(data[(SLOT2_OFFSET+47):(SLOT2_OFFSET+46)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                    = data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+48)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                 = data[(SLOT2_OFFSET+64)];
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi = posi;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend             = 'hf;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid            = 'h1;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = data[(SLOT2_OFFSET+80)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                 = s2m_drs_opcode_t'(data[(SLOT2_OFFSET+83):(SLOT2_OFFSET+81)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield              = metafield_t'(data[(SLOT2_OFFSET+85):(SLOT2_OFFSET+84)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue              = metavalue_t'(data[(SLOT2_OFFSET+87):(SLOT2_OFFSET+86)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                    = data[(SLOT2_OFFSET+103):(SLOT2_OFFSET+88)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                 = data[(SLOT2_OFFSET+104)];
     end else if(slot_sel == 'h3) begin
-      s2m_drs_pkt[0].pending_data_slot        = 'hf;
-      s2m_drs_pkt[0].s2m_drs_txn.valid        = data[(SLOT3_OFFSET+0)];
-      s2m_drs_pkt[0].s2m_drs_txn.opcode       = s2m_drs_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
-      s2m_drs_pkt[0].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]);
-      s2m_drs_pkt[0].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]);
-      s2m_drs_pkt[0].s2m_drs_txn.tag          = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
-      s2m_drs_pkt[0].s2m_drs_txn.poison       = data[(SLOT3_OFFSET+24)];
-      s2m_drs_pkt[1].pending_data_slot        = 'hf;
-      s2m_drs_pkt[1].s2m_drs_txn.valid        = data[(SLOT3_OFFSET+40)];
-      s2m_drs_pkt[1].s2m_drs_txn.opcode       = s2m_drs_opcode_t'(data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]);
-      s2m_drs_pkt[1].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)]);
-      s2m_drs_pkt[1].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)]);
-      s2m_drs_pkt[1].s2m_drs_txn.tag          = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)];
-      s2m_drs_pkt[1].s2m_drs_txn.poison       = data[(SLOT3_OFFSET+64)];
-      s2m_drs_pkt[2].pending_data_slot        = 'hf;
-      s2m_drs_pkt[2].s2m_drs_txn.valid        = data[(SLOT3_OFFSET+80)];
-      s2m_drs_pkt[2].s2m_drs_txn.opcode       = s2m_drs_opcode_t'(data[(SLOT3_OFFSET+83):(SLOT3_OFFSET+81)]);
-      s2m_drs_pkt[2].s2m_drs_txn.metafield    = metafield_t'(data[(SLOT3_OFFSET+85):(SLOT3_OFFSET+84)]);
-      s2m_drs_pkt[2].s2m_drs_txn.metavalue    = metavalue_t'(data[(SLOT3_OFFSET+87):(SLOT3_OFFSET+86)]);
-      s2m_drs_pkt[2].s2m_drs_txn.tag          = data[(SLOT3_OFFSET+103):(SLOT3_OFFSET+88)];
-      s2m_drs_pkt[2].s2m_drs_txn.poison       = data[(SLOT3_OFFSET+104)];
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi = 'h0;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend             = 'hf;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid            = 'h1;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = data[(SLOT3_OFFSET+0)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                 = s2m_drs_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield              = metafield_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+4)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue              = metavalue_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+6)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                    = data[(SLOT3_OFFSET+23):(SLOT3_OFFSET+8)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                 = data[(SLOT3_OFFSET+24)];
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi = 'h0;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend             = 'hf;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid            = 'h1;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = data[(SLOT3_OFFSET+40)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                 = s2m_drs_opcode_t'(data[(SLOT3_OFFSET+43):(SLOT3_OFFSET+41)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield              = metafield_t'(data[(SLOT3_OFFSET+45):(SLOT3_OFFSET+44)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue              = metavalue_t'(data[(SLOT3_OFFSET+47):(SLOT3_OFFSET+46)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                    = data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+48)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                 = data[(SLOT3_OFFSET+64)];
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.start_dslot_posi = 'h0;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend             = 'hf;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.valid            = 'h1;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = data[(SLOT3_OFFSET+80)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.opcode                 = s2m_drs_opcode_t'(data[(SLOT3_OFFSET+83):(SLOT3_OFFSET+81)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metafield              = metafield_t'(data[(SLOT3_OFFSET+85):(SLOT3_OFFSET+84)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.metavalue              = metavalue_t'(data[(SLOT3_OFFSET+87):(SLOT3_OFFSET+86)]);
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.tag                    = data[(SLOT3_OFFSET+103):(SLOT3_OFFSET+88)];
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.poison                 = data[(SLOT3_OFFSET+104)];
     end else begin
-      s2m_drs_pkt[0].s2m_drs_txn.valid        = 'hX;
-      s2m_drs_pkt[1].s2m_drs_txn.valid        = 'hX;
-      s2m_drs_pkt[2].s2m_drs_txn.valid        = 'hX;
+      s2m_drs_wr_ptr++;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = 'hX;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = 'hX;
+      s2m_drs_pkt_iob[s2m_drs_wr_ptr].s2m_drs_txn.valid                  = 'hX;
     end
 
   endfunction
@@ -8697,74 +9832,19 @@ module host_rx_path #(
       data_slot[3] <= 'h0;
       data_slot[4] <= 'h0;
     end else begin
-      if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
-        data_slot[0] <= data_slot[1]; 
-        data_slot[1] <= data_slot[2]; 
-        data_slot[2] <= data_slot[3]; 
-        data_slot[3] <= data_slot[4]; 
-        data_slot[4] <= 'h0;
-      end
-    end
-  end
-
-  always@(posedge host_rx_dl_if.clk) begin
-    if(!host_rx_dl_if.rstn) begin
-      //TODO: not sure if this foreach will initialize for all indeces
-      //foreach(data_slot[i]) data_slot[i] <= 'h0;
-      //foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
-      data_slot[0] <= 'h0;
-      data_slot[1] <= 'h0;
-      data_slot[2] <= 'h0;
-      data_slot[3] <= 'h0;
-      data_slot[4] <= 'h0;
-      data_slot_d[0] <= 'h0;
-      data_slot_d[1] <= 'h0;
-      data_slot_d[2] <= 'h0;
-      data_slot_d[3] <= 'h0;
-      data_slot_d[4] <= 'h0;
-      ack <= 'h0;
-      ack_count_d <= 'h0;
-      ack_ret_val <= 'h0;
-    end else begin
-      ack_count_d <= ack_count;
-      if((ack_count_d == 'h7) && (ack_count == 'h0)) begin
-        ack <= 'h1;
-      end else begin
-        ack <= 'h0;
-      end
-      if(host_rx_dl_if_d_valid && retryable_flit && llcrd_flit) begin
-        ack_ret_val <= 'h1;
-      end else begin
-        ack_ret_val <= 'h0;
-      end
-      data_slot_d[0]  <= data_slot[0];
-      data_slot_d[1]  <= data_slot[1];
-      data_slot_d[2]  <= data_slot[2];
-      data_slot_d[3]  <= data_slot[3];
-      data_slot_d[4]  <= data_slot[4];
-      d2h_data_pkt_d[0].pending_data_slot <= d2h_data_pkt[0].pending_data_slot;
-      d2h_data_pkt_d[1].pending_data_slot <= d2h_data_pkt[1].pending_data_slot;
-      d2h_data_pkt_d[2].pending_data_slot <= d2h_data_pkt[2].pending_data_slot;
-      d2h_data_pkt_d[3].pending_data_slot <= d2h_data_pkt[3].pending_data_slot;
-      s2m_drs_pkt_d[0].pending_data_slot  <= s2m_drs_pkt[0].pending_data_slot;
-      s2m_drs_pkt_d[1].pending_data_slot  <= s2m_drs_pkt[1].pending_data_slot;
-      s2m_drs_pkt_d[2].pending_data_slot  <= s2m_drs_pkt[2].pending_data_slot;
       if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit) &&
           (!data_slot_d[0][3] || 
             ((data_slot_d[0] == 'hf) && 
-              ((d2h_data_pkt_d[0].pending_data_slot == 0) && (s2m_drs_pkt_d[0].pending_data_slot == 0)) &&
-              ((d2h_data_pkt_d[1].pending_data_slot == 0) && (s2m_drs_pkt_d[1].pending_data_slot == 0)) &&
-              ((d2h_data_pkt_d[2].pending_data_slot == 0) && (s2m_drs_pkt_d[2].pending_data_slot == 0)) &&
-              ((d2h_data_pkt_d[3].pending_data_slot == 0))
+              ((d2h_data_pkt_d[d2h_data_wr_ptr].pending_data_slot.pend == 0) && (s2m_drs_pkt_d[s2m_drs_wr_ptr].pending_data_slot.pend == 0)) &&
+              ((d2h_data_pkt_d[d2h_data_wr_ptr-1].pending_data_slot.pend == 0) && (s2m_drs_pkt_d[s2m_drs_wr_ptr-1].pending_data_slot.pend == 0)) &&
+              ((d2h_data_pkt_d[d2h_data_wr_ptr-2].pending_data_slot.pend == 0) && (s2m_drs_pkt_d[s2m_drs_wr_ptr-2].pending_data_slot.pend == 0)) &&
+              ((d2h_data_pkt_d[d2h_data_wr_ptr-3].pending_data_slot.pend == 0))
             )
           )
         ) begin 
         if(host_rx_dl_if_d_data[7:5] == 'h4) begin
-          data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;//need to add what happens when slot 1 is g slot
           if((host_rx_dl_if_d_data[10:8] == 'h1) || (host_rx_dl_if_d_data[10:8] == 'h5)) begin
-            data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
             if((host_rx_dl_if_d_data[13:11] == 'h1) || (host_rx_dl_if_d_data[13:11] == 'h5)) begin
-              data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               if((host_rx_dl_if_d_data[16:14] == 'h1) || (host_rx_dl_if_d_data[16:14] == 'h5)) begin
                 data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if((host_rx_dl_if_d_data[16:14] == 'h2) || (host_rx_dl_if_d_data[16:14] == 'h4)) begin  
@@ -8798,7 +9878,79 @@ module host_rx_path #(
       //end else if(host_rx_dl_if_d_valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
       //data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
       end
-  
+    end
+  end
+
+  always@(posedge host_rx_dl_if.clk) begin
+    if(!host_rx_dl_if.rstn) begin
+      //TODO: not sure if this foreach will initialize for all indeces
+      //foreach(data_slot[i]) data_slot[i] <= 'h0;
+      //foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
+      data_slot[0] <= 'h0;
+      data_slot[1] <= 'h0;
+      data_slot[2] <= 'h0;
+      data_slot[3] <= 'h0;
+      data_slot[4] <= 'h0;
+      data_slot_d[0] <= 'h0;
+      data_slot_d[1] <= 'h0;
+      data_slot_d[2] <= 'h0;
+      data_slot_d[3] <= 'h0;
+      data_slot_d[4] <= 'h0;
+      ack <= 'h0;
+      ack_count_d <= 'h0;
+      ack_ret_val <= 'h0;
+    end else begin
+      if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
+        d2h_req_txn[0]       <= d2h_req_txn_w[0];
+        d2h_req_txn[1]       <= d2h_req_txn_w[1];
+        d2h_req_txn[2]       <= d2h_req_txn_w[2];
+        d2h_req_txn[3]       <= d2h_req_txn_w[3];
+        d2h_rsp_txn[0]       <= d2h_rsp_txn_w[0];
+        d2h_rsp_txn[1]       <= d2h_rsp_txn_w[1];
+        s2m_ndr_txn[0]       <= s2m_ndr_txn_w[0];
+        s2m_ndr_txn[1]       <= s2m_ndr_txn_w[1];
+        s2m_ndr_txn[2]       <= s2m_ndr_txn_w[2];
+      end else begin
+        d2h_req_txn[0].valid <= 'h0;
+        d2h_req_txn[1].valid <= 'h0;
+        d2h_req_txn[2].valid <= 'h0;
+        d2h_req_txn[3].valid <= 'h0;
+        d2h_rsp_txn[0].valid <= 'h0;
+        d2h_rsp_txn[1].valid <= 'h0;
+        s2m_ndr_txn[0].valid <= 'h0;
+        s2m_ndr_txn[1].valid <= 'h0;
+        s2m_ndr_txn[2].valid <= 'h0;
+      end
+      if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
+        data_slot[0] <= data_slot[1]; 
+        data_slot[1] <= data_slot[2]; 
+        data_slot[2] <= data_slot[3]; 
+        data_slot[3] <= data_slot[4]; 
+        data_slot[4] <= 'h0;
+      end
+      ack_count_d <= ack_count;
+      if((ack_count_d == 'h7) && (ack_count == 'h0)) begin
+        ack <= 'h1;
+      end else begin
+        ack <= 'h0;
+      end
+      if(host_rx_dl_if_d_valid && retryable_flit && llcrd_flit) begin
+        ack_ret_val <= 'h1;
+      end else begin
+        ack_ret_val <= 'h0;
+      end
+      data_slot_d[0]  <= data_slot[0];
+      data_slot_d[1]  <= data_slot[1];
+      data_slot_d[2]  <= data_slot[2];
+      data_slot_d[3]  <= data_slot[3];
+      data_slot_d[4]  <= data_slot[4];
+      d2h_data_pkt_d[d2h_data_wr_ptr]   <= d2h_data_pkt_iob[d2h_data_wr_ptr];
+      d2h_data_pkt_d[d2h_data_wr_ptr-1] <= d2h_data_pkt_iob[d2h_data_wr_ptr-1];
+      d2h_data_pkt_d[d2h_data_wr_ptr-2] <= d2h_data_pkt_iob[d2h_data_wr_ptr-2];
+      d2h_data_pkt_d[d2h_data_wr_ptr-3] <= d2h_data_pkt_iob[d2h_data_wr_ptr-3];
+      s2m_drs_pkt_d[s2m_drs_wr_ptr]     <= s2m_drs_pkt_iob[s2m_drs_wr_ptr];
+      s2m_drs_pkt_d[s2m_drs_wr_ptr-1]   <= s2m_drs_pkt_iob[s2m_drs_wr_ptr-1];
+      s2m_drs_pkt_d[s2m_drs_wr_ptr-2]   <= s2m_drs_pkt_iob[s2m_drs_wr_ptr-2];
     end
   end
 
@@ -8810,22 +9962,22 @@ module host_rx_path #(
       if(!data_slot[0][0]) begin
         case(host_rx_dl_if_d_data[7:5])
           'h0: begin
-            header0(host_rx_dl_if_d_data, d2h_data_pkt, d2h_rsp_txn, s2m_ndr_txn);
+            header0(host_rx_dl_if_d_data, d2h_data_pkt_iob, d2h_data_wr_ptr, d2h_rsp_txn_w, s2m_ndr_txn_w);
           end
           'h1: begin
-            header1(host_rx_dl_if_d_data, d2h_req_txn, d2h_data_pkt);
+            header1(host_rx_dl_if_d_data, d2h_req_txn_w, d2h_data_pkt_iob, d2h_data_wr_ptr);
           end
           'h2: begin
-            header2(host_rx_dl_if_d_data, d2h_data_pkt, d2h_rsp_txn);
+            header2(host_rx_dl_if_d_data, d2h_data_pkt_iob, d2h_data_wr_ptr, d2h_rsp_txn_w);
           end
           'h3: begin
-            header3(host_rx_dl_if_d_data, s2m_drs_pkt, s2m_ndr_txn);
+            header3(host_rx_dl_if_d_data, s2m_drs_pkt_iob, s2m_drs_wr_ptr, s2m_ndr_txn_w);
           end
           'h4: begin
-            header4(host_rx_dl_if_d_data, s2m_ndr_txn);
+            header4(host_rx_dl_if_d_data, s2m_ndr_txn_w);
           end
           'h5: begin
-            header5(host_rx_dl_if_d_data, s2m_drs_pkt);
+            header5(host_rx_dl_if_d_data, s2m_drs_pkt_iob, s2m_drs_wr_ptr);
           end
           default: begin
 
@@ -8833,25 +9985,25 @@ module host_rx_path #(
         endcase
         case(host_rx_dl_if_d_data[10:8])
           'h0: begin
-            generic0('h1, host_rx_dl_if_d_data, d2h_data_pkt, s2m_drs_pkt);
+            generic0('h1, host_rx_dl_if_d_data, d2h_data_pkt_iob, d2h_data_wr_ptr, s2m_drs_pkt_iob, s2m_drs_wr_ptr);
           end
           'h1: begin
-            generic1('h1, host_rx_dl_if_d_data, d2h_req_txn, d2h_rsp_txn);
+            generic1('h1, host_rx_dl_if_d_data, d2h_req_txn_w, d2h_rsp_txn_w);
           end
           'h2: begin
-            generic2('h1, host_rx_dl_if_d_data, d2h_req_txn, d2h_data_pkt, d2h_rsp_txn);
+            generic2('h1, host_rx_dl_if_d_data, d2h_req_txn_w, d2h_data_pkt_iob, d2h_data_wr_ptr, d2h_rsp_txn_w);
           end
           'h3: begin
-            generic3('h1, host_rx_dl_if_d_data, d2h_data_pkt);
+            generic3('h1, host_rx_dl_if_d_data, d2h_data_pkt_iob, d2h_data_wr_ptr);
           end
           'h4: begin
-            generic4('h1, host_rx_dl_if_d_data, s2m_drs_pkt, s2m_ndr_txn);
+            generic4('h1, host_rx_dl_if_d_data, s2m_drs_pkt_iob, s2m_drs_wr_ptr, s2m_ndr_txn_w);
           end
           'h5: begin
-            generic5('h1, host_rx_dl_if_d_data, s2m_ndr_txn);
+            generic5('h1, host_rx_dl_if_d_data, s2m_ndr_txn_w);
           end
           'h6: begin
-            generic6('h1, host_rx_dl_if_d_data, s2m_drs_pkt);
+            generic6('h1, host_rx_dl_if_d_data, s2m_drs_pkt_iob, s2m_drs_wr_ptr);
           end
           default: begin
           
@@ -8859,25 +10011,25 @@ module host_rx_path #(
         endcase
         case(host_rx_dl_if_d_data[13:11])
           'h0: begin
-            generic0('h2, host_rx_dl_if_d_data, d2h_data_pkt, s2m_drs_pkt);
+            generic0('h2, host_rx_dl_if_d_data, d2h_data_pkt_iob, d2h_data_wr_ptr, s2m_drs_pkt_iob, s2m_drs_wr_ptr);
           end
           'h1: begin
-            generic1('h2, host_rx_dl_if_d_data, d2h_req_txn, d2h_rsp_txn);
+            generic1('h2, host_rx_dl_if_d_data, d2h_req_txn_w, d2h_rsp_txn_w);
           end
           'h2: begin
-            generic2('h2, host_rx_dl_if_d_data, d2h_req_txn, d2h_data_pkt, d2h_rsp_txn);
+            generic2('h2, host_rx_dl_if_d_data, d2h_req_txn_w, d2h_data_pkt_iob, d2h_data_wr_ptr, d2h_rsp_txn_w);
           end
           'h3: begin
-            generic3('h2, host_rx_dl_if_d_data, d2h_data_pkt);
+            generic3('h2, host_rx_dl_if_d_data, d2h_data_pkt_iob, d2h_data_wr_ptr);
           end
           'h4: begin
-            generic4('h2, host_rx_dl_if_d_data, s2m_drs_pkt, s2m_ndr_txn);
+            generic4('h2, host_rx_dl_if_d_data, s2m_drs_pkt_iob, s2m_drs_wr_ptr, s2m_ndr_txn_w);
           end
           'h5: begin
-            generic5('h2, host_rx_dl_if_d_data, s2m_ndr_txn);
+            generic5('h2, host_rx_dl_if_d_data, s2m_ndr_txn_w);
           end
           'h6: begin
-            generic6('h2, host_rx_dl_if_d_data, s2m_drs_pkt);
+            generic6('h2, host_rx_dl_if_d_data, s2m_drs_pkt_iob, s2m_drs_wr_ptr);
           end
           default: begin
           
@@ -8885,38 +10037,66 @@ module host_rx_path #(
         endcase
         case(host_rx_dl_if_d_data[16:14])
           'h0: begin
-            generic0('h3, host_rx_dl_if_d_data, d2h_data_pkt, s2m_drs_pkt);
+            generic0('h3, host_rx_dl_if_d_data, d2h_data_pkt_iob, d2h_data_wr_ptr, s2m_drs_pkt_iob, s2m_drs_wr_ptr);
           end
           'h1: begin
-            generic1('h3, host_rx_dl_if_d_data, d2h_req_txn, d2h_rsp_txn);
+            generic1('h3, host_rx_dl_if_d_data, d2h_req_txn_w, d2h_rsp_txn_w);
           end
           'h2: begin
-            generic2('h3, host_rx_dl_if_d_data, d2h_req_txn, d2h_data_pkt, d2h_rsp_txn);
+            generic2('h3, host_rx_dl_if_d_data, d2h_req_txn_w, d2h_data_pkt_iob, d2h_data_wr_ptr, d2h_rsp_txn_w);
           end
           'h3: begin
-            generic3('h3, host_rx_dl_if_d_data, d2h_data_pkt);
+            generic3('h3, host_rx_dl_if_d_data, d2h_data_pkt_iob, d2h_data_wr_ptr);
           end
           'h4: begin
-            generic4('h3, host_rx_dl_if_d_data, s2m_drs_pkt, s2m_ndr_txn);
+            generic4('h3, host_rx_dl_if_d_data, s2m_drs_pkt_iob, s2m_drs_wr_ptr, s2m_ndr_txn_w);
           end
           'h5: begin
-            generic5('h3, host_rx_dl_if_d_data, s2m_ndr_txn);
+            generic5('h3, host_rx_dl_if_d_data, s2m_ndr_txn_w);
           end
           'h6: begin
-            generic6('h3, host_rx_dl_if_d_data, s2m_drs_pkt);
+            generic6('h3, host_rx_dl_if_d_data, s2m_drs_pkt_iob, s2m_drs_wr_ptr);
           end
           default: begin
           
           end
         endcase
       end else if(data_slot[0][0]) begin
-        generic0('h0, host_rx_dl_if_d_data, d2h_data_pkt, s2m_drs_pkt);
+        generic0('h0, host_rx_dl_if_d_data, d2h_data_pkt_iob, d2h_data_wr_ptr, s2m_drs_pkt_iob, s2m_drs_wr_ptr);
       end
     end
     
     if(host_rx_dl_if_d_valid && llcrd_flit) begin
       ack_count = ack_count + 1;
       ack_ret = {host_rx_dl_if_d_data[71:68], host_rx_dl_if_d_data[2], host_rx_dl_if_d_data[66:64]};
+    end
+  end
+
+  always@(posedge host_rx_dl_if.clk) begin
+    if(!host_rx_dl_if.rstn) begin
+      foreach(d2h_data_pkt_iob[i]) d2h_data_pkt_iob[i].pending_data_slot.pend             <= 'h0;
+      foreach(d2h_data_pkt_iob[i]) d2h_data_pkt_iob[i].pending_data_slot.valid            <= 'h0;
+      foreach(d2h_data_pkt_iob[i]) d2h_data_pkt_iob[i].pending_data_slot.start_dslot_posi <= 'h0;
+      d2h_data_rd_ptr <= 'h0;
+      foreach(s2m_drs_pkt_iob[i]) s2m_drs_pkt_iob[i].pending_data_slot.pend               <= 'h0;
+      foreach(s2m_drs_pkt_iob[i]) s2m_drs_pkt_iob[i].pending_data_slot.valid              <= 'h0;
+      foreach(s2m_drs_pkt_iob[i]) s2m_drs_pkt_iob[i].pending_data_slot.start_dslot_posi   <= 'h0;
+      s2m_drs_rd_ptr <= 'h0;
+    end else begin
+      if((s2m_drs_pkt_iob[s2m_drs_rd_ptr].pending_data_slot.pend == 'h0) && (s2m_drs_pkt_iob[s2m_drs_rd_ptr].pending_data_slot.valid)) begin
+        s2m_drs_pkt <= s2m_drs_pkt_iob[s2m_drs_rd_ptr];
+        s2m_drs_pkt_iob[s2m_drs_rd_ptr].pending_data_slot.valid <= 'h0;
+        s2m_drs_rd_ptr <= s2m_drs_rd_ptr + 1;
+      end else begin
+        s2m_drs_pkt.s2m_drs_txn.valid <= 'h0;
+      end
+      if((d2h_data_pkt_iob[d2h_data_rd_ptr].pending_data_slot.pend == 'h0) && (d2h_data_pkt_iob[d2h_data_rd_ptr].pending_data_slot.valid)) begin
+        d2h_data_pkt <= d2h_data_pkt_iob[d2h_data_rd_ptr];
+        d2h_data_pkt_iob[d2h_data_rd_ptr].pending_data_slot.valid <= 'h0;
+        d2h_data_rd_ptr <= d2h_data_rd_ptr + 1;
+      end else begin
+        d2h_data_pkt.d2h_data_txn.valid <= 'h0;
+      end
     end
   end
 
@@ -9025,7 +10205,7 @@ module device_rx_path #(
   input logic phy_link_up,
   output h2d_req_txn_t h2d_req_txn[2],
   output h2d_rsp_txn_t h2d_rsp_txn[4],
-  output h2d_data_pkt_t h2d_data_pkt[4],
+  output h2d_data_pkt_t h2d_data_pkt,
   output m2s_req_txn_t m2s_req_txn[2],
   output m2s_rwd_pkt_t m2s_rwd_pkt,
   output logic ack,
@@ -9063,380 +10243,1005 @@ module device_rx_path #(
   logic [7:0] retry_ack_num_retry;
   logic retry_ack_empty_bit;
   logic retry_ack_rcvd;
-  logic dev_rx_dl_if_d_valid;//assuming crc checker takes 1 cycle to tell crc pass or fail
-  logic [511:0] dev_rx_dl_if_d_data;//assuming crc checker takes 1 cycle to tell crc pass or fail
+  logic dev_rx_dl_if_d1_valid;//assuming crc checker takes 1 cycle to tell crc pass or fail
+  logic dev_rx_dl_if_d2_valid;
+  logic dev_rx_dl_if_d3_valid;
+  logic [511:0] dev_rx_dl_if_d1_data;//assuming crc checker takes 1 cycle to tell crc pass or fail
+  logic [511:0] dev_rx_dl_if_d2_data;
+  logic [511:0] dev_rx_dl_if_d3_data;
   logic retry_frame_detect;
   logic retry_req_detect;
   logic retry_ack_detect;
   logic retry_idle_detect;
   logic [3:0] data_slot[5];
-  logic [3:0] data_slot_d[5];
+  logic [3:0] data_slot_w[5];
+  bit [1:0] h2d_req_ptr;
+  bit [1:0] h2d_rsp_ptr;
+  bit [1:0] h2d_data_ptr;
+  bit [1:0] m2s_req_ptr;
+  bit [2:0] ack_count;
+  bit [2:0] ack_count_d;
+  logic llcrd_flit;
+  h2d_req_txn_t  h2d_req_txn_w[2];
+  h2d_rsp_txn_t  h2d_rsp_txn_w[4];
+  m2s_req_txn_t  m2s_req_txn_w[2];
   h2d_data_pkt_t h2d_data_pkt_d[4];
   m2s_rwd_pkt_t m2s_rwd_pkt_d;
-  logic [1:0] h2d_req_ptr;
-  logic [1:0] h2d_rsp_ptr;
-  logic [1:0] h2d_data_ptr;
-  logic [1:0] m2s_req_ptr;
-  logic [1:0] m2s_rwd_ptr;
-  logic [2:0] ack_count;
-  logic [2:0] ack_count_d;
-  logic llcrd_flit;
+  h2d_data_pkt_t h2d_data_pkt_iob[32];
+  m2s_rwd_pkt_t m2s_rwd_pkt_iob[32];
+  bit [4:0] h2d_data_rd_ptr;
+  bit [4:0] h2d_data_wr_ptr;
+  bit [4:0] m2s_rwd_rd_ptr;
+  bit [4:0] m2s_rwd_wr_ptr = 'h1f;
 
-  assign init_done          = (dev_rx_dl_if_d_data[39:36] == 'h8) && (dev_rx_dl_if_d_data[35:32] == 'hc) && (dev_rx_dl_if_d_data[0] == 'h1) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_frame_detect = (dev_rx_dl_if_d_data[39:36] == 'h3) && (dev_rx_dl_if_d_data[35:32] == 'h1) && (dev_rx_dl_if_d_data[0] == 'h1) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_idle_detect  = (dev_rx_dl_if_d_data[39:36] == 'h0) && (dev_rx_dl_if_d_data[35:32] == 'h1) && (dev_rx_dl_if_d_data[0] == 'h1) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_req_detect   = (dev_rx_dl_if_d_data[39:36] == 'h1) && (dev_rx_dl_if_d_data[35:32] == 'h1) && (dev_rx_dl_if_d_data[0] == 'h1) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
-  assign retry_ack_detect   = (dev_rx_dl_if_d_data[39:36] == 'h2) && (dev_rx_dl_if_d_data[35:32] == 'h1) && (dev_rx_dl_if_d_data[0] == 'h1) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
-  assign llcrd_flit         = (dev_rx_dl_if_d_data[39:36] == 'h1) && (dev_rx_dl_if_d_data[35:32] == 'h0) && (dev_rx_dl_if_d_data[0] == 'h1) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign init_done          = (dev_rx_dl_if_d1_data[39:36] == 'h8) && (dev_rx_dl_if_d1_data[35:32] == 'hc) && (dev_rx_dl_if_d1_data[0] == 'h1) && (dev_rx_dl_if_d1_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_frame_detect = (dev_rx_dl_if_d1_data[39:36] == 'h3) && (dev_rx_dl_if_d1_data[35:32] == 'h1) && (dev_rx_dl_if_d1_data[0] == 'h1) && (dev_rx_dl_if_d1_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_idle_detect  = (dev_rx_dl_if_d1_data[39:36] == 'h0) && (dev_rx_dl_if_d1_data[35:32] == 'h1) && (dev_rx_dl_if_d1_data[0] == 'h1) && (dev_rx_dl_if_d1_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_req_detect   = (dev_rx_dl_if_d1_data[39:36] == 'h1) && (dev_rx_dl_if_d1_data[35:32] == 'h1) && (dev_rx_dl_if_d1_data[0] == 'h1) && (dev_rx_dl_if_d1_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign retry_ack_detect   = (dev_rx_dl_if_d1_data[39:36] == 'h2) && (dev_rx_dl_if_d1_data[35:32] == 'h1) && (dev_rx_dl_if_d1_data[0] == 'h1) && (dev_rx_dl_if_d1_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign llcrd_flit         = (dev_rx_dl_if_d1_data[39:36] == 'h1) && (dev_rx_dl_if_d1_data[35:32] == 'h0) && (dev_rx_dl_if_d1_data[0] == 'h1) && (dev_rx_dl_if_d1_valid) && (crc_pass_d) && (!crc_fail_d);
   assign non_retryable_flit = (retry_idle_detect) || (retry_frame_detect) || (retry_req_detect) || (retry_ack_detect);
   assign retryable_flit     = (!retry_idle_detect) && (!retry_frame_detect) && (!retry_req_detect) && (!retry_ack_detect);
-  assign crdt_val           = (llcrd_flit || (dev_rx_dl_if_d_data[0] == 'h0)) && (dev_rx_dl_if_d_valid) && (crc_pass_d) && (!crc_fail_d);
-  assign crdt_data_cm       = (crdt_val)? dev_rx_dl_if_d_data[31]   : 'h0;
-  assign crdt_data          = (crdt_val)? dev_rx_dl_if_d_data[30:28]: 'h0;
-  assign crdt_req_cm        = (crdt_val)? dev_rx_dl_if_d_data[27]   : 'h0;
-  assign crdt_req           = (crdt_val)? dev_rx_dl_if_d_data[26:24]: 'h0;
-  assign crdt_rsp_cm        = (crdt_val)? dev_rx_dl_if_d_data[23]   : 'h0;
-  assign crdt_rsp           = (crdt_val)? dev_rx_dl_if_d_data[22:20]: 'h0;
+  assign crdt_val           = (llcrd_flit || (dev_rx_dl_if_d1_data[0] == 'h0)) && (dev_rx_dl_if_d1_valid) && (crc_pass_d) && (!crc_fail_d);
+  assign crdt_data_cm       = (crdt_val)? dev_rx_dl_if_d1_data[31]   : 'h0;
+  assign crdt_data          = (crdt_val)? dev_rx_dl_if_d1_data[30:28]: 'h0;
+  assign crdt_req_cm        = (crdt_val)? dev_rx_dl_if_d1_data[27]   : 'h0;
+  assign crdt_req           = (crdt_val)? dev_rx_dl_if_d1_data[26:24]: 'h0;
+  assign crdt_rsp_cm        = (crdt_val)? dev_rx_dl_if_d1_data[23]   : 'h0;
+  assign crdt_rsp           = (crdt_val)? dev_rx_dl_if_d1_data[22:20]: 'h0;
   
+  function automatic h2d_posi_comp(
+    ref h2d_data_pkt_t h2d_data_pkt_iob[32],
+    ref bit [4:0] h2d_data_wr_ptr, 
+    output bit [1:0] cond
+  );
+    bit cond_flag = 0;
+    bit [3:0] arr[4] = {4'b1110, 4'b1100, 4'b1000, 4'b1111};
+    for(int i = 0; i < 4; i = i+1) begin
+      if((h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.pend) == arr[i]) begin
+        cond = h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.start_dslot_posi; 
+        break;
+      end else begin
+        if((h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend) == arr[i]) begin
+          cond = h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.start_dslot_posi;
+          break;
+        end else begin
+          if((h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend) == arr[i]) begin
+            cond = h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.start_dslot_posi;
+            break;
+          end else begin
+            if((h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend) == arr[i]) begin
+              cond = h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.start_dslot_posi;
+              break;
+            end else begin
+              if((h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend) == arr[i]) begin
+                cond = h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi;
+                break;
+              end else begin
+                if(i == 3) break;
+              end
+            end
+          end
+        end
+      end
+    end
+  endfunction
+
+  function automatic m2s_posi_comp(
+    ref m2s_rwd_pkt_t m2s_rwd_pkt_iob[32],
+    ref bit [4:0] m2s_rwd_wr_ptr, 
+    output bit [1:0] cond
+  );
+    bit cond_flag = 0;
+    bit [3:0] arr[4] = {4'b1110, 4'b1100, 4'b1000, 4'b1111};
+    for(int i = 0; i < 4; i = i+1) begin
+      if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.pend) == arr[i]) begin
+        cond = m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.start_dslot_posi;
+        break;
+      end else begin
+        if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend) == arr[i]) begin
+          cond = m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.start_dslot_posi;
+          break;
+        end else begin
+          if(i == 3) begin
+            break;
+          end
+        end
+      end
+    end
+  endfunction
+
   function automatic void header0(
     input logic [511:0] data,
-    ref h2d_req_txn_t h2d_req_txn[2],
-    ref h2d_rsp_txn_t h2d_rsp_txn[4]
+    ref h2d_req_txn_t h2d_req_txn_w[2],
+    ref h2d_rsp_txn_t h2d_rsp_txn_w[4]
   );
-    h2d_req_txn[0].valid        = data[32];
-    h2d_req_txn[0].opcode       = h2d_req_opcode_t'(data[35:33]);
-    h2d_req_txn[0].address      = data[81:36];
-    h2d_req_txn[0].uqid         = data[93:82];
-    h2d_rsp_txn[0].valid        = data[96];
-    h2d_rsp_txn[0].opcode       = h2d_rsp_opcode_t'(data[100:97]);
-    h2d_rsp_txn[0].rspdata      = h2d_rsp_data_opcode_t'(data[112:101]);
-    h2d_rsp_txn[0].rsppre       = data[114:113];
-    h2d_rsp_txn[0].cqid         = data[126:115];
+    h2d_req_txn_w[0].valid        = data[32];
+    h2d_req_txn_w[0].opcode       = h2d_req_opcode_t'(data[35:33]);
+    h2d_req_txn_w[0].address      = data[81:36];
+    h2d_req_txn_w[0].uqid         = data[93:82];
+    h2d_rsp_txn_w[0].valid        = data[96];
+    h2d_rsp_txn_w[0].opcode       = h2d_rsp_opcode_t'(data[100:97]);
+    h2d_rsp_txn_w[0].rspdata      = h2d_rsp_data_opcode_t'(data[112:101]);
+    h2d_rsp_txn_w[0].rsppre       = data[114:113];
+    h2d_rsp_txn_w[0].cqid         = data[126:115];
   endfunction
 
   function automatic void header1(
     input logic [511:0] data,
-    ref h2d_data_pkt_t h2d_data_pkt[4],
-    ref h2d_rsp_txn_t h2d_rsp_txn[4]
+    ref h2d_data_pkt_t h2d_data_pkt_iob[32],
+    ref bit [4:0] h2d_data_wr_ptr,
+    ref h2d_rsp_txn_t h2d_rsp_txn_w[4]
   );
-    h2d_data_pkt[0].pending_data_slot         = 'hf;
-    h2d_data_pkt[0].h2d_data_txn.valid        = data[32];
-    h2d_data_pkt[0].h2d_data_txn.cqid         = data[44:33];
-    h2d_data_pkt[0].h2d_data_txn.chunkvalid   = data[45];
-    h2d_data_pkt[0].h2d_data_txn.poison       = data[46];
-    h2d_data_pkt[0].h2d_data_txn.goerr        = data[47];
-    h2d_rsp_txn[0].valid                      = data[56];
-    h2d_rsp_txn[0].opcode                     = h2d_rsp_opcode_t'(data[60:57]);
-    h2d_rsp_txn[0].rspdata                    = h2d_rsp_data_opcode_t'(data[72:61]);
-    h2d_rsp_txn[0].rsppre                     = data[74:73];
-    h2d_rsp_txn[0].cqid                       = data[86:75];
-    h2d_rsp_txn[1].valid                      = data[88];
-    h2d_rsp_txn[1].opcode                     = h2d_rsp_opcode_t'(data[92:89]);
-    h2d_rsp_txn[1].rspdata                    = h2d_rsp_data_opcode_t'(data[104:93]);
-    h2d_rsp_txn[1].rsppre                     = data[106:105];
-    h2d_rsp_txn[1].cqid                       = data[118:107];
+    bit [1:0] posi;
+    
+    if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b10;
+    else if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1100) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b11;
+    else if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1110) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1110)) posi = 2'b00;
+    else posi = 2'b01;
+    h2d_data_wr_ptr++;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[32];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[44:33];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[45];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[46];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[47];
+    h2d_rsp_txn_w[0].valid                                                = data[56];
+    h2d_rsp_txn_w[0].opcode                                               = h2d_rsp_opcode_t'(data[60:57]);
+    h2d_rsp_txn_w[0].rspdata                                              = h2d_rsp_data_opcode_t'(data[72:61]);
+    h2d_rsp_txn_w[0].rsppre                                               = data[74:73];
+    h2d_rsp_txn_w[0].cqid                                                 = data[86:75];
+    h2d_rsp_txn_w[1].valid                                                = data[88];
+    h2d_rsp_txn_w[1].opcode                                               = h2d_rsp_opcode_t'(data[92:89]);
+    h2d_rsp_txn_w[1].rspdata                                              = h2d_rsp_data_opcode_t'(data[104:93]);
+    h2d_rsp_txn_w[1].rsppre                                               = data[106:105];
+    h2d_rsp_txn_w[1].cqid                                                 = data[118:107];
 
   endfunction
 
   function automatic void header2(
     input logic [511:0] data,
-    ref h2d_req_txn_t h2d_req_txn[2],
-    ref h2d_data_pkt_t h2d_data_pkt[4]
+    ref h2d_req_txn_t h2d_req_txn_w[2],
+    ref h2d_data_pkt_t h2d_data_pkt_iob[32],
+    ref bit [4:0] h2d_data_wr_ptr
   );
-    h2d_req_txn[0].valid                     = data[32];
-    h2d_req_txn[0].opcode                    = h2d_req_opcode_t'(data[35:33]);
-    h2d_req_txn[0].address                   = data[81:36];
-    h2d_req_txn[0].uqid                      = data[93:82];
-    h2d_data_pkt[0].h2d_data_txn.valid       = data[96];
-    h2d_data_pkt[0].h2d_data_txn.cqid        = data[108:97];
-    h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[109];
-    h2d_data_pkt[0].h2d_data_txn.poison      = data[110];
-    h2d_data_pkt[0].h2d_data_txn.goerr       = data[111];
+    
+    bit [1:0] posi;
+    if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b10;
+    else if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1100) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b11;
+    else if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1110) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1110)) posi = 2'b00;
+    else posi = 2'b01;
+    h2d_req_txn_w[0].valid                                                = data[32];
+    h2d_req_txn_w[0].opcode                                               = h2d_req_opcode_t'(data[35:33]);
+    h2d_req_txn_w[0].address                                              = data[81:36];
+    h2d_req_txn_w[0].uqid                                                 = data[93:82];
+    h2d_data_wr_ptr++;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[96];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[108:97];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[109];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[110];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[111];
   endfunction
 
   function automatic void header3(
     input logic [511:0] data,
-    ref h2d_data_pkt_t h2d_data_pkt[4]
+    ref h2d_data_pkt_t h2d_data_pkt_iob[32],
+    ref bit [4:0] h2d_data_wr_ptr
   );
 
-    h2d_data_pkt[0].pending_data_slot        = 'hf;
-    h2d_data_pkt[0].h2d_data_txn.valid       = data[32];
-    h2d_data_pkt[0].h2d_data_txn.cqid        = data[44:33];
-    h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[45];
-    h2d_data_pkt[0].h2d_data_txn.poison      = data[46];
-    h2d_data_pkt[0].h2d_data_txn.goerr       = data[47];
-    h2d_data_pkt[1].pending_data_slot        = 'hf;
-    h2d_data_pkt[1].h2d_data_txn.valid       = data[56];
-    h2d_data_pkt[1].h2d_data_txn.cqid        = data[68:57];
-    h2d_data_pkt[1].h2d_data_txn.chunkvalid  = data[69];
-    h2d_data_pkt[1].h2d_data_txn.poison      = data[70];
-    h2d_data_pkt[1].h2d_data_txn.goerr       = data[71];
-    h2d_data_pkt[2].pending_data_slot        = 'hf;
-    h2d_data_pkt[2].h2d_data_txn.valid       = data[80];
-    h2d_data_pkt[2].h2d_data_txn.cqid        = data[92:81];
-    h2d_data_pkt[2].h2d_data_txn.chunkvalid  = data[93];
-    h2d_data_pkt[2].h2d_data_txn.poison      = data[94];
-    h2d_data_pkt[2].h2d_data_txn.goerr       = data[95];
-    h2d_data_pkt[3].pending_data_slot        = 'hf;
-    h2d_data_pkt[3].h2d_data_txn.valid       = data[104];
-    h2d_data_pkt[3].h2d_data_txn.cqid        = data[116:105];
-    h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[117];
-    h2d_data_pkt[3].h2d_data_txn.poison      = data[118];
-    h2d_data_pkt[3].h2d_data_txn.goerr       = data[119];
+    bit [1:0] posi;
+    if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b10;
+    else if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1100) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b11;
+    else if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1110) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1110)) posi = 2'b00;
+    else posi = 2'b01;
+    h2d_data_wr_ptr++;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[32];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[44:33];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[45];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[46];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[47];
+    h2d_data_wr_ptr++;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[56];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[68:57];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[69];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[70];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[71];
+    h2d_data_wr_ptr++;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[80];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[92:81];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[93];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[94];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[95];
+    h2d_data_wr_ptr++;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[104];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[116:105];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[117];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[118];
+    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[119];
     
   endfunction
 
   function automatic void header4(
     input logic [511:0] data,
-    ref m2s_rwd_pkt_t m2s_rwd_pkt
+    ref m2s_rwd_pkt_t m2s_rwd_pkt_iob[32],
+    ref bit [4:0] m2s_rwd_wr_ptr
   );
-    m2s_rwd_pkt.pending_data_slot        = 'hf;
-    m2s_rwd_pkt.m2s_rwd_txn.valid        = data[32];
-    m2s_rwd_pkt.m2s_rwd_txn.memopcode    = m2s_rwd_opcode_t'(data[36:33]);
-    m2s_rwd_pkt.m2s_rwd_txn.snptype      = snptype_t'(data[39:37]);
-    m2s_rwd_pkt.m2s_rwd_txn.metafield    = metafield_t'(data[41:40]);
-    m2s_rwd_pkt.m2s_rwd_txn.metavalue    = metavalue_t'(data[43:42]);
-    m2s_rwd_pkt.m2s_rwd_txn.tag          = data[58:44];
-    m2s_rwd_pkt.m2s_rwd_txn.address      = data[105:59];
-    m2s_rwd_pkt.m2s_rwd_txn.poison       = data[106];
-    m2s_rwd_pkt.m2s_rwd_txn.tc           = data[108:107];
-
+    bit [1:0] posi;
+    if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b10;
+    else if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1100) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b11;
+    else if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1110) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1110)) posi = 2'b00;
+    else posi = 2'b01;
+    m2s_rwd_wr_ptr++;
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend              = 4'hf;
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.valid             = 1'h1;
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.valid                   = data[32];
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.memopcode               = m2s_rwd_opcode_t'(data[36:33]);
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.snptype                 = snptype_t'(data[39:37]);
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metafield               = metafield_t'(data[41:40]);
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metavalue               = metavalue_t'(data[43:42]);
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tag                     = data[58:44];
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address                 = data[105:59];
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.poison                  = data[106];
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tc                      = data[108:107];
+    
   endfunction
 
   function automatic void header5(
     input logic [511:0] data,
-    ref m2s_req_txn_t m2s_req_txn[2]
+    ref m2s_req_txn_t m2s_req_txn_w[2]
   );
-    m2s_req_txn[0].valid        = data[32];
-    m2s_req_txn[0].memopcode    = m2s_req_opcode_t'(data[36:33]);
-    m2s_req_txn[0].snptype      = snptype_t'(data[39:37]);
-    m2s_req_txn[0].metafield    = metafield_t'(data[41:40]);
-    m2s_req_txn[0].metavalue    = metavalue_t'(data[43:42]);
-    m2s_req_txn[0].tag          = data[58:44];
-    m2s_req_txn[0].address      = data[106:59];
-    m2s_req_txn[0].tc           = data[108:107];
+    m2s_req_txn_w[0].valid        = data[32];
+    m2s_req_txn_w[0].memopcode    = m2s_req_opcode_t'(data[36:33]);
+    m2s_req_txn_w[0].snptype      = snptype_t'(data[39:37]);
+    m2s_req_txn_w[0].metafield    = metafield_t'(data[41:40]);
+    m2s_req_txn_w[0].metavalue    = metavalue_t'(data[43:42]);
+    m2s_req_txn_w[0].tag          = data[58:44];
+    m2s_req_txn_w[0].address      = data[106:59];
+    m2s_req_txn_w[0].tc           = data[108:107];
   endfunction
 
   function automatic void generic0(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    ref h2d_data_pkt_t h2d_data_pkt[4],
-    ref m2s_rwd_pkt_t m2s_rwd_pkt
-    //inout h2d_data_pkt_t h2d_data_pkt[4],
-    //inout m2s_rwd_pkt_t m2s_rwd_pkt
+    ref h2d_data_pkt_t h2d_data_pkt_iob[32],
+    ref bit [4:0] h2d_data_wr_ptr,
+    ref m2s_rwd_pkt_t m2s_rwd_pkt_iob[32],
+    ref bit [4:0] m2s_rwd_wr_ptr
   );
-    if(m2s_rwd_pkt.pending_data_slot == 'hf) begin
-      if(slot_sel == 1) begin
-        m2s_rwd_pkt.m2s_rwd_txn.data[SLOT3_OFFSET-1:0] = data[SLOT3_OFFSET-1:0]; 
-        m2s_rwd_pkt.pending_data_slot = 'h8;
-      end else if(slot_sel == 2) begin
-        m2s_rwd_pkt.m2s_rwd_txn.data[SLOT2_OFFSET-1:0] = data[SLOT2_OFFSET-1:0]; 
-        m2s_rwd_pkt.pending_data_slot = 'hc;
-      end else if(slot_sel == 3) begin
-        m2s_rwd_pkt.m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0]; 
-        m2s_rwd_pkt.pending_data_slot = 'he;
-      end else if(slot_sel == 0) begin
-        m2s_rwd_pkt.m2s_rwd_txn.data = data; 
-        m2s_rwd_pkt.pending_data_slot = 'h0;
-      end 
-    end else if(m2s_rwd_pkt.pending_data_slot == 'he) begin
-      m2s_rwd_pkt.m2s_rwd_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0]; 
-      m2s_rwd_pkt.pending_data_slot = 'h0;
-      /*TODO: next gen upgrade logic
-      if(m2s_rwd_pkt[1].pending_data_slot != 0) begin
-        m2s_rwd_pkt[1].m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
-        m2s_rwd_pkt[1].pending_data_slot = 'he;
-      end*/
-    end else if(m2s_rwd_pkt.pending_data_slot == 'hc) begin
-      m2s_rwd_pkt.m2s_rwd_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0]; 
-      m2s_rwd_pkt.pending_data_slot = 'h0;
-      //TODO:maybe for future gen where size of rwd is > 1
-      /*if(m2s_rwd_pkt[1].pending_data_slot != 0) begin
-        m2s_rwd_pkt[1].m2s_rwd_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
-        m2s_rwd_pkt[1].pending_data_slot = 'hc;
-      end*/
-    end else if(m2s_rwd_pkt.pending_data_slot == 'h8) begin
-      m2s_rwd_pkt.m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0]; 
-      m2s_rwd_pkt.pending_data_slot = 'h0;
-      //TODO:maybe for future gen where size of rwd is > 1
-      /*if(m2s_rwd_pkt[1].pending_data_slot != 0) begin
-        m2s_rwd_pkt[1].m2s_rwd_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
-        m2s_rwd_pkt[1].pending_data_slot = 'h8;
-      end*/
-    end else begin
-      //TODO:maybe for future gen where size of rwd is > 1
-      /*if(m2s_rwd_pkt[1].pending_data_slot == 'hf) begin
-        m2s_rwd_pkt[1].m2s_rwd_txn.data = data;
-        m2s_rwd_pkt[1].pending_data_slot = 'h0;
-      end else if(m2s_rwd_pkt[1].pending_data_slot == 'he) begin
-        m2s_rwd_pkt[1].m2s_rwd_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0];
-        m2s_rwd_pkt[1].pending_data_slot = 'h0;
-        if(m2s_rwd_pkt[2].pending_data_slot != 'h0) begin
-          m2s_rwd_pkt[2].m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
-          m2s_rwd_pkt[2].pending_data_slot = 'he;
-        end
-      end else if(m2s_rwd_pkt[1].pending_data_slot == 'hc) begin
-        m2s_rwd_pkt[1].m2s_rwd_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0];
-        m2s_rwd_pkt[1].pending_data_slot = 'h0;
-        if(m2s_rwd_pkt[2].pending_data_slot != 'h0) begin
-          m2s_rwd_pkt[2].m2s_rwd_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
-          m2s_rwd_pkt[2].pending_data_slot = 'hc;
-        end
-      end else if(m2s_rwd_pkt[1].pending_data_slot == 'h8) begin
-        m2s_rwd_pkt[1].m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
-        m2s_rwd_pkt[1].pending_data_slot = 'h0;
-        if(m2s_rwd_pkt[2].pending_data_slot != 'h0) begin
-          m2s_rwd_pkt[2].m2s_rwd_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
-          m2s_rwd_pkt[2].pending_data_slot = 'h8;
-        end
-      end else begin
-        if(m2s_rwd_pkt[2].pending_data_slot == 'hf) begin
-          m2s_rwd_pkt[2].m2s_rwd_txn.data = data;
-          m2s_rwd_pkt[2].pending_data_slot = 'h0;
-        end else if(m2s_rwd_pkt[2].pending_data_slot == 'he) begin
-          m2s_rwd_pkt[2].m2s_rwd_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0]
-          m2s_rwd_pkt[2].pending_data_slot = 'h0;
-          if(m2s_rwd_pkt[3].pending_data_slot != 'h0) begin
-            m2s_rwd_pkt[3].m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
-            m2s_rwd_pkt[3].pending_data_slot = 'he;
+    bit [1:0] cond;
+
+    if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.valid == 'h1) begin
+      case(slot_sel) 
+        2'b00:
+        begin
+          m2s_posi_comp(m2s_rwd_pkt_iob, m2s_rwd_wr_ptr, cond);
+          case(cond)
+          2'b00:
+          begin
+            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'hf) begin
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b1110;
+            end else begin
+              $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+            end
           end
-        end else if(m2s_rwd_pkt[2].pending_data_slot == 'hc) begin
-          m2s_rwd_pkt[2].m2s_rwd_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0]
-          m2s_rwd_pkt[2].pending_data_slot = 'h0;
-          if(m2s_rwd_pkt[3].pending_data_slot != 'h0) begin
-            m2s_rwd_pkt[3].m2s_rwd_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
-            m2s_rwd_pkt[3].pending_data_slot = 'hc;
+          2'b01:
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
           end
-        end else if(m2s_rwd_pkt[2].pending_data_slot == 'h8) begin
-          m2s_rwd_pkt[2].m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0]
-          m2s_rwd_pkt[2].pending_data_slot = 'h0;
-          if(m2s_rwd_pkt[3].pending_data_slot != 'h0) begin
-            m2s_rwd_pkt[3].m2s_rwd_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
-            m2s_rwd_pkt[3].pending_data_slot = 'h8;
+          2'b10:
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
           end
-        end else begin
-          if(m2s_rwd_pkt[3].pending_data_slot == 'hf) begin
-            m2s_rwd_pkt[3].m2s_rwd_txn.data = data;
-            m2s_rwd_pkt[3].pending_data_slot = 'h0;
-          end else if(m2s_rwd_pkt[3].pending_data_slot == 'he) begin
-            m2s_rwd_pkt[3].m2s_rwd_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0];
-            m2s_rwd_pkt[3].pending_data_slot = 'h0;
-          end else if(m2s_rwd_pkt[3].pending_data_slot == 'hc) begin
-            m2s_rwd_pkt[3].m2s_rwd_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0];
-            m2s_rwd_pkt[3].pending_data_slot = 'h0;
-          end else if(m2s_rwd_pkt[3].pending_data_slot == 'h8) begin
-            m2s_rwd_pkt[3].m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
-            m2s_rwd_pkt[3].pending_data_slot = 'h0;
-          end else begin
-            
+          2'b11:                                                                                                        
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
           end
+          default: 
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+          end
+          endcase
         end
-      end*/
+        2'b01:
+        begin
+          m2s_posi_comp(m2s_rwd_pkt_iob, m2s_rwd_wr_ptr, cond);
+          case(cond)
+          2'b00:
+          begin
+            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1110) begin
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b1100;
+            end else begin
+              $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+            end
+          end
+          2'b01:
+          begin
+            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.pend == 4'b1000) begin
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.pend = 4'b0000;
+            end else begin 
+              if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) begin
+                m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 4'b0000;
+              end else begin
+                if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'hf) begin
+                  m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                  m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 4'b1110;
+                end else begin
+                  $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                end
+              end
+            end
+          end
+          2'b10:                                                                                                        
+          begin
+            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].m2s_rwd_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b1000;
+              end else begin
+                $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+              end
+            end
+          end
+          2'b11:
+          begin
+            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].m2s_rwd_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1110) begin
+                m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b1100;
+              end else begin
+                $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+              end
+            end
+          end
+          default:
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+          end
+          endcase
+        end
+        2'b10:
+        begin
+          m2s_posi_comp(m2s_rwd_pkt_iob, m2s_rwd_wr_ptr, cond);
+          case(cond)
+          2'b00:
+          begin
+            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1100) begin
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b1000;
+            end else begin
+              $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+            end
+          end
+          2'b01:
+          begin
+            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1110) begin
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 4'b1100;
+            end else begin
+              $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+            end
+          end
+          2'b10:
+          begin
+            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'hf) begin
+                  m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                  m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b1110;
+                end else begin
+                  $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                end
+              end
+            end
+          end
+          2'b11:
+          begin                                                                                                         
+            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].m2s_rwd_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b1000;
+              end else begin
+                $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+              end
+            end
+          end
+          default:
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+          end
+          endcase
+        end
+        2'b11:
+        begin
+          m2s_posi_comp(m2s_rwd_pkt_iob, m2s_rwd_wr_ptr, cond);
+          case(cond)
+          2'b00:
+          begin
+            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1000) begin
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b0000;
+            end else begin
+              $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+            end
+          end
+          2'b01:
+          begin
+            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1100) begin
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[511:SLOT3_OFFSET];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 4'b1000;
+            end else begin
+              $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+            end
+          end
+          2'b10:
+          begin
+            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1110) begin
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[511:SLOT3_OFFSET];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b1100;
+            end else begin
+              $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+            end
+          end
+          2'b11:
+          begin
+            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr-1].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'hf) begin
+                  m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
+                  m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b1110;
+                end else begin
+                  $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                end
+              end
+            end
+          end
+          default: 
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+          end
+          endcase
+        end
+      endcase
     end
 
-    if(h2d_data_pkt[0].pending_data_slot == 'hf) begin
-      if(slot_sel == 1) begin
-        h2d_data_pkt[0].h2d_data_txn.data[SLOT3_OFFSET-1:0] = data[SLOT3_OFFSET-1:0]; 
-        h2d_data_pkt[0].pending_data_slot = 'h8;
-      end else if(slot_sel == 2) begin
-        h2d_data_pkt[0].h2d_data_txn.data[SLOT2_OFFSET-1:0] = data[SLOT2_OFFSET-1:0]; 
-        h2d_data_pkt[0].pending_data_slot = 'hc;
-      end else if(slot_sel == 3) begin
-        h2d_data_pkt[0].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0]; 
-        h2d_data_pkt[0].pending_data_slot = 'he;
-      end else if(slot_sel == 0) begin
-        h2d_data_pkt[0].h2d_data_txn.data = data; 
-        h2d_data_pkt[0].pending_data_slot = 'h0;
-      end 
-    end else if(h2d_data_pkt[0].pending_data_slot == 'he) begin
-      h2d_data_pkt[0].h2d_data_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0]; 
-      h2d_data_pkt[0].pending_data_slot = 'h0;
-      if(h2d_data_pkt[1].pending_data_slot != 0) begin
-        h2d_data_pkt[1].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
-        h2d_data_pkt[1].pending_data_slot = 'he;
-      end
-    end else if(h2d_data_pkt[0].pending_data_slot == 'hc) begin
-      h2d_data_pkt[0].h2d_data_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0]; 
-      h2d_data_pkt[0].pending_data_slot = 'h0;
-      if(h2d_data_pkt[1].pending_data_slot != 0) begin
-        h2d_data_pkt[1].h2d_data_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
-        h2d_data_pkt[1].pending_data_slot = 'hc;
-      end
-    end else if(h2d_data_pkt[0].pending_data_slot == 'h8) begin
-      h2d_data_pkt[0].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0]; 
-      h2d_data_pkt[0].pending_data_slot = 'h0;
-      if(h2d_data_pkt[1].pending_data_slot != 0) begin
-        h2d_data_pkt[1].h2d_data_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
-        h2d_data_pkt[1].pending_data_slot = 'h8;
-      end
-    end else begin
-      if(h2d_data_pkt[1].pending_data_slot == 'hf) begin
-        h2d_data_pkt[1].h2d_data_txn.data = data;
-        h2d_data_pkt[1].pending_data_slot = 'h0;
-      end else if(h2d_data_pkt[1].pending_data_slot == 'he) begin
-        h2d_data_pkt[1].h2d_data_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0];
-        h2d_data_pkt[1].pending_data_slot = 'h0;
-        if(h2d_data_pkt[2].pending_data_slot != 'h0) begin
-          h2d_data_pkt[2].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
-          h2d_data_pkt[2].pending_data_slot = 'he;
-        end
-      end else if(h2d_data_pkt[1].pending_data_slot == 'hc) begin
-        h2d_data_pkt[1].h2d_data_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0];
-        h2d_data_pkt[1].pending_data_slot = 'h0;
-        if(h2d_data_pkt[2].pending_data_slot != 'h0) begin
-          h2d_data_pkt[2].h2d_data_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
-          h2d_data_pkt[2].pending_data_slot = 'hc;
-        end
-      end else if(h2d_data_pkt[1].pending_data_slot == 'h8) begin
-        h2d_data_pkt[1].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
-        h2d_data_pkt[1].pending_data_slot = 'h0;
-        if(h2d_data_pkt[2].pending_data_slot != 'h0) begin
-          h2d_data_pkt[2].h2d_data_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
-          h2d_data_pkt[2].pending_data_slot = 'h8;
-        end
-      end else begin
-        if(h2d_data_pkt[2].pending_data_slot == 'hf) begin
-          h2d_data_pkt[2].h2d_data_txn.data = data;
-          h2d_data_pkt[2].pending_data_slot = 'h0;
-        end else if(h2d_data_pkt[2].pending_data_slot == 'he) begin
-          h2d_data_pkt[2].h2d_data_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0];
-          h2d_data_pkt[2].pending_data_slot = 'h0;
-          if(h2d_data_pkt[3].pending_data_slot != 'h0) begin
-            h2d_data_pkt[3].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
-            h2d_data_pkt[3].pending_data_slot = 'he;
+    if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid == 'h1) begin
+      case(slot_sel) 
+        2'b00:
+        begin
+          h2d_posi_comp(h2d_data_pkt_iob, h2d_data_wr_ptr, cond);
+          case(cond)
+          2'b00:
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'hf) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b1110;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'hf) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b1110;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1110;
+                end else begin
+                  if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'hf) begin
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b1110;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
           end
-        end else if(h2d_data_pkt[2].pending_data_slot == 'hc) begin
-          h2d_data_pkt[2].h2d_data_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0];
-          h2d_data_pkt[2].pending_data_slot = 'h0;
-          if(h2d_data_pkt[3].pending_data_slot != 'h0) begin
-            h2d_data_pkt[3].h2d_data_txn.data[SLOT2_OFFSET-1:0] = data[511:SLOT2_OFFSET];
-            h2d_data_pkt[3].pending_data_slot = 'hc;
+          2'b01:
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'b1000) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET:0];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET:0];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET:0];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+                end else begin
+                  $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                end
+              end
+            end
           end
-        end else if(h2d_data_pkt[2].pending_data_slot == 'h8) begin
-          h2d_data_pkt[2].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
-          h2d_data_pkt[2].pending_data_slot = 'h0;
-          if(h2d_data_pkt[3].pending_data_slot != 'h0) begin
-            h2d_data_pkt[3].h2d_data_txn.data[SLOT3_OFFSET-1:0] = data[511:SLOT1_OFFSET];
-            h2d_data_pkt[3].pending_data_slot = 'h8;
+          2'b10:
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'b1100) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT1_OFFSET:0];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT1_OFFSET:0];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b1000;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT1_OFFSET:0];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1000;
+                end else begin
+                  $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                end
+              end
+            end
           end
-        end else begin
-          if(h2d_data_pkt[3].pending_data_slot == 'hf) begin
-            h2d_data_pkt[3].h2d_data_txn.data = data;
-            h2d_data_pkt[3].pending_data_slot = 'h0;
-          end else if(h2d_data_pkt[3].pending_data_slot == 'he) begin
-            h2d_data_pkt[3].h2d_data_txn.data[511:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:0];
-            h2d_data_pkt[3].pending_data_slot = 'h0;
-          end else if(h2d_data_pkt[3].pending_data_slot == 'hc) begin
-            h2d_data_pkt[3].h2d_data_txn.data[511:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:0];
-            h2d_data_pkt[3].pending_data_slot = 'h0;
-          end else if(h2d_data_pkt[3].pending_data_slot == 'h8) begin
-            h2d_data_pkt[3].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT1_OFFSET-1:0];
-            h2d_data_pkt[3].pending_data_slot = 'h0;
-          end else begin
-            
+          2'b11:                                                                                                        
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'b1110) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT1_OFFSET:0];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'b1110) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT1_OFFSET:0];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b1100;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT1_OFFSET:0];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1100;
+                end else begin
+                  $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                end
+              end
+            end
           end
+          default: 
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+          end
+          endcase
         end
-      end
+        2'b01:
+        begin
+          h2d_posi_comp(h2d_data_pkt_iob, h2d_data_wr_ptr, cond);
+          case(cond)
+          2'b00:
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'b1110) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'b1110) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b1100;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1100;
+                end else begin
+                  if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'b1110) begin
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b1100;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
+          end
+          2'b01:
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.pend == 'b1000) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-4].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b0000;
+                end else begin
+                  if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'hf) begin
+                    h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                    h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b1110;
+                  end else begin
+                    if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'hf) begin
+                      h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                      h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b1110;
+                    end else begin
+                      if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+                        h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                        h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1110;
+                      end else begin
+                        if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'hf) begin
+                          h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                          h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b1110;
+                        end else begin
+                          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+          2'b10:                                                                                                        
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.pend == 'b1100) begin
+            h2d_data_pkt_iob[h2d_data_wr_ptr-4].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+            h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1000;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b1000;
+                end else begin
+                  if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'b1000) begin
+                    h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                    h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b0000;
+                  end else begin
+                    if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+                      h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                      h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b0000;
+                    end else begin
+                      if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                        h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                        h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+                      end else begin
+                        if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                          h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                          h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b0000;
+                        end else begin
+                          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+          2'b11:
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.pend == 'b1110) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-4].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1100;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'b1110) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b1100;
+                end else begin
+                  if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'b1100) begin
+                    h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                    h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b1000;
+                  end else begin
+                    if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+                      h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                      h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b1000;
+                    end else begin
+                      if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                        h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
+                        h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1000;
+                      end else begin
+                        $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+          default:
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+          end
+          endcase
+        end
+        2'b10:
+        begin
+          h2d_posi_comp(h2d_data_pkt_iob, h2d_data_wr_ptr, cond);
+          case(cond)
+          2'b00:
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'b1100) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b1000;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1000;
+                end else begin
+                  if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b1000;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
+          end
+          2'b01:
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'b1110) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'b1110) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b1100;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1100;
+                end else begin
+                  if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'b1110) begin
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b1100;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
+          end
+          2'b10:
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.pend == 'b1000) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-4].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[511:SLOT3_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b0000;
+                end else begin
+                  if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'hf) begin
+                    h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                    h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b1110;
+                  end else begin
+                    if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'hf) begin
+                      h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                      h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b1110;
+                    end else begin
+                      if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+                        h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                        h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1110;
+                      end else begin
+                        if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'hf) begin
+                          h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                          h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b1110;
+                        end else begin
+                          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+          2'b11:
+          begin                                 
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.pend == 'b1100) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-4].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1000;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b1000;
+                end else begin
+                  if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'b1000) begin
+                    h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                    h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b0000;
+                  end else begin
+                    if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+                      h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                      h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b0000;
+                    end else begin
+                      if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                        h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
+                        h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+                      end else begin
+                        $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+          default:
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+          end
+          endcase
+        end
+        2'b11:
+        begin
+          h2d_posi_comp(h2d_data_pkt_iob, h2d_data_wr_ptr, cond);
+          case(cond)
+          2'b00:
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'b1000) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'b1000) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+                end else begin
+                  if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b0000;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
+          end
+          2'b01:
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'b1100) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[511:SLOT3_OFFSET];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b1000;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'b1100) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[511:SLOT3_OFFSET];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b1000;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1100) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[511:SLOT3_OFFSET];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1000;
+                end else begin
+                  if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'b1100) begin
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[511:SLOT3_OFFSET];
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b1000;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
+          end
+          2'b10:
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'b1110) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[511:SLOT3_OFFSET];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b1100;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'b1110) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[511:SLOT3_OFFSET];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b1100;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1110) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[511:SLOT3_OFFSET];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1100;
+                end else begin
+                  if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'b1110) begin
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[511:SLOT3_OFFSET];
+                    h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b1100;
+                  end else begin
+                    $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                  end
+                end
+              end
+            end
+          end
+          2'b11:
+          begin
+            if(h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.pend == 'b1000) begin
+              h2d_data_pkt_iob[h2d_data_wr_ptr-4].h2d_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+              h2d_data_pkt_iob[h2d_data_wr_ptr-4].pending_data_slot.pend = 'b0000;
+            end else begin
+              if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'b1000) begin
+                h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b0000;
+              end else begin
+                if(h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 'b1000) begin
+                  h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
+                  h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend = 'b0000;
+                end else begin
+                  if(h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend == 'hf) begin
+                    h2d_data_pkt_iob[h2d_data_wr_ptr-3].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
+                    h2d_data_pkt_iob[h2d_data_wr_ptr-3].pending_data_slot.pend = 'b1110;
+                  end else begin
+                    if(h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend == 'hf) begin
+                      h2d_data_pkt_iob[h2d_data_wr_ptr-2].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
+                      h2d_data_pkt_iob[h2d_data_wr_ptr-2].pending_data_slot.pend = 'b1110;
+                    end else begin
+                      if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+                        h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
+                        h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1110;
+                      end else begin
+                        if(h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend == 'hf) begin
+                          h2d_data_pkt_iob[h2d_data_wr_ptr-1].h2d_data_txn.data[SLOT1_OFFSET-1:0] = data[511:SLOT3_OFFSET];
+                          h2d_data_pkt_iob[h2d_data_wr_ptr-1].pending_data_slot.pend = 'b1110;
+                        end else begin
+                          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+                        end
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+          default: 
+          begin
+            $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+          end
+          endcase
+        end
+        default: begin
+          $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
+        end
+      endcase
     end
 
   endfunction
@@ -9444,77 +11249,77 @@ module device_rx_path #(
   function automatic void generic1(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    ref h2d_rsp_txn_t h2d_rsp_txn[4]
+    ref h2d_rsp_txn_t h2d_rsp_txn_w[4]
   );
 
     if(slot_sel == 'h1) begin
-      h2d_rsp_txn[0].valid        = data[(SLOT1_OFFSET+0)];
-      h2d_rsp_txn[0].opcode       = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]);
-      h2d_rsp_txn[0].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+16):(SLOT1_OFFSET+5)]);
-      h2d_rsp_txn[0].rsppre       = data[(SLOT1_OFFSET+18):(SLOT1_OFFSET+17)];
-      h2d_rsp_txn[0].cqid         = data[(SLOT1_OFFSET+30):(SLOT1_OFFSET+19)];
-      h2d_rsp_txn[1].valid        = data[(SLOT1_OFFSET+32)];
-      h2d_rsp_txn[1].opcode       = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+36):(SLOT1_OFFSET+33)]);
-      h2d_rsp_txn[1].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+48):(SLOT1_OFFSET+37)]);
-      h2d_rsp_txn[1].rsppre       = data[(SLOT1_OFFSET+50):(SLOT1_OFFSET+49)];
-      h2d_rsp_txn[1].cqid         = data[(SLOT1_OFFSET+62):(SLOT1_OFFSET+51)];
-      h2d_rsp_txn[2].valid        = data[(SLOT1_OFFSET+64)];
-      h2d_rsp_txn[2].opcode       = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+68):(SLOT1_OFFSET+65)]);
-      h2d_rsp_txn[2].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+80):(SLOT1_OFFSET+69)]);
-      h2d_rsp_txn[2].rsppre       = data[(SLOT1_OFFSET+82):(SLOT1_OFFSET+81)];
-      h2d_rsp_txn[2].cqid         = data[(SLOT1_OFFSET+94):(SLOT1_OFFSET+83)];
-      h2d_rsp_txn[3].valid        = data[(SLOT1_OFFSET+96)];
-      h2d_rsp_txn[3].opcode       = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)]);
-      h2d_rsp_txn[3].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)]);
-      h2d_rsp_txn[3].rsppre       = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
-      h2d_rsp_txn[3].cqid         = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
+      h2d_rsp_txn_w[0].valid        = data[(SLOT1_OFFSET+0)];
+      h2d_rsp_txn_w[0].opcode       = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]);
+      h2d_rsp_txn_w[0].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+16):(SLOT1_OFFSET+5)]);
+      h2d_rsp_txn_w[0].rsppre       = data[(SLOT1_OFFSET+18):(SLOT1_OFFSET+17)];
+      h2d_rsp_txn_w[0].cqid         = data[(SLOT1_OFFSET+30):(SLOT1_OFFSET+19)];
+      h2d_rsp_txn_w[1].valid        = data[(SLOT1_OFFSET+32)];
+      h2d_rsp_txn_w[1].opcode       = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+36):(SLOT1_OFFSET+33)]);
+      h2d_rsp_txn_w[1].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+48):(SLOT1_OFFSET+37)]);
+      h2d_rsp_txn_w[1].rsppre       = data[(SLOT1_OFFSET+50):(SLOT1_OFFSET+49)];
+      h2d_rsp_txn_w[1].cqid         = data[(SLOT1_OFFSET+62):(SLOT1_OFFSET+51)];
+      h2d_rsp_txn_w[2].valid        = data[(SLOT1_OFFSET+64)];
+      h2d_rsp_txn_w[2].opcode       = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+68):(SLOT1_OFFSET+65)]);
+      h2d_rsp_txn_w[2].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+80):(SLOT1_OFFSET+69)]);
+      h2d_rsp_txn_w[2].rsppre       = data[(SLOT1_OFFSET+82):(SLOT1_OFFSET+81)];
+      h2d_rsp_txn_w[2].cqid         = data[(SLOT1_OFFSET+94):(SLOT1_OFFSET+83)];
+      h2d_rsp_txn_w[3].valid        = data[(SLOT1_OFFSET+96)];
+      h2d_rsp_txn_w[3].opcode       = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)]);
+      h2d_rsp_txn_w[3].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)]);
+      h2d_rsp_txn_w[3].rsppre       = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
+      h2d_rsp_txn_w[3].cqid         = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
     end else if(slot_sel == 'h2) begin
-      h2d_rsp_txn[0].valid        = data[(SLOT2_OFFSET+0)];
-      h2d_rsp_txn[0].opcode       = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]);
-      h2d_rsp_txn[0].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+16):(SLOT2_OFFSET+5)]);
-      h2d_rsp_txn[0].rsppre       = data[(SLOT2_OFFSET+18):(SLOT2_OFFSET+17)];
-      h2d_rsp_txn[0].cqid         = data[(SLOT2_OFFSET+30):(SLOT2_OFFSET+19)];
-      h2d_rsp_txn[1].valid        = data[(SLOT2_OFFSET+32)];
-      h2d_rsp_txn[1].opcode       = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+36):(SLOT2_OFFSET+33)]);
-      h2d_rsp_txn[1].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+48):(SLOT2_OFFSET+37)]);
-      h2d_rsp_txn[1].rsppre       = data[(SLOT2_OFFSET+50):(SLOT2_OFFSET+49)];
-      h2d_rsp_txn[1].cqid         = data[(SLOT2_OFFSET+62):(SLOT2_OFFSET+51)];
-      h2d_rsp_txn[2].valid        = data[(SLOT2_OFFSET+64)];
-      h2d_rsp_txn[2].opcode       = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+68):(SLOT2_OFFSET+65)]);
-      h2d_rsp_txn[2].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+80):(SLOT2_OFFSET+69)]);
-      h2d_rsp_txn[2].rsppre       = data[(SLOT2_OFFSET+82):(SLOT2_OFFSET+81)];
-      h2d_rsp_txn[2].cqid         = data[(SLOT2_OFFSET+94):(SLOT2_OFFSET+83)];
-      h2d_rsp_txn[3].valid        = data[(SLOT2_OFFSET+96)];
-      h2d_rsp_txn[3].opcode       = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
-      h2d_rsp_txn[3].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
-      h2d_rsp_txn[3].rsppre       = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
-      h2d_rsp_txn[3].cqid         = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];
+      h2d_rsp_txn_w[0].valid        = data[(SLOT2_OFFSET+0)];
+      h2d_rsp_txn_w[0].opcode       = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]);
+      h2d_rsp_txn_w[0].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+16):(SLOT2_OFFSET+5)]);
+      h2d_rsp_txn_w[0].rsppre       = data[(SLOT2_OFFSET+18):(SLOT2_OFFSET+17)];
+      h2d_rsp_txn_w[0].cqid         = data[(SLOT2_OFFSET+30):(SLOT2_OFFSET+19)];
+      h2d_rsp_txn_w[1].valid        = data[(SLOT2_OFFSET+32)];
+      h2d_rsp_txn_w[1].opcode       = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+36):(SLOT2_OFFSET+33)]);
+      h2d_rsp_txn_w[1].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+48):(SLOT2_OFFSET+37)]);
+      h2d_rsp_txn_w[1].rsppre       = data[(SLOT2_OFFSET+50):(SLOT2_OFFSET+49)];
+      h2d_rsp_txn_w[1].cqid         = data[(SLOT2_OFFSET+62):(SLOT2_OFFSET+51)];
+      h2d_rsp_txn_w[2].valid        = data[(SLOT2_OFFSET+64)];
+      h2d_rsp_txn_w[2].opcode       = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+68):(SLOT2_OFFSET+65)]);
+      h2d_rsp_txn_w[2].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+80):(SLOT2_OFFSET+69)]);
+      h2d_rsp_txn_w[2].rsppre       = data[(SLOT2_OFFSET+82):(SLOT2_OFFSET+81)];
+      h2d_rsp_txn_w[2].cqid         = data[(SLOT2_OFFSET+94):(SLOT2_OFFSET+83)];
+      h2d_rsp_txn_w[3].valid        = data[(SLOT2_OFFSET+96)];
+      h2d_rsp_txn_w[3].opcode       = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
+      h2d_rsp_txn_w[3].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
+      h2d_rsp_txn_w[3].rsppre       = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+      h2d_rsp_txn_w[3].cqid         = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];
     end else if(slot_sel == 'h3) begin
-      h2d_rsp_txn[0].valid        = data[(SLOT3_OFFSET+0)];
-      h2d_rsp_txn[0].opcode       = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]);
-      h2d_rsp_txn[0].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+16):(SLOT3_OFFSET+5)]);
-      h2d_rsp_txn[0].rsppre       = data[(SLOT3_OFFSET+18):(SLOT3_OFFSET+17)];
-      h2d_rsp_txn[0].cqid         = data[(SLOT3_OFFSET+30):(SLOT3_OFFSET+19)];
-      h2d_rsp_txn[1].valid        = data[(SLOT3_OFFSET+32)];
-      h2d_rsp_txn[1].opcode       = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+36):(SLOT3_OFFSET+33)]);
-      h2d_rsp_txn[1].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+48):(SLOT3_OFFSET+37)]);
-      h2d_rsp_txn[1].rsppre       = data[(SLOT3_OFFSET+50):(SLOT3_OFFSET+49)];
-      h2d_rsp_txn[1].cqid         = data[(SLOT3_OFFSET+62):(SLOT3_OFFSET+51)];
-      h2d_rsp_txn[2].valid        = data[(SLOT3_OFFSET+64)];
-      h2d_rsp_txn[2].opcode       = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+68):(SLOT3_OFFSET+65)]);
-      h2d_rsp_txn[2].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+80):(SLOT3_OFFSET+69)]);
-      h2d_rsp_txn[2].rsppre       = data[(SLOT3_OFFSET+82):(SLOT3_OFFSET+81)];
-      h2d_rsp_txn[2].cqid         = data[(SLOT3_OFFSET+94):(SLOT3_OFFSET+83)];
-      h2d_rsp_txn[3].valid        = data[(SLOT3_OFFSET+96)];
-      h2d_rsp_txn[3].opcode       = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+100):(SLOT3_OFFSET+97)]);
-      h2d_rsp_txn[3].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+112):(SLOT3_OFFSET+101)]);
-      h2d_rsp_txn[3].rsppre       = data[(SLOT3_OFFSET+114):(SLOT3_OFFSET+113)];
-      h2d_rsp_txn[3].cqid         = data[(SLOT3_OFFSET+126):(SLOT3_OFFSET+115)];    
+      h2d_rsp_txn_w[0].valid        = data[(SLOT3_OFFSET+0)];
+      h2d_rsp_txn_w[0].opcode       = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]);
+      h2d_rsp_txn_w[0].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+16):(SLOT3_OFFSET+5)]);
+      h2d_rsp_txn_w[0].rsppre       = data[(SLOT3_OFFSET+18):(SLOT3_OFFSET+17)];
+      h2d_rsp_txn_w[0].cqid         = data[(SLOT3_OFFSET+30):(SLOT3_OFFSET+19)];
+      h2d_rsp_txn_w[1].valid        = data[(SLOT3_OFFSET+32)];
+      h2d_rsp_txn_w[1].opcode       = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+36):(SLOT3_OFFSET+33)]);
+      h2d_rsp_txn_w[1].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+48):(SLOT3_OFFSET+37)]);
+      h2d_rsp_txn_w[1].rsppre       = data[(SLOT3_OFFSET+50):(SLOT3_OFFSET+49)];
+      h2d_rsp_txn_w[1].cqid         = data[(SLOT3_OFFSET+62):(SLOT3_OFFSET+51)];
+      h2d_rsp_txn_w[2].valid        = data[(SLOT3_OFFSET+64)];
+      h2d_rsp_txn_w[2].opcode       = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+68):(SLOT3_OFFSET+65)]);
+      h2d_rsp_txn_w[2].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+80):(SLOT3_OFFSET+69)]);
+      h2d_rsp_txn_w[2].rsppre       = data[(SLOT3_OFFSET+82):(SLOT3_OFFSET+81)];
+      h2d_rsp_txn_w[2].cqid         = data[(SLOT3_OFFSET+94):(SLOT3_OFFSET+83)];
+      h2d_rsp_txn_w[3].valid        = data[(SLOT3_OFFSET+96)];
+      h2d_rsp_txn_w[3].opcode       = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+100):(SLOT3_OFFSET+97)]);
+      h2d_rsp_txn_w[3].rspdata      = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+112):(SLOT3_OFFSET+101)]);
+      h2d_rsp_txn_w[3].rsppre       = data[(SLOT3_OFFSET+114):(SLOT3_OFFSET+113)];
+      h2d_rsp_txn_w[3].cqid         = data[(SLOT3_OFFSET+126):(SLOT3_OFFSET+115)];    
     end else begin
-      h2d_rsp_txn[0].valid        = 'hX;
-      h2d_rsp_txn[1].valid        = 'hX;
-      h2d_rsp_txn[2].valid        = 'hX;
-      h2d_rsp_txn[3].valid        = 'hX;
+      h2d_rsp_txn_w[0].valid        = 'hX;
+      h2d_rsp_txn_w[1].valid        = 'hX;
+      h2d_rsp_txn_w[2].valid        = 'hX;
+      h2d_rsp_txn_w[3].valid        = 'hX;
     end
 
   endfunction
@@ -9524,110 +11329,127 @@ module device_rx_path #(
     input logic [511:0] data,
     ref h2d_req_txn_t h2d_req_txn[2],
     input int h2d_req_ptr,
-    ref h2d_data_pkt_t h2d_data_pkt[4],
+    ref h2d_data_pkt_t h2d_data_pkt_iob[32],
+    ref bit [4:0] h2d_data_wr_ptr,
     ref h2d_rsp_txn_t h2d_rsp_txn[4],
     input int h2d_rsp_ptr
   );
 
+    bit [1:0] posi;
     if(slot_sel == 'h1) begin
       if(h2d_req_ptr > 0) begin
-        h2d_req_txn[1].valid                     = data[(SLOT1_OFFSET+0)];
-        h2d_req_txn[1].opcode                    = h2d_req_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
-        h2d_req_txn[1].address                   = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
-        h2d_req_txn[1].uqid                      = data[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)];
+        h2d_req_txn_w[1].valid                                              = data[(SLOT1_OFFSET+0)];
+        h2d_req_txn_w[1].opcode                                             = h2d_req_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
+        h2d_req_txn_w[1].address                                            = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
+        h2d_req_txn_w[1].uqid                                               = data[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)];
       end else begin
-        h2d_req_txn[0].valid                     = data[(SLOT1_OFFSET+0)];
-        h2d_req_txn[0].opcode                    = h2d_req_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
-        h2d_req_txn[0].address                   = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
-        h2d_req_txn[0].uqid                      = data[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)];
+        h2d_req_txn_w[0].valid                                              = data[(SLOT1_OFFSET+0)];
+        h2d_req_txn_w[0].opcode                                             = h2d_req_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
+        h2d_req_txn_w[0].address                                            = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
+        h2d_req_txn_w[0].uqid                                               = data[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)];
       end
-      h2d_data_pkt[0].pending_data_slot          = 'hf;
-      h2d_data_pkt[0].h2d_data_txn.valid         = data[(SLOT1_OFFSET+64)];
-      h2d_data_pkt[0].h2d_data_txn.cqid          = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+65)];
-      h2d_data_pkt[0].h2d_data_txn.chunkvalid    = data[(SLOT1_OFFSET+77)];
-      h2d_data_pkt[0].h2d_data_txn.poison        = data[(SLOT1_OFFSET+78)];
-      h2d_data_pkt[0].h2d_data_txn.goerr         = data[(SLOT1_OFFSET+79)];
+      if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b11;
+      else if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1100) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b00;
+      else posi = 2'b10;
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT1_OFFSET+64)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+65)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT1_OFFSET+77)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT1_OFFSET+78)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT1_OFFSET+79)];
       if(h2d_rsp_ptr > 0) begin
-        h2d_rsp_txn[1].valid                     = data[(SLOT1_OFFSET+88)];
-        h2d_rsp_txn[1].opcode                    = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]);
-        h2d_rsp_txn[1].rspdata                   = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]);
-        h2d_rsp_txn[1].rsppre                    = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
-        h2d_rsp_txn[1].cqid                      = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
+        h2d_rsp_txn_w[1].valid                                              = data[(SLOT1_OFFSET+88)];
+        h2d_rsp_txn_w[1].opcode                                             = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]);
+        h2d_rsp_txn_w[1].rspdata                                            = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]);
+        h2d_rsp_txn_w[1].rsppre                                             = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
+        h2d_rsp_txn_w[1].cqid                                               = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
       end else begin
-        h2d_rsp_txn[0].valid                     = data[(SLOT1_OFFSET+88)];
-        h2d_rsp_txn[0].opcode                    = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]);
-        h2d_rsp_txn[0].rspdata                   = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]);
-        h2d_rsp_txn[0].rsppre                    = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
-        h2d_rsp_txn[0].cqid                      = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
+        h2d_rsp_txn_w[0].valid                                              = data[(SLOT1_OFFSET+88)];
+        h2d_rsp_txn_w[0].opcode                                             = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]);
+        h2d_rsp_txn_w[0].rspdata                                            = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]);
+        h2d_rsp_txn_w[0].rsppre                                             = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
+        h2d_rsp_txn_w[0].cqid                                               = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
       end
     end else if(slot_sel == 'h2) begin
       if(h2d_req_ptr > 0) begin
-        h2d_req_txn[1].valid                     = data[(SLOT2_OFFSET+0)];
-        h2d_req_txn[1].opcode                    = h2d_req_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
-        h2d_req_txn[1].address                   = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
-        h2d_req_txn[1].uqid                      = data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+50)];
+        h2d_req_txn_w[1].valid                                              = data[(SLOT2_OFFSET+0)];
+        h2d_req_txn_w[1].opcode                                             = h2d_req_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
+        h2d_req_txn_w[1].address                                            = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
+        h2d_req_txn_w[1].uqid                                               = data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+50)];
       end else begin
-        h2d_req_txn[0].valid                     = data[(SLOT2_OFFSET+0)];
-        h2d_req_txn[0].opcode                    = h2d_req_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
-        h2d_req_txn[0].address                   = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
-        h2d_req_txn[0].uqid                      = data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+50)];
+        h2d_req_txn_w[0].valid                                              = data[(SLOT2_OFFSET+0)];
+        h2d_req_txn_w[0].opcode                                             = h2d_req_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
+        h2d_req_txn_w[0].address                                            = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
+        h2d_req_txn_w[0].uqid                                               = data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+50)];
       end
-      h2d_data_pkt[0].pending_data_slot          = 'hf;
-      h2d_data_pkt[0].h2d_data_txn.valid         = data[(SLOT2_OFFSET+64)];
-      h2d_data_pkt[0].h2d_data_txn.cqid          = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+65)];
-      h2d_data_pkt[0].h2d_data_txn.chunkvalid    = data[(SLOT2_OFFSET+77)];
-      h2d_data_pkt[0].h2d_data_txn.poison        = data[(SLOT2_OFFSET+78)];
-      h2d_data_pkt[0].h2d_data_txn.goerr         = data[(SLOT2_OFFSET+79)];
+      if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b00;
+      else posi = 2'b11;
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT2_OFFSET+64)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+65)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT2_OFFSET+77)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT2_OFFSET+78)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT2_OFFSET+79)];
       if(h2d_rsp_ptr > 0) begin
-        h2d_rsp_txn[1].valid                     = data[(SLOT2_OFFSET+88)];
-        h2d_rsp_txn[1].opcode                    = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]);
-        h2d_rsp_txn[1].rspdata                   = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]);
-        h2d_rsp_txn[1].rsppre                    = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
-        h2d_rsp_txn[1].cqid                      = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
+        h2d_rsp_txn_w[1].valid                                              = data[(SLOT2_OFFSET+88)];
+        h2d_rsp_txn_w[1].opcode                                             = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]);
+        h2d_rsp_txn_w[1].rspdata                                            = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]);
+        h2d_rsp_txn_w[1].rsppre                                             = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
+        h2d_rsp_txn_w[1].cqid                                               = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
       end else begin
-        h2d_rsp_txn[0].valid                     = data[(SLOT2_OFFSET+88)];
-        h2d_rsp_txn[0].opcode                    = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]);
-        h2d_rsp_txn[0].rspdata                   = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]);
-        h2d_rsp_txn[0].rsppre                    = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
-        h2d_rsp_txn[0].cqid                      = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
+        h2d_rsp_txn_w[0].valid                                              = data[(SLOT2_OFFSET+88)];
+        h2d_rsp_txn_w[0].opcode                                             = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]);
+        h2d_rsp_txn_w[0].rspdata                                            = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]);
+        h2d_rsp_txn_w[0].rsppre                                             = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
+        h2d_rsp_txn_w[0].cqid                                               = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
       end
     end else if(slot_sel == 'h3) begin
       if(h2d_req_ptr > 0) begin
-        h2d_req_txn[1].valid                     = data[(SLOT3_OFFSET+0)];
-        h2d_req_txn[1].opcode                    = h2d_req_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
-        h2d_req_txn[1].address                   = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
-        h2d_req_txn[1].uqid                      = data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+50)];
+        h2d_req_txn_w[1].valid                                              = data[(SLOT3_OFFSET+0)];
+        h2d_req_txn_w[1].opcode                                             = h2d_req_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
+        h2d_req_txn_w[1].address                                            = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
+        h2d_req_txn_w[1].uqid                                               = data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+50)];
       end else begin
-        h2d_req_txn[0].valid                     = data[(SLOT3_OFFSET+0)];
-        h2d_req_txn[0].opcode                    = h2d_req_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
-        h2d_req_txn[0].address                   = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
-        h2d_req_txn[0].uqid                      = data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+50)];
+        h2d_req_txn_w[0].valid                                              = data[(SLOT3_OFFSET+0)];
+        h2d_req_txn_w[0].opcode                                             = h2d_req_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
+        h2d_req_txn_w[0].address                                            = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
+        h2d_req_txn_w[0].uqid                                               = data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+50)];
       end
-      h2d_data_pkt[0].pending_data_slot          = 'hf;
-      h2d_data_pkt[0].h2d_data_txn.valid         = data[(SLOT3_OFFSET+64)];
-      h2d_data_pkt[0].h2d_data_txn.cqid          = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+65)];
-      h2d_data_pkt[0].h2d_data_txn.chunkvalid    = data[(SLOT3_OFFSET+77)];
-      h2d_data_pkt[0].h2d_data_txn.poison        = data[(SLOT3_OFFSET+78)];
-      h2d_data_pkt[0].h2d_data_txn.goerr         = data[(SLOT3_OFFSET+79)];
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = 'h0;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT3_OFFSET+64)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+65)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT3_OFFSET+77)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT3_OFFSET+78)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT3_OFFSET+79)];
       if(h2d_rsp_ptr > 0) begin
-        h2d_rsp_txn[1].valid                     = data[(SLOT3_OFFSET+88)];
-        h2d_rsp_txn[1].opcode                    = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]);
-        h2d_rsp_txn[1].rspdata                   = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]);
-        h2d_rsp_txn[1].rsppre                    = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
-        h2d_rsp_txn[1].cqid                      = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
+        h2d_rsp_txn_w[1].valid                                              = data[(SLOT3_OFFSET+88)];
+        h2d_rsp_txn_w[1].opcode                                             = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]);
+        h2d_rsp_txn_w[1].rspdata                                            = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]);
+        h2d_rsp_txn_w[1].rsppre                                             = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
+        h2d_rsp_txn_w[1].cqid                                               = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
       end else begin
-        h2d_rsp_txn[0].valid                     = data[(SLOT3_OFFSET+88)];
-        h2d_rsp_txn[0].opcode                    = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]);
-        h2d_rsp_txn[0].rspdata                   = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]);
-        h2d_rsp_txn[0].rsppre                    = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
-        h2d_rsp_txn[0].cqid                      = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
+        h2d_rsp_txn_w[0].valid                                              = data[(SLOT3_OFFSET+88)];
+        h2d_rsp_txn_w[0].opcode                                             = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]);
+        h2d_rsp_txn_w[0].rspdata                                            = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]);
+        h2d_rsp_txn_w[0].rsppre                                             = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
+        h2d_rsp_txn_w[0].cqid                                               = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
       end
     end else begin
-      h2d_req_txn[0].valid                       = 'hX;
-      h2d_req_txn[1].valid                       = 'hX;
-      h2d_data_pkt[0].h2d_data_txn.valid         = 'hX;
-      h2d_rsp_txn[0].valid                       = 'hX;
-      h2d_rsp_txn[1].valid                       = 'hX;
+      h2d_data_wr_ptr++;
+      h2d_req_txn_w[0].valid                                                = 'hX;
+      h2d_req_txn_w[1].valid                                                = 'hX;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = 'hX;
+      h2d_rsp_txn_w[0].valid                                                = 'hX;
+      h2d_rsp_txn_w[1].valid                                                = 'hX;
     end
 
   endfunction
@@ -9635,132 +11457,179 @@ module device_rx_path #(
   function automatic void generic3(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    ref h2d_data_pkt_t h2d_data_pkt[4],
+    ref h2d_data_pkt_t h2d_data_pkt_iob[32],
+    ref bit [4:0] h2d_data_wr_ptr,
     ref h2d_rsp_txn_t h2d_rsp_txn[4],
     input int h2d_rsp_ptr
   );
 
+    bit [1:0] posi;
     if(slot_sel == 'h1) begin
-      h2d_data_pkt[0].pending_data_slot        = 'hf;
-      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT1_OFFSET+0)];
-      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)];
-      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+13)];
-      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT1_OFFSET+14)];
-      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+15)];
-      h2d_data_pkt[1].pending_data_slot        = 'hf;
-      h2d_data_pkt[1].h2d_data_txn.valid       = data[(SLOT1_OFFSET+24)];
-      h2d_data_pkt[1].h2d_data_txn.cqid        = data[(SLOT1_OFFSET+36):(SLOT1_OFFSET+25)];
-      h2d_data_pkt[1].h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+37)];
-      h2d_data_pkt[1].h2d_data_txn.poison      = data[(SLOT1_OFFSET+38)];
-      h2d_data_pkt[1].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+39)];
-      h2d_data_pkt[2].pending_data_slot        = 'hf;
-      h2d_data_pkt[2].h2d_data_txn.valid       = data[(SLOT1_OFFSET+48)];
-      h2d_data_pkt[2].h2d_data_txn.cqid        = data[(SLOT1_OFFSET+60):(SLOT1_OFFSET+49)];
-      h2d_data_pkt[2].h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+61)];
-      h2d_data_pkt[2].h2d_data_txn.poison      = data[(SLOT1_OFFSET+62)];
-      h2d_data_pkt[2].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+63)];
-      h2d_data_pkt[3].pending_data_slot        = 'hf;
-      h2d_data_pkt[3].h2d_data_txn.valid       = data[(SLOT1_OFFSET+72)];
-      h2d_data_pkt[3].h2d_data_txn.cqid        = data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+73)];
-      h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+85)];
-      h2d_data_pkt[3].h2d_data_txn.poison      = data[(SLOT1_OFFSET+86)];
-      h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+87)];
+      if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b11;
+      else if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1100) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b00;
+      else posi = 2'b10;
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT1_OFFSET+0)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT1_OFFSET+12):(SLOT1_OFFSET+1)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT1_OFFSET+13)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT1_OFFSET+14)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT1_OFFSET+15)];
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT1_OFFSET+24)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT1_OFFSET+36):(SLOT1_OFFSET+25)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT1_OFFSET+37)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT1_OFFSET+38)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT1_OFFSET+39)];
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT1_OFFSET+48)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT1_OFFSET+60):(SLOT1_OFFSET+49)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT1_OFFSET+61)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT1_OFFSET+62)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT1_OFFSET+63)];
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT1_OFFSET+72)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+73)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT1_OFFSET+85)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT1_OFFSET+86)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT1_OFFSET+87)];
       if(h2d_rsp_ptr > 0) begin
-        h2d_rsp_txn[1].valid                   = data[(SLOT1_OFFSET+96)];
-        h2d_rsp_txn[1].opcode                  = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)]);
-        h2d_rsp_txn[1].rspdata                 = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)]);
-        h2d_rsp_txn[1].rsppre                  = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
-        h2d_rsp_txn[1].cqid                    = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
+        h2d_rsp_txn_w[1].valid                                              = data[(SLOT1_OFFSET+96)];
+        h2d_rsp_txn_w[1].opcode                                             = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)]);
+        h2d_rsp_txn_w[1].rspdata                                            = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)]);
+        h2d_rsp_txn_w[1].rsppre                                             = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
+        h2d_rsp_txn_w[1].cqid                                               = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
       end else begin
-        h2d_rsp_txn[0].valid                   = data[(SLOT1_OFFSET+96)];
-        h2d_rsp_txn[0].opcode                  = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)]);
-        h2d_rsp_txn[0].rspdata                 = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)]);
-        h2d_rsp_txn[0].rsppre                  = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
-        h2d_rsp_txn[0].cqid                    = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
+        h2d_rsp_txn_w[0].valid                                              = data[(SLOT1_OFFSET+96)];
+        h2d_rsp_txn_w[0].opcode                                             = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+97)]);
+        h2d_rsp_txn_w[0].rspdata                                            = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+112):(SLOT1_OFFSET+101)]);
+        h2d_rsp_txn_w[0].rsppre                                             = data[(SLOT1_OFFSET+114):(SLOT1_OFFSET+113)];
+        h2d_rsp_txn_w[0].cqid                                               = data[(SLOT1_OFFSET+126):(SLOT1_OFFSET+115)];
       end
     end else if(slot_sel == 'h2) begin
-      h2d_data_pkt[0].pending_data_slot        = 'hf;
-      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT2_OFFSET+0)];
-      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)];
-      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+13)];
-      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT2_OFFSET+14)];
-      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+15)];
-      h2d_data_pkt[1].pending_data_slot        = 'hf;
-      h2d_data_pkt[1].h2d_data_txn.valid       = data[(SLOT2_OFFSET+24)];
-      h2d_data_pkt[1].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+36):(SLOT2_OFFSET+25)];
-      h2d_data_pkt[1].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+37)];
-      h2d_data_pkt[1].h2d_data_txn.poison      = data[(SLOT2_OFFSET+38)];
-      h2d_data_pkt[1].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+39)];
-      h2d_data_pkt[2].pending_data_slot        = 'hf;
-      h2d_data_pkt[2].h2d_data_txn.valid       = data[(SLOT2_OFFSET+48)];
-      h2d_data_pkt[2].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+60):(SLOT2_OFFSET+49)];
-      h2d_data_pkt[2].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+61)];
-      h2d_data_pkt[2].h2d_data_txn.poison      = data[(SLOT2_OFFSET+62)];
-      h2d_data_pkt[2].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+63)];
-      h2d_data_pkt[3].pending_data_slot        = 'hf;
-      h2d_data_pkt[3].h2d_data_txn.valid       = data[(SLOT2_OFFSET+72)];
-      h2d_data_pkt[3].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+73)];
-      h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+85)];
-      h2d_data_pkt[3].h2d_data_txn.poison      = data[(SLOT2_OFFSET+86)];
-      h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+87)];
+      if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b00;
+      else posi = 2'b11;
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT2_OFFSET+0)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT2_OFFSET+13)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT2_OFFSET+14)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT2_OFFSET+15)];
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT2_OFFSET+24)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT2_OFFSET+36):(SLOT2_OFFSET+25)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT2_OFFSET+37)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT2_OFFSET+38)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT2_OFFSET+39)];
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT2_OFFSET+48)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT2_OFFSET+60):(SLOT2_OFFSET+49)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT2_OFFSET+61)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT2_OFFSET+62)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT2_OFFSET+63)];
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;//TODO: DONE: you are just assuming start position is just next to the slot sel but there can be data inbetween this is a bug that needs some logic to figure out and update this field
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT2_OFFSET+72)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+73)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT2_OFFSET+85)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT2_OFFSET+86)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT2_OFFSET+87)];
       if(h2d_rsp_ptr > 0) begin
-        h2d_rsp_txn[1].valid                   = data[(SLOT2_OFFSET+96)];
-        h2d_rsp_txn[1].opcode                  = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
-        h2d_rsp_txn[1].rspdata                 = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
-        h2d_rsp_txn[1].rsppre                  = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
-        h2d_rsp_txn[1].cqid                    = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];    
+        h2d_rsp_txn_w[1].valid                                              = data[(SLOT2_OFFSET+96)];
+        h2d_rsp_txn_w[1].opcode                                             = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
+        h2d_rsp_txn_w[1].rspdata                                            = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
+        h2d_rsp_txn_w[1].rsppre                                             = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+        h2d_rsp_txn_w[1].cqid                                               = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];    
       end else begin
-        h2d_rsp_txn[0].valid                   = data[(SLOT2_OFFSET+96)];
-        h2d_rsp_txn[0].opcode                  = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
-        h2d_rsp_txn[0].rspdata                 = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
-        h2d_rsp_txn[0].rsppre                  = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
-        h2d_rsp_txn[0].cqid                    = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];    
+        h2d_rsp_txn_w[0].valid                                              = data[(SLOT2_OFFSET+96)];
+        h2d_rsp_txn_w[0].opcode                                             = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
+        h2d_rsp_txn_w[0].rspdata                                            = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
+        h2d_rsp_txn_w[0].rsppre                                             = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+        h2d_rsp_txn_w[0].cqid                                               = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];    
       end
     end else if(slot_sel == 'h3) begin
-      h2d_data_pkt[0].pending_data_slot        = 'hf;
-      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT2_OFFSET+0)];
-      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)];
-      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+13)];
-      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT2_OFFSET+14)];
-      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+15)];
-      h2d_data_pkt[1].pending_data_slot        = 'hf;
-      h2d_data_pkt[1].h2d_data_txn.valid       = data[(SLOT2_OFFSET+24)];
-      h2d_data_pkt[1].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+36):(SLOT2_OFFSET+25)];
-      h2d_data_pkt[1].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+37)];
-      h2d_data_pkt[1].h2d_data_txn.poison      = data[(SLOT2_OFFSET+38)];
-      h2d_data_pkt[1].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+39)];
-      h2d_data_pkt[2].pending_data_slot        = 'hf;
-      h2d_data_pkt[2].h2d_data_txn.valid       = data[(SLOT2_OFFSET+48)];
-      h2d_data_pkt[2].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+60):(SLOT2_OFFSET+49)];
-      h2d_data_pkt[2].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+61)];
-      h2d_data_pkt[2].h2d_data_txn.poison      = data[(SLOT2_OFFSET+62)];
-      h2d_data_pkt[2].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+63)];
-      h2d_data_pkt[3].pending_data_slot        = 'hf;
-      h2d_data_pkt[3].h2d_data_txn.valid       = data[(SLOT2_OFFSET+72)];
-      h2d_data_pkt[3].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+73)];
-      h2d_data_pkt[3].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+85)];
-      h2d_data_pkt[3].h2d_data_txn.poison      = data[(SLOT2_OFFSET+86)];
-      h2d_data_pkt[3].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+87)];
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = 'h0;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT2_OFFSET+0)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT2_OFFSET+12):(SLOT2_OFFSET+1)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT2_OFFSET+13)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT2_OFFSET+14)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT2_OFFSET+15)];
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = 'h0;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT2_OFFSET+24)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT2_OFFSET+36):(SLOT2_OFFSET+25)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT2_OFFSET+37)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT2_OFFSET+38)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT2_OFFSET+39)];
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = 'h0;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT2_OFFSET+48)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT2_OFFSET+60):(SLOT2_OFFSET+49)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT2_OFFSET+61)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT2_OFFSET+62)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT2_OFFSET+63)];
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = 'h0;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT2_OFFSET+72)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+73)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT2_OFFSET+85)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT2_OFFSET+86)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT2_OFFSET+87)];
       if(h2d_rsp_ptr > 0) begin
-        h2d_rsp_txn[1].valid                   = data[(SLOT2_OFFSET+96)];
-        h2d_rsp_txn[1].opcode                  = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
-        h2d_rsp_txn[1].rspdata                 = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
-        h2d_rsp_txn[1].rsppre                  = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
-        h2d_rsp_txn[1].cqid                    = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];   
+        h2d_rsp_txn_w[1].valid                                              = data[(SLOT2_OFFSET+96)];
+        h2d_rsp_txn_w[1].opcode                                             = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
+        h2d_rsp_txn_w[1].rspdata                                            = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
+        h2d_rsp_txn_w[1].rsppre                                             = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+        h2d_rsp_txn_w[1].cqid                                               = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];   
       end else begin
-        h2d_rsp_txn[0].valid                   = data[(SLOT2_OFFSET+96)];
-        h2d_rsp_txn[0].opcode                  = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
-        h2d_rsp_txn[0].rspdata                 = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
-        h2d_rsp_txn[0].rsppre                  = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
-        h2d_rsp_txn[0].cqid                    = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];   
+        h2d_rsp_txn_w[0].valid                                              = data[(SLOT2_OFFSET+96)];
+        h2d_rsp_txn_w[0].opcode                                             = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+97)]);
+        h2d_rsp_txn_w[0].rspdata                                            = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+112):(SLOT2_OFFSET+101)]);
+        h2d_rsp_txn_w[0].rsppre                                             = data[(SLOT2_OFFSET+114):(SLOT2_OFFSET+113)];
+        h2d_rsp_txn_w[0].cqid                                               = data[(SLOT2_OFFSET+126):(SLOT2_OFFSET+115)];   
       end
     end else begin
-      h2d_data_pkt[0].h2d_data_txn.valid       = 'hX;
-      h2d_data_pkt[1].h2d_data_txn.valid       = 'hX;
-      h2d_data_pkt[2].h2d_data_txn.valid       = 'hX;
-      h2d_data_pkt[3].h2d_data_txn.valid       = 'hX;
-      h2d_rsp_txn[0].valid                     = 'hX;
-      h2d_rsp_txn[1].valid                     = 'hX;
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = 'hX;
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = 'hX;
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = 'hX;
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = 'hX;
+      h2d_rsp_txn_w[0].valid                                                = 'hX;
+      h2d_rsp_txn_w[1].valid                                                = 'hX;
     end
 
   endfunction
@@ -9768,93 +11637,110 @@ module device_rx_path #(
   function automatic void generic4(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    ref m2s_req_txn_t m2s_req_txn[2],
+    ref m2s_req_txn_t m2s_req_txn_w[2],
     input int m2s_req_ptr,
-    ref h2d_data_pkt_t h2d_data_pkt[4]
+    ref h2d_data_pkt_t h2d_data_pkt_iob[32],
+    ref bit [4:0] h2d_data_wr_ptr
   );
+    bit [1:0] posi;
 
     if(slot_sel == 'h1) begin
       if(m2s_req_ptr > 0) begin
-        m2s_req_txn[1].valid                   = data[(SLOT1_OFFSET+0)];
-        m2s_req_txn[1].memopcode               = m2s_req_opcode_t'(data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]);
-        m2s_req_txn[1].snptype                 = snptype_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]);
-        m2s_req_txn[1].metafield               = metafield_t'(data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]);
-        m2s_req_txn[1].metavalue               = metavalue_t'(data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]);
-        m2s_req_txn[1].tag                     = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
-        m2s_req_txn[1].address                 = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
-        m2s_req_txn[1].tc                      = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
+        m2s_req_txn_w[1].valid                                              = data[(SLOT1_OFFSET+0)];
+        m2s_req_txn_w[1].memopcode                                          = m2s_req_opcode_t'(data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]);
+        m2s_req_txn_w[1].snptype                                            = snptype_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]);
+        m2s_req_txn_w[1].metafield                                          = metafield_t'(data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]);
+        m2s_req_txn_w[1].metavalue                                          = metavalue_t'(data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]);
+        m2s_req_txn_w[1].tag                                                = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
+        m2s_req_txn_w[1].address                                            = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
+        m2s_req_txn_w[1].tc                                                 = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
       end else begin
-        m2s_req_txn[0].valid                   = data[(SLOT1_OFFSET+0)];
-        m2s_req_txn[0].memopcode               = m2s_req_opcode_t'(data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]);
-        m2s_req_txn[0].snptype                 = snptype_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]);
-        m2s_req_txn[0].metafield               = metafield_t'(data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]);
-        m2s_req_txn[0].metavalue               = metavalue_t'(data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]);
-        m2s_req_txn[0].tag                     = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
-        m2s_req_txn[0].address                 = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
-        m2s_req_txn[0].tc                      = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
+        m2s_req_txn_w[0].valid                                              = data[(SLOT1_OFFSET+0)];
+        m2s_req_txn_w[0].memopcode                                          = m2s_req_opcode_t'(data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]);
+        m2s_req_txn_w[0].snptype                                            = snptype_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]);
+        m2s_req_txn_w[0].metafield                                          = metafield_t'(data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]);
+        m2s_req_txn_w[0].metavalue                                          = metavalue_t'(data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]);
+        m2s_req_txn_w[0].tag                                                = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
+        m2s_req_txn_w[0].address                                            = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
+        m2s_req_txn_w[0].tc                                                 = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
       end
-      h2d_data_pkt[0].pending_data_slot        = 'hf;
-      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT1_OFFSET+88)];
-      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+89)];
-      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT1_OFFSET+101)];
-      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT1_OFFSET+102)];
-      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT1_OFFSET+103)];
+      if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b11;
+      else if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1100) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b00;
+      else posi = 2'b10;
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT1_OFFSET+88)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT1_OFFSET+100):(SLOT1_OFFSET+89)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT1_OFFSET+101)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT1_OFFSET+102)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT1_OFFSET+103)];
     end else if(slot_sel == 'h2) begin
       if(m2s_req_ptr > 0) begin
-        m2s_req_txn[1].valid                   = data[(SLOT2_OFFSET+0)];
-        m2s_req_txn[1].memopcode               = m2s_req_opcode_t'(data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]);
-        m2s_req_txn[1].snptype                 = snptype_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]);
-        m2s_req_txn[1].metafield               = metafield_t'(data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]);
-        m2s_req_txn[1].metavalue               = metavalue_t'(data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]);
-        m2s_req_txn[1].tag                     = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
-        m2s_req_txn[1].address                 = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
-        m2s_req_txn[1].tc                      = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
+        m2s_req_txn_w[1].valid                                              = data[(SLOT2_OFFSET+0)];
+        m2s_req_txn_w[1].memopcode                                          = m2s_req_opcode_t'(data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]);
+        m2s_req_txn_w[1].snptype                                            = snptype_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]);
+        m2s_req_txn_w[1].metafield                                          = metafield_t'(data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]);
+        m2s_req_txn_w[1].metavalue                                          = metavalue_t'(data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]);
+        m2s_req_txn_w[1].tag                                                = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
+        m2s_req_txn_w[1].address                                            = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
+        m2s_req_txn_w[1].tc                                                 = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
       end else begin
-        m2s_req_txn[0].valid                   = data[(SLOT2_OFFSET+0)];
-        m2s_req_txn[0].memopcode               = m2s_req_opcode_t'(data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]);
-        m2s_req_txn[0].snptype                 = snptype_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]);
-        m2s_req_txn[0].metafield               = metafield_t'(data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]);
-        m2s_req_txn[0].metavalue               = metavalue_t'(data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]);
-        m2s_req_txn[0].tag                     = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
-        m2s_req_txn[0].address                 = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
-        m2s_req_txn[0].tc                      = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
+        m2s_req_txn_w[0].valid                                              = data[(SLOT2_OFFSET+0)];
+        m2s_req_txn_w[0].memopcode                                          = m2s_req_opcode_t'(data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]);
+        m2s_req_txn_w[0].snptype                                            = snptype_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]);
+        m2s_req_txn_w[0].metafield                                          = metafield_t'(data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]);
+        m2s_req_txn_w[0].metavalue                                          = metavalue_t'(data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]);
+        m2s_req_txn_w[0].tag                                                = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
+        m2s_req_txn_w[0].address                                            = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
+        m2s_req_txn_w[0].tc                                                 = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
       end
-      h2d_data_pkt[0].pending_data_slot        = 'hf;
-      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT2_OFFSET+88)];
-      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+89)];
-      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT2_OFFSET+101)];
-      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT2_OFFSET+102)];
-      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT2_OFFSET+103)];
+      h2d_data_wr_ptr++;
+      if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b00;
+      else posi = 2'b11;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT2_OFFSET+88)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT2_OFFSET+100):(SLOT2_OFFSET+89)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT2_OFFSET+101)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT2_OFFSET+102)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT2_OFFSET+103)];
     end else if(slot_sel == 'h3) begin
       if(m2s_req_ptr > 0) begin
-        m2s_req_txn[1].valid                   = data[(SLOT3_OFFSET+0)];
-        m2s_req_txn[1].memopcode               = m2s_req_opcode_t'(data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]);
-        m2s_req_txn[1].snptype                 = snptype_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]);
-        m2s_req_txn[1].metafield               = metafield_t'(data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]);
-        m2s_req_txn[1].metavalue               = metavalue_t'(data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]);
-        m2s_req_txn[1].tag                     = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
-        m2s_req_txn[1].address                 = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
-        m2s_req_txn[1].tc                      = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
+        m2s_req_txn_w[1].valid                                              = data[(SLOT3_OFFSET+0)];
+        m2s_req_txn_w[1].memopcode                                          = m2s_req_opcode_t'(data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]);
+        m2s_req_txn_w[1].snptype                                            = snptype_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]);
+        m2s_req_txn_w[1].metafield                                          = metafield_t'(data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]);
+        m2s_req_txn_w[1].metavalue                                          = metavalue_t'(data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]);
+        m2s_req_txn_w[1].tag                                                = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
+        m2s_req_txn_w[1].address                                            = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
+        m2s_req_txn_w[1].tc                                                 = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
       end else begin
-        m2s_req_txn[0].valid                   = data[(SLOT3_OFFSET+0)];
-        m2s_req_txn[0].memopcode               = m2s_req_opcode_t'(data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]);
-        m2s_req_txn[0].snptype                 = snptype_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]);
-        m2s_req_txn[0].metafield               = metafield_t'(data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]);
-        m2s_req_txn[0].metavalue               = metavalue_t'(data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]);
-        m2s_req_txn[0].tag                     = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
-        m2s_req_txn[0].address                 = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
-        m2s_req_txn[0].tc                      = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
+        m2s_req_txn_w[0].valid                                              = data[(SLOT3_OFFSET+0)];
+        m2s_req_txn_w[0].memopcode                                          = m2s_req_opcode_t'(data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]);
+        m2s_req_txn_w[0].snptype                                            = snptype_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]);
+        m2s_req_txn_w[0].metafield                                          = metafield_t'(data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]);
+        m2s_req_txn_w[0].metavalue                                          = metavalue_t'(data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]);
+        m2s_req_txn_w[0].tag                                                = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
+        m2s_req_txn_w[0].address                                            = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
+        m2s_req_txn_w[0].tc                                                 = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
       end
-      h2d_data_pkt[0].pending_data_slot        = 'hf;
-      h2d_data_pkt[0].h2d_data_txn.valid       = data[(SLOT3_OFFSET+88)];
-      h2d_data_pkt[0].h2d_data_txn.cqid        = data[(SLOT3_OFFSET+100):(SLOT3_OFFSET+89)];
-      h2d_data_pkt[0].h2d_data_txn.chunkvalid  = data[(SLOT3_OFFSET+101)];
-      h2d_data_pkt[0].h2d_data_txn.poison      = data[(SLOT3_OFFSET+102)];
-      h2d_data_pkt[0].h2d_data_txn.goerr       = data[(SLOT3_OFFSET+103)];
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.start_dslot_posi  = 'h0;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.valid             = 'h1;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = data[(SLOT3_OFFSET+88)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.cqid                   = data[(SLOT3_OFFSET+100):(SLOT3_OFFSET+89)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.chunkvalid             = data[(SLOT3_OFFSET+101)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.poison                 = data[(SLOT3_OFFSET+102)];
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.goerr                  = data[(SLOT3_OFFSET+103)];
     end else begin
-      m2s_req_txn[0].valid                     = 'hX;
-      m2s_req_txn[1].valid                     = 'hX;
-      h2d_data_pkt[0].h2d_data_txn.valid       = 'hX;
+      m2s_req_txn_w[0].valid                                                = 'hX;
+      m2s_req_txn_w[1].valid                                                = 'hX;
+      h2d_data_wr_ptr++;
+      h2d_data_pkt_iob[h2d_data_wr_ptr].h2d_data_txn.valid                  = 'hX;
     end
 
   endfunction
@@ -9862,320 +11748,399 @@ module device_rx_path #(
   function automatic void generic5(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    ref m2s_rwd_pkt_t m2s_rwd_pkt,
-    ref h2d_rsp_txn_t h2d_rsp_txn[4],
+    ref m2s_rwd_pkt_t m2s_rwd_pkt_iob[32],
+    ref bit [4:0] m2s_rwd_wr_ptr,
+    ref h2d_rsp_txn_t h2d_rsp_txn_w[4],
     input int h2d_rsp_ptr
   );
+    bit [1:0] posi;
 
     if(slot_sel == 'h1) begin
-      m2s_rwd_pkt.pending_data_slot        = 'hf;
-      m2s_rwd_pkt.m2s_rwd_txn.valid        = data[(SLOT1_OFFSET+0)];
-      m2s_rwd_pkt.m2s_rwd_txn.memopcode    = m2s_rwd_opcode_t'(data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]);
-      m2s_rwd_pkt.m2s_rwd_txn.snptype      = snptype_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]);
-      m2s_rwd_pkt.m2s_rwd_txn.metafield    = metafield_t'(data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]);
-      m2s_rwd_pkt.m2s_rwd_txn.metavalue    = metavalue_t'(data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]);
-      m2s_rwd_pkt.m2s_rwd_txn.tag          = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
-      m2s_rwd_pkt.m2s_rwd_txn.address      = data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+28)];
-      m2s_rwd_pkt.m2s_rwd_txn.poison       = data[(SLOT1_OFFSET+74)];
-      m2s_rwd_pkt.m2s_rwd_txn.tc           = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
+      if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b11;
+      else if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1100) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b00;
+      else posi = 2'b10;
+      m2s_rwd_wr_ptr++;
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend              = 'hf;
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.valid             = 'h1;
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.valid                   = data[(SLOT1_OFFSET+0)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.memopcode               = m2s_rwd_opcode_t'(data[(SLOT1_OFFSET+4):(SLOT1_OFFSET+1)]);
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.snptype                 = snptype_t'(data[(SLOT1_OFFSET+7):(SLOT1_OFFSET+5)]);
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metafield               = metafield_t'(data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]);
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metavalue               = metavalue_t'(data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]);
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tag                     = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address                 = data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+28)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.poison                  = data[(SLOT1_OFFSET+74)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tc                      = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
       if(h2d_rsp_ptr > 0) begin
-        h2d_rsp_txn[1].valid               = data[(SLOT1_OFFSET+88)];
-        h2d_rsp_txn[1].opcode              = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]);
-        h2d_rsp_txn[1].rspdata             = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]);
-        h2d_rsp_txn[1].rsppre              = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
-        h2d_rsp_txn[1].cqid                = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
+        h2d_rsp_txn_w[1].valid                                            = data[(SLOT1_OFFSET+88)];
+        h2d_rsp_txn_w[1].opcode                                           = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]);
+        h2d_rsp_txn_w[1].rspdata                                          = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]);
+        h2d_rsp_txn_w[1].rsppre                                           = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
+        h2d_rsp_txn_w[1].cqid                                             = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
       end else begin
-        h2d_rsp_txn[0].valid               = data[(SLOT1_OFFSET+88)];
-        h2d_rsp_txn[0].opcode              = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]);
-        h2d_rsp_txn[0].rspdata             = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]);
-        h2d_rsp_txn[0].rsppre              = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
-        h2d_rsp_txn[0].cqid                = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
+        h2d_rsp_txn_w[0].valid                                            = data[(SLOT1_OFFSET+88)];
+        h2d_rsp_txn_w[0].opcode                                           = h2d_rsp_opcode_t'(data[(SLOT1_OFFSET+92):(SLOT1_OFFSET+89)]);
+        h2d_rsp_txn_w[0].rspdata                                          = h2d_rsp_data_opcode_t'(data[(SLOT1_OFFSET+104):(SLOT1_OFFSET+93)]);
+        h2d_rsp_txn_w[0].rsppre                                           = data[(SLOT1_OFFSET+106):(SLOT1_OFFSET+105)];
+        h2d_rsp_txn_w[0].cqid                                             = data[(SLOT1_OFFSET+118):(SLOT1_OFFSET+107)];
       end
     end else if(slot_sel == 'h2) begin
-      m2s_rwd_pkt.pending_data_slot        = 'hf;
-      m2s_rwd_pkt.m2s_rwd_txn.valid        = data[(SLOT2_OFFSET+0)];
-      m2s_rwd_pkt.m2s_rwd_txn.memopcode    = m2s_rwd_opcode_t'(data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]);
-      m2s_rwd_pkt.m2s_rwd_txn.snptype      = snptype_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]);
-      m2s_rwd_pkt.m2s_rwd_txn.metafield    = metafield_t'(data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]);
-      m2s_rwd_pkt.m2s_rwd_txn.metavalue    = metavalue_t'(data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]);
-      m2s_rwd_pkt.m2s_rwd_txn.tag          = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
-      m2s_rwd_pkt.m2s_rwd_txn.address      = data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+28)];
-      m2s_rwd_pkt.m2s_rwd_txn.poison       = data[(SLOT2_OFFSET+74)];
-      m2s_rwd_pkt.m2s_rwd_txn.tc           = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
+      if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b00;
+      else posi = 2'b11;
+      m2s_rwd_wr_ptr++;
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.start_dslot_posi  = posi;
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend              = 'hf;
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.valid             = 'h1;
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.valid                   = data[(SLOT2_OFFSET+0)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.memopcode               = m2s_rwd_opcode_t'(data[(SLOT2_OFFSET+4):(SLOT2_OFFSET+1)]);
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.snptype                 = snptype_t'(data[(SLOT2_OFFSET+7):(SLOT2_OFFSET+5)]);
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metafield               = metafield_t'(data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]);
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metavalue               = metavalue_t'(data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]);
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tag                     = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address                 = data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+28)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.poison                  = data[(SLOT2_OFFSET+74)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tc                      = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
       if(h2d_rsp_ptr > 0) begin
-        h2d_rsp_txn[1].valid               = data[(SLOT2_OFFSET+88)];
-        h2d_rsp_txn[1].opcode              = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]);
-        h2d_rsp_txn[1].rspdata             = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]);
-        h2d_rsp_txn[1].rsppre              = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
-        h2d_rsp_txn[1].cqid                = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
+        h2d_rsp_txn_w[1].valid                                            = data[(SLOT2_OFFSET+88)];
+        h2d_rsp_txn_w[1].opcode                                           = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]);
+        h2d_rsp_txn_w[1].rspdata                                          = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]);
+        h2d_rsp_txn_w[1].rsppre                                           = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
+        h2d_rsp_txn_w[1].cqid                                             = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
       end else begin
-        h2d_rsp_txn[0].valid               = data[(SLOT2_OFFSET+88)];
-        h2d_rsp_txn[0].opcode              = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]);
-        h2d_rsp_txn[0].rspdata             = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]);
-        h2d_rsp_txn[0].rsppre              = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
-        h2d_rsp_txn[0].cqid                = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
+        h2d_rsp_txn_w[0].valid                                            = data[(SLOT2_OFFSET+88)];
+        h2d_rsp_txn_w[0].opcode                                           = h2d_rsp_opcode_t'(data[(SLOT2_OFFSET+92):(SLOT2_OFFSET+89)]);
+        h2d_rsp_txn_w[0].rspdata                                          = h2d_rsp_data_opcode_t'(data[(SLOT2_OFFSET+104):(SLOT2_OFFSET+93)]);
+        h2d_rsp_txn_w[0].rsppre                                           = data[(SLOT2_OFFSET+106):(SLOT2_OFFSET+105)];
+        h2d_rsp_txn_w[0].cqid                                             = data[(SLOT2_OFFSET+118):(SLOT2_OFFSET+107)];
       end
     end else if(slot_sel == 'h3) begin
-      m2s_rwd_pkt.pending_data_slot        = 'hf;
-      m2s_rwd_pkt.m2s_rwd_txn.valid        = data[(SLOT3_OFFSET+0)];
-      m2s_rwd_pkt.m2s_rwd_txn.memopcode    = m2s_rwd_opcode_t'(data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]);
-      m2s_rwd_pkt.m2s_rwd_txn.snptype      = snptype_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]);
-      m2s_rwd_pkt.m2s_rwd_txn.metafield    = metafield_t'(data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]);
-      m2s_rwd_pkt.m2s_rwd_txn.metavalue    = metavalue_t'(data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]);
-      m2s_rwd_pkt.m2s_rwd_txn.tag          = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
-      m2s_rwd_pkt.m2s_rwd_txn.address      = data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+28)];
-      m2s_rwd_pkt.m2s_rwd_txn.poison       = data[(SLOT3_OFFSET+74)];
-      m2s_rwd_pkt.m2s_rwd_txn.tc           = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
+      m2s_rwd_wr_ptr++;
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.start_dslot_posi  = 'h0;
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend              = 'hf;
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.valid             = 'h1;
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.valid                   = data[(SLOT3_OFFSET+0)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.memopcode               = m2s_rwd_opcode_t'(data[(SLOT3_OFFSET+4):(SLOT3_OFFSET+1)]);
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.snptype                 = snptype_t'(data[(SLOT3_OFFSET+7):(SLOT3_OFFSET+5)]);
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metafield               = metafield_t'(data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]);
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metavalue               = metavalue_t'(data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]);
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tag                     = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address                 = data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+28)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.poison                  = data[(SLOT3_OFFSET+74)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tc                      = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
       if(h2d_rsp_ptr > 0) begin
-        h2d_rsp_txn[1].valid               = data[(SLOT3_OFFSET+88)];
-        h2d_rsp_txn[1].opcode              = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]);
-        h2d_rsp_txn[1].rspdata             = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]);
-        h2d_rsp_txn[1].rsppre              = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
-        h2d_rsp_txn[1].cqid                = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
+        h2d_rsp_txn_w[1].valid                                            = data[(SLOT3_OFFSET+88)];
+        h2d_rsp_txn_w[1].opcode                                           = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]);
+        h2d_rsp_txn_w[1].rspdata                                          = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]);
+        h2d_rsp_txn_w[1].rsppre                                           = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
+        h2d_rsp_txn_w[1].cqid                                             = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
       end else begin
-        h2d_rsp_txn[0].valid               = data[(SLOT3_OFFSET+88)];
-        h2d_rsp_txn[0].opcode              = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]);
-        h2d_rsp_txn[0].rspdata             = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]);
-        h2d_rsp_txn[0].rsppre              = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
-        h2d_rsp_txn[0].cqid                = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
+        h2d_rsp_txn_w[0].valid                                            = data[(SLOT3_OFFSET+88)];
+        h2d_rsp_txn_w[0].opcode                                           = h2d_rsp_opcode_t'(data[(SLOT3_OFFSET+92):(SLOT3_OFFSET+89)]);
+        h2d_rsp_txn_w[0].rspdata                                          = h2d_rsp_data_opcode_t'(data[(SLOT3_OFFSET+104):(SLOT3_OFFSET+93)]);
+        h2d_rsp_txn_w[0].rsppre                                           = data[(SLOT3_OFFSET+106):(SLOT3_OFFSET+105)];
+        h2d_rsp_txn_w[0].cqid                                             = data[(SLOT3_OFFSET+118):(SLOT3_OFFSET+107)]; 
       end
     end else begin
-      m2s_rwd_pkt.m2s_rwd_txn.valid        = 'hX;
-      h2d_rsp_txn[0].valid                 = 'hX;
-      h2d_rsp_txn[1].valid                 = 'hX;
+      m2s_rwd_wr_ptr++;
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.valid                   = 'hX;
+      h2d_rsp_txn_w[0].valid                                              = 'hX;
+      h2d_rsp_txn_w[1].valid                                              = 'hX;
     end
 
   endfunction
 
-  always@(negedge dev_rx_dl_if.clk) begin
+  always@(posedge dev_rx_dl_if.clk) begin
     if(!dev_rx_dl_if.rstn) begin
-      data_slot[0] <= 'h0;
-      data_slot[1] <= 'h0;
-      data_slot[2] <= 'h0;
-      data_slot[3] <= 'h0;
-      data_slot[4] <= 'h0;
-    end else begin  
-      if(dev_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
-        data_slot[0] <= data_slot[1];
-        data_slot[1] <= data_slot[2];
-        data_slot[2] <= data_slot[3];
-        data_slot[3] <= data_slot[4];
-        data_slot[4] <= 'h0;
+      dev_rx_dl_if_d2_valid <= 'h0;
+      dev_rx_dl_if_d2_data <= 'h0;
+      dev_rx_dl_if_d3_valid <= 'h0;
+      dev_rx_dl_if_d3_data <= 'h0;
+    end else begin
+      dev_rx_dl_if_d2_valid <= dev_rx_dl_if_d1_valid;
+      dev_rx_dl_if_d2_data <= dev_rx_dl_if_d1_data;
+      dev_rx_dl_if_d3_valid <= dev_rx_dl_if_d2_valid;
+      dev_rx_dl_if_d3_data <= dev_rx_dl_if_d2_data;
+      if(dev_rx_dl_if_d1_valid && retryable_flit && (!llcrd_flit) && 
+          (!data_slot[0][3] || 
+            ((data_slot[0] == 'hf) && 
+              (
+                (h2d_data_pkt_d[h2d_data_wr_ptr].pending_data_slot.pend == 'h0) &&
+                (h2d_data_pkt_d[h2d_data_wr_ptr-1].pending_data_slot.pend == 'h0) &&
+                (h2d_data_pkt_d[h2d_data_wr_ptr-2].pending_data_slot.pend == 'h0) &&
+                (h2d_data_pkt_d[h2d_data_wr_ptr-3].pending_data_slot.pend == 'h0) &&
+                (m2s_rwd_pkt_d.pending_data_slot.pend == 'h0)
+              )
+            )
+          )
+        ) begin 
+        if((dev_rx_dl_if_d1_data[7:5] == 'h0) || (dev_rx_dl_if_d1_data[7:5] == 'h5)) begin
+          if(dev_rx_dl_if_d1_data[10:8] == 'h1) begin
+            if(dev_rx_dl_if_d1_data[13:11] == 'h1) begin
+              if(dev_rx_dl_if_d1_data[16:14] == 'h1) begin
+                data_slot[0] <= 'h0; 
+                data_slot[1] <= 'h0; 
+                data_slot[2] <= 'h0; 
+                data_slot[3] <= 'h0; 
+                data_slot[4] <= 'h0;
+              end else if((dev_rx_dl_if_d1_data[16:14] == 'h2) || (dev_rx_dl_if_d1_data[16:14] == 'h4) || (dev_rx_dl_if_d1_data[16:14] == 'h5)) begin  
+                data_slot[0] <= 'h0; 
+                data_slot[1] <= 'hf; 
+                data_slot[2] <= 'h0; 
+                data_slot[3] <= 'h0; 
+                data_slot[4] <= 'h0;
+              end else if(dev_rx_dl_if_d1_data[10:8] == 'h3) begin
+                data_slot[0] <= 'h0; 
+                data_slot[1] <= 'hf; 
+                data_slot[2] <= 'hf; 
+                data_slot[3] <= 'hf; 
+                data_slot[4] <= 'hf;
+              end
+            end else if((dev_rx_dl_if_d1_data[10:8] == 'h2) || (dev_rx_dl_if_d1_data[10:8] == 'h4) || (dev_rx_dl_if_d1_data[10:8] == 'h5)) begin  
+              data_slot[0] <= 'h8; 
+              data_slot[1] <= 'he; 
+              data_slot[2] <= 'h0; 
+              data_slot[3] <= 'h0; 
+              data_slot[4] <= 'h0;
+            end else if(dev_rx_dl_if_d1_data[10:8] == 'h3) begin  
+              data_slot[0] <= 'h8; 
+              data_slot[1] <= 'hf; 
+              data_slot[2] <= 'hf; 
+              data_slot[3] <= 'hf; 
+              data_slot[4] <= 'he;
+            end
+          end else if((dev_rx_dl_if_d1_data[10:8] == 'h2) || (dev_rx_dl_if_d1_data[10:8] == 'h4) || (dev_rx_dl_if_d1_data[10:8] == 'h5)) begin  
+            data_slot[0] <= 'hc; 
+            data_slot[1] <= 'h6; 
+            data_slot[2] <= 'h0; 
+            data_slot[3] <= 'h0; 
+            data_slot[4] <= 'h0;
+          end else if(dev_rx_dl_if_d1_data[10:8] == 'h3) begin  
+            data_slot[0] <= 'hc; 
+            data_slot[1] <= 'hf; 
+            data_slot[2] <= 'hf; 
+            data_slot[3] <= 'hf; 
+            data_slot[4] <= 'h6;
+          end
+        end else if((dev_rx_dl_if_d1_data[7:5] == 'h1) || (dev_rx_dl_if_d1_data[7:5] == 'h2) || (dev_rx_dl_if_d1_data[7:5] == 'h4)) begin
+          data_slot[0] <= 'he; 
+          data_slot[1] <= 'h2; 
+          data_slot[2] <= 'h0; 
+          data_slot[3] <= 'h0; 
+          data_slot[4] <= 'h0;
+        end else if(dev_rx_dl_if_d1_data[7:5] == 'h3) begin
+          data_slot[0] <= 'he; 
+          data_slot[1] <= 'hf; 
+          data_slot[2] <= 'hf; 
+          data_slot[3] <= 'hf; 
+          data_slot[4] <= 'h2;
+        end
       end
-    end
+    end  
   end
 
-  always@(posedge dev_rx_dl_if.clk) begin
+  always@(negedge dev_rx_dl_if.clk) begin
     if(!dev_rx_dl_if.rstn) begin
       //TODO: not sure if this foreach will initialize for all indeces
       //foreach(data_slot[i]) data_slot[i] <= 'h0;
       //foreach(data_slot_d[i]) data_slot_d[i] <= 'h0;
-      data_slot[0] <= 'h0;
-      data_slot[1] <= 'h0;
-      data_slot[2] <= 'h0;
-      data_slot[3] <= 'h0;
-      data_slot[4] <= 'h0;
-      data_slot_d[0] <= 'h0;
-      data_slot_d[1] <= 'h0;
-      data_slot_d[2] <= 'h0;
-      data_slot_d[3] <= 'h0;
-      data_slot_d[4] <= 'h0;
-      ack <= 'h0;
-      ack_count_d <= 'h0;
-      ack_ret_val <= 'h0;
+      data_slot[0]           <= 'h0;
+      data_slot[1]           <= 'h0;
+      data_slot[2]           <= 'h0;
+      data_slot[3]           <= 'h0;
+      data_slot[4]           <= 'h0;
+      ack                    <= 'h0;
+      ack_count_d            <= 'h0;
+      ack_ret_val            <= 'h0;
     end else begin
+      if(dev_rx_dl_if_d1_valid && retryable_flit && (!llcrd_flit)) begin
+        h2d_req_txn[0]       <= h2d_req_txn_w[0];
+        h2d_req_txn[1]       <= h2d_req_txn_w[1];
+        h2d_rsp_txn[0]       <= h2d_rsp_txn_w[0];
+        h2d_rsp_txn[1]       <= h2d_rsp_txn_w[1];
+        h2d_rsp_txn[2]       <= h2d_rsp_txn_w[2];
+        h2d_rsp_txn[3]       <= h2d_rsp_txn_w[3];
+        m2s_req_txn[0]       <= m2s_req_txn_w[0];
+        m2s_req_txn[1]       <= m2s_req_txn_w[1];
+      end else begin 
+        h2d_req_txn[0].valid <= 'h0;
+        h2d_req_txn[1].valid <= 'h0;
+        h2d_rsp_txn[0].valid <= 'h0;
+        h2d_rsp_txn[1].valid <= 'h0;
+        h2d_rsp_txn[2].valid <= 'h0;
+        h2d_rsp_txn[3].valid <= 'h0;
+        m2s_req_txn[0].valid <= 'h0;
+        m2s_req_txn[1].valid <= 'h0;
+      end
       ack_count_d <= ack_count;
       if((ack_count_d == 'h7) && (ack_count == 'h0)) begin
         ack <= 'h1;
       end else begin
         ack <= 'h0;
       end
-      if(dev_rx_dl_if_d_valid && retryable_flit && llcrd_flit) begin
+      if(dev_rx_dl_if_d1_valid && retryable_flit && llcrd_flit) begin
         ack_ret_val <= 'h1;
       end else begin
         ack_ret_val <= 'h0;
+      end      
+      if(dev_rx_dl_if_d1_valid && retryable_flit && (!llcrd_flit) && (data_slot[0] == 'hf)) begin
+        data_slot[0]                   <= data_slot[1]; 
+        data_slot[1]                   <= data_slot[2]; 
+        data_slot[2]                   <= data_slot[3]; 
+        data_slot[3]                   <= data_slot[4]; 
+        data_slot[4]                   <= 'h0;
       end
-      data_slot_d[0]  <= data_slot[0];
-      data_slot_d[1]  <= data_slot[1];
-      data_slot_d[2]  <= data_slot[2];
-      data_slot_d[3]  <= data_slot[3];
-      data_slot_d[4]  <= data_slot[4];
-      m2s_rwd_pkt_d.pending_data_slot     <= m2s_rwd_pkt.pending_data_slot;
-      h2d_data_pkt_d[0].pending_data_slot <= h2d_data_pkt[0].pending_data_slot;
-      h2d_data_pkt_d[1].pending_data_slot <= h2d_data_pkt[1].pending_data_slot;
-      h2d_data_pkt_d[2].pending_data_slot <= h2d_data_pkt[2].pending_data_slot;
-      h2d_data_pkt_d[3].pending_data_slot <= h2d_data_pkt[3].pending_data_slot;
-      if(dev_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit) && 
-          (!data_slot_d[0][3] || 
-            ((data_slot_d[0] == 'hf) && 
-              (
-                (h2d_data_pkt_d[0].pending_data_slot == 'h0) &&
-                (h2d_data_pkt_d[1].pending_data_slot == 'h0) &&
-                (h2d_data_pkt_d[2].pending_data_slot == 'h0) &&
-                (h2d_data_pkt_d[3].pending_data_slot == 'h0) &&
-                (m2s_rwd_pkt_d.pending_data_slot == 'h0)
-              )
-            )
-          )
-        ) begin 
-        if(dev_rx_dl_if_d_data[7:5] == 'h4) begin
-          data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;//need to add what happens when slot 1 is g slot
-          if((dev_rx_dl_if_d_data[10:8] == 'h1) || (dev_rx_dl_if_d_data[10:8] == 'h5)) begin
-            data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-            if((dev_rx_dl_if_d_data[13:11] == 'h1) || (dev_rx_dl_if_d_data[13:11] == 'h5)) begin
-              data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-              if((dev_rx_dl_if_d_data[16:14] == 'h1) || (dev_rx_dl_if_d_data[16:14] == 'h5)) begin
-                data_slot[0] <= 'h0; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-              end else if((dev_rx_dl_if_d_data[16:14] == 'h2) || (dev_rx_dl_if_d_data[16:14] == 'h4)) begin  
-                data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-              end else if(dev_rx_dl_if_d_data[16:14] == 'h6) begin  
-                data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
-              end else begin
-                data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
-              end
-            end else if((dev_rx_dl_if_d_data[10:8] == 'h2) || (dev_rx_dl_if_d_data[10:8] == 'h4)) begin  
-              data_slot[0] <= 'h8; data_slot[1] <= 'h7; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-            end else if(dev_rx_dl_if_d_data[10:8] == 'h6) begin  
-              data_slot[0] <= 'h8; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h7; data_slot[4] <= 'h0;
-            end else begin
-              data_slot[0] <= 'h8; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h7;
-            end
-          end else if((dev_rx_dl_if_d_data[10:8] == 'h2) || (dev_rx_dl_if_d_data[10:8] == 'h4)) begin  
-            data_slot[0] <= 'hc; data_slot[1] <= 'h3; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-          end else if(dev_rx_dl_if_d_data[10:8] == 'h6) begin  
-            data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h3; data_slot[4] <= 'h0;
-          end else begin
-            data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h3;
-          end
-        end else if((dev_rx_dl_if_d_data[7:5] == 'h0) || (dev_rx_dl_if_d_data[7:5] == 'h1) || (dev_rx_dl_if_d_data[7:5] == 'h3)) begin
-          data_slot[0] <= 'he; data_slot[1] <= 'h1; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-        end else if(dev_rx_dl_if_d_data[7:5] == 'h5) begin
-          data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h1; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-        end else begin
-          data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h1;
-        end
-      //end else if(dev_rx_dl_if_d_valid && data_slot_d[0][0] /*&& data_slot_d[0][1] && data_slot_d[0][2] && data_slot_d[0][3]*/) begin
-        //data_slot[0] = data_slot[1]; data_slot[1] = data_slot[2]; data_slot[3] = data_slot[4]; data_slot[4] = 'h0;
-      end
+      m2s_rwd_pkt_d                     <= m2s_rwd_pkt;
+      h2d_data_pkt_d[h2d_data_wr_ptr]   <= h2d_data_pkt_iob[h2d_data_wr_ptr];
+      h2d_data_pkt_d[h2d_data_wr_ptr-1] <= h2d_data_pkt_iob[h2d_data_wr_ptr-1];
+      h2d_data_pkt_d[h2d_data_wr_ptr-2] <= h2d_data_pkt_iob[h2d_data_wr_ptr-2];
+      h2d_data_pkt_d[h2d_data_wr_ptr-3] <= h2d_data_pkt_iob[h2d_data_wr_ptr-3];
     end
   end
-  
+
   //TODO: put the packing logic restrictions in the arbiter logic itself so here I do not need to worry why I am getting illegal pkts we can have assertions to catch the max sub pkts that can be packed
   //TODO: put asserts to catch if there any illegal values on Hslots or Gslots otherwise bellow logic will be very hard to debug
   always_comb begin
-    if(dev_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
+    if(dev_rx_dl_if_d3_valid && retryable_flit && (!llcrd_flit)) begin
       ack_count = ack_count + 1;
       if(!data_slot[0][0]) begin
-        h2d_req_ptr = 'h0;
-        h2d_rsp_ptr = 'h0;
-        h2d_data_ptr = 'h0;
-        m2s_req_ptr = 'h0;
-        m2s_rwd_ptr = 'h0;
-        case(dev_rx_dl_if_d_data[7:5])
-          'h0: begin
-            header0(dev_rx_dl_if_d_data, h2d_req_txn, h2d_rsp_txn);
+        h2d_req_ptr   = 'h0;
+        h2d_rsp_ptr   = 'h0;
+        h2d_data_ptr  = 'h0;
+        m2s_req_ptr   = 'h0;
+        case(dev_rx_dl_if_d3_data[7:5])
+          3'b000: begin
+            header0(dev_rx_dl_if_d3_data, h2d_req_txn_w, h2d_rsp_txn_w);
             h2d_req_ptr = h2d_req_ptr + 1;
             h2d_rsp_ptr = h2d_rsp_ptr + 1;
           end
-          'h1: begin
-            header1(dev_rx_dl_if_d_data, h2d_data_pkt, h2d_rsp_txn);
+          3'b001: begin
+            header1(dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w);
           end
-          'h2: begin
-            header2(dev_rx_dl_if_d_data, h2d_req_txn, h2d_data_pkt);
+          3'b010: begin
+            header2(dev_rx_dl_if_d3_data, h2d_req_txn_w, h2d_data_pkt_iob, h2d_data_wr_ptr);
           end
-          'h3: begin
-            header3(dev_rx_dl_if_d_data, h2d_data_pkt);
+          3'b011: begin
+            header3(dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr);
           end
-          'h4: begin
-            header4(dev_rx_dl_if_d_data, m2s_rwd_pkt);
+          3'b100: begin
+            header4(dev_rx_dl_if_d3_data, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
           end
-          'h5: begin
-            header5(dev_rx_dl_if_d_data, m2s_req_txn);
+          3'b101: begin
+            header5(dev_rx_dl_if_d3_data, m2s_req_txn_w);
             m2s_req_ptr = m2s_req_ptr + 1;
           end
           default: begin
 
           end
         endcase
-        case(dev_rx_dl_if_d_data[10:8])
-          'h0: begin
-            generic0('h1, dev_rx_dl_if_d_data, h2d_data_pkt, m2s_rwd_pkt);
+        case(dev_rx_dl_if_d3_data[10:8])
+          3'b000: begin
+            generic0('h1, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
           end
-          'h1: begin
-            generic1('h1, dev_rx_dl_if_d_data, h2d_rsp_txn);
+          3'b001: begin
+            generic1('h1, dev_rx_dl_if_d3_data, h2d_rsp_txn_w);
           end
-          'h2: begin
-            generic2('h1, dev_rx_dl_if_d_data, h2d_req_txn, h2d_req_ptr, h2d_data_pkt, h2d_rsp_txn, h2d_rsp_ptr);
+          3'b010: begin
+            generic2('h1, dev_rx_dl_if_d3_data, h2d_req_txn_w, h2d_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
           end
-          'h3: begin
-            generic3('h1, dev_rx_dl_if_d_data, h2d_data_pkt, h2d_rsp_txn, h2d_rsp_ptr);
+          3'b011: begin
+            generic3('h1, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
           end
-          'h4: begin
-            generic4('h1, dev_rx_dl_if_d_data, m2s_req_txn, m2s_req_ptr, h2d_data_pkt);
+          3'b100: begin
+            generic4('h1, dev_rx_dl_if_d3_data, m2s_req_txn_w, m2s_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr);
           end
-          'h5: begin
-            generic5('h1, dev_rx_dl_if_d_data, m2s_rwd_pkt, h2d_rsp_txn, h2d_rsp_ptr);
-          end
-          default: begin
-          
-          end
-        endcase
-        case(dev_rx_dl_if_d_data[13:11])
-          'h0: begin
-            generic0('h2, dev_rx_dl_if_d_data, h2d_data_pkt, m2s_rwd_pkt);
-          end
-          'h1: begin
-            generic1('h2, dev_rx_dl_if_d_data, h2d_rsp_txn);
-          end
-          'h2: begin
-            generic2('h2, dev_rx_dl_if_d_data, h2d_req_txn, h2d_req_ptr, h2d_data_pkt, h2d_rsp_txn, h2d_rsp_ptr);
-          end
-          'h3: begin
-            generic3('h2, dev_rx_dl_if_d_data, h2d_data_pkt, h2d_rsp_txn, h2d_rsp_ptr);
-          end
-          'h4: begin
-            generic4('h2, dev_rx_dl_if_d_data, m2s_req_txn, m2s_req_ptr, h2d_data_pkt);
-          end
-          'h5: begin
-            generic5('h2, dev_rx_dl_if_d_data, m2s_rwd_pkt, h2d_rsp_txn, h2d_rsp_ptr);
+          3'b101: begin
+            generic5('h1, dev_rx_dl_if_d3_data, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
           end
           default: begin
           
           end
         endcase
-        case(dev_rx_dl_if_d_data[16:14])
-          'h0: begin
-            generic0('h3, dev_rx_dl_if_d_data, h2d_data_pkt, m2s_rwd_pkt);
+        case(dev_rx_dl_if_d3_data[13:11])
+          3'b000: begin
+            generic0('h2, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
           end
-          'h1: begin
-            generic1('h3, dev_rx_dl_if_d_data, h2d_rsp_txn);
+          3'b001: begin
+            generic1('h2, dev_rx_dl_if_d3_data, h2d_rsp_txn_w);
           end
-          'h2: begin
-            generic2('h3, dev_rx_dl_if_d_data, h2d_req_txn, h2d_req_ptr, h2d_data_pkt, h2d_rsp_txn, h2d_rsp_ptr);
+          3'b010: begin
+            generic2('h2, dev_rx_dl_if_d3_data, h2d_req_txn_w, h2d_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
           end
-          'h3: begin
-            generic3('h3, dev_rx_dl_if_d_data, h2d_data_pkt, h2d_rsp_txn, h2d_rsp_ptr);
+          3'b011: begin
+            generic3('h2, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
           end
-          'h4: begin
-            generic4('h3, dev_rx_dl_if_d_data, m2s_req_txn, m2s_req_ptr, h2d_data_pkt);
+          3'b100: begin
+            generic4('h2, dev_rx_dl_if_d3_data, m2s_req_txn_w, m2s_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr);
           end
-          'h5: begin
-            generic5('h3, dev_rx_dl_if_d_data, m2s_rwd_pkt, h2d_rsp_txn, h2d_rsp_ptr);
+          3'b101: begin
+            generic5('h2, dev_rx_dl_if_d3_data, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
+          end
+          default: begin
+          
+          end
+        endcase
+        case(dev_rx_dl_if_d3_data[16:14])
+          3'b000: begin
+            generic0('h3, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
+          end
+          3'b001: begin
+            generic1('h3, dev_rx_dl_if_d3_data, h2d_rsp_txn_w);
+          end
+          3'b010: begin
+            generic2('h3, dev_rx_dl_if_d3_data, h2d_req_txn_w, h2d_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
+          end
+          3'b011: begin
+            generic3('h3, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
+          end
+          3'b100: begin
+            generic4('h3, dev_rx_dl_if_d3_data, m2s_req_txn_w, m2s_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr);
+          end
+          3'b101: begin
+            generic5('h3, dev_rx_dl_if_d3_data, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
           end
           default: begin
           
           end
         endcase
       end else if(data_slot[0][0]) begin
-          generic0('h0, dev_rx_dl_if_d_data, h2d_data_pkt, m2s_rwd_pkt);
+          generic0('h0, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
       end
     end
 
-    if(dev_rx_dl_if_d_valid && retryable_flit && llcrd_flit) begin
+    if(dev_rx_dl_if_d2_valid && retryable_flit && llcrd_flit) begin
       ack_count = ack_count + 1;
-      ack_ret = {dev_rx_dl_if_d_data[71:68], dev_rx_dl_if_d_data[2], dev_rx_dl_if_d_data[66:64]};
+      ack_ret = {dev_rx_dl_if_d3_data[71:68], dev_rx_dl_if_d3_data[2], dev_rx_dl_if_d3_data[66:64]};
     end
   end 
+
+  always@(posedge dev_rx_dl_if.clk) begin
+    if(!dev_rx_dl_if.rstn) begin
+      foreach(h2d_data_pkt_iob[i]) h2d_data_pkt_iob[i].pending_data_slot.pend             <= 'h0;
+      foreach(h2d_data_pkt_iob[i]) h2d_data_pkt_iob[i].pending_data_slot.valid            <= 'h0;
+      foreach(h2d_data_pkt_iob[i]) h2d_data_pkt_iob[i].pending_data_slot.start_dslot_posi <= 'h0;
+      h2d_data_rd_ptr <= 'h0;
+      foreach(m2s_rwd_pkt_iob[i]) m2s_rwd_pkt_iob[i].pending_data_slot.pend               <= 'h0;
+      foreach(m2s_rwd_pkt_iob[i]) m2s_rwd_pkt_iob[i].pending_data_slot.valid              <= 'h0;
+      foreach(m2s_rwd_pkt_iob[i]) m2s_rwd_pkt_iob[i].pending_data_slot.start_dslot_posi   <= 'h0;
+      m2s_rwd_rd_ptr <= 'h0;
+    end else begin
+      if((m2s_rwd_pkt_iob[m2s_rwd_rd_ptr].pending_data_slot.pend == 'h0) && (m2s_rwd_pkt_iob[m2s_rwd_rd_ptr].pending_data_slot.valid)) begin
+        m2s_rwd_pkt <= m2s_rwd_pkt_iob[m2s_rwd_rd_ptr];
+        m2s_rwd_pkt_iob[m2s_rwd_rd_ptr].pending_data_slot.valid <= 'h0;
+        m2s_rwd_rd_ptr <= m2s_rwd_rd_ptr + 1;
+      end else begin
+        m2s_rwd_pkt.m2s_rwd_txn.valid <= 'h0;
+      end
+      if((h2d_data_pkt_iob[h2d_data_rd_ptr].pending_data_slot.pend == 'h0) && (h2d_data_pkt_iob[h2d_data_rd_ptr].pending_data_slot.valid)) begin
+        h2d_data_pkt <= h2d_data_pkt_iob[h2d_data_rd_ptr];
+        h2d_data_pkt_iob[h2d_data_rd_ptr].pending_data_slot.valid <= 'h0;
+        h2d_data_rd_ptr <= h2d_data_rd_ptr + 1;
+      end else begin
+        h2d_data_pkt.h2d_data_txn.valid <= 'h0;
+      end
+    end
+  end
 
   cxl_lrsm_rrsm #(
   ) cxl_lrsm_rrsm_inst (
@@ -10196,14 +12161,14 @@ module device_rx_path #(
     if(!dev_rx_dl_if.rstn) begin
       crc_pass_d <= 'h0;
       crc_fail_d <= 'h0;
-      dev_rx_dl_if_d_valid <= 'h0;
-      dev_rx_dl_if_d_data <= 'h0;
+      dev_rx_dl_if_d1_valid <= 'h0;
+      dev_rx_dl_if_d1_data <= 'h0;
     end else begin
       crc_pass_d <= crc_pass;
       crc_fail_d <= crc_fail;
-      dev_rx_dl_if_d_valid <= dev_rx_dl_if.valid;
-      dev_rx_dl_if_d_data <= dev_rx_dl_if.data[511:0];
-      if(dev_rx_dl_if_d_valid) begin
+      dev_rx_dl_if_d1_valid <= dev_rx_dl_if.valid;
+      dev_rx_dl_if_d1_data <= dev_rx_dl_if.data[511:0];
+      if(dev_rx_dl_if_d1_valid) begin
         case(retry_frame_states) 
         RETRY_NOFRAME: begin
           retry_req_rcvd <= 'h0;
@@ -10251,8 +12216,8 @@ module device_rx_path #(
             retry_frame_states <= RETRY_NOFRAME;
           end else if(retry_ack_detect) begin
             retry_ack_rcvd <= 'h1;
-            retry_ack_empty_bit <= dev_rx_dl_if_d_data[64];
-            retry_ack_num_retry <= dev_rx_dl_if_d_data[71:67];
+            retry_ack_empty_bit <= dev_rx_dl_if_d1_data[64];
+            retry_ack_num_retry <= dev_rx_dl_if_d1_data[71:67];
             retry_frame_states <= RETRY_NOFRAME;
           end else begin
             retry_req_rcvd <= 'h0;
@@ -10490,6 +12455,9 @@ module cxl_host
     cxl_host_rx_dl_if.rx_mp host_rx_dl_if
   );
 
+  localparam SLOT1_OFFSET = 128;
+  localparam SLOT2_OFFSET = 256;
+  localparam SLOT3_OFFSET = 384;
   localparam BUFFER_DEPTH = 32;
   localparam BUFFER_ADDR_WIDTH = $clog2(BUFFER_DEPTH);
   logic crdt_val;
@@ -10561,9 +12529,9 @@ module cxl_host
   m2s_rwd_txn_t m2s_rwd_qdataout;
   d2h_req_txn_t d2h_req_txn[4];
   d2h_rsp_txn_t d2h_rsp_txn[2];
-  d2h_data_pkt_t d2h_data_pkt[4];
+  d2h_data_pkt_t d2h_data_pkt;
   s2m_ndr_txn_t s2m_ndr_txn[3];
-  s2m_drs_pkt_t s2m_drs_pkt[3];
+  s2m_drs_pkt_t s2m_drs_pkt;
   logic ack;
   logic ack_ret_val;
   logic [7:0] ack_ret;
@@ -10656,15 +12624,15 @@ module cxl_host
   assign host_h2d_req_if.ready                = (!h2d_req_full)   && (curr_c_crdt_req_cnt   != 0);
   assign host_h2d_rsp_if.ready                = (!h2d_rsp_full)   && (curr_c_crdt_rsp_cnt   != 0);
   assign host_h2d_data_if.ready               = (!h2d_data_full)  && (curr_c_crdt_data_cnt  != 0);
-  assign host_d2h_req_if.d2h_req_txn.valid    = !d2h_req_valid;
-  assign host_d2h_req_if.d2h_req_txn          =  d2h_req_dataout;
-  assign host_d2h_rsp_if.d2h_rsp_txn.valid    = !d2h_rsp_valid;
-  assign host_d2h_rsp_if.d2h_rsp_txn          =  d2h_rsp_dataout;
-  assign host_d2h_data_if.d2h_data_txn.valid  = !d2h_data_valid;
-  assign host_d2h_data_if.d2h_data_txn        =  d2h_data_dataout;
-  assign host_s2m_ndr_if.s2m_ndr_txn.valid    = !s2m_ndr_valid;
-  assign host_s2m_ndr_if.s2m_ndr_txn          =  s2m_ndr_dataout;
-  assign host_s2m_drs_if.s2m_drs_txn.valid    = !s2m_drs_valid;
+  assign host_d2h_req_if.d2h_req_txn.valid    = !d2h_req_valid    ;
+  assign host_d2h_req_if.d2h_req_txn          =  d2h_req_dataout  ;
+  assign host_d2h_rsp_if.d2h_rsp_txn.valid    = !d2h_rsp_valid    ;
+  assign host_d2h_rsp_if.d2h_rsp_txn          =  d2h_rsp_dataout  ;
+  assign host_d2h_data_if.d2h_data_txn.valid  = !d2h_data_valid   ;
+  assign host_d2h_data_if.d2h_data_txn        =  d2h_data_dataout ;
+  assign host_s2m_ndr_if.s2m_ndr_txn.valid    = !s2m_ndr_valid    ;
+  assign host_s2m_ndr_if.s2m_ndr_txn          =  s2m_ndr_dataout  ;
+  assign host_s2m_drs_if.s2m_drs_txn.valid    = !s2m_drs_valid  ;
   assign host_s2m_drs_if.s2m_drs_txn          =  s2m_drs_dataout;
 
   buffer #(
@@ -10727,12 +12695,8 @@ module cxl_host
 	  .clk(host_d2h_data_if.clk),
   	.rstn(host_d2h_data_if.rstn),
   	.rval(host_d2h_data_if.ready),
-  	.wval(((d2h_data_pkt[0].d2h_data_txn.valid) && (!(|d2h_data_pkt[0].pending_data_slot)))),
-  	.qwval(((d2h_data_pkt[3].d2h_data_txn.valid) && (!(|d2h_data_pkt[3].pending_data_slot)))),
-    .datain(d2h_data_pkt[0].d2h_data_txn),
-    .ddatain(d2h_data_pkt[1].d2h_data_txn),
-    .tdatain(d2h_data_pkt[2].d2h_data_txn),
-    .qdatain(d2h_data_pkt[3].d2h_data_txn),
+  	.wval(d2h_data_pkt.d2h_data_txn.valid),
+    .datain(d2h_data_pkt.d2h_data_txn),
     .dataout(d2h_data_dataout),
   	.eseq,
     .ack_cnt('h0),
@@ -10779,12 +12743,8 @@ module cxl_host
 	  .clk(host_s2m_drs_if.clk),
   	.rstn(host_s2m_drs_if.rstn),
   	.rval(host_s2m_drs_if.ready),
-  	.wval(((s2m_drs_pkt[0].s2m_drs_txn.valid) && (!(|s2m_drs_pkt[0].pending_data_slot)))),
-  	.dwval(((s2m_drs_pkt[1].s2m_drs_txn.valid) && (!(|s2m_drs_pkt[1].pending_data_slot)))),
-  	.twval(((s2m_drs_pkt[2].s2m_drs_txn.valid) && (!(|s2m_drs_pkt[2].pending_data_slot)))),
-    .datain(s2m_drs_pkt[0].s2m_drs_txn),
-    .ddatain(s2m_drs_pkt[1].s2m_drs_txn),
-    .tdatain(s2m_drs_pkt[2].s2m_drs_txn),
+  	.wval(s2m_drs_pkt.s2m_drs_txn.valid),
+    .datain(s2m_drs_pkt.s2m_drs_txn),
     .dataout(s2m_drs_dataout),
   	.eseq,
     .ack_cnt('h0),
@@ -10971,6 +12931,9 @@ module cxl_device
     cxl_dev_rx_dl_if.rx_mp          dev_rx_dl_if
 );
 
+  localparam SLOT1_OFFSET = 128;
+  localparam SLOT2_OFFSET = 256;
+  localparam SLOT3_OFFSET = 384;
   localparam BUFFER_DEPTH = 32;
   localparam BUFFER_ADDR_WIDTH = $clog2(BUFFER_DEPTH);
   logic crdt_val;
@@ -11047,7 +13010,7 @@ module cxl_device
   s2m_drs_txn_t s2m_drs_qdataout;
   h2d_req_txn_t h2d_req_txn[2];
   h2d_rsp_txn_t h2d_rsp_txn[4];
-  h2d_data_pkt_t h2d_data_pkt[4];
+  h2d_data_pkt_t h2d_data_pkt;
   m2s_req_txn_t m2s_req_txn[2];
   m2s_rwd_pkt_t m2s_rwd_pkt;
   logic ack;
@@ -11142,11 +13105,11 @@ module cxl_device
   assign dev_d2h_req_if.ready               = (!d2h_req_full  ) && (curr_c_crdt_req_cnt   != 0);
   assign dev_d2h_rsp_if.ready               = (!d2h_rsp_full  ) && (curr_c_crdt_rsp_cnt   != 0);
   assign dev_d2h_data_if.ready              = (!d2h_data_full ) && (curr_c_crdt_data_cnt  != 0);
-  assign dev_m2s_req_if.m2s_req_txn.valid   = m2s_req_valid   ; 
-  assign dev_m2s_rwd_if.m2s_rwd_txn.valid   = m2s_rwd_valid   ;
-  assign dev_h2d_req_if.h2d_req_txn.valid   = h2d_req_valid   ;
-  assign dev_h2d_rsp_if.h2d_rsp_txn.valid   = h2d_rsp_valid   ;
-  assign dev_h2d_data_if.h2d_data_txn.valid = h2d_data_valid  ;
+  assign dev_m2s_req_if.m2s_req_txn.valid   = !m2s_req_valid  ; 
+  assign dev_m2s_rwd_if.m2s_rwd_txn.valid   = !m2s_rwd_valid  ;
+  assign dev_h2d_req_if.h2d_req_txn.valid   = !h2d_req_valid  ;
+  assign dev_h2d_rsp_if.h2d_rsp_txn.valid   = !h2d_rsp_valid  ;
+  assign dev_h2d_data_if.h2d_data_txn.valid = !h2d_data_valid ;
   assign dev_m2s_req_if.m2s_req_txn         = m2s_req_dataout ; 
   assign dev_m2s_rwd_if.m2s_rwd_txn         = m2s_rwd_dataout ;
   assign dev_h2d_req_if.h2d_req_txn         = h2d_req_dataout ;
@@ -11325,7 +13288,7 @@ module cxl_device
 	  .clk(dev_m2s_rwd_if.clk),
   	.rstn(dev_m2s_rwd_if.rstn),
   	.rval(dev_m2s_rwd_if.ready),
-  	.wval(((m2s_rwd_pkt.m2s_rwd_txn.valid) && (!(|m2s_rwd_pkt.pending_data_slot)))),
+  	.wval(m2s_rwd_pkt.m2s_rwd_txn.valid),
     .datain(m2s_rwd_pkt.m2s_rwd_txn),
     .dataout(m2s_rwd_dataout),
   	.eseq,
@@ -11399,12 +13362,8 @@ module cxl_device
 	  .clk(dev_h2d_data_if.clk),
   	.rstn(dev_h2d_data_if.rstn),
   	.rval(dev_h2d_data_if.ready),
-  	.wval(((h2d_data_pkt[0].h2d_data_txn.valid) && (!(|h2d_data_pkt[0].pending_data_slot)))),
-  	.qwval(((h2d_data_pkt[3].h2d_data_txn.valid) && (!(|h2d_data_pkt[3].pending_data_slot)))),
-  	.datain(h2d_data_pkt[0].h2d_data_txn),
-  	.ddatain(h2d_data_pkt[1].h2d_data_txn),
-  	.tdatain(h2d_data_pkt[2].h2d_data_txn),
-  	.qdatain(h2d_data_pkt[3].h2d_data_txn),
+  	.wval(h2d_data_pkt.h2d_data_txn.valid),
+  	.datain(h2d_data_pkt.h2d_data_txn),
     .dataout(h2d_data_dataout),
   	.eseq,
     .ack_cnt('h0),
@@ -11682,8 +13641,8 @@ module tb_top;
   class d2h_req_seq_item extends cxl_base_txn_seq_item;
     rand logic valid;
     rand d2h_req_opcode_t opcode;
-    rand logic [51:0] address;
-    rand logic [11:0] cqid;
+    rand logic [GEET_CXL_ADDR_WIDTH-1:0] address;
+    rand logic [GEET_CXL_CACHE_CQID_WIDTH-1:0] cqid;
     rand logic nt;
     int d2h_req_crdt;
 
@@ -11714,7 +13673,7 @@ module tb_top;
   class d2h_rsp_seq_item extends cxl_base_txn_seq_item;
     rand logic valid;
     rand d2h_rsp_opcode_t opcode;
-    rand logic [11:0] uqid;
+    rand logic [GEET_CXL_CACHE_UQID_WIDTH-1:0] uqid;
     int d2h_rsp_crdt;
 
     `uvm_object_utils_begin(d2h_rsp_seq_item)
@@ -11737,11 +13696,11 @@ module tb_top;
 
   class d2h_data_seq_item extends cxl_base_txn_seq_item;
     rand logic valid;
-    rand logic [11:0] uqid;
+    rand logic [GEET_CXL_CACHE_UQID_WIDTH-1:0] uqid;
     rand logic chunkvalid;
     rand logic bogus;
     rand logic poison;
-    rand logic [511:0] data;
+    rand logic [GEET_CXL_DATA_WIDTH-1:0] data;
 
     `uvm_object_utils_begin(d2h_data_seq_item)
       `uvm_field_int(valid, UVM_DEFAULT)
@@ -11775,8 +13734,8 @@ module tb_top;
   class h2d_req_seq_item extends cxl_base_txn_seq_item;
     rand logic valid;
     rand h2d_req_opcode_t opcode;
-    rand logic [51:0] address;
-    rand logic [11:0] uqid;
+    rand logic [GEET_CXL_ADDR_WIDTH-1:0] address;
+    rand logic [GEET_CXL_CACHE_UQID_WIDTH-1:0] uqid;
     int h2d_req_crdt;
 
     `uvm_object_utils_begin(h2d_req_seq_item)
@@ -11806,8 +13765,8 @@ module tb_top;
     rand logic valid;
     rand h2d_rsp_opcode_t opcode;
     rand h2d_rsp_data_opcode_t rspdata;
-    rand logic [1:0] rsppre;
-    rand logic [11:0] cqid;
+    rand logic [GEET_CXL_CACHE_RSPPRE_WIDTH-1:0] rsppre;
+    rand logic [GEET_CXL_CACHE_CQID_WIDTH-1:0] cqid;
     int h2d_rsp_crdt;
 
     `uvm_object_utils_begin(h2d_rsp_seq_item)
@@ -11842,11 +13801,11 @@ module tb_top;
 
   class h2d_data_seq_item extends cxl_base_txn_seq_item;
     rand logic valid;
-    rand logic [11:0] cqid;
+    rand logic [GEET_CXL_CACHE_CQID_WIDTH-1:0] cqid;
     rand logic chunkvalid;
     rand logic poison;
     rand logic goerr;
-    rand logic [511:0] data;
+    rand logic [GEET_CXL_DATA_WIDTH-1:0] data;
     int h2d_data_crdt;
 
     `uvm_object_utils_begin(h2d_data_seq_item)
@@ -11881,13 +13840,13 @@ module tb_top;
 
   class m2s_req_seq_item extends cxl_base_txn_seq_item;
     rand logic valid;
-    rand logic [51:0] address;
+    rand logic [GEET_CXL_ADDR_WIDTH-1:0] address;
     rand m2s_req_opcode_t memopcode;
     rand metafield_t metafield;
     rand metavalue_t metavalue;
     rand snptype_t snptype;
-    rand logic [15:0] tag;
-    rand logic [1:0] tc;
+    rand logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
+    rand logic [GEET_CXL_MEM_TC_WIDTH-1:0] tc;
     int m2s_req_crdt;
 
     `uvm_object_utils_begin(m2s_req_seq_item)
@@ -11931,15 +13890,15 @@ module tb_top;
 
   class m2s_rwd_seq_item extends cxl_base_txn_seq_item;
     rand logic valid;
-    rand logic [51:0] address;
+    rand logic [GEET_CXL_ADDR_WIDTH-1:0] address;
     rand m2s_rwd_opcode_t memopcode;
     rand metafield_t metafield;
     rand metavalue_t metavalue;
     rand snptype_t snptype;
-    rand logic [15:0] tag;
-    rand logic [1:0] tc;
+    rand logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
+    rand logic [GEET_CXL_MEM_TC_WIDTH-1:0] tc;
     rand logic poison;
-    rand logic [511:0] data;
+    rand logic [GEET_CXL_DATA_WIDTH-1:0] data;
     int m2s_rwd_crdt;
 
     `uvm_object_utils_begin(m2s_rwd_seq_item)
@@ -11965,11 +13924,11 @@ module tb_top;
     }
 
     constraint metafield_rsvd_illegal_c{
-      !metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1,GEET_CXL_MEM_MF_METAFIELD_RSVD2};
+      soft !metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1,GEET_CXL_MEM_MF_METAFIELD_RSVD2};
     }
 
     constraint metavalue_rsvd_illegal_c{
-      !metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
+      soft !metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
     }
 
     constraint tc_0_c{
@@ -11992,7 +13951,7 @@ module tb_top;
     rand s2m_ndr_opcode_t opcode;
     rand metafield_t metafield;
     rand metavalue_t metavalue;
-    rand logic [15:0] tag;
+    rand logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
     int s2m_ndr_crdt;
 
     `uvm_object_utils_begin(s2m_ndr_seq_item)
@@ -12013,11 +13972,11 @@ module tb_top;
     }
 
     constraint metafield_rsvd_illegal_c{
-      !metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1,GEET_CXL_MEM_MF_METAFIELD_RSVD2};
+      soft !metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1,GEET_CXL_MEM_MF_METAFIELD_RSVD2};
     }
 
     constraint metavalue_rsvd_illegal_c{
-      !metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
+      soft !metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
     }
 
     constraint solve_ordrer_c{
@@ -12037,9 +13996,9 @@ module tb_top;
     rand s2m_drs_opcode_t opcode;
     rand metafield_t metafield;
     rand metavalue_t metavalue;
-    rand logic [15:0] tag;
+    rand logic [GEET_CXL_MEM_TAG_WIDTH-1:0] tag;
     rand logic poison;
-    rand logic [511:0] data;
+    rand logic [GEET_CXL_DATA_WIDTH-1:0] data;
     int s2m_drs_crdt;
 
     `uvm_object_utils_begin(s2m_drs_seq_item)
@@ -12062,11 +14021,11 @@ module tb_top;
     }
 
     constraint metafield_rsvd_illegal_c{
-      !metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1,GEET_CXL_MEM_MF_METAFIELD_RSVD2};
+      soft !metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1,GEET_CXL_MEM_MF_METAFIELD_RSVD2};
     }
 
     constraint metavalue_rsvd_illegal_c{
-      !metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
+      soft !metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
     }
 
     constraint skip_err_c{
@@ -13054,7 +15013,7 @@ module tb_top;
           forever begin
             @(posedge host_d2h_req_if.clk);
             if(host_d2h_req_if.d2h_req_txn.valid && host_d2h_req_if.ready) begin
-              d2h_req_seq_item_h = d2h_req_seq_item::type_id::create("d2h_req_seq_item_h", this);
+              d2h_req_seq_item_h          = d2h_req_seq_item::type_id::create("d2h_req_seq_item_h", this);
               d2h_req_seq_item_h.valid    = host_d2h_req_if.d2h_req_txn.valid;
               d2h_req_seq_item_h.opcode   = host_d2h_req_if.d2h_req_txn.opcode;
               d2h_req_seq_item_h.address  = host_d2h_req_if.d2h_req_txn.address;
@@ -13093,7 +15052,7 @@ module tb_top;
           forever begin
             @(posedge host_d2h_rsp_if.clk);
             if(host_d2h_rsp_if.d2h_rsp_txn.valid && host_d2h_rsp_if.ready) begin
-              d2h_rsp_seq_item_h = d2h_rsp_seq_item::type_id::create("d2h_rsp_seq_item_h", this);
+              d2h_rsp_seq_item_h         = d2h_rsp_seq_item::type_id::create("d2h_rsp_seq_item_h", this);
               d2h_rsp_seq_item_h.valid   = host_d2h_rsp_if.d2h_rsp_txn.valid;
               d2h_rsp_seq_item_h.opcode  = host_d2h_rsp_if.d2h_rsp_txn.opcode;
               d2h_rsp_seq_item_h.uqid    = host_d2h_rsp_if.d2h_rsp_txn.uqid;
@@ -13131,7 +15090,7 @@ module tb_top;
           forever begin
             @(posedge host_d2h_data_if.clk);
             if(host_d2h_data_if.d2h_data_txn.valid && host_d2h_data_if.ready) begin
-              d2h_data_seq_item_h = d2h_data_seq_item::type_id::create("d2h_data_seq_item_h", this);
+              d2h_data_seq_item_h               = d2h_data_seq_item::type_id::create("d2h_data_seq_item_h", this);
               d2h_data_seq_item_h.valid         = host_d2h_data_if.d2h_data_txn.valid;
               d2h_data_seq_item_h.uqid          = host_d2h_data_if.d2h_data_txn.uqid;
               d2h_data_seq_item_h.chunkvalid    = host_d2h_data_if.d2h_data_txn.chunkvalid;
@@ -13172,7 +15131,7 @@ module tb_top;
           forever begin
             @(posedge dev_h2d_req_if.clk);
             if(dev_h2d_req_if.h2d_req_txn.valid && dev_h2d_req_if.ready) begin
-              h2d_req_seq_item_h = h2d_req_seq_item::type_id::create("h2d_req_seq_item_h", this);
+              h2d_req_seq_item_h               = h2d_req_seq_item::type_id::create("h2d_req_seq_item_h", this);
               h2d_req_seq_item_h.valid         = dev_h2d_req_if.h2d_req_txn.valid;
               h2d_req_seq_item_h.opcode        = dev_h2d_req_if.h2d_req_txn.opcode;
               h2d_req_seq_item_h.address       = dev_h2d_req_if.h2d_req_txn.address;
@@ -13211,7 +15170,7 @@ module tb_top;
           forever begin
             @(posedge dev_h2d_rsp_if.clk);
             if(dev_h2d_rsp_if.h2d_rsp_txn.valid && dev_h2d_rsp_if.ready) begin
-              h2d_rsp_seq_item_h = h2d_rsp_seq_item::type_id::create("h2d_rsp_seq_item_h", this);
+              h2d_rsp_seq_item_h               = h2d_rsp_seq_item::type_id::create("h2d_rsp_seq_item_h", this);
               h2d_rsp_seq_item_h.valid         = dev_h2d_rsp_if.h2d_rsp_txn.valid;
               h2d_rsp_seq_item_h.opcode        = dev_h2d_rsp_if.h2d_rsp_txn.opcode;
               h2d_rsp_seq_item_h.rspdata       = dev_h2d_rsp_if.h2d_rsp_txn.rspdata;
@@ -13251,7 +15210,7 @@ module tb_top;
           forever begin
             @(posedge dev_h2d_data_if.clk);
             if(dev_h2d_data_if.h2d_data_txn.valid && dev_h2d_data_if.ready) begin
-              h2d_data_seq_item_h = h2d_data_seq_item::type_id::create("h2d_data_seq_item_h", this);
+              h2d_data_seq_item_h               = h2d_data_seq_item::type_id::create("h2d_data_seq_item_h", this);
               h2d_data_seq_item_h.valid         = dev_h2d_data_if.h2d_data_txn.valid;
               h2d_data_seq_item_h.cqid          = dev_h2d_data_if.h2d_data_txn.cqid;
               h2d_data_seq_item_h.chunkvalid    = dev_h2d_data_if.h2d_data_txn.chunkvalid;
@@ -13292,7 +15251,7 @@ module tb_top;
           forever begin
             @(posedge dev_m2s_req_if.clk);
             if(dev_m2s_req_if.m2s_req_txn.valid && dev_m2s_req_if.ready) begin
-              m2s_req_seq_item_h = m2s_req_seq_item::type_id::create("m2s_req_seq_item_h", this);
+              m2s_req_seq_item_h               = m2s_req_seq_item::type_id::create("m2s_req_seq_item_h", this);
               m2s_req_seq_item_h.valid         = dev_m2s_req_if.m2s_req_txn.valid;
               m2s_req_seq_item_h.address       = dev_m2s_req_if.m2s_req_txn.address;
               m2s_req_seq_item_h.memopcode     = dev_m2s_req_if.m2s_req_txn.memopcode;
@@ -13335,25 +15294,34 @@ module tb_top;
           forever begin
             @(posedge dev_m2s_rwd_if.clk);
             if(dev_m2s_rwd_if.m2s_rwd_txn.valid && dev_m2s_rwd_if.ready) begin
-              m2s_rwd_seq_item_h = m2s_rwd_seq_item::type_id::create("m2s_rwd_seq_item_h", this);
-              m2s_rwd_seq_item_h.valid         = dev_m2s_rwd_if.m2s_rwd_txn.valid;
-              m2s_rwd_seq_item_h.address       = dev_m2s_rwd_if.m2s_rwd_txn.address;
-              m2s_rwd_seq_item_h.memopcode     = dev_m2s_rwd_if.m2s_rwd_txn.memopcode;
-              m2s_rwd_seq_item_h.metafield     = dev_m2s_rwd_if.m2s_rwd_txn.metafield;
-              m2s_rwd_seq_item_h.metavalue     = dev_m2s_rwd_if.m2s_rwd_txn.metavalue;
-              m2s_rwd_seq_item_h.snptype       = dev_m2s_rwd_if.m2s_rwd_txn.snptype;
-              m2s_rwd_seq_item_h.tag           = dev_m2s_rwd_if.m2s_rwd_txn.tag;
-              m2s_rwd_seq_item_h.tc            = dev_m2s_rwd_if.m2s_rwd_txn.tc;
-              m2s_rwd_seq_item_h.poison        = dev_m2s_rwd_if.m2s_rwd_txn.poison;
-              m2s_rwd_seq_item_h.data          = dev_m2s_rwd_if.m2s_rwd_txn.data;
-              m2s_rwd_port.write(m2s_rwd_seq_item_h);
-              `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", m2s_rwd_seq_item_h.sprint()), UVM_HIGH)
+              fork 
+                begin
+                  sample();
+                end
+              join_none
             end  
           end
         end
       join_none
     endtask
-  
+
+    task sample();
+      @(negedge dev_m2s_rwd_if.clk);
+      m2s_rwd_seq_item_h               = m2s_rwd_seq_item::type_id::create("m2s_rwd_seq_item_h", this);
+      m2s_rwd_seq_item_h.valid         = dev_m2s_rwd_if.m2s_rwd_txn.valid;
+      m2s_rwd_seq_item_h.address       = dev_m2s_rwd_if.m2s_rwd_txn.address;
+      m2s_rwd_seq_item_h.memopcode     = dev_m2s_rwd_if.m2s_rwd_txn.memopcode;
+      m2s_rwd_seq_item_h.metafield     = dev_m2s_rwd_if.m2s_rwd_txn.metafield;
+      m2s_rwd_seq_item_h.metavalue     = dev_m2s_rwd_if.m2s_rwd_txn.metavalue;
+      m2s_rwd_seq_item_h.snptype       = dev_m2s_rwd_if.m2s_rwd_txn.snptype;
+      m2s_rwd_seq_item_h.tag           = dev_m2s_rwd_if.m2s_rwd_txn.tag;
+      m2s_rwd_seq_item_h.tc            = dev_m2s_rwd_if.m2s_rwd_txn.tc;
+      m2s_rwd_seq_item_h.poison        = dev_m2s_rwd_if.m2s_rwd_txn.poison;
+      m2s_rwd_seq_item_h.data          = dev_m2s_rwd_if.m2s_rwd_txn.data;
+      m2s_rwd_port.write(m2s_rwd_seq_item_h);
+      `uvm_info(get_type_name(), $sformatf("wrote item in uvm monitor : %s", m2s_rwd_seq_item_h.sprint()), UVM_HIGH)
+    endtask
+
   endclass
 
   class host_s2m_ndr_monitor extends uvm_monitor;
@@ -13380,7 +15348,7 @@ module tb_top;
           forever begin
             @(posedge host_s2m_ndr_if.clk);
             if(host_s2m_ndr_if.s2m_ndr_txn.valid && host_s2m_ndr_if.ready) begin
-              s2m_ndr_seq_item_h = s2m_ndr_seq_item::type_id::create("s2m_ndr_seq_item_h", this);
+              s2m_ndr_seq_item_h               = s2m_ndr_seq_item::type_id::create("s2m_ndr_seq_item_h", this);
               s2m_ndr_seq_item_h.valid         = host_s2m_ndr_if.s2m_ndr_txn.valid;
               s2m_ndr_seq_item_h.opcode        = host_s2m_ndr_if.s2m_ndr_txn.opcode;
               s2m_ndr_seq_item_h.metafield     = host_s2m_ndr_if.s2m_ndr_txn.metafield;
@@ -13420,7 +15388,7 @@ module tb_top;
           forever begin
             @(posedge host_s2m_drs_if.clk);
             if(host_s2m_drs_if.s2m_drs_txn.valid && host_s2m_drs_if.ready) begin
-              s2m_drs_seq_item_h = s2m_drs_seq_item::type_id::create("s2m_drs_seq_item_h", this);
+              s2m_drs_seq_item_h               = s2m_drs_seq_item::type_id::create("s2m_drs_seq_item_h", this);
               s2m_drs_seq_item_h.valid         = host_s2m_drs_if.s2m_drs_txn.valid;
               s2m_drs_seq_item_h.opcode        = host_s2m_drs_if.s2m_drs_txn.opcode;
               s2m_drs_seq_item_h.metafield     = host_s2m_drs_if.s2m_drs_txn.metafield;
@@ -13485,14 +15453,14 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_req_seq_item_h.sprint()), UVM_DEBUG)
         phase.raise_objection(this);
         if(d2h_req_seq_item_h.delay_set) begin
-          repeat(d2h_req_seq_item_h.delay_value) @(negedge host_d2h_req_if.clk);
+          repeat(d2h_req_seq_item_h.delay_value) @(negedge host_d2h_req_if.clk) host_d2h_req_if.ready <= 'h0;
         end
         @(negedge host_d2h_req_if.clk);
         host_d2h_req_if.ready <= 'h1;
         do begin
           @(negedge host_d2h_req_if.clk);
-        end while(!host_d2h_req_if.d2h_req_txn.valid);
-        host_d2h_req_if.ready <= 'h0;
+        end while(host_d2h_req_if.d2h_req_txn.valid);
+        //host_d2h_req_if.ready <= 'h0;
         seq_item_port.item_done(d2h_req_seq_item_h);
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
@@ -13565,35 +15533,29 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_rsp_seq_item_h.sprint()), UVM_DEBUG)
         phase.raise_objection(this);
         if(d2h_rsp_seq_item_h.delay_set) begin
-          repeat(d2h_rsp_seq_item_h.delay_value) @(negedge host_d2h_rsp_if.clk);
+          repeat(d2h_rsp_seq_item_h.delay_value) @(negedge host_d2h_rsp_if.clk) host_d2h_rsp_if.ready <= 'h0;
         end
         @(negedge host_d2h_rsp_if.clk);
         host_d2h_rsp_if.ready <= 'h1;
         do begin
           @(negedge host_d2h_rsp_if.clk);
-        end while(!host_d2h_rsp_if.d2h_rsp_txn.valid);
-        host_d2h_rsp_if.ready <= 'h0;
+        end while(host_d2h_rsp_if.d2h_rsp_txn.valid);
+        //host_d2h_rsp_if.ready <= 'h0;
         seq_item_port.item_done(d2h_rsp_seq_item_h);
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-/*    
+    
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
+      phase.raise_objection(this);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          run_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      host_d2h_rsp_if.ready <= 'h1;
+      phase.drop_objection(this);
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-*/
+
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -13650,35 +15612,27 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", d2h_data_seq_item_h.sprint()), UVM_DEBUG)
         phase.raise_objection(this);
         if(d2h_data_seq_item_h.delay_set) begin
-          repeat(d2h_data_seq_item_h.delay_value) @(negedge host_d2h_data_if.clk);
+          repeat(d2h_data_seq_item_h.delay_value) @(negedge host_d2h_data_if.clk) host_d2h_data_if.ready <= 'h0;
         end
         @(negedge host_d2h_data_if.clk);
         host_d2h_data_if.ready <= 'h1;
         do begin
           @(negedge host_d2h_data_if.clk);
-        end while(!host_d2h_data_if.d2h_data_txn.valid);
-        host_d2h_data_if.ready <= 'h0;
+        end while(host_d2h_data_if.d2h_data_txn.valid);
+        //host_d2h_data_if.ready <= 'h0;
         seq_item_port.item_done(d2h_data_seq_item_h);
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-/*
+
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          run_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      host_d2h_data_if.ready <= 'h1;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-*/    
+    
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -13735,35 +15689,27 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_ndr_seq_item_h.sprint()), UVM_DEBUG)
         phase.raise_objection(this);
         if(s2m_ndr_seq_item_h.delay_set) begin
-          repeat(s2m_ndr_seq_item_h.delay_value) @(negedge host_s2m_ndr_if.clk);
+          repeat(s2m_ndr_seq_item_h.delay_value) @(negedge host_s2m_ndr_if.clk) host_s2m_ndr_if.ready <= 'h0;
         end
         @(negedge host_s2m_ndr_if.clk);
         host_s2m_ndr_if.ready <= 'h1;
         do begin
           @(negedge host_s2m_ndr_if.clk);
-        end while(!host_s2m_ndr_if.s2m_ndr_txn.valid);
-        host_s2m_ndr_if.ready <= 'h0;
+        end while(host_s2m_ndr_if.s2m_ndr_txn.valid);
+        //host_s2m_ndr_if.ready <= 'h0;
         seq_item_port.item_done(s2m_ndr_seq_item_h);
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-/*    
+    
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          reset_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      host_s2m_ndr_if.ready <= 'h1;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-*/
+
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -13820,35 +15766,27 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", s2m_drs_seq_item_h.sprint()), UVM_DEBUG)
         phase.raise_objection(this);
         if(s2m_drs_seq_item_h.delay_set) begin
-          repeat(s2m_drs_seq_item_h.delay_value) @(negedge host_s2m_drs_if.clk);
+          repeat(s2m_drs_seq_item_h.delay_value) @(negedge host_s2m_drs_if.clk) host_s2m_drs_if.ready <= 'h0;
         end
         @(negedge host_s2m_drs_if.clk);
         host_s2m_drs_if.ready <= 'h1;
         do begin
           @(negedge host_s2m_drs_if.clk);
-        end while(!host_s2m_drs_if.s2m_drs_txn.valid);
-        host_s2m_drs_if.ready <= 'h0;
+        end while(host_s2m_drs_if.s2m_drs_txn.valid);
+        //host_s2m_drs_if.ready <= 'h0;
         seq_item_port.item_done(s2m_drs_seq_item_h);
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-/*
+
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          run_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      host_s2m_drs_if.ready <= 'h1;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-*/
+
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -13905,35 +15843,27 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_req_seq_item_h.sprint()), UVM_DEBUG)
         phase.raise_objection(this);  
         if(h2d_req_seq_item_h.delay_set) begin
-          repeat(h2d_req_seq_item_h.delay_value) @(negedge dev_h2d_req_if.clk);
+          repeat(h2d_req_seq_item_h.delay_value) @(negedge dev_h2d_req_if.clk) dev_h2d_req_if.ready <= 'h0;
         end
         @(negedge dev_h2d_req_if.clk);
         dev_h2d_req_if.ready <= 'h1;
         do begin
           @(negedge dev_h2d_req_if.clk);
-        end while(!dev_h2d_req_if.h2d_req_txn.valid);
-        dev_h2d_req_if.ready <= 'h0;
+        end while(dev_h2d_req_if.h2d_req_txn.valid);
+        //dev_h2d_req_if.ready <= 'h0;
         seq_item_port.item_done(h2d_req_seq_item_h);
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-/*
+
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          run_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      dev_h2d_req_if.ready <= 'h1;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-*/
+
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -13990,35 +15920,27 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_rsp_seq_item_h.sprint()), UVM_DEBUG)
         phase.raise_objection(this);
         if(h2d_rsp_seq_item_h.delay_set) begin
-          repeat(h2d_rsp_seq_item_h.delay_value) @(negedge dev_h2d_rsp_if.clk);
+          repeat(h2d_rsp_seq_item_h.delay_value) @(negedge dev_h2d_rsp_if.clk) dev_h2d_rsp_if.ready <= 'h0;
         end
         @(negedge dev_h2d_rsp_if.clk);
         dev_h2d_rsp_if.ready <= 'h1;
         do begin
           @(negedge dev_h2d_rsp_if.clk);
-        end while(!dev_h2d_rsp_if.h2d_rsp_txn.valid);
-        dev_h2d_rsp_if.ready <= 'h0;
+        end while(dev_h2d_rsp_if.h2d_rsp_txn.valid);
+        //dev_h2d_rsp_if.ready <= 'h0;
         seq_item_port.item_done(h2d_rsp_seq_item_h);
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-/*
+
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          run_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      dev_h2d_rsp_if.ready <= 'h1;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-*/
+
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -14075,35 +15997,27 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", h2d_data_seq_item_h.sprint()), UVM_DEBUG)
         phase.raise_objection(this);
         if(h2d_data_seq_item_h.delay_set) begin
-          repeat(h2d_data_seq_item_h.delay_value) @(negedge dev_h2d_data_if.clk);
+          repeat(h2d_data_seq_item_h.delay_value) @(negedge dev_h2d_data_if.clk) dev_h2d_data_if.ready <= 'h0;
         end
         @(negedge dev_h2d_data_if.clk);
         dev_h2d_data_if.ready <= 'h1;
         do begin
           @(negedge dev_h2d_data_if.clk);
-        end while(!dev_h2d_data_if.h2d_data_txn.valid);
-        dev_h2d_data_if.ready <= 'h0;
+        end while(dev_h2d_data_if.h2d_data_txn.valid);
+        //dev_h2d_data_if.ready <= 'h0;
         seq_item_port.item_done(h2d_data_seq_item_h);
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-/*
+
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          run_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      dev_h2d_data_if.ready <= 'h1;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-*/
+
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -14160,35 +16074,27 @@ module tb_top;
         `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_req_seq_item_h.sprint()), UVM_DEBUG)
         phase.raise_objection(this);
         if(m2s_req_seq_item_h.delay_set) begin
-          repeat(m2s_req_seq_item_h.delay_value) @(negedge dev_m2s_req_if.clk);
+          repeat(m2s_req_seq_item_h.delay_value) @(negedge dev_m2s_req_if.clk) dev_m2s_req_if.ready <= 'h0;
         end
         @(negedge dev_m2s_req_if.clk);
         dev_m2s_req_if.ready <= 'h1;
         do begin
           @(negedge dev_m2s_req_if.clk);
-        end while(!dev_m2s_req_if.m2s_req_txn.valid);
-        dev_m2s_req_if.ready <= 'h0;
+        end while(dev_m2s_req_if.m2s_req_txn.valid);
+        //dev_m2s_req_if.ready <= 'h0;
         seq_item_port.item_done(m2s_req_seq_item_h);
         phase.drop_objection(this);
         `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
       end
     endtask
-/*
+
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          run_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      dev_m2s_req_if.ready <= 'h1;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-*/
+
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -14239,41 +16145,42 @@ module tb_top;
     endtask
     
     task run_task(uvm_phase phase);
-      forever begin
-        seq_item_port.get_next_item(m2s_rwd_seq_item_h);  
-        `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
-        `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_rwd_seq_item_h.sprint()), UVM_DEBUG)
-        phase.raise_objection(this);
-        if(m2s_rwd_seq_item_h.delay_set) begin
-          repeat(m2s_rwd_seq_item_h.delay_value) @(negedge dev_m2s_rwd_if.clk);
+      fork 
+        begin
+          #10000;
+          `uvm_fatal(get_type_name(), "timeout");
         end
-        @(negedge dev_m2s_rwd_if.clk);
-        dev_m2s_rwd_if.ready <= 'h1;
+      join_none
+      forever begin
         do begin
           @(negedge dev_m2s_rwd_if.clk);
+          dev_m2s_rwd_if.ready <= 'h0;
+          seq_item_port.try_next_item(m2s_rwd_seq_item_h); 
+          if(m2s_rwd_seq_item_h == null)begin
+          end else begin
+            seq_item_port.get_next_item(m2s_rwd_seq_item_h);  
+            `uvm_info(get_type_name(), $sformatf("fetching new seq item in driver : %s", get_full_name()), UVM_HIGH)
+            `uvm_info(get_type_name(), $sformatf("got item in uvm driver : %s", m2s_rwd_seq_item_h.sprint()), UVM_DEBUG)
+            phase.raise_objection(this);
+            if(m2s_rwd_seq_item_h.delay_set) begin
+              repeat(m2s_rwd_seq_item_h.delay_value) @(negedge dev_m2s_rwd_if.clk) dev_m2s_rwd_if.ready <= 'h0;
+            end 
+            seq_item_port.item_done(m2s_rwd_seq_item_h);
+            phase.drop_objection(this);
+            `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
+          end
         end while(!dev_m2s_rwd_if.m2s_rwd_txn.valid);
-        dev_m2s_rwd_if.ready <= 'h0;
-        seq_item_port.item_done(m2s_rwd_seq_item_h);
-        phase.drop_objection(this);
-        `uvm_info(get_type_name(), $sformatf("seq item done in driver : %s", get_full_name()), UVM_HIGH)
+        dev_m2s_rwd_if.ready <= 'h1;
       end
     endtask
-/*
+
     virtual task configure_phase(uvm_phase phase);
       super.configure_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
-      fork 
-        begin
-          run_task(phase);
-        end
-        begin
-          phase.wait_for_state(UVM_PHASE_ENDED, UVM_EQ);
-        end
-      join_any
-      disable fork;
+      dev_m2s_rwd_if.ready <= 'h1;
       `uvm_info(get_type_name(), $sformatf("exit configure_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
     endtask
-*/
+
     virtual task main_phase(uvm_phase phase);
       super.main_phase(phase);
       `uvm_info(get_type_name(), $sformatf("enter main_phase in uvm driver : %s", get_full_name()), UVM_HIGH)
@@ -16940,12 +18847,12 @@ module tb_top;
     endfunction
 
   endclass
-    
+
   class dev_d2h_req_seq#(type ITEM_TYPE = d2h_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_d2h_req_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(dev_d2h_req_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE d2h_req_seq_item_h[];
-    ITEM_TYPE d2h_req_seq_item_curr_h;
+    rand rand_d2h_req_txn_t d2h_req_seq_item_h[];
+    rand ITEM_TYPE d2h_req_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -16953,6 +18860,14 @@ module tb_top;
       soft num_trans inside {1};
       d2h_req_seq_item_h.size == num_trans;
       solve num_trans before d2h_req_seq_item_h.size;
+      foreach(d2h_req_seq_item_h[i]) {
+        d2h_req_seq_item_h[i].address[5:0] == 6'b0;
+        solve d2h_req_seq_item_h.size before d2h_req_seq_item_h[i].valid;
+        solve d2h_req_seq_item_h.size before d2h_req_seq_item_h[i].address;
+        solve d2h_req_seq_item_h.size before d2h_req_seq_item_h[i].opcode;
+        solve d2h_req_seq_item_h.size before d2h_req_seq_item_h[i].cqid;
+        solve d2h_req_seq_item_h.size before d2h_req_seq_item_h[i].nt;
+      }
     }
 
     function new(string name = "dev_d2h_req_seq");
@@ -16960,15 +18875,21 @@ module tb_top;
     endfunction
 
     task body();
-    bit rand_fail;
+      bit rand_fail;
       foreach(d2h_req_seq_item_h[i]) begin
-        d2h_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_h[%0d]",i));
-        d2h_req_seq_item_curr_h = d2h_req_seq_item_h[i];
+        d2h_req_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(d2h_req_seq_item_curr_h);
-        rand_fail = d2h_req_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = d2h_req_seq_item_curr_h.randomize() with {
+            reset_cycles  == cycles_rst;
+            valid         == d2h_req_seq_item_h[i].valid;
+            address[51:6] == d2h_req_seq_item_h[i].address[51:6];
+            opcode        == d2h_req_seq_item_h[i].opcode;
+            cqid          == d2h_req_seq_item_h[i].cqid;
+            nt            == d2h_req_seq_item_h[i].nt;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(d2h_req_seq_item_curr_h);
       end
@@ -16979,8 +18900,8 @@ module tb_top;
   class dev_d2h_rsp_seq#(type ITEM_TYPE = d2h_rsp_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_d2h_rsp_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(dev_d2h_rsp_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE d2h_rsp_seq_item_h[];
-    ITEM_TYPE d2h_rsp_seq_item_curr_h;
+    rand rand_d2h_rsp_txn_t d2h_rsp_seq_item_h[];
+    rand ITEM_TYPE d2h_rsp_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -16988,6 +18909,11 @@ module tb_top;
       soft num_trans inside {1};
       d2h_rsp_seq_item_h.size == num_trans;
       solve num_trans before d2h_rsp_seq_item_h.size;
+      foreach(d2h_rsp_seq_item_h[i]){
+        solve d2h_rsp_seq_item_h.size before d2h_rsp_seq_item_h[i].valid;
+        solve d2h_rsp_seq_item_h.size before d2h_rsp_seq_item_h[i].opcode;
+        solve d2h_rsp_seq_item_h.size before d2h_rsp_seq_item_h[i].uqid;
+      }
     }
 
     function new(string name = "dev_d2h_rsp_seq");
@@ -16997,13 +18923,17 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(d2h_rsp_seq_item_h[i]) begin
-        d2h_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_rsp_seq_item_h[%0d]",i));
-        d2h_rsp_seq_item_curr_h = d2h_rsp_seq_item_h[i];
+        d2h_rsp_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("d2h_rsp_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(d2h_rsp_seq_item_curr_h);
-        rand_fail = d2h_rsp_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = d2h_rsp_seq_item_curr_h.randomize() with {
+            reset_cycles  == cycles_rst;
+            valid         == d2h_rsp_seq_item_h[i].valid;
+            opcode        == d2h_rsp_seq_item_h[i].opcode;
+            uqid          == d2h_rsp_seq_item_h[i].uqid;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(d2h_rsp_seq_item_curr_h);
       end
@@ -17014,8 +18944,8 @@ module tb_top;
   class dev_d2h_data_seq#(type ITEM_TYPE = d2h_data_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_d2h_data_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(dev_d2h_data_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE d2h_data_seq_item_h[];
-    ITEM_TYPE d2h_data_seq_item_curr_h;
+    rand rand_d2h_data_txn_t d2h_data_seq_item_h[];
+    rand ITEM_TYPE d2h_data_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17023,6 +18953,15 @@ module tb_top;
       soft num_trans inside {1};
       d2h_data_seq_item_h.size == num_trans;
       solve num_trans before d2h_data_seq_item_h.size;
+      foreach(d2h_data_seq_item_h[i]){
+        solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].valid;
+        solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].uqid;
+        solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].chunkvalid;
+        solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].bogus;
+        solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].poison;
+        solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].data;
+
+      }
     }
 
     function new(string name = "dev_d2h_data_seq");
@@ -17032,13 +18971,20 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(d2h_data_seq_item_h[i]) begin
-        d2h_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_data_seq_item_h[%0d]",i));
-        d2h_data_seq_item_curr_h = d2h_data_seq_item_h[i];
+        d2h_data_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("d2h_data_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(d2h_data_seq_item_curr_h);
-        rand_fail = d2h_data_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = d2h_data_seq_item_curr_h.randomize() with {
+            reset_cycles  == cycles_rst;
+            valid         == d2h_data_seq_item_h[i].valid;
+            uqid          == d2h_data_seq_item_h[i].uqid;
+            chunkvalid    == d2h_data_seq_item_h[i].chunkvalid;
+            bogus         == d2h_data_seq_item_h[i].bogus;
+            poison        == d2h_data_seq_item_h[i].poison;
+            data          == d2h_data_seq_item_h[i].data;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(d2h_data_seq_item_curr_h);
       end
@@ -17049,8 +18995,8 @@ module tb_top;
   class dev_h2d_req_seq#(type ITEM_TYPE = h2d_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_h2d_req_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(dev_h2d_req_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE h2d_req_seq_item_h[];
-    ITEM_TYPE h2d_req_seq_item_curr_h;
+    rand rand_h2d_req_txn_t h2d_req_seq_item_h[];
+    rand ITEM_TYPE h2d_req_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17058,6 +19004,13 @@ module tb_top;
       soft num_trans inside {1};
       h2d_req_seq_item_h.size == num_trans;
       solve num_trans before h2d_req_seq_item_h.size;
+      foreach(h2d_req_seq_item_h[i]) {
+        h2d_req_seq_item_h[i].address[5:0] == 6'b0;
+        solve h2d_req_seq_item_h.size before h2d_req_seq_item_h[i].valid;
+        solve h2d_req_seq_item_h.size before h2d_req_seq_item_h[i].address;
+        solve h2d_req_seq_item_h.size before h2d_req_seq_item_h[i].opcode;
+        solve h2d_req_seq_item_h.size before h2d_req_seq_item_h[i].uqid;
+      }
     }
 
     function new(string name = "dev_h2d_req_seq");
@@ -17067,13 +19020,18 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(h2d_req_seq_item_h[i]) begin
-        h2d_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_req_seq_item_h[%0d]",i));
-        h2d_req_seq_item_curr_h = h2d_req_seq_item_h[i];
+        h2d_req_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("h2d_req_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(h2d_req_seq_item_curr_h);
-        rand_fail = h2d_req_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = h2d_req_seq_item_curr_h.randomize() with {
+            reset_cycles  == cycles_rst;
+            valid         == h2d_req_seq_item_h[i].valid;
+            opcode        == h2d_req_seq_item_h[i].opcode;
+            address[51:6] == h2d_req_seq_item_h[i].address[51:6];
+            uqid          == h2d_req_seq_item_h[i].uqid;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(h2d_req_seq_item_curr_h);
       end
@@ -17084,8 +19042,8 @@ module tb_top;
   class dev_h2d_rsp_seq#(type ITEM_TYPE = h2d_rsp_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_h2d_rsp_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(dev_h2d_rsp_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE h2d_rsp_seq_item_h[];
-    ITEM_TYPE h2d_rsp_seq_item_curr_h;
+    rand rand_h2d_rsp_txn_t h2d_rsp_seq_item_h[];
+    rand ITEM_TYPE h2d_rsp_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17093,6 +19051,13 @@ module tb_top;
       soft num_trans inside {1};
       h2d_rsp_seq_item_h.size == num_trans;
       solve num_trans before h2d_rsp_seq_item_h.size;
+      foreach(h2d_rsp_seq_item_h[i]){
+        solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].valid;
+        solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].opcode;
+        solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].rspdata;
+        solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].rsppre;
+        solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].cqid;
+      }
     }
 
     function new(string name = "dev_h2d_rsp_seq");
@@ -17102,13 +19067,19 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(h2d_rsp_seq_item_h[i]) begin
-        h2d_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_rsp_seq_item_h[%0d]",i));
-        h2d_rsp_seq_item_curr_h = h2d_rsp_seq_item_h[i];
+        h2d_rsp_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("h2d_rsp_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(h2d_rsp_seq_item_curr_h);
-        rand_fail = h2d_rsp_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = h2d_rsp_seq_item_curr_h.randomize() with {
+            reset_cycles  == cycles_rst;
+            valid         == h2d_rsp_seq_item_h[i].valid;
+            opcode        == h2d_rsp_seq_item_h[i].opcode;
+            rspdata       == h2d_rsp_seq_item_h[i].rspdata;
+            rsppre        == h2d_rsp_seq_item_h[i].rsppre;
+            cqid          == h2d_rsp_seq_item_h[i].cqid;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(h2d_rsp_seq_item_curr_h);
       end
@@ -17119,8 +19090,8 @@ module tb_top;
   class dev_h2d_data_seq#(type ITEM_TYPE = h2d_data_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_h2d_data_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(dev_h2d_data_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE h2d_data_seq_item_h[];
-    ITEM_TYPE h2d_data_seq_item_curr_h;
+    rand rand_h2d_data_txn_t h2d_data_seq_item_h[];
+    rand ITEM_TYPE h2d_data_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17128,6 +19099,14 @@ module tb_top;
       soft num_trans inside {1};
       h2d_data_seq_item_h.size == num_trans;
       solve num_trans before h2d_data_seq_item_h.size;
+      foreach(h2d_data_seq_item_h[i]){
+        solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].valid;
+        solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].cqid;
+        solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].chunkvalid;
+        solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].poison;
+        solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].goerr;
+        solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].data;
+      }
     }
 
     function new(string name = "dev_h2d_data_seq");
@@ -17137,13 +19116,20 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(h2d_data_seq_item_h[i]) begin
-        h2d_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_data_seq_item_h[%0d]",i));
-        h2d_data_seq_item_curr_h = h2d_data_seq_item_h[i];
+        h2d_data_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("h2d_data_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(h2d_data_seq_item_curr_h);
-        rand_fail = h2d_data_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = h2d_data_seq_item_curr_h.randomize() with {
+            reset_cycles  == cycles_rst;
+            valid         == h2d_data_seq_item_h[i].valid;
+            cqid          == h2d_data_seq_item_h[i].cqid;
+            chunkvalid    == h2d_data_seq_item_h[i].chunkvalid;
+            poison        == h2d_data_seq_item_h[i].poison;
+            goerr         == h2d_data_seq_item_h[i].goerr;
+            data          == h2d_data_seq_item_h[i].data;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(h2d_data_seq_item_curr_h);
       end
@@ -17154,8 +19140,8 @@ module tb_top;
   class dev_m2s_req_seq#(type ITEM_TYPE = m2s_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_m2s_req_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(dev_m2s_req_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE m2s_req_seq_item_h[];
-    ITEM_TYPE m2s_req_seq_item_curr_h;
+    rand rand_m2s_req_txn_t m2s_req_seq_item_h[];
+    rand ITEM_TYPE m2s_req_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17163,6 +19149,18 @@ module tb_top;
       soft num_trans inside {1};
       m2s_req_seq_item_h.size == num_trans;
       solve num_trans before m2s_req_seq_item_h.size;
+      foreach(m2s_req_seq_item_h[i]){
+        !m2s_req_seq_item_h[i].metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1, GEET_CXL_MEM_MF_METAFIELD_RSVD2};
+        !m2s_req_seq_item_h[i].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].valid;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].address;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].memopcode;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].metafield;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].metavalue;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].snptype;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].tag;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].tc;
+      }
     }
 
     function new(string name = "dev_m2s_req_seq");
@@ -17172,13 +19170,22 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(m2s_req_seq_item_h[i]) begin
-        m2s_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_req_seq_item_h[%0d]",i));
-        m2s_req_seq_item_curr_h = m2s_req_seq_item_h[i];
+        m2s_req_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("m2s_req_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(m2s_req_seq_item_curr_h);
-        rand_fail = m2s_req_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = m2s_req_seq_item_curr_h.randomize() with {
+            reset_cycles  == cycles_rst;
+            valid         == m2s_req_seq_item_h[i].valid;
+            address[51:6] == m2s_req_seq_item_h[i].address[51:6];
+            memopcode     == m2s_req_seq_item_h[i].memopcode;
+            metafield     == m2s_req_seq_item_h[i].metafield;
+            metavalue     == m2s_req_seq_item_h[i].metavalue;
+            snptype       == m2s_req_seq_item_h[i].snptype;
+            tag           == m2s_req_seq_item_h[i].tag;
+            tc            == m2s_req_seq_item_h[i].tc;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at i is %0d metavalue is %0d and metafield is %0d tc is %0d", i, m2s_req_seq_item_h[i].metavalue, m2s_req_seq_item_h[i].metafield, m2s_req_seq_item_h[i].tc));
         end
         finish_item(m2s_req_seq_item_curr_h);
       end
@@ -17189,8 +19196,8 @@ module tb_top;
   class dev_m2s_rwd_seq#(type ITEM_TYPE = m2s_rwd_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_m2s_rwd_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(dev_m2s_rwd_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE m2s_rwd_seq_item_h[];
-    ITEM_TYPE m2s_rwd_seq_item_curr_h;
+    rand rand_m2s_rwd_txn_t m2s_rwd_seq_item_h[];
+    rand ITEM_TYPE m2s_rwd_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17198,6 +19205,20 @@ module tb_top;
       soft num_trans inside {1};
       m2s_rwd_seq_item_h.size == num_trans;
       solve num_trans before m2s_rwd_seq_item_h.size;
+      foreach(m2s_rwd_seq_item_h[i]){
+        !m2s_rwd_seq_item_h[i].metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1, GEET_CXL_MEM_MF_METAFIELD_RSVD2};
+        !m2s_rwd_seq_item_h[i].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].metafield;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].metavalue;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].valid;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].address;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].memopcode;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].snptype;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].tag;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].tc;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].poison;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].data;
+      }
     }
 
     function new(string name = "dev_m2s_rwd_seq");
@@ -17207,13 +19228,24 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(m2s_rwd_seq_item_h[i]) begin
-        m2s_rwd_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_rwd_seq_item_h[%0d]",i));
-        m2s_rwd_seq_item_curr_h = m2s_rwd_seq_item_h[i];
+        m2s_rwd_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("m2s_rwd_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(m2s_rwd_seq_item_curr_h);
-        rand_fail = m2s_rwd_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = m2s_rwd_seq_item_curr_h.randomize() with {
+            reset_cycles  == cycles_rst;
+            valid         == m2s_rwd_seq_item_h[i].valid;
+            address[51:6] == m2s_rwd_seq_item_h[i].address[51:6];
+            memopcode     == m2s_rwd_seq_item_h[i].memopcode;
+            metafield     == m2s_rwd_seq_item_h[i].metafield;
+            metavalue     == m2s_rwd_seq_item_h[i].metavalue;
+            snptype       == m2s_rwd_seq_item_h[i].snptype;
+            tag           == m2s_rwd_seq_item_h[i].tag;
+            tc            == m2s_rwd_seq_item_h[i].tc;
+            poison        == m2s_rwd_seq_item_h[i].poison;
+            data          == m2s_rwd_seq_item_h[i].data;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(m2s_rwd_seq_item_curr_h);
       end
@@ -17224,8 +19256,8 @@ module tb_top;
   class dev_s2m_ndr_seq#(type ITEM_TYPE = s2m_ndr_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_s2m_ndr_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(dev_s2m_ndr_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE s2m_ndr_seq_item_h[];
-    ITEM_TYPE s2m_ndr_seq_item_curr_h;
+    rand rand_s2m_ndr_txn_t s2m_ndr_seq_item_h[];
+    rand ITEM_TYPE s2m_ndr_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17233,6 +19265,15 @@ module tb_top;
       soft num_trans inside {1};
       s2m_ndr_seq_item_h.size == num_trans;
       solve num_trans before s2m_ndr_seq_item_h.size;
+      foreach(s2m_ndr_seq_item_h[i]){
+        soft !s2m_ndr_seq_item_h[i].metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1, GEET_CXL_MEM_MF_METAFIELD_RSVD2};
+        soft !s2m_ndr_seq_item_h[i].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
+        solve s2m_ndr_seq_item_h.size before s2m_ndr_seq_item_h[i].valid;
+        solve s2m_ndr_seq_item_h.size before s2m_ndr_seq_item_h[i].opcode;
+        solve s2m_ndr_seq_item_h.size before s2m_ndr_seq_item_h[i].metavalue;
+        solve s2m_ndr_seq_item_h.size before s2m_ndr_seq_item_h[i].metafield;
+        solve s2m_ndr_seq_item_h.size before s2m_ndr_seq_item_h[i].tag;
+      }
     }
 
     function new(string name = "dev_s2m_ndr_seq");
@@ -17242,13 +19283,19 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(s2m_ndr_seq_item_h[i]) begin
-        s2m_ndr_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_ndr_seq_item_h[%0d]",i));
-        s2m_ndr_seq_item_curr_h = s2m_ndr_seq_item_h[i];
+        s2m_ndr_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("s2m_ndr_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(s2m_ndr_seq_item_curr_h);
-        rand_fail = s2m_ndr_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = s2m_ndr_seq_item_curr_h.randomize() with {
+            reset_cycles  == cycles_rst;
+            valid         == s2m_ndr_seq_item_h[i].valid;
+            opcode        == s2m_ndr_seq_item_h[i].opcode;
+            metafield     == s2m_ndr_seq_item_h[i].metafield;
+            metavalue     == s2m_ndr_seq_item_h[i].metavalue;
+            tag           == s2m_ndr_seq_item_h[i].tag;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(s2m_ndr_seq_item_curr_h);
       end
@@ -17259,8 +19306,8 @@ module tb_top;
   class dev_s2m_drs_seq#(type ITEM_TYPE = uvm_sequence_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(dev_s2m_drs_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(dev_s2m_drs_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE s2m_drs_seq_item_h[];
-    ITEM_TYPE s2m_drs_seq_item_curr_h;
+    rand rand_s2m_drs_txn_t s2m_drs_seq_item_h[];
+    rand ITEM_TYPE s2m_drs_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17268,6 +19315,17 @@ module tb_top;
       soft num_trans inside {1};
       s2m_drs_seq_item_h.size == num_trans;
       solve num_trans before s2m_drs_seq_item_h.size;
+      foreach(s2m_drs_seq_item_h[i]){
+        !s2m_drs_seq_item_h[i].metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1, GEET_CXL_MEM_MF_METAFIELD_RSVD2};
+        !s2m_drs_seq_item_h[i].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].valid;
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].opcode;
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].metafield;
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].metavalue;
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].tag;
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].poison;
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].data;  
+      }
     }
 
     function new(string name = "dev_s2m_drs_seq");
@@ -17277,13 +19335,21 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(s2m_drs_seq_item_h[i]) begin
-        s2m_drs_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_drs_seq_item_h[%0d]",i));
-        s2m_drs_seq_item_curr_h = s2m_drs_seq_item_h[i];
+        s2m_drs_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("s2m_drs_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(s2m_drs_seq_item_curr_h);
-        rand_fail = s2m_drs_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = s2m_drs_seq_item_curr_h.randomize() with {
+            reset_cycles  == cycles_rst;
+            valid         == s2m_drs_seq_item_h[i].valid;
+            opcode        == s2m_drs_seq_item_h[i].opcode;
+            metafield     == s2m_drs_seq_item_h[i].metafield;
+            metavalue     == s2m_drs_seq_item_h[i].metavalue;
+            tag           == s2m_drs_seq_item_h[i].tag;
+            poison        == s2m_drs_seq_item_h[i].poison;
+            data          == s2m_drs_seq_item_h[i].data;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(s2m_drs_seq_item_curr_h);
       end
@@ -17294,8 +19360,8 @@ module tb_top;
   class host_h2d_req_seq#(type ITEM_TYPE = h2d_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_h2d_req_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(host_h2d_req_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE h2d_req_seq_item_h[];
-    ITEM_TYPE h2d_req_seq_item_curr_h;
+    rand rand_h2d_req_txn_t h2d_req_seq_item_h[];
+    rand ITEM_TYPE h2d_req_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17303,6 +19369,13 @@ module tb_top;
       soft num_trans inside {1};
       h2d_req_seq_item_h.size == num_trans;
       solve num_trans before h2d_req_seq_item_h.size;
+      foreach(h2d_req_seq_item_h[i]) {
+        h2d_req_seq_item_h[i].address[5:0] == 6'b0;
+        solve h2d_req_seq_item_h.size before h2d_req_seq_item_h[i].valid;
+        solve h2d_req_seq_item_h.size before h2d_req_seq_item_h[i].address;
+        solve h2d_req_seq_item_h.size before h2d_req_seq_item_h[i].opcode;
+        solve h2d_req_seq_item_h.size before h2d_req_seq_item_h[i].uqid;
+      }
     }
 
     function new(string name = "host_h2d_req_seq");
@@ -17312,13 +19385,18 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(h2d_req_seq_item_h[i]) begin
-        h2d_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_req_seq_item_h[%0d]",i));
-        h2d_req_seq_item_curr_h = h2d_req_seq_item_h[i];
+        h2d_req_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("h2d_req_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(h2d_req_seq_item_curr_h);
-        rand_fail = h2d_req_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = h2d_req_seq_item_curr_h.randomize() with {
+            reset_cycles  == cycles_rst;
+            valid         == h2d_req_seq_item_h[i].valid;
+            opcode        == h2d_req_seq_item_h[i].opcode;
+            address[51:6] == h2d_req_seq_item_h[i].address[51:6];
+            uqid          == h2d_req_seq_item_h[i].uqid;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(h2d_req_seq_item_curr_h);
       end
@@ -17329,8 +19407,8 @@ module tb_top;
   class host_h2d_rsp_seq#(type ITEM_TYPE = h2d_rsp_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_h2d_rsp_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(host_h2d_rsp_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE h2d_rsp_seq_item_h[];
-    ITEM_TYPE h2d_rsp_seq_item_curr_h;
+    rand rand_h2d_rsp_txn_t h2d_rsp_seq_item_h[];
+    rand ITEM_TYPE h2d_rsp_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17338,6 +19416,13 @@ module tb_top;
       soft num_trans inside {1};
       h2d_rsp_seq_item_h.size == num_trans;
       solve num_trans before h2d_rsp_seq_item_h.size;
+      foreach(h2d_rsp_seq_item_h[i]){
+        solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].valid;
+        solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].opcode;
+        solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].rspdata;
+        solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].rsppre;
+        solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].cqid;
+      }
     }
 
     function new(string name = "host_h2d_rsp_seq");
@@ -17347,13 +19432,19 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(h2d_rsp_seq_item_h[i]) begin
-        h2d_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_rsp_seq_item_h[%0d]",i));
-        h2d_rsp_seq_item_curr_h = h2d_rsp_seq_item_h[i];
+        h2d_rsp_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("h2d_rsp_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(h2d_rsp_seq_item_curr_h);
-        rand_fail = h2d_rsp_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = h2d_rsp_seq_item_curr_h.randomize() with {
+            reset_cycles == cycles_rst;
+            valid         == h2d_rsp_seq_item_h[i].valid;
+            opcode        == h2d_rsp_seq_item_h[i].opcode;
+            rspdata       == h2d_rsp_seq_item_h[i].rspdata;
+            rsppre        == h2d_rsp_seq_item_h[i].rsppre;
+            cqid          == h2d_rsp_seq_item_h[i].cqid;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(h2d_rsp_seq_item_curr_h);
       end
@@ -17364,8 +19455,8 @@ module tb_top;
   class host_h2d_data_seq#(type ITEM_TYPE = h2d_data_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_h2d_data_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(host_h2d_data_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE h2d_data_seq_item_h[];
-    ITEM_TYPE h2d_data_seq_item_curr_h;
+    rand rand_h2d_data_txn_t h2d_data_seq_item_h[];
+    rand ITEM_TYPE h2d_data_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17373,6 +19464,14 @@ module tb_top;
       soft num_trans inside {1};
       h2d_data_seq_item_h.size == num_trans;
       solve num_trans before h2d_data_seq_item_h.size;
+      foreach(h2d_data_seq_item_h[i]){
+        solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].valid;
+        solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].cqid;
+        solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].chunkvalid;
+        solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].poison;
+        solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].goerr;
+        solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].data;
+      }
     }
 
     function new(string name = "host_h2d_data_seq");
@@ -17382,13 +19481,20 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(h2d_data_seq_item_h[i]) begin
-        h2d_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("h2d_data_seq_item_h[%0d]",i));
-        h2d_data_seq_item_curr_h = h2d_data_seq_item_h[i];
+        h2d_data_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("h2d_data_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(h2d_data_seq_item_curr_h);
-        rand_fail = h2d_data_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = h2d_data_seq_item_curr_h.randomize() with {
+            reset_cycles == cycles_rst;
+            valid         == h2d_data_seq_item_h[i].valid;
+            cqid          == h2d_data_seq_item_h[i].cqid;
+            chunkvalid    == h2d_data_seq_item_h[i].chunkvalid;
+            poison        == h2d_data_seq_item_h[i].poison;
+            goerr         == h2d_data_seq_item_h[i].goerr;
+            data          == h2d_data_seq_item_h[i].data;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(h2d_data_seq_item_curr_h);
       end
@@ -17399,8 +19505,8 @@ module tb_top;
   class host_d2h_req_seq#(type ITEM_TYPE = d2h_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_d2h_req_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(host_d2h_req_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE d2h_req_seq_item_h[];
-    ITEM_TYPE d2h_req_seq_item_curr_h;
+    rand rand_d2h_req_txn_t d2h_req_seq_item_h[];
+    rand ITEM_TYPE d2h_req_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17408,6 +19514,14 @@ module tb_top;
       soft num_trans inside {1};
       d2h_req_seq_item_h.size == num_trans;
       solve num_trans before d2h_req_seq_item_h.size;
+      foreach(d2h_req_seq_item_h[i]){
+        d2h_req_seq_item_h[i].address[5:0] == 6'b0;
+        solve d2h_req_seq_item_h.size before d2h_req_seq_item_h[i].valid;
+        solve d2h_req_seq_item_h.size before d2h_req_seq_item_h[i].address;
+        solve d2h_req_seq_item_h.size before d2h_req_seq_item_h[i].opcode;
+        solve d2h_req_seq_item_h.size before d2h_req_seq_item_h[i].cqid;
+        solve d2h_req_seq_item_h.size before d2h_req_seq_item_h[i].nt;
+      }
     }
 
     function new(string name = "host_d2h_req_seq");
@@ -17417,13 +19531,19 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(d2h_req_seq_item_h[i]) begin
-        d2h_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_h[%0d]",i));
-        d2h_req_seq_item_curr_h = d2h_req_seq_item_h[i];
+        d2h_req_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("d2h_req_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(d2h_req_seq_item_curr_h);
-        rand_fail = d2h_req_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = d2h_req_seq_item_curr_h.randomize() with {
+            reset_cycles  == cycles_rst;
+            valid         == d2h_req_seq_item_h[i].valid;
+            address[51:6] == d2h_req_seq_item_h[i].address[51:6];
+            opcode        == d2h_req_seq_item_h[i].opcode;
+            cqid          == d2h_req_seq_item_h[i].cqid;
+            nt            == d2h_req_seq_item_h[i].nt;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(d2h_req_seq_item_curr_h);
       end
@@ -17434,8 +19554,8 @@ module tb_top;
   class host_d2h_rsp_seq#(type ITEM_TYPE = d2h_rsp_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_d2h_rsp_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(host_d2h_rsp_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE d2h_rsp_seq_item_h[];
-    ITEM_TYPE d2h_rsp_seq_item_curr_h;
+    rand rand_d2h_rsp_txn_t d2h_rsp_seq_item_h[];
+    rand ITEM_TYPE d2h_rsp_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17443,6 +19563,11 @@ module tb_top;
       soft num_trans inside {1};
       d2h_rsp_seq_item_h.size == num_trans;
       solve num_trans before d2h_rsp_seq_item_h.size;
+      foreach(d2h_rsp_seq_item_h[i]){
+        solve d2h_rsp_seq_item_h.size before d2h_rsp_seq_item_h[i].valid;
+        solve d2h_rsp_seq_item_h.size before d2h_rsp_seq_item_h[i].opcode;
+        solve d2h_rsp_seq_item_h.size before d2h_rsp_seq_item_h[i].uqid;
+      }
     }
 
     function new(string name = "host_d2h_rsp_seq");
@@ -17452,13 +19577,17 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(d2h_rsp_seq_item_h[i]) begin
-        d2h_rsp_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_rsp_seq_item_h[%0d]",i));
-        d2h_rsp_seq_item_curr_h = d2h_rsp_seq_item_h[i];
+        d2h_rsp_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("d2h_rsp_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(d2h_rsp_seq_item_curr_h);
-        rand_fail = d2h_rsp_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = d2h_rsp_seq_item_curr_h.randomize() with {
+            reset_cycles == cycles_rst;
+            valid         == d2h_rsp_seq_item_h[i].valid;
+            opcode        == d2h_rsp_seq_item_h[i].opcode;
+            uqid          == d2h_rsp_seq_item_h[i].uqid;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(d2h_rsp_seq_item_curr_h);
       end
@@ -17469,8 +19598,8 @@ module tb_top;
   class host_d2h_data_seq#(type ITEM_TYPE = d2h_data_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_d2h_data_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(host_d2h_data_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE d2h_data_seq_item_h[];
-    ITEM_TYPE d2h_data_seq_item_curr_h;
+    rand rand_d2h_data_txn_t d2h_data_seq_item_h[];
+    rand ITEM_TYPE d2h_data_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17478,6 +19607,14 @@ module tb_top;
       soft num_trans inside {1};
       d2h_data_seq_item_h.size == num_trans;
       solve num_trans before d2h_data_seq_item_h.size;
+      foreach(d2h_data_seq_item_h[i]){
+        solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].valid;
+        solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].uqid;
+        solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].chunkvalid;
+        solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].bogus;
+        solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].poison;
+        solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].data;
+      }
     }
 
     function new(string name = "host_d2h_data_seq");
@@ -17487,13 +19624,20 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(d2h_data_seq_item_h[i]) begin
-        d2h_data_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("d2h_data_seq_item_h[%0d]",i));
-        d2h_data_seq_item_curr_h = d2h_data_seq_item_h[i];
+        d2h_data_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("d2h_data_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(d2h_data_seq_item_curr_h);
-        rand_fail = d2h_data_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = d2h_data_seq_item_curr_h.randomize() with {
+            reset_cycles == cycles_rst;
+            valid         == d2h_data_seq_item_h[i].valid;
+            uqid          == d2h_data_seq_item_h[i].uqid;
+            chunkvalid    == d2h_data_seq_item_h[i].chunkvalid;
+            bogus         == d2h_data_seq_item_h[i].bogus;
+            poison        == d2h_data_seq_item_h[i].poison;
+            data          == d2h_data_seq_item_h[i].data;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(d2h_data_seq_item_curr_h);
       end
@@ -17504,8 +19648,8 @@ module tb_top;
   class host_m2s_req_seq#(type ITEM_TYPE = m2s_req_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_m2s_req_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(host_m2s_req_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE m2s_req_seq_item_h[];
-    ITEM_TYPE m2s_req_seq_item_curr_h;
+    rand rand_m2s_req_txn_t m2s_req_seq_item_h[];
+    rand ITEM_TYPE m2s_req_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17513,6 +19657,18 @@ module tb_top;
       soft num_trans inside {1};
       m2s_req_seq_item_h.size == num_trans;
       solve num_trans before m2s_req_seq_item_h.size;
+      foreach(m2s_req_seq_item_h[i]){
+        !m2s_req_seq_item_h[i].metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1, GEET_CXL_MEM_MF_METAFIELD_RSVD2};
+        !m2s_req_seq_item_h[i].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].metafield;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].metavalue;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].valid;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].address;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].memopcode;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].snptype;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].tag;
+        solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].tc;
+      }
     }
 
     function new(string name = "host_m2s_req_seq");
@@ -17522,13 +19678,22 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(m2s_req_seq_item_h[i]) begin
-        m2s_req_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_req_seq_item_h[%0d]",i));
-        m2s_req_seq_item_curr_h = m2s_req_seq_item_h[i];
+        m2s_req_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("m2s_req_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(m2s_req_seq_item_curr_h);
-        rand_fail = m2s_req_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = m2s_req_seq_item_curr_h.randomize() with {
+            reset_cycles == cycles_rst;
+            valid         == m2s_req_seq_item_h[i].valid;
+            address[51:6] == m2s_req_seq_item_h[i].address[51:6];
+            memopcode     == m2s_req_seq_item_h[i].memopcode;
+            metafield     == m2s_req_seq_item_h[i].metafield;
+            metavalue     == m2s_req_seq_item_h[i].metavalue;
+            snptype       == m2s_req_seq_item_h[i].snptype;
+            tag           == m2s_req_seq_item_h[i].tag;
+            tc            == m2s_req_seq_item_h[i].tc;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(m2s_req_seq_item_curr_h);
       end
@@ -17539,8 +19704,8 @@ module tb_top;
   class host_m2s_rwd_seq#(type ITEM_TYPE = m2s_rwd_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_m2s_rwd_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(host_m2s_rwd_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE m2s_rwd_seq_item_h[];
-    ITEM_TYPE m2s_rwd_seq_item_curr_h;
+    rand rand_m2s_rwd_txn_t m2s_rwd_seq_item_h[];
+    rand ITEM_TYPE m2s_rwd_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17548,6 +19713,20 @@ module tb_top;
       soft num_trans inside {1};
       m2s_rwd_seq_item_h.size == num_trans;
       solve num_trans before m2s_rwd_seq_item_h.size;
+      foreach(m2s_rwd_seq_item_h[i]){
+        !m2s_rwd_seq_item_h[i].metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1, GEET_CXL_MEM_MF_METAFIELD_RSVD2};
+        !m2s_rwd_seq_item_h[i].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].metafield;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].metavalue;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].valid;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].address;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].memopcode;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].snptype;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].tag;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].tc;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].poison;
+        solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].data;
+      }
     }
 
     function new(string name = "host_m2s_rwd_seq");
@@ -17557,13 +19736,24 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(m2s_rwd_seq_item_h[i]) begin
-        m2s_rwd_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("m2s_rwd_seq_item_h[%0d]",i));
-        m2s_rwd_seq_item_curr_h = m2s_rwd_seq_item_h[i];
+        m2s_rwd_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("m2s_rwd_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(m2s_rwd_seq_item_curr_h);
-        rand_fail = m2s_rwd_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = m2s_rwd_seq_item_curr_h.randomize() with {
+            reset_cycles == cycles_rst;
+            valid         == m2s_rwd_seq_item_h[i].valid;
+            address[51:6] == m2s_rwd_seq_item_h[i].address[51:6];
+            memopcode     == m2s_rwd_seq_item_h[i].memopcode;
+            metafield     == m2s_rwd_seq_item_h[i].metafield;
+            metavalue     == m2s_rwd_seq_item_h[i].metavalue;
+            snptype       == m2s_rwd_seq_item_h[i].snptype;
+            tag           == m2s_rwd_seq_item_h[i].tag;
+            tc            == m2s_rwd_seq_item_h[i].tc;
+            poison        == m2s_rwd_seq_item_h[i].poison;
+            data          == m2s_rwd_seq_item_h[i].data;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(m2s_rwd_seq_item_curr_h);
       end
@@ -17574,8 +19764,8 @@ module tb_top;
   class host_s2m_ndr_seq#(type ITEM_TYPE = s2m_ndr_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_s2m_ndr_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(host_s2m_ndr_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE s2m_ndr_seq_item_h[];
-    ITEM_TYPE s2m_ndr_seq_item_curr_h;
+    rand rand_s2m_ndr_txn_t s2m_ndr_seq_item_h[];
+    rand ITEM_TYPE s2m_ndr_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17583,6 +19773,15 @@ module tb_top;
       soft num_trans inside {1};
       s2m_ndr_seq_item_h.size == num_trans;
       solve num_trans before s2m_ndr_seq_item_h.size;
+      foreach(s2m_ndr_seq_item_h[i]){
+        !s2m_ndr_seq_item_h[i].metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1, GEET_CXL_MEM_MF_METAFIELD_RSVD2};
+        !s2m_ndr_seq_item_h[i].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
+        solve s2m_ndr_seq_item_h.size before s2m_ndr_seq_item_h[i].metafield;
+        solve s2m_ndr_seq_item_h.size before s2m_ndr_seq_item_h[i].metavalue;
+        solve s2m_ndr_seq_item_h.size before s2m_ndr_seq_item_h[i].valid;
+        solve s2m_ndr_seq_item_h.size before s2m_ndr_seq_item_h[i].opcode;
+        solve s2m_ndr_seq_item_h.size before s2m_ndr_seq_item_h[i].tag;
+      }
     }
 
     function new(string name = "host_s2m_ndr_seq");
@@ -17592,13 +19791,19 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(s2m_ndr_seq_item_h[i]) begin
-        s2m_ndr_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_ndr_seq_item_h[%0d]",i));
-        s2m_ndr_seq_item_curr_h = s2m_ndr_seq_item_h[i];
+        s2m_ndr_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("s2m_ndr_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(s2m_ndr_seq_item_curr_h);
-        rand_fail = s2m_ndr_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = s2m_ndr_seq_item_curr_h.randomize() with {
+            reset_cycles  == cycles_rst;
+            valid         == s2m_ndr_seq_item_h[i].valid;
+            opcode        == s2m_ndr_seq_item_h[i].opcode;
+            metafield     == s2m_ndr_seq_item_h[i].metafield;
+            metavalue     == s2m_ndr_seq_item_h[i].metavalue;
+            tag           == s2m_ndr_seq_item_h[i].tag;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(s2m_ndr_seq_item_curr_h);
       end
@@ -17609,8 +19814,8 @@ module tb_top;
   class host_s2m_drs_seq#(type ITEM_TYPE = s2m_drs_seq_item) extends uvm_sequence#(ITEM_TYPE);
     `uvm_object_param_utils(host_s2m_drs_seq#(ITEM_TYPE))
     `uvm_declare_p_sequencer(host_s2m_drs_sequencer#(ITEM_TYPE))
-    rand ITEM_TYPE s2m_drs_seq_item_h[];
-    ITEM_TYPE s2m_drs_seq_item_curr_h;
+    rand rand_s2m_drs_txn_t s2m_drs_seq_item_h[];
+    rand ITEM_TYPE s2m_drs_seq_item_curr_h;
     rand int num_trans;
     rand int cycles_rst;
 
@@ -17618,6 +19823,17 @@ module tb_top;
       soft num_trans inside {1};
       s2m_drs_seq_item_h.size == num_trans;
       solve num_trans before s2m_drs_seq_item_h.size;
+      foreach(s2m_drs_seq_item_h[i]){
+        !s2m_drs_seq_item_h[i].metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1, GEET_CXL_MEM_MF_METAFIELD_RSVD2};
+        !s2m_drs_seq_item_h[i].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].metafield;
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].metavalue;
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].valid;
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].opcode;
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].tag;
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].poison;
+        solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].data;
+      }
     }
 
     function new(string name = "host_s2m_drs_seq");
@@ -17627,20 +19843,118 @@ module tb_top;
     task body();
       bit rand_fail;
       foreach(s2m_drs_seq_item_h[i]) begin
-        s2m_drs_seq_item_h[i] = ITEM_TYPE::type_id::create($sformatf("s2m_drs_seq_item_h[%0d]",i));
-        s2m_drs_seq_item_curr_h = s2m_drs_seq_item_h[i];
+        s2m_drs_seq_item_curr_h = ITEM_TYPE::type_id::create($sformatf("s2m_drs_seq_item_curr_h[%0d]",i));
         if(p_sequencer == null) `uvm_fatal(get_type_name, "p_sequencer is null");
         start_item(s2m_drs_seq_item_curr_h);
-        rand_fail = s2m_drs_seq_item_curr_h.randomize() with {reset_cycles == cycles_rst;};
+        rand_fail = s2m_drs_seq_item_curr_h.randomize() with {
+            reset_cycles == cycles_rst;
+            valid         == s2m_drs_seq_item_h[i].valid;
+            opcode        == s2m_drs_seq_item_h[i].opcode;
+            metafield     == s2m_drs_seq_item_h[i].metafield;
+            metavalue     == s2m_drs_seq_item_h[i].metavalue;
+            tag           == s2m_drs_seq_item_h[i].tag;
+            poison        == s2m_drs_seq_item_h[i].poison;
+            data          == s2m_drs_seq_item_h[i].data;
+          };
         if(!rand_fail) begin
-          `uvm_warning(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
+          `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
         end
         finish_item(s2m_drs_seq_item_curr_h);
       end
     endtask
 
   endclass
+/*//figure out how to pattern delay to hit different combinations of credit patterns by applying backpressure to throttle ready 
+  class plain_vanilla_ready_seq extends uvm_sequence;
+    `uvm_component_utils(plain_vanilla_ready_seq);
+    `uvm_declare_p_sequencer(cxl_cm_vsequencer)
+    
+    cxl_cfg_obj                                 cxl_cfg_obj_h         ;
+    rand host_d2h_req_seq#(d2h_req_seq_item)    host_d2h_req_seq_h    ;
+    rand host_d2h_rsp_seq#(d2h_rsp_seq_item)    host_d2h_rsp_seq_h    ;
+    rand host_d2h_data_seq#(d2h_data_seq_item)  host_d2h_data_seq_h   ;
+    rand dev_h2d_req_seq#(h2d_req_seq_item)     dev_h2d_req_seq_h     ;
+    rand dev_h2d_rsp_seq#(h2d_rsp_seq_item)     dev_h2d_rsp_seq_h     ;
+    rand dev_h2d_data_seq#(h2d_data_seq_item)   dev_h2d_data_seq_h    ;
+    rand host_s2m_ndr_seq#(s2m_ndr_seq_item)    host_s2m_ndr_seq_h    ;
+    rand host_s2m_drs_seq#(s2m_drs_seq_item)    host_s2m_drs_seq_h    ;
+    rand dev_m2s_req_seq#(m2s_req_seq_item)     dev_m2s_req_seq_h     ;
+    rand dev_m2s_rwd_seq#(m2s_rwd_seq_item)     dev_m2s_rwd_seq_h     ;
+    
+    function new(string name = "plain_vanilla_ready_seq");
+      super.new(name);
+    endfunction
+    
+    task body();
+      if(!uvm_resource_db#(cxl_cfg_obj)::read_by_name("", "cxl_cfg_obj_h", cxl_cfg_obj_h)) begin
+        `uvm_fatal("CXL_CFG_OBJ", "cxl_cfg_obj not found")
+      end
+      fork 
+        begin
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+            host_d2h_req_seq_h = host_d2h_req_seq#(d2h_req_seq_item)::type_id::create("host_d2h_req_seq_h");
+            `uvm_do_on_with(host_d2h_req_seq_h, p_sequencer.host_d2h_req_seqr, {});
+          end
+        end
+        begin
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+            host_d2h_rsp_seq_h = host_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create("host_d2h_rsp_seq_h");
+            `uvm_do_on_with(host_d2h_rsp_seq_h, p_sequencer.host_d2h_rsp_seqr, {});
+          end
+        end
+        begin
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+            host_d2h_data_seq_h = host_d2h_data_seq#(d2h_data_seq_item)::type_id::create("host_d2h_data_seq_h");
+            `uvm_do_on_with(host_d2h_data_seq_h, p_sequencer.host_d2h_data_seqr, {});
+          end
+        end
+        begin
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+            dev_h2d_req_seq_h = dev_h2d_req_seq#(h2d_req_seq_item)::type_id::create("dev_h2d_req_seq_h");
+            `uvm_do_on_with(dev_h2d_req_seq_h, p_sequencer.dev_h2d_req_seqr, {});
+          end
+        end
+        begin
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+            dev_h2d_rsp_seq_h = dev_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("dev_h2d_rsp_seq_h");
+            `uvm_do_on_with(dev_h2d_rsp_seq_h, p_sequencer.dev_h2d_rsp_seqr, {});
+          end
+        end
+        begin
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+            dev_h2d_data_seq_h = dev_h2d_data_seq#(h2d_data_seq_item)::type_id::create("dev_h2d_data_seq_h");
+            `uvm_do_on_with(dev_h2d_data_seq_h, p_sequencer.dev_h2d_data_seqr, {});
+          end
+        end
+        begin
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
+            host_s2m_ndr_seq_h = host_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create("host_s2m_ndr_seq_h");
+            `uvm_do_on_with(host_s2m_ndr_seq_h, p_sequencer.host_s2m_ndr_seqr, {});
+          end
+        end
+        begin
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
+            host_s2m_drs_seq_h = host_s2m_drs_seq#(s2m_drs_seq_item)::type_id::create("host_s2m_drs_seq_h");
+            `uvm_do_on_with(host_s2m_drs_seq_h, p_sequencer.host_s2m_drs_seqr, {});
+          end
+        end
+        begin
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
+            dev_m2s_req_seq_h = dev_m2s_req_seq#(m2s_req_seq_item)::type_id::create("dev_m2s_req_seq_h");
+            `uvm_do_on_with(dev_m2s_req_seq_h, p_sequencer.dev_m2s_req_seqr, {});
+          end
+        end
+        begin
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
+            dev_m2s_rwd_seq_h = dev_m2s_rwd_seq#(m2s_rwd_seq_item)::type_id::create("dev_m2s_rwd_seq_h");
+            `uvm_do_on_with(dev_m2s_rwd_seq_h, p_sequencer.dev_m2s_rwd_seqr, {});
+          end
+        end
+      join
+    endtask
 
+  endclass
+  */
   //cache/mem responder seq as per appendix C
   class cxl_cm_responder_seq extends uvm_sequence;
     `uvm_object_utils(cxl_cm_responder_seq)
@@ -17680,241 +19994,236 @@ module tb_top;
           //end
         //end
         begin
-          forever begin
-            if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
-              d2h_req_responder_h2d_rsp_data();//understand this is only applicable to CXLv1.1
-            end
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+            d2h_req_responder_h2d_rsp_data();//understand this is only applicable to CXLv1.1
           end
         end
         begin
-          forever begin
-            if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
-              h2d_req_responder_d2h_rsp_data();//understand this is applicable to both v1.1 and future gen for multidevice
-            end
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+            h2d_req_responder_d2h_rsp_data();//understand this is applicable to both v1.1 and future gen for multidevice
           end
         end
         begin
-          forever begin
-            if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
-              h2d_rsp_responder_d2h_data_data(); //such as wr pulls //understand this is going to be useful in multidevice not in CXL v1.1
-            end
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+            h2d_rsp_responder_d2h_data_data(); //such as wr pulls //understand this is going to be useful in multidevice not in CXL v1.1
           end
         end
         begin
-          forever begin
-            if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
-              h2d_rsp_responder_h2d_rsp_data(); //understand this is going to be useful in multidevice not in CXL v1.1
-            end
+          if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
+            h2d_rsp_responder_h2d_rsp_data(); //understand this is going to be useful in multidevice not in CXL v1.1
           end
         end
         begin
           if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2}) begin
-            forever begin
-              type2_m2s_req_rwd_responder_s2m_ndr_drs();
-            end
+            type2_m2s_req_rwd_responder_s2m_ndr_drs();
           end else if (cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_3})begin
-            forever begin
-              type3_m2s_req_rwd_responder_s2m_ndr_drs();
-            end
+            type3_m2s_req_rwd_responder_s2m_ndr_drs();
           end
         end
-      join_none
+      join;
+//      wait fork;
     endtask    
     
     task  h2d_rsp_responder_d2h_data_data(); 
-      p_sequencer.dev_h2d_rsp_seqr.dev_h2d_rsp_fifo.get(h2d_rsp_seq_item_rcvd);
-      if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL, GEET_CXL_CACHE_OPCODE_GOWRITEPULL, GEET_CXL_CACHE_OPCODE_FASTGOWRPULL}) begin
-        dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
-        if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-        `uvm_do_on_with(
-          dev_d2h_data_seq_h,
-          p_sequencer.dev_d2h_data_seqr,
-          {
-            d2h_data_seq_item_h[0].uqid == h2d_rsp_seq_item_rcvd.cqid;
-          }
-        );
-        //not an issue writepull can only trigger wr rsp not just GO-ERR/Ibest way to find out if the uqid is a wrinv then save it in psequencer and refer to it through uqid and send that response that support needs to be added,
-      end else if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_GOERRWRPULL}) begin
-        dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
-        if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-        `uvm_do_on_with(
-          dev_d2h_data_seq_h,
-          p_sequencer.dev_d2h_data_seqr,
-          {
-            d2h_data_seq_item_h[0].uqid == h2d_rsp_seq_item_rcvd.cqid;
-            d2h_data_seq_item_h[0].data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff;
-          }
-        );
+      forever begin
+        wait(p_sequencer.dev_h2d_rsp_seqr.dev_h2d_rsp_fifo.used() > 0);
+        p_sequencer.dev_h2d_rsp_seqr.dev_h2d_rsp_fifo.get(h2d_rsp_seq_item_rcvd);
+        if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL, GEET_CXL_CACHE_OPCODE_GOWRITEPULL, GEET_CXL_CACHE_OPCODE_FASTGOWRPULL}) begin
+          dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
+          if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+          assert(dev_d2h_data_seq_h.randomize() with
+            {
+              d2h_data_seq_item_h[0].uqid == h2d_rsp_seq_item_rcvd.cqid;
+            }
+          );
+          dev_d2h_data_seq_h.start(p_sequencer.dev_d2h_data_seqr);
+          //not an issue writepull can only trigger wr rsp not just GO-ERR/Ibest way to find out if the uqid is a wrinv then save it in psequencer and refer to it through uqid and send that response that support needs to be added,
+        end else if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_GOERRWRPULL}) begin
+          //dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
+          if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+          assert(dev_d2h_data_seq_h.randomize() with 
+            {
+              d2h_data_seq_item_h[0].uqid == h2d_rsp_seq_item_rcvd.cqid;
+              d2h_data_seq_item_h[0].data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff;
+            }
+          );
+          dev_d2h_data_seq_h.start(p_sequencer.dev_d2h_data_seqr);
+        end
       end
     endtask
     
     task  h2d_rsp_responder_h2d_rsp_data(); 
       automatic d2h_data_seq_item d2h_data_seq_item_rcvd_a;
-      fork 
-        begin
-          p_sequencer.host_d2h_data_seqr.host_d2h_data_fifo.get(d2h_data_seq_item_rcvd_a);
-        end
-        begin
-          p_sequencer.dev_h2d_rsp_seqr.dev_h2d_rsp_fifo.get(h2d_rsp_seq_item_rcvd);
-          wait(d2h_data_seq_item_rcvd_a.uqid == h2d_rsp_seq_item_rcvd.cqid);
-          if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_FASTGOWRPULL}) begin
-            host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
-            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_rsp_seq_h,
-              p_sequencer.host_h2d_rsp_seqr,
-              {
-                h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_EXTCMP};
-                h2d_rsp_seq_item_h[0].cqid == h2d_rsp_seq_item_rcvd.cqid;
-              }
-            );
-          end else if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL}) begin
-            host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
-            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_rsp_seq_h,
-              p_sequencer.host_h2d_rsp_seqr,
-              {
-                h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO};
-                h2d_rsp_seq_item_h[0].rspdata inside {GEET_CXL_CACHE_MESI_I, GEET_CXL_CACHE_MESI_ERR};
-                h2d_rsp_seq_item_h[0].cqid == h2d_rsp_seq_item_rcvd.cqid;
-              }
-            );
+      forever begin
+        fork 
+          begin
+            wait(p_sequencer.host_d2h_data_seqr.host_d2h_data_fifo.used() > 0);
+            p_sequencer.host_d2h_data_seqr.host_d2h_data_fifo.get(d2h_data_seq_item_rcvd_a);
           end
-        end
-      join_none
+          begin
+            wait(p_sequencer.dev_h2d_rsp_seqr.dev_h2d_rsp_fifo.used() > 0);
+            p_sequencer.dev_h2d_rsp_seqr.dev_h2d_rsp_fifo.get(h2d_rsp_seq_item_rcvd);
+            wait(d2h_data_seq_item_rcvd_a.uqid == h2d_rsp_seq_item_rcvd.cqid);
+            if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_FASTGOWRPULL}) begin
+              //host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+              if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_rsp_seq_h.randomize() with
+                {
+                  h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_EXTCMP};
+                  h2d_rsp_seq_item_h[0].cqid == h2d_rsp_seq_item_rcvd.cqid;
+                }
+              );
+              host_h2d_rsp_seq_h.start(p_sequencer.host_h2d_rsp_seqr);
+            end else if(h2d_rsp_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WRITEPULL}) begin
+              //host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+              if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_rsp_seq_h.randomize() with
+                {
+                  h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO};
+                  h2d_rsp_seq_item_h[0].rspdata inside {GEET_CXL_CACHE_MESI_I, GEET_CXL_CACHE_MESI_ERR};
+                  h2d_rsp_seq_item_h[0].cqid == h2d_rsp_seq_item_rcvd.cqid;
+                }
+              );
+              host_h2d_rsp_seq_h.start(p_sequencer.host_h2d_rsp_seqr);
+            end
+          end
+        join;
+      end
     endtask
     
     //you must be careful here because req and rwd both send ndr so some might get overriden when both are tried to be called 
     task type2_m2s_req_rwd_responder_s2m_ndr_drs();
-      m2s_req_seq_item_rcvd = null; 
-      m2s_rwd_seq_item_rcvd = null;
-      fork 
-        begin
-          p_sequencer.dev_m2s_req_seqr.dev_m2s_req_fifo.get(m2s_req_seq_item_rcvd); 
-        end
-        begin
-          p_sequencer.dev_m2s_rwd_seqr.dev_m2s_rwd_fifo.get(m2s_rwd_seq_item_rcvd); 
-        end
-      join_any
-      fork 
-        begin
-          if(m2s_req_seq_item_rcvd != null) begin
-            dev_s2m_req_ndr_seq_h = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create("dev_s2m_req_ndr_seq_h");
-            if(p_sequencer.dev_s2m_ndr_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              dev_s2m_req_ndr_seq_h,
-              p_sequencer.dev_s2m_ndr_seqr,
-              {
-                s2m_ndr_seq_item_h[0].valid == 'h1;
-                //TODO: just check if below covers all the possible conditions for opcode in the appendix in CXLv2
-                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMP);
-                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (s2m_ndr_seq_item_h[0].opcode inside {GEET_CXL_MEM_OPCODE_CMPE, GEET_CXL_MEM_OPCODE_CMPS});
-                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV)) -> (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMPE);
-                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (s2m_ndr_seq_item_h[0].opcode inside {GEET_CXL_MEM_OPCODE_CMPE, GEET_CXL_MEM_OPCODE_CMPS});
-                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV, GEET_CXL_MEM_SNPTYP_MEMSNPCUR})) -> (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMP);
-                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV)) -> (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMPE);
-                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMPS);
-                ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV})) -> (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMP);
-                s2m_ndr_seq_item_h[0].tag == m2s_req_seq_item_rcvd.tag;
-                s2m_ndr_seq_item_h[0].metafield == m2s_req_seq_item_rcvd.metafield;
-                ((m2s_req_seq_item_rcvd.memopcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMPE) && (s2m_ndr_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE)) -> (s2m_ndr_seq_item_h[0].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY, GEET_CXL_MEM_MV_METAVALUE_INVALID});
-                ((m2s_req_seq_item_rcvd.memopcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMPS) && (s2m_ndr_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE)) -> (s2m_ndr_seq_item_h[0].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED});
-                ((m2s_req_seq_item_rcvd.memopcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_ndr_seq_item_h[0].opcode != GEET_CXL_MEM_OPCODE_CMPE) && (s2m_ndr_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (s2m_ndr_seq_item_h[0].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID});
-                ((m2s_req_seq_item_rcvd.memopcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_ndr_seq_item_h[0].opcode != GEET_CXL_MEM_OPCODE_CMPS) && (s2m_ndr_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (s2m_ndr_seq_item_h[0].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY, GEET_CXL_MEM_MV_METAVALUE_INVALID});
-              }
-            );
+      forever begin
+        m2s_req_seq_item_rcvd = null; 
+        m2s_rwd_seq_item_rcvd = null;
+        fork 
+          begin
+            //wait(p_sequencer.dev_m2s_req_seqr.dev_m2s_req_fifo.used() > 0); 
+            p_sequencer.dev_m2s_req_seqr.dev_m2s_req_fifo.get(m2s_req_seq_item_rcvd); 
           end
-        end
-        begin
-          if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA})) begin
-            dev_s2m_req_drs_seq_h = dev_s2m_drs_seq#(s2m_drs_seq_item)::type_id::create("dev_s2m_req_drs_seq_h");
-            if(p_sequencer.dev_s2m_drs_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              dev_s2m_req_drs_seq_h,
-              p_sequencer.dev_s2m_drs_seqr,
-              {
-                s2m_drs_seq_item_h[0].valid == 'h1;
-                s2m_drs_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_MEMDATA;
-                s2m_drs_seq_item_h[0].tag == m2s_req_seq_item_rcvd.tag;
-              }
-            );
+          begin
+            //wait(p_sequencer.dev_m2s_rwd_seqr.dev_m2s_rwd_fifo.is_empty()); 
+            p_sequencer.dev_m2s_rwd_seqr.dev_m2s_rwd_fifo.get(m2s_rwd_seq_item_rcvd); 
           end
+        join_any
+        fork 
+          begin
+            if(m2s_req_seq_item_rcvd != null) begin
+              dev_s2m_req_ndr_seq_h = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create("dev_s2m_req_ndr_seq_h");
+              if(p_sequencer.dev_s2m_ndr_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(dev_s2m_req_ndr_seq_h.randomize() with
+                {
+                  s2m_ndr_seq_item_h[0].valid == 'h1;
+                  //TODO: just check if below covers all the possible conditions for opcode in the appendix in CXLv2
+                  ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMP);
+                  ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDDATA}) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (s2m_ndr_seq_item_h[0].opcode inside {GEET_CXL_MEM_OPCODE_CMPE, GEET_CXL_MEM_OPCODE_CMPS});
+                  ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV)) -> (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMPE);
+                  ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (s2m_ndr_seq_item_h[0].opcode inside {GEET_CXL_MEM_OPCODE_CMPE, GEET_CXL_MEM_OPCODE_CMPS});
+                  ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV, GEET_CXL_MEM_SNPTYP_MEMSNPCUR})) -> (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMP);
+                  ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_ANY) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPINV)) -> (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMPE);
+                  ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_SHARED) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA)) -> (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMPS);
+                  ((m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT}) && (m2s_req_seq_item_rcvd.metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE) && (m2s_req_seq_item_rcvd.metavalue == GEET_CXL_MEM_MV_METAVALUE_INVALID) && (m2s_req_seq_item_rcvd.snptype inside {GEET_CXL_MEM_SNPTYP_MEMSNPINV})) -> (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMP);
+                  s2m_ndr_seq_item_h[0].tag == m2s_req_seq_item_rcvd.tag;
+                  s2m_ndr_seq_item_h[0].metafield == m2s_req_seq_item_rcvd.metafield;
+                  ((m2s_req_seq_item_rcvd.memopcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMPE) && (s2m_ndr_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE)) -> (s2m_ndr_seq_item_h[0].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY, GEET_CXL_MEM_MV_METAVALUE_INVALID});
+                  ((m2s_req_seq_item_rcvd.memopcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMPS) && (s2m_ndr_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE)) -> (s2m_ndr_seq_item_h[0].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED});
+                  ((m2s_req_seq_item_rcvd.memopcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_ndr_seq_item_h[0].opcode != GEET_CXL_MEM_OPCODE_CMPE) && (s2m_ndr_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (s2m_ndr_seq_item_h[0].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID});
+                  ((m2s_req_seq_item_rcvd.memopcode == GEET_CXL_MEM_OPCODE_MEMRDDATA) && (m2s_req_seq_item_rcvd.snptype == GEET_CXL_MEM_SNPTYP_MEMSNPDATA) && (s2m_ndr_seq_item_h[0].opcode != GEET_CXL_MEM_OPCODE_CMPS) && (s2m_ndr_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP)) -> (s2m_ndr_seq_item_h[0].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY, GEET_CXL_MEM_MV_METAVALUE_INVALID});
+                }
+              );
+              dev_s2m_req_ndr_seq_h.start(p_sequencer.dev_s2m_ndr_seqr);
+            end
+          end
+          begin
+            if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA})) begin
+              dev_s2m_req_drs_seq_h = dev_s2m_drs_seq#(s2m_drs_seq_item)::type_id::create("dev_s2m_req_drs_seq_h");
+              if(p_sequencer.dev_s2m_drs_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(dev_s2m_req_drs_seq_h.randomize() with
+                {
+                  s2m_drs_seq_item_h[0].valid == 'h1;
+                  s2m_drs_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_MEMDATA;
+                  s2m_drs_seq_item_h[0].tag == m2s_req_seq_item_rcvd.tag;
+                }
+              );
+              dev_s2m_req_drs_seq_h.start(p_sequencer.dev_s2m_drs_seqr);
+            end
+          end
+        join
+        if(m2s_rwd_seq_item_rcvd != null) begin
+          dev_s2m_rwd_ndr_seq_h = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create("dev_s2m_rwd_ndr_seq_h");
+          if(p_sequencer.dev_s2m_ndr_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+          `uvm_info(get_type_name, $sformatf("m2s rwd tag is %0h",m2s_rwd_seq_item_rcvd.tag), UVM_LOW);
+          assert(dev_s2m_rwd_ndr_seq_h.randomize() with
+            {
+              s2m_ndr_seq_item_h[0].valid == 'h1;
+              s2m_ndr_seq_item_h[0].opcode == 'h0;//GEET_CXL_MEM_OPCODE_CMP;
+              s2m_ndr_seq_item_h[0].tag == m2s_rwd_seq_item_rcvd.tag;
+              s2m_ndr_seq_item_h[0].metafield == 'h3;//GEET_CXL_MEM_MF_METAFIELD_NOOP;
+            }
+          );
+          dev_s2m_rwd_ndr_seq_h.start(p_sequencer.dev_s2m_ndr_seqr);
         end
-      join
-      if(m2s_rwd_seq_item_rcvd != null) begin
-        dev_s2m_rwd_ndr_seq_h = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create("dev_s2m_rwd_ndr_seq_h");
-        if(p_sequencer.dev_s2m_ndr_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-        `uvm_do_on_with(
-          dev_s2m_rwd_ndr_seq_h,
-          p_sequencer.dev_s2m_ndr_seqr,
-          {
-            s2m_ndr_seq_item_h[0].valid == 'h1;
-            s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMP;
-            s2m_ndr_seq_item_h[0].tag == m2s_rwd_seq_item_rcvd.tag;
-            s2m_ndr_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP;
-          }
-        );
       end
     endtask
 
     //you must be careful here because req and rwd both send ndr so some might get overriden when both are tried to be called 
     task type3_m2s_req_rwd_responder_s2m_ndr_drs();
-      m2s_req_seq_item_rcvd = null; 
-      m2s_rwd_seq_item_rcvd = null;
-      fork 
-        begin
-          p_sequencer.dev_m2s_req_seqr.dev_m2s_req_fifo.get(m2s_req_seq_item_rcvd); 
-        end
-        begin
-          p_sequencer.dev_m2s_rwd_seqr.dev_m2s_rwd_fifo.get(m2s_rwd_seq_item_rcvd); 
-        end
-      join_any
-      fork 
-        begin
-          if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT})) begin
-            dev_s2m_req_ndr_seq_h = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create("dev_s2m_req_ndr_seq_h");
-            if(p_sequencer.dev_s2m_ndr_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              dev_s2m_req_ndr_seq_h,
-              p_sequencer.dev_s2m_ndr_seqr,
-              {
-                s2m_ndr_seq_item_h[0].valid == 'h1;
-                s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMP;
-                s2m_ndr_seq_item_h[0].tag == m2s_req_seq_item_rcvd.tag;
-              }
-            );
+      forever begin
+        m2s_req_seq_item_rcvd = null; 
+        m2s_rwd_seq_item_rcvd = null;
+        fork 
+          begin
+            wait(p_sequencer.dev_m2s_req_seqr.dev_m2s_req_fifo.used() > 0); 
+            p_sequencer.dev_m2s_req_seqr.dev_m2s_req_fifo.get(m2s_req_seq_item_rcvd); 
           end
-        end
-        begin
-          if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA})) begin
-            dev_s2m_req_drs_seq_h = dev_s2m_drs_seq#(s2m_drs_seq_item)::type_id::create("dev_s2m_req_drs_seq_h");
-            if(p_sequencer.dev_s2m_drs_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              dev_s2m_req_drs_seq_h,
-              p_sequencer.dev_s2m_drs_seqr,
-              {
-                s2m_drs_seq_item_h[0].valid == 'h1;
-                s2m_drs_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_MEMDATA;
-                s2m_drs_seq_item_h[0].tag == m2s_req_seq_item_rcvd.tag;
-              }
-            );
+          begin
+            wait(p_sequencer.dev_m2s_rwd_seqr.dev_m2s_rwd_fifo.used() > 0); 
+            p_sequencer.dev_m2s_rwd_seqr.dev_m2s_rwd_fifo.get(m2s_rwd_seq_item_rcvd); 
           end
+        join_any
+        fork 
+          begin
+            if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMINV, GEET_CXL_MEM_OPCODE_MEMINVNT})) begin
+              dev_s2m_req_ndr_seq_h = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create("dev_s2m_req_ndr_seq_h");
+              if(p_sequencer.dev_s2m_ndr_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(dev_s2m_req_ndr_seq_h.randomize() with
+                {
+                  s2m_ndr_seq_item_h[0].valid == 'h1;
+                  s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMP;
+                  s2m_ndr_seq_item_h[0].tag == m2s_req_seq_item_rcvd.tag;
+                }
+              );
+              dev_s2m_req_ndr_seq_h.start(p_sequencer.dev_s2m_ndr_seqr);
+            end
+          end
+          begin
+            if((m2s_req_seq_item_rcvd != null) && (m2s_req_seq_item_rcvd.memopcode inside {GEET_CXL_MEM_OPCODE_MEMRD, GEET_CXL_MEM_OPCODE_MEMRDDATA})) begin
+              dev_s2m_req_drs_seq_h = dev_s2m_drs_seq#(s2m_drs_seq_item)::type_id::create("dev_s2m_req_drs_seq_h");
+              if(p_sequencer.dev_s2m_drs_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(dev_s2m_req_drs_seq_h.randomize() with
+                {
+                  s2m_drs_seq_item_h[0].valid == 'h1;
+                  s2m_drs_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_MEMDATA;
+                  s2m_drs_seq_item_h[0].tag == m2s_req_seq_item_rcvd.tag;
+                }
+              );
+              dev_s2m_req_drs_seq_h.start(p_sequencer.dev_s2m_drs_seqr);
+            end
+          end
+        join
+        if(m2s_rwd_seq_item_rcvd != null) begin
+          dev_s2m_rwd_ndr_seq_h = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create("dev_s2m_rwd_ndr_seq_h");
+          if(p_sequencer.dev_s2m_ndr_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+          assert(dev_s2m_rwd_ndr_seq_h.randomize() with
+            {
+              s2m_ndr_seq_item_h[0].valid == 'h1;
+              s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMP;
+              s2m_ndr_seq_item_h[0].tag == m2s_rwd_seq_item_rcvd.tag;
+              s2m_ndr_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP;
+            }
+          );
+          dev_s2m_rwd_ndr_seq_h.start(p_sequencer.dev_s2m_ndr_seqr);
         end
-      join
-      if(m2s_rwd_seq_item_rcvd != null) begin
-        dev_s2m_rwd_ndr_seq_h = dev_s2m_ndr_seq#(s2m_ndr_seq_item)::type_id::create("dev_s2m_rwd_ndr_seq_h");
-        if(p_sequencer.dev_s2m_ndr_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-        `uvm_do_on_with(
-          dev_s2m_rwd_ndr_seq_h,
-          p_sequencer.dev_s2m_ndr_seqr,
-          {
-            s2m_ndr_seq_item_h[0].valid == 'h1;
-            s2m_ndr_seq_item_h[0].opcode == GEET_CXL_MEM_OPCODE_CMP;
-            s2m_ndr_seq_item_h[0].tag == m2s_rwd_seq_item_rcvd.tag;
-            s2m_ndr_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_NOOP;
-          }
-        );
       end
     endtask
 
@@ -17936,606 +20245,541 @@ module tb_top;
 */    endtask
 
     task h2d_req_responder_d2h_rsp_data();
-    //TODO: spec says only return modified data using data channel but for other conditions it is not specified now you are returning data for any of the held state modified or otherwise you need to confirm this operation
-      p_sequencer.dev_h2d_req_seqr.dev_h2d_req_fifo.get(h2d_req_seq_item_rcvd);
-      if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_SNPCURR) begin
-        fork 
-          begin
-            dev_d2h_rsp_seq_h = dev_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create("dev_d2h_rsp_seq_h");
-            if(p_sequencer.dev_d2h_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              dev_d2h_rsp_seq_h,
-              p_sequencer.dev_d2h_rsp_seqr,
-              {
-                d2h_rsp_seq_item_h[0].valid == 'h1;
-                d2h_rsp_seq_item_h[0].opcode inside {
-                  GEET_CXL_CACHE_OPCODE_RSPIHITI, 
-                  GEET_CXL_CACHE_OPCODE_RSPVHITV, 
-                  GEET_CXL_CACHE_OPCODE_RSPSHITSE, 
-                  GEET_CXL_CACHE_OPCODE_RSPSFWDM,
-                  GEET_CXL_CACHE_OPCODE_RSPIFWDM,
-                  GEET_CXL_CACHE_OPCODE_RSPVFWDV
-                } ;
-                d2h_rsp_seq_item_h[0].uqid == h2d_req_seq_item_rcvd.uqid;
-              }
-            );
-          end
-          begin
-            dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
-            if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              dev_d2h_data_seq_h,
-              p_sequencer.dev_d2h_data_seqr,
-              {
-                d2h_data_seq_item_h[0].valid == 'h1;
-                d2h_data_seq_item_h[0].uqid == h2d_req_seq_item_rcvd.uqid;
-              }
-            );
-          end
-        join
-      end else if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_SNPINV) begin         
-        fork
-          begin
-            dev_d2h_rsp_seq_h = dev_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create("dev_d2h_rsp_seq_h");
-            if(p_sequencer.dev_d2h_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              dev_d2h_rsp_seq_h,
-              p_sequencer.dev_d2h_rsp_seqr,
-              {
-                d2h_rsp_seq_item_h[0].valid == 'h1;
-                d2h_rsp_seq_item_h[0].opcode inside {
-                  GEET_CXL_CACHE_OPCODE_RSPIHITI,
-                  GEET_CXL_CACHE_OPCODE_RSPIHITSE,
-                  GEET_CXL_CACHE_OPCODE_RSPIFWDM
-                };
-                d2h_rsp_seq_item_h[0].uqid == h2d_req_seq_item_rcvd.uqid;
-              }
-            );
-          end
-          begin
-            dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
-            if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              dev_d2h_data_seq_h,
-              p_sequencer.dev_d2h_data_seqr,
-              {
-                d2h_data_seq_item_h[0].valid == 'h1;
-                d2h_data_seq_item_h[0].uqid == h2d_req_seq_item_rcvd.uqid;
-              }
-            );
-          end
-        join
-      end else if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_SNPDATA) begin
-        fork 
-          begin
-            dev_d2h_rsp_seq_h = dev_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create("dev_d2h_rsp_seq_h");
-            if(p_sequencer.dev_d2h_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              dev_d2h_rsp_seq_h,
-              p_sequencer.dev_d2h_rsp_seqr,
-              {
-                d2h_rsp_seq_item_h[0].valid == 'h1;
-                d2h_rsp_seq_item_h[0].opcode inside {
-                  GEET_CXL_CACHE_OPCODE_RSPIHITI,
-                  GEET_CXL_CACHE_OPCODE_RSPSHITSE,
-                  GEET_CXL_CACHE_OPCODE_RSPSFWDM,
-                  GEET_CXL_CACHE_OPCODE_RSPIFWDM
-                };
-                d2h_rsp_seq_item_h[0].uqid == h2d_req_seq_item_rcvd.uqid;
-              }
-            );
-          end
-          begin
-            dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
-            if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              dev_d2h_data_seq_h,
-              p_sequencer.dev_d2h_data_seqr,
-              {
-                d2h_data_seq_item_h[0].valid == 'h1;
-                d2h_data_seq_item_h[0].uqid == h2d_req_seq_item_rcvd.uqid;
-              }
-            );
-          end
-        join
+      forever begin
+      //TODO: spec says only return modified data using data channel but for other conditions it is not specified now you are returning data for any of the held state modified or otherwise you need to confirm this operation
+        wait(p_sequencer.dev_h2d_req_seqr.dev_h2d_req_fifo.used() > 0);
+        p_sequencer.dev_h2d_req_seqr.dev_h2d_req_fifo.get(h2d_req_seq_item_rcvd);
+        if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_SNPCURR) begin
+          fork 
+            begin
+              dev_d2h_rsp_seq_h = dev_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create("dev_d2h_rsp_seq_h");
+              if(p_sequencer.dev_d2h_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(dev_d2h_rsp_seq_h.randomize() with
+                {
+                  d2h_rsp_seq_item_h[0].valid == 'h1;
+                  d2h_rsp_seq_item_h[0].opcode inside {
+                    GEET_CXL_CACHE_OPCODE_RSPIHITI, 
+                    GEET_CXL_CACHE_OPCODE_RSPVHITV, 
+                    GEET_CXL_CACHE_OPCODE_RSPSHITSE, 
+                    GEET_CXL_CACHE_OPCODE_RSPSFWDM,
+                    GEET_CXL_CACHE_OPCODE_RSPIFWDM,
+                    GEET_CXL_CACHE_OPCODE_RSPVFWDV
+                  } ;
+                  d2h_rsp_seq_item_h[0].uqid == h2d_req_seq_item_rcvd.uqid;
+                }
+              );
+              dev_d2h_rsp_seq_h.start(p_sequencer.dev_d2h_rsp_seqr);
+            end
+            begin
+              dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
+              if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(dev_d2h_data_seq_h.randomize() with
+                {
+                  d2h_data_seq_item_h[0].valid == 'h1;
+                  d2h_data_seq_item_h[0].uqid == h2d_req_seq_item_rcvd.uqid;
+                }
+              );
+              dev_d2h_data_seq_h.start(p_sequencer.dev_d2h_data_seqr);
+            end
+          join
+        end else if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_SNPINV) begin         
+          fork
+            begin
+              dev_d2h_rsp_seq_h = dev_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create("dev_d2h_rsp_seq_h");
+              if(p_sequencer.dev_d2h_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(dev_d2h_rsp_seq_h.randomize() with
+                {
+                  d2h_rsp_seq_item_h[0].valid == 'h1;
+                  d2h_rsp_seq_item_h[0].opcode inside {
+                    GEET_CXL_CACHE_OPCODE_RSPIHITI,
+                    GEET_CXL_CACHE_OPCODE_RSPIHITSE,
+                    GEET_CXL_CACHE_OPCODE_RSPIFWDM
+                  };
+                  d2h_rsp_seq_item_h[0].uqid == h2d_req_seq_item_rcvd.uqid;
+                }
+              );
+              dev_d2h_rsp_seq_h.start(p_sequencer.dev_d2h_rsp_seqr);
+            end
+            begin
+              dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
+              if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(dev_d2h_data_seq_h.randomize() with
+                {
+                  d2h_data_seq_item_h[0].valid == 'h1;
+                  d2h_data_seq_item_h[0].uqid == h2d_req_seq_item_rcvd.uqid;
+                }
+              );
+              dev_d2h_data_seq_h.start(p_sequencer.dev_d2h_data_seqr);
+            end
+          join
+        end else if(h2d_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_SNPDATA) begin
+          fork 
+            begin
+              dev_d2h_rsp_seq_h = dev_d2h_rsp_seq#(d2h_rsp_seq_item)::type_id::create("dev_d2h_rsp_seq_h");
+              if(p_sequencer.dev_d2h_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(dev_d2h_rsp_seq_h.randomize() with
+                {
+                  d2h_rsp_seq_item_h[0].valid == 'h1;
+                  d2h_rsp_seq_item_h[0].opcode inside {
+                    GEET_CXL_CACHE_OPCODE_RSPIHITI,
+                    GEET_CXL_CACHE_OPCODE_RSPSHITSE,
+                    GEET_CXL_CACHE_OPCODE_RSPSFWDM,
+                    GEET_CXL_CACHE_OPCODE_RSPIFWDM
+                  };
+                  d2h_rsp_seq_item_h[0].uqid == h2d_req_seq_item_rcvd.uqid;
+                }
+              );
+              dev_d2h_rsp_seq_h.start(p_sequencer.dev_d2h_rsp_seqr);
+            end
+            begin
+              dev_d2h_data_seq_h = dev_d2h_data_seq#(d2h_data_seq_item)::type_id::create("dev_d2h_data_seq_h");
+              if(p_sequencer.dev_d2h_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(dev_d2h_data_seq_h.randomize() with
+                {
+                  d2h_data_seq_item_h[0].valid == 'h1;
+                  d2h_data_seq_item_h[0].uqid == h2d_req_seq_item_rcvd.uqid;
+                }
+              );
+              dev_d2h_data_seq_h.start(p_sequencer.dev_d2h_data_seqr);
+            end
+          join
+        end
       end
     endtask
 
     task d2h_req_responder_h2d_rsp_data();
       //TODO: HDM-D needs to be defined in cfg like address map partitions
       //TODO: these FWD flows conflict with normal mem traffic and corrupt traffic look into how to get exclusive access to driver when it does uvm do
-      p_sequencer.host_d2h_req_seqr.host_d2h_req_fifo.get(d2h_req_seq_item_rcvd);
-      if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDCURR}) begin
-//remember rdcurr doesnt give any response only data
-        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
-          fork 
-          begin
-/*        
-            `uvm_do_on_with(
-              h2d_rsp_seq_item_h,
-              p_sequencer.host_h2d_rsp_seqr,
+      forever begin
+        wait(p_sequencer.host_d2h_req_seqr.host_d2h_req_fifo.used() > 0);
+        p_sequencer.host_d2h_req_seqr.host_d2h_req_fifo.get(d2h_req_seq_item_rcvd);
+        if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDCURR}) begin
+  //remember rdcurr doesnt give any response only data
+          if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
+            //fork 
+            //begin
+  /*        
+              `uvm_do_on_with(
+                h2d_rsp_seq_item_h,
+                p_sequencer.host_h2d_rsp_seqr,
+                {
+                  valid == 'h1;
+                  opcode == ;
+                  rspdata == d2h_rsp_seq_item_rcvd.uqid;
+                  cqid == d2h_rsp_seq_item_rcvd.uqid;
+                }
+              );
+  */      
+            //end
+  //remember this maybe sent or may not be sent so it is good to randomize weather to give a data or not to give a data
+            //begin
+              if(std::randomize(unset_set) == 0) begin
+                `uvm_fatal("RANDOMIZE_FAIL", "Failed to randomize unset_set")
+              end
+              if(unset_set) begin
+                host_h2d_data_seq_h = host_h2d_data_seq#(h2d_data_seq_item)::type_id::create("host_h2d_data_seq_h");
+                if(p_sequencer.host_h2d_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+                assert(host_h2d_data_seq_h.randomize() with
+                  {
+                    h2d_data_seq_item_h[0].valid == 'h1;
+                    h2d_data_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                  }
+                );
+                host_h2d_data_seq_h.start(p_sequencer.host_h2d_data_seqr);
+              end
+            //end
+            //join
+          end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
+            host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+            if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+            assert(host_m2s_req_seq_h.randomize() with
               {
-                valid == 'h1;
-                opcode == ;
-                rspdata == d2h_rsp_seq_item_rcvd.uqid;
-                cqid == d2h_rsp_seq_item_rcvd.uqid;
+                m2s_req_seq_item_h[0].valid == 'h1;
+                m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
+                m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
+                m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
+                m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+                m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
               }
             );
-*/      
+            host_m2s_req_seq_h.start(p_sequencer.host_m2s_req_seqr);
           end
-//remember this maybe sent or may not be sent so it is good to randomize weather to give a data or not to give a data
-          begin
-            if(std::randomize(unset_set) == 0) begin
-              `uvm_fatal("RANDOMIZE_FAIL", "Failed to randomize unset_set")
-            end
-            if(unset_set) begin
+        end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDOWN}) begin
+          if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
+              host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+              if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_rsp_seq_h.randomize() with
+                {
+                  h2d_rsp_seq_item_h[0].valid == 'h1;
+                  h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                  h2d_rsp_seq_item_h[0].rspdata inside {GEET_CXL_CACHE_MESI_ERR, GEET_CXL_CACHE_MESI_I, GEET_CXL_CACHE_MESI_E, GEET_CXL_CACHE_MESI_M};
+                  h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                }
+              );
+              host_h2d_rsp_seq_h.start(p_sequencer.host_h2d_rsp_seqr);
+              //both are not forked togather because there is a dependency of MESIERR making the data as all 1s
               host_h2d_data_seq_h = host_h2d_data_seq#(h2d_data_seq_item)::type_id::create("host_h2d_data_seq_h");
               if(p_sequencer.host_h2d_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-              `uvm_do_on_with(
-                host_h2d_data_seq_h,
-                p_sequencer.host_h2d_data_seqr,
+              assert(host_h2d_data_seq_h.randomize() with
                 {
                   h2d_data_seq_item_h[0].valid == 'h1;
                   h2d_data_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                  ((host_h2d_rsp_seq_h.h2d_rsp_seq_item_h[0].opcode == GEET_CXL_CACHE_OPCODE_GO) && (host_h2d_rsp_seq_h.h2d_rsp_seq_item_h[0].rspdata == GEET_CXL_CACHE_MESI_ERR)) -> {h2d_data_seq_item_h[0].data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; h2d_data_seq_item_h[0].goerr == 'h1;}
                 }
               );
-            end
-          end
-          join
-        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
-          host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
-          if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-          `uvm_do_on_with(
-            host_m2s_req_seq_h,
-            p_sequencer.host_m2s_req_seqr,
-            {
-              m2s_req_seq_item_h[0].valid == 'h1;
-              m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
-              m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
-              m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
-              m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
-              m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
-            }
-          );
-        end
-      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDOWN}) begin
-        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
-          fork 
-          begin
-            host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
-            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_rsp_seq_h,
-              p_sequencer.host_h2d_rsp_seqr,
-              {
-                h2d_rsp_seq_item_h[0].valid == 'h1;
-                h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
-                h2d_rsp_seq_item_h[0].rspdata inside {GEET_CXL_CACHE_MESI_ERR, GEET_CXL_CACHE_MESI_I, GEET_CXL_CACHE_MESI_E, GEET_CXL_CACHE_MESI_M};
-                h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
-              }
-            );
-            //both are not forked togather because there is a dependency of MESIERR making the data as all 1s
-            host_h2d_data_seq_h = host_h2d_data_seq#(h2d_data_seq_item)::type_id::create("host_h2d_data_seq_h");
-            if(p_sequencer.host_h2d_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_data_seq_h,
-              p_sequencer.host_h2d_data_seqr,
-              {
-                h2d_data_seq_item_h[0].valid == 'h1;
-                h2d_data_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
-                ((host_h2d_rsp_seq_h.h2d_rsp_seq_item_h[0].opcode == GEET_CXL_CACHE_OPCODE_GO) && (host_h2d_rsp_seq_h.h2d_rsp_seq_item_h[0].rspdata == GEET_CXL_CACHE_MESI_ERR)) -> {h2d_data_seq_item_h[0].data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; h2d_data_seq_item_h[0].goerr == 'h1;}
-              }
-            );
-          end
-          join
-        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
-          host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
-          if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-          `uvm_do_on_with(
-            host_m2s_req_seq_h,
-            p_sequencer.host_m2s_req_seqr,
-            {
-              m2s_req_seq_item_h[0].valid == 'h1;
-              m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
-              m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
-              m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
-              m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
-              m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
-              //metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID};//TODO:dont know if this is true
-            }
-          );
-        end
-      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDSHARED}) begin
-        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
-          fork 
-          begin
-            host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
-            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_rsp_seq_h,
-              p_sequencer.host_h2d_rsp_seqr,
-              {
-                h2d_rsp_seq_item_h[0].valid == 'h1;
-                h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
-                h2d_rsp_seq_item_h[0].rspdata inside {GEET_CXL_CACHE_MESI_ERR, GEET_CXL_CACHE_MESI_I, GEET_CXL_CACHE_MESI_S};
-                h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
-              }
-            );
-            //both are not forked togather because there is a dependency of MESIERR making the data as all 1s
-            host_h2d_data_seq_h = host_h2d_data_seq#(h2d_data_seq_item)::type_id::create("host_h2d_data_seq_h");
-            if(p_sequencer.host_h2d_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_data_seq_h,
-              p_sequencer.host_h2d_data_seqr,
-              {
-                h2d_data_seq_item_h[0].valid == 'h1;
-                h2d_data_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
-                ((host_h2d_rsp_seq_h.h2d_rsp_seq_item_h[0].opcode == GEET_CXL_CACHE_OPCODE_GO) && (host_h2d_rsp_seq_h.h2d_rsp_seq_item_h[0].rspdata == GEET_CXL_CACHE_MESI_ERR)) -> {h2d_data_seq_item_h[0].data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; h2d_data_seq_item_h[0].goerr == 'h1;}
-              }
-            );
-          end
-          join
-        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
-          host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+              host_h2d_data_seq_h.start(p_sequencer.host_h2d_data_seqr);
+          end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
+            host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
             if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-          `uvm_do_on_with(
-            host_m2s_req_seq_h,
-            p_sequencer.host_m2s_req_seqr,
-            {
-              m2s_req_seq_item_h[0].valid == 'h1;
-              m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
-              m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
-              m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
-              m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
-              m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
-              m2s_req_seq_item_h[0].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED};
-            }
-          );
-        end
-       end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDANY}) begin
-        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
-          fork 
-          begin
-            host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
-            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_rsp_seq_h,
-              p_sequencer.host_h2d_rsp_seqr,
+            assert(host_m2s_req_seq_h.randomize() with 
               {
-                h2d_rsp_seq_item_h[0].valid == 'h1;
-                h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
-                h2d_rsp_seq_item_h[0].rspdata inside {
-                                  GEET_CXL_CACHE_MESI_ERR, 
-                                  GEET_CXL_CACHE_MESI_I, 
-                                  GEET_CXL_CACHE_MESI_S,
-                                  GEET_CXL_CACHE_MESI_E,
-                                  GEET_CXL_CACHE_MESI_M
-                                };
-                h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                m2s_req_seq_item_h[0].valid == 'h1;
+                m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
+                m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
+                m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
+                m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+                m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
+                //metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID};//TODO:dont know if this is true
               }
             );
-            //both are not forked togather because there is a dependency of MESIERR making the data as all 1s
-            host_h2d_data_seq_h = host_h2d_data_seq#(h2d_data_seq_item)::type_id::create("host_h2d_data_seq_h");
-            if(p_sequencer.host_h2d_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+            host_m2s_req_seq_h.start(p_sequencer.host_m2s_req_seqr);
+          end
+        end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDSHARED}) begin
+          if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
+              host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+              if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_rsp_seq_h.randomize() with
+                {
+                  h2d_rsp_seq_item_h[0].valid == 'h1;
+                  h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                  h2d_rsp_seq_item_h[0].rspdata inside {GEET_CXL_CACHE_MESI_ERR, GEET_CXL_CACHE_MESI_I, GEET_CXL_CACHE_MESI_S};
+                  h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                }
+              );
+              host_h2d_rsp_seq_h.start(p_sequencer.host_h2d_rsp_seqr);
+              //both are not forked togather because there is a dependency of MESIERR making the data as all 1s
+              host_h2d_data_seq_h = host_h2d_data_seq#(h2d_data_seq_item)::type_id::create("host_h2d_data_seq_h");
+              if(p_sequencer.host_h2d_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_data_seq_h.randomize() with
+                {
+                  h2d_data_seq_item_h[0].valid == 'h1;
+                  h2d_data_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                  ((host_h2d_rsp_seq_h.h2d_rsp_seq_item_h[0].opcode == GEET_CXL_CACHE_OPCODE_GO) && (host_h2d_rsp_seq_h.h2d_rsp_seq_item_h[0].rspdata == GEET_CXL_CACHE_MESI_ERR)) -> {h2d_data_seq_item_h[0].data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; h2d_data_seq_item_h[0].goerr == 'h1;}
+                }
+              );
+              host_h2d_data_seq_h.start(p_sequencer.host_h2d_data_seqr);
+          end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
+            host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+              if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
             `uvm_do_on_with(
-              host_h2d_data_seq_h,
-              p_sequencer.host_h2d_data_seqr,
+              host_m2s_req_seq_h,
+              p_sequencer.host_m2s_req_seqr,
               {
-                h2d_data_seq_item_h[0].valid == 'h1;
-                h2d_data_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
-                ((host_h2d_rsp_seq_h.h2d_rsp_seq_item_h[0].opcode == GEET_CXL_CACHE_OPCODE_GO) && (host_h2d_rsp_seq_h.h2d_rsp_seq_item_h[0].rspdata == GEET_CXL_CACHE_MESI_ERR)) -> {h2d_data_seq_item_h[0].data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; h2d_data_seq_item_h[0].goerr == 'h1;}
+                m2s_req_seq_item_h[0].valid == 'h1;
+                m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
+                m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
+                m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
+                m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+                m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
+                m2s_req_seq_item_h[0].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_SHARED};
               }
             );
           end
-          join
-        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
-          host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
-          if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-          `uvm_do_on_with(
-            host_m2s_req_seq_h,
-            p_sequencer.host_m2s_req_seqr,
-            {
-              m2s_req_seq_item_h[0].valid == 'h1;
-              m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
-              m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
-              m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
-              m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
-              m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
-              m2s_req_seq_item_h[0].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY};
-            }
-          );
-        end
-      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDOWNNODATA}) begin
-        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
-          fork 
-          begin
-            host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
-            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_rsp_seq_h,
-              p_sequencer.host_h2d_rsp_seqr,
+        end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDANY}) begin
+          if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
+              host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+              if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_rsp_seq_h.randomize() with
+                {
+                  h2d_rsp_seq_item_h[0].valid == 'h1;
+                  h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                  h2d_rsp_seq_item_h[0].rspdata inside {
+                                    GEET_CXL_CACHE_MESI_ERR, 
+                                    GEET_CXL_CACHE_MESI_I, 
+                                    GEET_CXL_CACHE_MESI_S,
+                                    GEET_CXL_CACHE_MESI_E,
+                                    GEET_CXL_CACHE_MESI_M
+                                  };
+                  h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                }
+              );
+              host_h2d_rsp_seq_h.start(p_sequencer.host_h2d_rsp_seqr);
+              //both are not forked togather because there is a dependency of MESIERR making the data as all 1s
+              host_h2d_data_seq_h = host_h2d_data_seq#(h2d_data_seq_item)::type_id::create("host_h2d_data_seq_h");
+              if(p_sequencer.host_h2d_data_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_data_seq_h.randomize() with
+                {
+                  h2d_data_seq_item_h[0].valid == 'h1;
+                  h2d_data_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                  ((host_h2d_rsp_seq_h.h2d_rsp_seq_item_h[0].opcode == GEET_CXL_CACHE_OPCODE_GO) && (host_h2d_rsp_seq_h.h2d_rsp_seq_item_h[0].rspdata == GEET_CXL_CACHE_MESI_ERR)) -> {h2d_data_seq_item_h[0].data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; h2d_data_seq_item_h[0].goerr == 'h1;}
+                }
+              );
+              host_h2d_data_seq_h.start(p_sequencer.host_h2d_data_seqr);
+          end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
+            host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+            if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+            assert(host_m2s_req_seq_h.randomize() with
               {
-                h2d_rsp_seq_item_h[0].valid == 'h1;
-                h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
-                h2d_rsp_seq_item_h[0].rspdata inside {
-                                  GEET_CXL_CACHE_MESI_ERR, 
-                                  GEET_CXL_CACHE_MESI_E
-                                };
-                h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                m2s_req_seq_item_h[0].valid == 'h1;
+                m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
+                m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
+                m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
+                m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+                m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
+                m2s_req_seq_item_h[0].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_ANY};
               }
             );
-            //here it does not return any data even if it is goerr
-            /*`uvm_do_on_with(
-              h2d_data_seq_item_h,
-              p_sequencer.host_h2d_data_seqr,
-              {
-                valid == 'h1;
-                cqid == d2h_req_seq_item_rcvd.cqid;
-                ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> (data == {512{1'b1}});
-              }
-            );*/
+            host_m2s_req_seq_h.start(p_sequencer.host_m2s_req_seqr);
           end
-          join
-        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
-          host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
-          if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-          `uvm_do_on_with(
-            host_m2s_req_seq_h,
-            p_sequencer.host_m2s_req_seqr,
-            {
-              m2s_req_seq_item_h[0].valid == 'h1;
-              m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
-              m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
-              m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
-              m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
-              m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
-              //metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID};//TODO:dont know if this is true
-            }
-          );
-        end
-      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CLFLUSH}) begin
-        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
-          fork 
-          begin
-            host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
-            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_rsp_seq_h,
-              p_sequencer.host_h2d_rsp_seqr,
+        end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_RDOWNNODATA}) begin
+          if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
+              host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+              if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_rsp_seq_h.randomize() with
+                {
+                  h2d_rsp_seq_item_h[0].valid == 'h1;
+                  h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                  h2d_rsp_seq_item_h[0].rspdata inside {
+                                    GEET_CXL_CACHE_MESI_ERR, 
+                                    GEET_CXL_CACHE_MESI_E
+                                  };
+                  h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                }
+              );
+              host_h2d_rsp_seq_h.start(p_sequencer.host_h2d_rsp_seqr);
+              //here it does not return any data even if it is goerr
+              /*`uvm_do_on_with(
+                h2d_data_seq_item_h,
+                p_sequencer.host_h2d_data_seqr,
+                {
+                  valid == 'h1;
+                  cqid == d2h_req_seq_item_rcvd.cqid;
+                  ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> (data == {512{1'b1}});
+                }
+              );*/
+          end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
+            host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+            if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+            assert(host_m2s_req_seq_h.randomize() with
               {
-                h2d_rsp_seq_item_h[0].valid == 'h1;
-                h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
-                h2d_rsp_seq_item_h[0].rspdata inside {
-                                  GEET_CXL_CACHE_MESI_ERR, 
-                                  GEET_CXL_CACHE_MESI_I
-                                };
-                h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                m2s_req_seq_item_h[0].valid == 'h1;
+                m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
+                m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
+                m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
+                m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+                m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
+                //metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID};//TODO:dont know if this is true
               }
             );
-            //here it does not return any data even if it is goerr
-            /*`uvm_do_on_with(
-              h2d_data_seq_item_h,
-              p_sequencer.host_h2d_data_seqr,
-              {
-                valid == 'h1;
-                cqid == d2h_req_seq_item_rcvd.cqid;
-                ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> (data == {512{1'b1}});
-              }
-            );*/
+            host_m2s_req_seq_h.start(p_sequencer.host_m2s_req_seqr);
           end
-          join
-        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
-          host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
-          if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-          `uvm_do_on_with(
-            host_m2s_req_seq_h,
-            p_sequencer.host_m2s_req_seqr,
-            {
-              m2s_req_seq_item_h[0].valid == 'h1;
-              m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
-              m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
-              m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
-              m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
-              m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
-              //metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID};//TODO:dont know if this is true
-            }
-          );
-        end
-      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CACHEFLUSHED}) begin
-        fork 
-          begin
-            host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
-            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_rsp_seq_h,
-              p_sequencer.host_h2d_rsp_seqr,
+        end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CLFLUSH}) begin
+          if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
+              host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+              if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_rsp_seq_h.randomize() with
+                {
+                  h2d_rsp_seq_item_h[0].valid == 'h1;
+                  h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                  h2d_rsp_seq_item_h[0].rspdata inside {
+                                    GEET_CXL_CACHE_MESI_ERR, 
+                                    GEET_CXL_CACHE_MESI_I
+                                  };
+                  h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                }
+              );
+              host_h2d_rsp_seq_h.start(p_sequencer.host_h2d_rsp_seqr);
+              //here it does not return any data even if it is goerr
+              /*`uvm_do_on_with(
+                h2d_data_seq_item_h,
+                p_sequencer.host_h2d_data_seqr,
+                {
+                  valid == 'h1;
+                  cqid == d2h_req_seq_item_rcvd.cqid;
+                  ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> (data == {512{1'b1}});
+                }
+              );*/
+          end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
+            host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+            if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+            assert(host_m2s_req_seq_h.randomize() with
               {
-                h2d_rsp_seq_item_h[0].valid == 'h1;
-                h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
-                h2d_rsp_seq_item_h[0].rspdata inside {
-                                  GEET_CXL_CACHE_MESI_I
-                                };
-                h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                m2s_req_seq_item_h[0].valid == 'h1;
+                m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
+                m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMRDFWD};
+                m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
+                m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+                m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
+                //metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID};//TODO:dont know if this is true
               }
             );
-            //here it does not return any data even if it is goerr
-            /*`uvm_do_on_with(
-              h2d_data_seq_item_h,
-              p_sequencer.host_h2d_data_seqr,
-              {
-                valid == 'h1;
-                cqid == d2h_req_seq_item_rcvd.cqid;
-                ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> (data == {512{1'b1}});
-              }
-            );*/
+            host_m2s_req_seq_h.start(p_sequencer.host_m2s_req_seqr);
           end
-        join
-       end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CLEANEVICTNODATA}) begin
-        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
-          fork 
-          begin
-            host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
-            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_rsp_seq_h,
-              p_sequencer.host_h2d_rsp_seqr,
-              {
-                h2d_rsp_seq_item_h[0].valid == 'h1;
-                h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
-                h2d_rsp_seq_item_h[0].rspdata inside {
-                                  GEET_CXL_CACHE_MESI_I
-                                };
-                h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
-              }
-            );
-            //here it does not return any data even if it is goerr
-            /*`uvm_do_on_with(
-              h2d_data_seq_item_h,
-              p_sequencer.host_h2d_data_seqr,
-              {
-                valid == 'h1;
-                cqid == d2h_req_seq_item_rcvd.cqid;
-                ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> (data == {512{1'b1}});
-              }
-            );*/
+        end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CACHEFLUSHED}) begin
+              host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+              if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_rsp_seq_h.randomize() with
+                {
+                  h2d_rsp_seq_item_h[0].valid == 'h1;
+                  h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                  h2d_rsp_seq_item_h[0].rspdata inside {
+                                    GEET_CXL_CACHE_MESI_I
+                                  };
+                  h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                }
+              );
+              host_h2d_rsp_seq_h.start(p_sequencer.host_h2d_rsp_seqr);
+              //here it does not return any data even if it is goerr
+              /*`uvm_do_on_with(
+                h2d_data_seq_item_h,
+                p_sequencer.host_h2d_data_seqr,
+                {
+                  valid == 'h1;
+                  cqid == d2h_req_seq_item_rcvd.cqid;
+                  ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> (data == {512{1'b1}});
+                }
+              );*/
+        end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CLEANEVICTNODATA}) begin
+          if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
+              host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+              if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_rsp_seq_h.randomize() with 
+                {
+                  h2d_rsp_seq_item_h[0].valid == 'h1;
+                  h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GO} ;
+                  h2d_rsp_seq_item_h[0].rspdata inside {
+                                    GEET_CXL_CACHE_MESI_I
+                                  };
+                  h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                }
+              );
+              host_h2d_rsp_seq_h.start(p_sequencer.host_h2d_rsp_seqr);
+              //here it does not return any data even if it is goerr
+              /*`uvm_do_on_with(
+                h2d_data_seq_item_h,
+                p_sequencer.host_h2d_data_seqr,
+                {
+                  valid == 'h1;
+                  cqid == d2h_req_seq_item_rcvd.cqid;
+                  ((h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GO) && (h2d_rsp_seq_item_h.rspdata == GEET_CXL_CACHE_MESI_ERR)) -> (data == {512{1'b1}});
+                }
+              );*/
           end
-          join
-        end
-      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CLEANEVICT}) begin
-        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
-          fork 
-          begin
-            host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
-            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_rsp_seq_h,
-              p_sequencer.host_h2d_rsp_seqr,
-              {
-                h2d_rsp_seq_item_h[0].valid == 'h1;
-                h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GOWRITEPULL, GEET_CXL_CACHE_OPCODE_GOWRPULLDROP} ;
-                h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
-              }
-            );
-            //this thing below is wrong it was due to lack of undeerstanding initially
-            //here it does not return any data even if it is pull drop
-            /*if(h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_GOWRITEPULL}) begin
+        end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_CLEANEVICT}) begin
+          if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
+              host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+              if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_rsp_seq_h.randomize() with
+                {
+                  h2d_rsp_seq_item_h[0].valid == 'h1;
+                  h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GOWRITEPULL, GEET_CXL_CACHE_OPCODE_GOWRPULLDROP} ;
+                  h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                }
+              );
+              host_h2d_rsp_seq_h.start(p_sequencer.host_h2d_rsp_seqr);
+              //this thing below is wrong it was due to lack of undeerstanding initially
+              //here it does not return any data even if it is pull drop
+              /*if(h2d_rsp_seq_item_h.opcode inside {GEET_CXL_CACHE_OPCODE_GOWRITEPULL}) begin
+                `uvm_do_on_with(
+                  h2d_data_seq_item_h,
+                  p_sequencer.host_h2d_data_seqr,
+                  {
+                    valid == 'h1;
+                    cqid == d2h_req_seq_item_rcvd.cqid;
+                  }
+                );
+              end*/
+          end
+        end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_DIRTYEVICT, GEET_CXL_CACHE_OPCODE_ITOMWR, GEET_CXL_CACHE_OPCODE_MEMWRI}) begin
+          if((cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) && d2h_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_DIRTYEVICT) begin
+          end else begin
+              host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+              if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_rsp_seq_h.randomize() with
+                {
+                  h2d_rsp_seq_item_h[0].valid == 'h1;
+                  h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GOWRITEPULL, GEET_CXL_CACHE_OPCODE_GOERRWRPULL} ;
+                  h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                }
+              );
+              host_h2d_rsp_seq_h.start(p_sequencer.host_h2d_rsp_seqr);
+              /*//this is wrong below
+              //here it does not return any data even if it is pull drop
               `uvm_do_on_with(
                 h2d_data_seq_item_h,
                 p_sequencer.host_h2d_data_seqr,
                 {
                   valid == 'h1;
                   cqid == d2h_req_seq_item_rcvd.cqid;
+                  (h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GOERRWRPULL) -> {data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; goerr == 'h1;}
                 }
               );
-            end*/
+              */
           end
-          join
-        end
-      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_DIRTYEVICT, GEET_CXL_CACHE_OPCODE_ITOMWR, GEET_CXL_CACHE_OPCODE_MEMWRI}) begin
-        if((cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) && d2h_req_seq_item_rcvd.opcode == GEET_CXL_CACHE_OPCODE_DIRTYEVICT) begin
-        end else begin
-          fork 
-          begin
-            host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
-            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_rsp_seq_h,
-              p_sequencer.host_h2d_rsp_seqr,
-              {
-                h2d_rsp_seq_item_h[0].valid == 'h1;
-                h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_GOWRITEPULL, GEET_CXL_CACHE_OPCODE_GOERRWRPULL} ;
-                h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
-              }
-            );
-            /*//this is wrong below
-            //here it does not return any data even if it is pull drop
-            `uvm_do_on_with(
-              h2d_data_seq_item_h,
-              p_sequencer.host_h2d_data_seqr,
-              {
-                valid == 'h1;
-                cqid == d2h_req_seq_item_rcvd.cqid;
-                (h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GOERRWRPULL) -> {data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; goerr == 'h1;}
-              }
-            );
-            */
-          end
-          join
-        end
-      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WOWRINV, GEET_CXL_CACHE_OPCODE_WOWRINVF}) begin
-        if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
-          fork 
-          begin
-            host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
-            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_rsp_seq_h,
-              p_sequencer.host_h2d_rsp_seqr,
-              {
-                h2d_rsp_seq_item_h[0].valid == 'h1;
-                h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_FASTGOWRPULL, GEET_CXL_CACHE_OPCODE_GOERRWRPULL};
-                h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
-              }
-            );
-            /*this is wrong due to lack of understanding: delete later 
-            `uvm_do_on_with(
-              h2d_data_seq_item_h,
-              p_sequencer.host_h2d_data_seqr,
-              {
-                valid == 'h1;
-                cqid == d2h_req_seq_item_rcvd.cqid;
-                (h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GOERRWRPULL) -> {data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; goerr == 'h1;}
-              }
-            );
-            */
-          end
-          join
-        end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
-          host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
-          if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-          `uvm_do_on_with(
-            host_m2s_req_seq_h,
-            p_sequencer.host_m2s_req_seqr,
-            {
-              m2s_req_seq_item_h[0].valid == 'h1;
-              m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
-              m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMWRFWD};
-              m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
-              m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
-              m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
-              //metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID};//TODO:dont know if this is true
-            }
-          );
-        end
-      end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WRINV}) begin
-        fork 
-          begin
-            host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
-            if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
-            `uvm_do_on_with(
-              host_h2d_rsp_seq_h,
-              p_sequencer.host_h2d_rsp_seqr,
-              {
-                h2d_rsp_seq_item_h[0].valid == 'h1;
-                h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_FASTGOWRPULL, GEET_CXL_CACHE_OPCODE_GOERRWRPULL} ;
-                h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
-              }
-            );
-            /* this is wrong due to incorrect understanding:delete later
-            `uvm_do_on_with(
-              h2d_data_seq_item_h,
-              p_sequencer.host_h2d_data_seqr,
-              {
-                valid == 'h1;
-                cqid == d2h_req_seq_item_rcvd.cqid;
-                (h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GOERRWRPULL) -> {
-                  data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; 
-                  goerr == 'h1;
-                  }
+        end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WOWRINV, GEET_CXL_CACHE_OPCODE_WOWRINVF}) begin
+          if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_H) begin
+              host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+              if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_rsp_seq_h.randomize() with
+                {
+                  h2d_rsp_seq_item_h[0].valid == 'h1;
+                  h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_FASTGOWRPULL, GEET_CXL_CACHE_OPCODE_GOERRWRPULL};
+                  h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
                 }
-              );*/
+              );
+              host_h2d_rsp_seq_h.start(p_sequencer.host_h2d_rsp_seqr);
+              /*this is wrong due to lack of understanding: delete later 
+              `uvm_do_on_with(
+                h2d_data_seq_item_h,
+                p_sequencer.host_h2d_data_seqr,
+                {
+                  valid == 'h1;
+                  cqid == d2h_req_seq_item_rcvd.cqid;
+                  (h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GOERRWRPULL) -> {data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; goerr == 'h1;}
+                }
+              );
+              */
+          end else if(cxl_cfg_obj_h.hdm == GEET_CXL_HDM_D) begin
+            host_m2s_req_seq_h = host_m2s_req_seq#(m2s_req_seq_item)::type_id::create("host_m2s_req_seq_h");
+            if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+            assert(host_m2s_req_seq_h.randomize() with
+              {
+                m2s_req_seq_item_h[0].valid == 'h1;
+                m2s_req_seq_item_h[0].address == d2h_req_seq_item_rcvd.address;
+                m2s_req_seq_item_h[0].memopcode inside {GEET_CXL_MEM_OPCODE_MEMWRFWD};
+                m2s_req_seq_item_h[0].tag == d2h_req_seq_item_rcvd.cqid;
+                m2s_req_seq_item_h[0].snptype == GEET_CXL_MEM_SNPTYP_MEMSNPNOOP;
+                m2s_req_seq_item_h[0].metafield == GEET_CXL_MEM_MF_METAFIELD_META0STATE;
+                //metavalue inside {GEET_CXL_MEM_MV_METAVALUE_INVALID};//TODO:dont know if this is true
+              }
+            );
+            host_m2s_req_seq_h.start(p_sequencer.host_m2s_req_seqr);
           end
-        join
+        end else if(d2h_req_seq_item_rcvd.opcode inside {GEET_CXL_CACHE_OPCODE_WRINV}) begin
+              host_h2d_rsp_seq_h = host_h2d_rsp_seq#(h2d_rsp_seq_item)::type_id::create("host_h2d_rsp_seq_h");
+              if(p_sequencer.host_h2d_rsp_seqr == null) `uvm_fatal(get_type_name, "p_sequencer is null");
+              assert(host_h2d_rsp_seq_h.randomize() with
+                {
+                  h2d_rsp_seq_item_h[0].valid == 'h1;
+                  h2d_rsp_seq_item_h[0].opcode inside {GEET_CXL_CACHE_OPCODE_FASTGOWRPULL, GEET_CXL_CACHE_OPCODE_GOERRWRPULL} ;
+                  h2d_rsp_seq_item_h[0].cqid == d2h_req_seq_item_rcvd.cqid;
+                }
+              );
+              host_h2d_rsp_seq_h.start(p_sequencer.host_h2d_rsp_seqr);
+              /* this is wrong due to incorrect understanding:delete later
+              `uvm_do_on_with(
+                h2d_data_seq_item_h,
+                p_sequencer.host_h2d_data_seqr,
+                {
+                  valid == 'h1;
+                  cqid == d2h_req_seq_item_rcvd.cqid;
+                  (h2d_rsp_seq_item_h.opcode == GEET_CXL_CACHE_OPCODE_GOERRWRPULL) -> {
+                    data == 512'hffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff; 
+                    goerr == 'h1;
+                    }
+                  }
+                );*/
+        end
       end
     endtask
 
@@ -18722,12 +20966,13 @@ module tb_top;
   class cxl_vseq extends uvm_sequence;
     `uvm_object_utils(cxl_vseq)
     `uvm_declare_p_sequencer(cxl_cm_vsequencer)
-    cxl_cfg_obj           cxl_cfg_obj_h;
+    cxl_cfg_obj                                   cxl_cfg_obj_h;
     rand dev_d2h_req_seq#(d2h_req_seq_item)       dev_d2h_req_seq_h;
     rand host_h2d_req_seq#(h2d_req_seq_item)      host_h2d_req_seq_h;
     rand host_m2s_req_seq#(m2s_req_seq_item)      host_m2s_req_seq_h;
     rand host_m2s_rwd_seq#(m2s_rwd_seq_item)      host_m2s_rwd_seq_h;
-    cxl_cm_responder_seq  cxl_cm_responder_seq_h;
+    cxl_cm_responder_seq                          cxl_cm_responder_seq_h;
+    //plain_vanilla_ready_seq                     plain_vanilla_ready_seq_h;
 
     function new(string name = "cxl_vseq");
       super.new(name);
@@ -18764,7 +21009,7 @@ module tb_top;
           if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
             `uvm_info(get_type_name(), $sformatf("starting host_m2s_req_seq"), UVM_HIGH)
             if(p_sequencer.host_m2s_req_seqr == null) `uvm_fatal(get_type_name(), "dev_d2h_req_seqr is null")
-            `uvm_do_on_with(host_m2s_req_seq_h, p_sequencer.host_m2s_req_seqr, {num_trans == 1;});
+            `uvm_do_on_with(host_m2s_req_seq_h, p_sequencer.host_m2s_req_seqr, {num_trans == 0;});
             `uvm_info(get_type_name(), $sformatf("completed host_m2s_req_seq"), UVM_HIGH)
           end
         end
@@ -18772,13 +21017,21 @@ module tb_top;
           if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
             `uvm_info(get_type_name(), $sformatf("starting host_m2s_rwd_seq"), UVM_HIGH)
             if(p_sequencer.host_m2s_rwd_seqr == null) `uvm_fatal(get_type_name(), "dev_d2h_req_seqr is null")
-            `uvm_do_on_with(host_m2s_rwd_seq_h, p_sequencer.host_m2s_rwd_seqr, {num_trans == 1;});
+            `uvm_do_on_with(host_m2s_rwd_seq_h, p_sequencer.host_m2s_rwd_seqr, {num_trans == 2;});
             `uvm_info(get_type_name(), $sformatf("completed host_m2s_rwd_seq"), UVM_HIGH)
           end
         end
+        //lets use this later to stress credit logic
+        //begin
+          //`uvm_info(get_type_name(), $sformatf("starting "), UVM_HIGH)
+          //if(p_sequencer == null) `uvm_fatal(get_type_name(), "p_sequencer is null")
+          //`uvm_do_on_with(plain_vanilla_ready_seq_h, p_sequencer);
+          //`uvm_info(get_type_name(), $sformatf("completed "), UVM_HIGH)
+        //end
         begin
           `uvm_info(get_type_name(), $sformatf("starting cxl_cm_responder_seq"), UVM_HIGH)
-          //`uvm_do_on(cxl_cm_responder_seq_h, p_sequencer);
+          if(p_sequencer == null) `uvm_fatal(get_type_name(), "p_sequencer is null")
+          cxl_cm_responder_seq_h.start(p_sequencer);
           `uvm_info(get_type_name(), $sformatf("completed cxl_cm_responder_seq"), UVM_HIGH)
         end
       join;
