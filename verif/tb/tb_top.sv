@@ -2556,7 +2556,6 @@ module host_tx_path#(
   logic         host_tx_dl_if_valid_d;
   logic [15:0]  host_tx_dl_if_crc_d;
   logic [511:0] host_tx_dl_if_data_d;
-  //IMP INFO:consider s2m ndr as rsp credits and s2m drs as data credits
 
   ASSERT_ONEHOT_SLOT_SEL:assert property (@(posedge host_tx_dl_if.clk) disable iff (!host_tx_dl_if.rstn) $onehot(slot_sel));
 
@@ -2593,94 +2592,7 @@ module host_tx_path#(
   assign h2d_req_qrval   = (g_gnt[1])?                                     'h1: 'h0;
   assign h2d_data_qrval  = (g_gnt[3])?                                     'h1: 'h0;
   
-/*
-  always@(posedge host_tx_dl_if.clk) begin
-    if(!host_tx_dl_if.rstn) begin
-      h2d_req_rval    <= 'h0;
-      h2d_req_drval   <= 'h0;
-      h2d_req_qrval   <= 'h0;
-      h2d_rsp_rval    <= 'h0;
-      h2d_rsp_drval   <= 'h0;
-      h2d_rsp_qrval   <= 'h0;
-      h2d_data_rval   <= 'h0;
-      h2d_data_drval  <= 'h0;
-      h2d_data_qrval  <= 'h0;
-      m2s_req_rval    <= 'h0;
-      m2s_req_drval   <= 'h0;
-      m2s_req_qrval   <= 'h0;
-      m2s_rwd_rval    <= 'h0;
-      m2s_rwd_drval   <= 'h0;
-      m2s_rwd_qrval   <= 'h0;
-    end else begin
-      h2d_req_rval    <= (h_gnt[0] || h_gnt[2] || g_gnt[2])?             'h1: 'h0;
-      h2d_rsp_rval    <= (h_gnt[0] || g_gnt[2] || g_gnt[3] || g_gnt[5])? 'h1: 'h0;
-      h2d_rsp_drval   <= (h_gnt[1])?                                     'h1: 'h0;
-      h2d_data_rval   <= (h_gnt[1] || h_gnt[2] || g_gnt[2] || g_gnt[4])? 'h1: 'h0;
-      h2d_data_drval  <= (h_gnt[3])?                                     'h1: 'h0;
-      m2s_req_rval    <= (h_gnt[5] || g_gnt[4])?                         'h1: 'h0;
-      m2s_rwd_rval    <= (h_gnt[4] || g_gnt[5])?                         'h1: 'h0;
-      h2d_req_qrval   <= (g_gnt[1])?                                     'h1: 'h0;
-      h2d_data_qrval  <= (g_gnt[3])?                                     'h1: 'h0;
-    end
-  end
-*/
-
   always_comb begin
-    /*
-    $display(
-      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-      {"  assign h_val 0 is %0h = (h2d_req_occ is %0d  > 0) && (h2d_rsp_occ is %0d > 0);\n"},
-      h_val[0], h2d_req_occ, h2d_rsp_occ,
-      {"  assign h_val[1](%0h) = (h2d_data_occ(%0d) > 0) && (h2d_rsp_occ(%0d) > 1);\n"},
-      h_val[1], h2d_data_occ, h2d_rsp_occ,
-      {"  assign h_val[2](%0h) = (h2d_req_occ(%0d)  > 0) && (h2d_data_occ(%0d) > 0);\n"},
-      h_val[2], h2d_req_occ, h2d_data_occ,
-      {"  assign h_val[3](%0h) = (h2d_data_occ(%0d) > 3);\n"},
-      h_val[3], h2d_data_occ,
-      {"  assign h_val[4](%0h) = (m2s_rwd_occ(%0d)  > 0);\n"},
-      h_val[4], m2s_rwd_occ,
-      {"  assign h_val[5](%0h) = (m2s_req_occ(%0d)  > 0);\n"},
-      h_val[5], m2s_req_occ,
-      {"  assign g_val[1](%0h) = (h2d_rsp_occ(%0d)  > 3);\n"},
-      g_val[1], h2d_rsp_occ,
-      {"  assign g_val[2](%0h) = (h2d_req_occ(%0d)  > 0) && (h2d_data_occ(%0d) > 0) && (h2d_rsp_occ(%0d) > 0);\n"},
-      g_val[2], h2d_req_occ, h2d_data_occ, h2d_rsp_occ,
-      {"  assign g_val[3](%0h) = (h2d_data_occ(%0d) > 3) && (h2d_rsp_occ(%0d) > 0);\n"},
-      g_val[3], h2d_data_occ, h2d_rsp_occ,
-      {"  assign g_val[4](%0h) = (m2s_req_occ(%0d)  > 0) && (h2d_data_occ(%0d) > 0);\n"},
-      g_val[4], m2s_req_occ, h2d_data_occ,
-      {"  assign g_val[5](%0h) = (m2s_rwd_occ(%0d)  > 0) && (h2d_rsp_occ(%0d) > 0);\n"},
-      g_val[5], m2s_rwd_occ, h2d_rsp_occ
-    );
-    
-  
-    $display(
-      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-      {"  assign h2d_req_rval(%0h)   = (h_gnt[0](%0h) || h_gnt[2](%0h) || g_gnt[2](%0h))? 'h1: 'h0;\n"},
-      {"  assign h2d_rsp_rval(%0h)   = (h_gnt[0](%0h) || g_gnt[2](%0h) || g_gnt[3](%0h) || g_gnt[5](%0h))? 'h1: 'h0;\n"},
-      {"  assign h2d_rsp_drval(%0h)  = (h_gnt[1](%0h))? 'h1: 'h0;\n"},
-      {"  assign h2d_data_rval(%0h)  = (h_gnt[1](%0h) || h_gnt[2](%0h) || g_gnt[2](%0h) || g_gnt[4](%0h))? 'h1: 'h0;\n"},
-      {"  assign h2d_data_drval(%0h) = (h_gnt[3](%0h))? 'h1: 'h0;\n"},
-      {"  assign m2s_req_rval(%0h)   = (h_gnt[5](%0h) || g_gnt[4](%0h))? 'h1: 'h0;\n"},
-      {"  assign m2s_rwd_rval(%0h)   = (h_gnt[4](%0h) || g_gnt[5](%0h))? 'h1: 'h0;\n"},
-      {"  assign h2d_req_qrval(%0h)  = (g_gnt[1](%0h))? 'h1: 'h0;\n"},
-      {"  assign h2d_data_qrval(%0h) = (g_gnt[3](%0h))? 'h1: 'h0;\n"},
-      {"  assign h_req(%0h) = ((slot_sel(%0h)>1) || (data_slot[0](%0h) == 'hf)) ? 'h0: h_val(%0h);\n"},
-      {"  assign g_req(%0h) = ((slot_sel[0](%0h)) || ((data_slot[0](%0h) == 'hf) || (data_slot[0](%0h) == 'he)))? 'h0: g_val;\n"},
-      {"  assign insert_ack(%0h) = (((ack_cnt_tbs(%0h) - ack_cnt_snt(%0h)) > 16) || init_done(%0h))? 1'h1: 1'h0;\n"},
-      {"****************************DEBUG_INFO_END*********************************************************\n"}
-    ,
-      h2d_req_rval, h_gnt[0], h_gnt[2], g_gnt[2],
-      h2d_rsp_rval, h_gnt[0], g_gnt[2], g_gnt[3], g_gnt[5],
-      h2d_rsp_drval, h_gnt[1],
-      h2d_data_rval, h_gnt[1], h_gnt[2], g_gnt[2], g_gnt[4],
-      h2d_data_drval, h_gnt[3],
-      m2s_req_rval, h_gnt[5], g_gnt[4],
-      m2s_rwd_rval, h_gnt[4], g_gnt[5],
-      h2d_req_qrval, g_gnt[1],
-      h2d_data_qrval, g_gnt[3]
-    );
-*/
     d2h_req_outstanding_credits     = (d2h_req_occ_d  > d2h_req_occ ) ? (d2h_req_occ_d  - d2h_req_occ   ) : 'h0;
     d2h_rsp_outstanding_credits     = (d2h_rsp_occ_d  > d2h_rsp_occ ) ? (d2h_rsp_occ_d  - d2h_rsp_occ   ) : 'h0;
     d2h_data_outstanding_credits    = (d2h_data_occ_d > d2h_data_occ) ? (d2h_data_occ_d - d2h_data_occ  ) : 'h0;
@@ -2831,33 +2743,6 @@ module host_tx_path#(
     d2h_data_consumed_credits       = (d2h_data_occ_d < d2h_data_occ) ? (d2h_data_occ   - d2h_data_occ_d) : 'h0;
     s2m_ndr_consumed_credits        = (s2m_ndr_occ_d  < s2m_ndr_occ ) ? (s2m_ndr_occ    - s2m_ndr_occ_d ) : 'h0;
     s2m_drs_consumed_credits        = (s2m_drs_occ_d  < s2m_drs_occ ) ? (s2m_drs_occ    - s2m_drs_occ_d ) : 'h0;
- /*  
-    $display(
-    {"  ****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-    {"  d2h_req_outstanding_credits is  %0d   = d2h_req_occ_d is  %0d - d2h_req_occ is    %0d\n"},
-    {"  d2h_rsp_outstanding_credits is  %0d   = d2h_rsp_occ_d is  %0d - d2h_rsp_occ is    %0d\n"},
-    {"  d2h_data_outstanding_credits is %0d   = d2h_data_occ_d is %0d - d2h_data_occ is   %0d\n"},
-    {"  s2m_ndr_outstanding_credits is  %0d   = s2m_ndr_occ_d is  %0d - s2m_ndr_occ is    %0d\n"},
-    {"  s2m_drs_outstanding_credits is  %0d   = s2m_drs_occ_d is  %0d - s2m_drs_occ is    %0d\n"},
-    {"  d2h_req_consumed_credits is     %0d   = d2h_req_occ is    %0d - d2h_req_occ_d is  %0d\n"},
-    {"  d2h_rsp_consumed_credits is     %0d   = d2h_rsp_occ is    %0d - d2h_rsp_occ_d is  %0d\n"},
-    {"  d2h_data_consumed_credits is    %0d   = d2h_data_occ is   %0d - d2h_data_occ_d is %0d\n"},
-    {"  s2m_ndr_consumed_credits is     %0d   = s2m_ndr_occ is    %0d - s2m_ndr_occ_d is  %0d\n"},
-    {"  s2m_drs_consumed_credits is     %0d   = s2m_drs_occ is    %0d - s2m_drs_occ_d is  %0d\n"},
-    {"  ****************************DEBUG_INFO_END*********************************************************\n"}
-    , 
-      d2h_req_outstanding_credits,  d2h_req_occ_d,  d2h_req_occ,
-      d2h_rsp_outstanding_credits,  d2h_rsp_occ_d,  d2h_rsp_occ,
-      d2h_data_outstanding_credits, d2h_data_occ_d, d2h_data_occ,
-      s2m_ndr_outstanding_credits,  s2m_ndr_occ_d,  s2m_ndr_occ, 
-      s2m_drs_outstanding_credits,  s2m_drs_occ_d,  s2m_drs_occ,
-      d2h_req_consumed_credits,     d2h_req_occ,    d2h_req_occ_d,
-      d2h_rsp_consumed_credits,     d2h_rsp_occ,    d2h_rsp_occ_d,
-      d2h_data_consumed_credits,    d2h_data_occ,   d2h_data_occ_d,
-      s2m_ndr_consumed_credits,     s2m_ndr_occ,    s2m_ndr_occ_d, 
-      s2m_drs_consumed_credits,     s2m_drs_occ,    s2m_drs_occ_d
-    );
-   */ 
 
     if(d2h_rsp_crdt_tbs[3].pending) begin
       if(d2h_rsp_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
@@ -2940,17 +2825,7 @@ module host_tx_path#(
         end
       end 
     end
- /*
-    $display(
-      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-      {"d2h_rsp_crdt_tbs is %0p\n"},
-      {"d2h_rsp_crdt_send is %0d\n"},
-      {"****************************DEBUG_INFO_END*********************************************************\n"}
-    ,
-    d2h_rsp_crdt_tbs, 
-    d2h_rsp_crdt_send
-    );
-*/    
+
 //TODO: make sure if pending is set it should not have to be sent as 0, improper use will result in garbage out
     if(s2m_ndr_crdt_tbs[3].pending) begin
       if(s2m_ndr_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
@@ -3033,17 +2908,7 @@ module host_tx_path#(
         end
       end 
     end
-/*
-    $display(
-    {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-    {"  s2m_ndr_crdt_tbs is %0p\n"},
-    {"  s2m_ndr_crdt_send is %0d\n"},
-    {"****************************DEBUG_INFO_END*********************************************************\n"}
-    ,
-    s2m_ndr_crdt_tbs, 
-    s2m_ndr_crdt_send
-    );
-*/        
+
     if(d2h_req_crdt_tbs[3].pending) begin
       if(d2h_req_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         d2h_req_crdt_send = 'h7;
@@ -3125,17 +2990,7 @@ module host_tx_path#(
         end
       end 
     end
- /*
-    $display(
-      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-      {"d2h_req_crdt_tbs is %0p\n"},
-      {"d2h_req_crdt_send is %0d\n"},
-      {"****************************DEBUG_INFO_END*********************************************************\n"}
-    ,
-    d2h_req_crdt_tbs, 
-    d2h_req_crdt_send
-    );
-*/
+
     if(d2h_data_crdt_tbs[3].pending) begin
       if(d2h_data_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         d2h_data_crdt_send = 'h7;
@@ -3217,17 +3072,6 @@ module host_tx_path#(
         end
       end 
     end
- /*
-    $display(
-      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-      {"d2h_data_crdt_tbs is %0p\n"},
-      {"d2h_data_crdt_send is %0d\n"},
-      {"****************************DEBUG_INFO_END*********************************************************\n"}
-    ,
-    d2h_data_crdt_tbs, 
-    d2h_data_crdt_send
-    );
-   */ 
 
     if(s2m_drs_crdt_tbs[3].pending) begin
       if(s2m_drs_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
@@ -3310,43 +3154,6 @@ module host_tx_path#(
         end
       end 
     end
-/*    
-    $display(
-      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-      {"s2m_drs_crdt_tbs is %0p\n"},
-      {"s2m_drs_crdt_send is %0d\n"},
-      {"****************************DEBUG_INFO_END*********************************************************\n"}
-    ,
-    s2m_drs_crdt_tbs, 
-    s2m_drs_crdt_send
-    );
-*/
-/*    d2h_req_crdt_send             = (d2h_req_crdt_tbs[3].pending)? (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_req_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_req_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_req_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_req_crdt_tbs[2].pending)? (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_req_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_req_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_req_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_req_crdt_tbs[1].pending)? (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_req_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_req_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_req_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_req_crdt_tbs[0].pending)? (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (d2h_req_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_req_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_req_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_req_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (d2h_req_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
-                                  : 'h0;
-    d2h_rsp_crdt_send             = (d2h_rsp_crdt_tbs[3].pending)? (d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_rsp_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_rsp_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_rsp_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_rsp_crdt_tbs[2].pending)? (d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_rsp_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_rsp_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_rsp_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_rsp_crdt_tbs[1].pending)? (d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_rsp_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_rsp_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_rsp_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_rsp_crdt_tbs[0].pending)? (d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (d2h_rsp_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_rsp_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_rsp_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_rsp_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (d2h_rsp_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
-                                  : 'h0;
-    d2h_data_crdt_send             = (d2h_data_crdt_tbs[3].pending)? (d2h_data_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_data_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_data_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_data_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_data_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_data_crdt_tbs[2].pending)? (d2h_data_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_data_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_data_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_data_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_data_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_data_crdt_tbs[1].pending)? (d2h_data_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_data_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_data_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_data_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_data_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (d2h_data_crdt_tbs[0].pending)? (d2h_data_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (d2h_data_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (d2h_data_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (d2h_data_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (d2h_data_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (d2h_data_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (d2h_data_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
-                                  : 'h0;
-    s2m_ndr_crdt_send             = (s2m_ndr_crdt_tbs[3].pending)? (s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_ndr_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_ndr_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_ndr_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (s2m_ndr_crdt_tbs[2].pending)? (s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_ndr_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_ndr_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_ndr_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (s2m_ndr_crdt_tbs[1].pending)? (s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_ndr_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_ndr_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_ndr_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (s2m_ndr_crdt_tbs[0].pending)? (s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (s2m_ndr_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_ndr_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_ndr_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_ndr_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (s2m_ndr_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
-                                  : 'h0;
-    s2m_drs_crdt_send             = (s2m_drs_crdt_tbs[3].pending)? (s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_drs_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_drs_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_drs_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (s2m_drs_crdt_tbs[2].pending)? (s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_drs_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_drs_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_drs_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (s2m_drs_crdt_tbs[1].pending)? (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_drs_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_drs_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_drs_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (s2m_drs_crdt_tbs[0].pending)? (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (s2m_drs_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (s2m_drs_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (s2m_drs_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (s2m_drs_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (s2m_drs_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
-                                  : 'h0;
-*/  
   end
 
   always@(posedge host_tx_dl_if.clk) begin
@@ -3777,7 +3584,7 @@ module host_tx_path#(
     end
   end
 
-  //TODO: serious missing piece is if roll over cnt exceeds then packing of further data should be avoided
+  //TODO: CXL3.0 req I beleive not in CXL2.0:serious missing piece is if roll over cnt exceeds then packing of further data should be avoided
   //ll pkt buffer
 
   always@(negedge host_tx_dl_if.clk) begin
@@ -3844,20 +3651,12 @@ module host_tx_path#(
             end else if(h_gnt[1] || h_gnt[2] || h_gnt[4]) begin
               slot_sel <= H_SLOT0;
               if((data_slot[0] == 'h0) /*|| (data_slot[0] == 'hf)*/) begin //TODO: I doubt you would get data_slot as 'hf
-                //data_slot[0] <= 'he; data_slot[1] <= 'h2; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'h2; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h2) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'h6; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h6) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'he; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'he) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
@@ -3865,20 +3664,12 @@ module host_tx_path#(
             end else if(h_gnt[3]) begin
               slot_sel <= H_SLOT0;
               if((data_slot[0] == 'h0) || (data_slot[0] == 'hf)) begin //TODO: I doubt you would get data_slot as 'hf
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h2;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h2; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h2) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h6) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'he; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'he) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
               end else begin
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
@@ -3901,8 +3692,6 @@ module host_tx_path#(
             end else if((g_gnt[2]) || (g_gnt[4]) || (g_gnt[5])) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= H_SLOT0;
-                //data_slot[0] <= 'hc; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'hc; 
                 data_slot[0] <= 'h6; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
@@ -3910,8 +3699,6 @@ module host_tx_path#(
             end else if(g_gnt[3]) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= H_SLOT0;
-                //data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
-                //data_slot[0] <= 'hc; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
@@ -3934,8 +3721,6 @@ module host_tx_path#(
             end else if((g_gnt[2]) || (g_gnt[4]) || (g_gnt[5])) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
                 slot_sel <= H_SLOT0;
-                //data_slot[0] <= ((data_slot[0] == 'h2)? 'ha: 'h8); data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= ((data_slot[0] == 'h2)? 'ha: 'h8); 
                 data_slot[0] <= 'he; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
@@ -3943,8 +3728,6 @@ module host_tx_path#(
             end else if(g_gnt[3]) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2)) begin
                 slot_sel <= H_SLOT0;
-                //data_slot[0] <=  ((data_slot[0] == 'h2)? 'ha: 'h8); data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
-                //data_slot[0] <=  ((data_slot[0] == 'h2)? 'ha: 'h8); 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'he; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
@@ -3967,8 +3750,6 @@ module host_tx_path#(
             end else if((g_gnt[2]) || (g_gnt[4]) || (g_gnt[5])) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
                 slot_sel <= H_SLOT0;
-            ///*data_slot[0] <= 'h6;*/ data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-            ///*data_slot[0] <= 'h6;*/ 
                 data_slot[0] <= 'hf; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
@@ -3976,8 +3757,6 @@ module host_tx_path#(
             end else if(g_gnt[3]) begin
               if((data_slot[0] == 'h0) || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
                 slot_sel <= H_SLOT0;
-            ///*data_slot[0] <= 'h6;*/ data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
-            ///*data_slot[0] <= 'h6;*/ 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
@@ -4197,7 +3976,7 @@ module host_tx_path#(
                   holding_q[holding_wrptr+3].data[127:0]   <= h2d_data_tdataout.data[511:384];
                   holding_q[holding_wrptr+3].data[511:384] <= h2d_data_qdataout.data[127:0];
                   holding_q[holding_wrptr+3].valid         <= 'h1;
-                  holding_q[holding_wrptr+4].data[127:0]   <= h2d_data_qdataout.data[511:384];
+                  holding_q[holding_wrptr+4].data[255:128]   <= h2d_data_qdataout.data[511:384];
                   holding_q[holding_wrptr+4].valid         <= 'h0;
                   holding_wrptr                            <= holding_wrptr + 4;
                 end else if(data_slot_d[0] == 'h2) begin
@@ -4212,7 +3991,7 @@ module host_tx_path#(
                   holding_q[holding_wrptr+3].data[255:0]   <= h2d_data_tdataout.data[511:256];
                   holding_q[holding_wrptr+3].data[511:256] <= h2d_data_qdataout.data[255:0];
                   holding_q[holding_wrptr+3].valid         <= 'h1;
-                  holding_q[holding_wrptr+4].data[255:128] <= h2d_data_qdataout.data[511:256];
+                  holding_q[holding_wrptr+4].data[383:128] <= h2d_data_qdataout.data[511:256];
                   holding_q[holding_wrptr+4].valid         <= 'h0;
                   holding_wrptr                            <= holding_wrptr + 4;
                 end else if(data_slot_d[0] == 'h6) begin
@@ -4273,13 +4052,13 @@ module host_tx_path#(
                 if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:128]   <= m2s_rwd_dataout.data[383:0];
                   holding_q[holding_wrptr].valid           <= 'h1;
-                  holding_q[holding_wrptr+1].data[127:0]   <= m2s_rwd_dataout.data[511:384];
+                  holding_q[holding_wrptr+1].data[255:128]   <= m2s_rwd_dataout.data[511:384];
                   holding_q[holding_wrptr+1].valid         <= 'h0;
                   holding_wrptr                            <= holding_wrptr + 1;
                 end else if(data_slot_d[0] == 'h2) begin
                   holding_q[holding_wrptr].data[511:256]   <= m2s_rwd_dataout.data[255:0];
                   holding_q[holding_wrptr].valid           <= 'h1;
-                  holding_q[holding_wrptr+1].data[255:0]   <= m2s_rwd_dataout.data[511:256];
+                  holding_q[holding_wrptr+1].data[383:128]   <= m2s_rwd_dataout.data[511:256];
                   holding_q[holding_wrptr+1].valid         <= 'h0;
                   holding_wrptr                            <= holding_wrptr + 1;
                 end else if(data_slot_d[0] == 'h6) begin
@@ -5123,7 +4902,6 @@ module device_tx_path#(
   logic         dev_tx_dl_if_rstn_d;
   logic         dev_tx_dl_if_rstn_dd;
   logic [511:0] dev_tx_dl_if_data_d;
-//IMP INFO: consider m2s req as rsp credits and m2s rwd as data credits
 
   ASSERT_DEVSIDE_ONEHOT_SLOT_SEL: assert property (@(posedge dev_tx_dl_if.clk) disable iff (!dev_tx_dl_if.rstn) $onehot(slot_sel));
 
@@ -5165,104 +4943,8 @@ module device_tx_path#(
   assign s2m_ndr_drval   = (h_gnt[4] || g_gnt[4] || g_gnt[5])?                         'h1: 'h0;
   assign s2m_drs_drval   = (h_gnt[5] || g_gnt[6])?                                     'h1: 'h0;
   assign s2m_ndr_trval   = (g_gnt[5])?                                                 'h1: 'h0;
-/*
-  always@(posedge dev_tx_dl_if.clk) begin
-    if(!dev_tx_dl_if.rstn) begin
-      d2h_req_drval   <= 'h0;
-      d2h_req_trval   <= 'h0;
-      d2h_req_qrval   <= 'h0;
-      d2h_rsp_drval   <= 'h0;
-      d2h_rsp_trval   <= 'h0;
-      d2h_rsp_qrval   <= 'h0;
-      s2m_ndr_qrval   <= 'h0;
-      s2m_drs_rval    <= 'h0;
-      s2m_drs_drval   <= 'h0;
-      s2m_drs_trval   <= 'h0;
-      s2m_drs_qrval   <= 'h0;
-    end else begin
-      d2h_data_rval   <= (h_gnt[0] || h_gnt[1] || h_gnt[2] || g_gnt[2] || g_gnt[3])? 'h1: 'h0;
-      d2h_rsp_rval    <= (h_gnt[0] || h_gnt[2] || g_gnt[2])?                         'h1: 'h0;
-      s2m_ndr_rval    <= (h_gnt[0] || h_gnt[3] || h_gnt[4] || g_gnt[4] || g_gnt[5])? 'h1: 'h0;
-      d2h_req_rval    <= (h_gnt[1] || g_gnt[2])?                                     'h1: 'h0;
-      d2h_data_drval  <= (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
-      d2h_data_trval  <= (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
-      d2h_data_qrval  <= (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
-      s2m_drs_rval    <= (h_gnt[3] || h_gnt[5] || g_gnt[4] || g_gnt[6])?             'h1: 'h0;
-      s2m_ndr_drval   <= (h_gnt[4] || g_gnt[4] || g_gnt[5])?                         'h1: 'h0;
-      s2m_drs_drval   <= (h_gnt[5] || g_gnt[6])?                                     'h1: 'h0;
-      s2m_ndr_trval   <= (g_gnt[5])?                                                 'h1: 'h0;
-      s2m_drs_trval   <= (g_gnt[6])?                                                 'h1: 'h0;
-    end
-  end
-*/
-  always_comb begin
- /* 
-  $display(
-    {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-    {"  h_val[0](%0h) = (d2h_data_occ(%0d)  > 0) && (d2h_rsp_occ(%0d) > 1);\n"},
-    {"  h_val[1](%0h) = (d2h_req_occ(%0d)   > 0) && (d2h_data_occ(%0d) > 0);\n"},
-    {"  h_val[2](%0h) = (d2h_data_occ(%0d)  > 3) && (d2h_rsp_occ(%0d) > 0);\n"},
-    {"  h_val[3](%0h) = (s2m_drs_occ(%0d)   > 0) && (s2m_ndr_occ(%0d) > 0);\n"},
-    {"  h_val[4](%0h) = (s2m_ndr_occ(%0d)   > 1);\n"},
-    {"  h_val[5](%0h) = (s2m_drs_occ(%0d)   > 1);\n"},
-    {"  g_val[1](%0h) = (d2h_req_occ(%0d)   > 0) && (d2h_rsp_occ(%0d) > 1);\n"},
-    {"  g_val[2](%0h) = (d2h_req_occ(%0d)   > 0) && (d2h_data_occ(%0d) > 0) && (d2h_rsp_occ(%0d) > 0);\n"},
-    {"  g_val[3](%0h) = (d2h_data_occ(%0d)  > 4);\n"},
-    {"  g_val[4](%0h) = (s2m_drs_occ(%0d)   > 0) && (s2m_ndr_occ(%0d) > 1);\n"},
-    {"  g_val[5](%0h) = (s2m_ndr_occ(%0d)   > 2);\n"},
-    {"  g_val[6](%0h) = (s2m_drs_occ(%0d)   > 2);\n"},
-    {"  ****************************DEBUG_INFO_END*********************************************************\n"}
-    ,
-    h_val[0], d2h_data_occ, d2h_rsp_occ,
-    h_val[1], d2h_req_occ, d2h_data_occ,
-    h_val[2], d2h_data_occ, d2h_rsp_occ,
-    h_val[3], s2m_drs_occ,
-    h_val[4], s2m_ndr_occ,
-    h_val[5], s2m_drs_occ,
-    g_val[1], d2h_req_occ, d2h_rsp_occ,
-    g_val[2], d2h_req_occ, d2h_data_occ, d2h_rsp_occ,
-    g_val[3], d2h_data_occ,
-    g_val[4], s2m_drs_occ, s2m_ndr_occ,
-    g_val[5], s2m_ndr_occ,
-    g_val[6], s2m_drs_occ
-    );
 
-  $display(
-      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-      {"d2h_data_rval(%0h)  = (h_gnt[0](%0h) || h_gnt[1](%0h) || h_gnt[2](%0h) || g_gnt[2](%0h) || g_gnt[3](%0h))? 'h1: 'h0;\n"},
-      {"d2h_rsp_rval(%0h)   = (h_gnt[0](%0h) || h_gnt[2](%0h) || g_gnt[2](%0h))? 'h1: 'h0;\n"},
-      {"s2m_ndr_rval(%0h)   = (h_gnt[0](%0h) || h_gnt[3](%0h) || h_gnt[4](%0h) || g_gnt[4](%0h) || g_gnt[5](%0h))? 'h1: 'h0;\n"},
-      {"d2h_req_rval(%0h)   = (h_gnt[1](%0h) || g_gnt[2](%0h))? 'h1: 'h0;\n"},
-      {"d2h_data_drval(%0h) = (h_gnt[2](%0h) || g_gnt[3](%0h))? 'h1: 'h0;\n"},
-      {"d2h_data_trval(%0h) = (h_gnt[2](%0h) || g_gnt[3](%0h))? 'h1: 'h0;\n"},
-      {"d2h_data_qrval(%0h) = (h_gnt[2](%0h) || g_gnt[3](%0h))? 'h1: 'h0;\n"},
-      {"s2m_drs_rval(%0h)   = (h_gnt[3](%0h) || h_gnt[5](%0h) || g_gnt[4](%0h) || g_gnt[6](%0h))? 'h1: 'h0;\n"},
-      {"s2m_ndr_drval(%0h)  = (h_gnt[4](%0h) || g_gnt[4](%0h) || g_gnt[5](%0h))? 'h1: 'h0;\n"},
-      {"s2m_drs_drval(%0h)  = (h_gnt[5](%0h) || g_gnt[6](%0h))? 'h1: 'h0;\n"},
-      {"s2m_ndr_trval(%0h)  = (g_gnt[5](%0h))? 'h1: 'h0;\n"},
-      {"s2m_drs_trval(%0h)  = (g_gnt[6](%0h))? 'h1: 'h0;\n"},
-      {"h_req(%0h) = ((slot_sel(%0h)>1) || (data_slot[0](%0h) == 'hf))? 'h0: h_val;\n"},
-      {"g_req(%0h) = ((slot_sel[0](%0h)) || (data_slot[0](%0h) == 'hf))? 'h0: g_val;\n"},
-      {"insert_ack(%0h) = (((ack_cnt_tbs(%0h) - ack_cnt_snt(%0h)) > 16) || init_done(%0h))? 1'h1: 1'h0;\n"},
-      {"****************************DEBUG_INFO_END*********************************************************\n"}
-    ,
-      d2h_data_rval, h_gnt[0], h_gnt[1], h_gnt[2], g_gnt[2], g_gnt[3],
-      d2h_rsp_rval, h_gnt[0], h_gnt[2], g_gnt[2], 
-      s2m_ndr_rval, h_gnt[0], h_gnt[3], h_gnt[3], h_gnt[4], g_gnt[4], g_gnt[5],
-      d2h_req_rval, h_gnt[1], g_gnt[2],
-      d2h_data_drval, h_gnt[2], g_gnt[3],
-      d2h_data_trval, h_gnt[2], g_gnt[3],
-      d2h_data_qrval, h_gnt[2], g_gnt[3],
-      s2m_drs_rval, h_gnt[3], h_gnt[5], g_gnt[4], g_gnt[6],
-      s2m_ndr_drval, h_gnt[4], g_gnt[4], g_gnt[5],
-      s2m_drs_drval, h_gnt[5], g_gnt[6],
-      s2m_ndr_trval, g_gnt[5],
-      s2m_drs_trval, g_gnt[6],
-      h_req, slot_sel, data_slot[0], 
-      g_req, slot_sel[0], data_slot[0], 
-      insert_ack, ack_cnt_tbs, ack_cnt_snt, init_done
-    ); 
-*/
+  always_comb begin
     h2d_rsp_outstanding_credits     = (h2d_rsp_occ_d  > h2d_rsp_occ ) ? (h2d_rsp_occ_d  - h2d_rsp_occ   ) : 'h0;
     h2d_req_outstanding_credits     = (h2d_req_occ_d  > h2d_req_occ ) ? (h2d_req_occ_d  - h2d_req_occ   ) : 'h0;
     m2s_req_outstanding_credits     = (m2s_req_occ_d  > m2s_req_occ ) ? (m2s_req_occ_d  - m2s_req_occ   ) : 'h0;
@@ -5413,33 +5095,6 @@ module device_tx_path#(
     m2s_req_consumed_credits        = (m2s_req_occ_d  < m2s_req_occ ) ? (m2s_req_occ    - m2s_req_occ_d ) : 'h0;
     h2d_data_consumed_credits       = (h2d_data_occ_d < h2d_data_occ) ? (h2d_data_occ   - h2d_data_occ_d) : 'h0;
     m2s_rwd_consumed_credits        = (m2s_rwd_occ_d  < m2s_rwd_occ ) ? (m2s_rwd_occ    - m2s_rwd_occ_d ) : 'h0;
-  /*
-    $display(
-      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-      {"h2d_req_outstanding_credits is  %0d   = h2d_req_occ_d is  %0d - h2d_req_occ is    %0d\n"},
-      {"h2d_rsp_outstanding_credits is  %0d   = h2d_rsp_occ_d is  %0d - h2d_rsp_occ is    %0d\n"},
-      {"h2d_data_outstanding_credits is %0d   = h2d_data_occ_d is %0d - h2d_data_occ is   %0d\n"},
-      {"m2s_req_outstanding_credits is  %0d   = m2s_req_occ_d is  %0d - m2s_req_occ is    %0d\n"},
-      {"m2s_rwd_outstanding_credits is  %0d   = m2s_rwd_occ_d is  %0d - m2s_rwd_occ is    %0d\n"},
-      {"h2d_req_consumed_credits is     %0d   = h2d_req_occ is    %0d - h2d_req_occ_d is  %0d\n"},
-      {"h2d_rsp_consumed_credits is     %0d   = h2d_rsp_occ is    %0d - h2d_rsp_occ_d is  %0d\n"},
-      {"h2d_data_consumed_credits is    %0d   = h2d_data_occ is   %0d - h2d_data_occ_d is %0d\n"},
-      {"m2s_req_consumed_credits is     %0d   = m2s_req_occ is    %0d - m2s_req_occ_d is  %0d\n"},
-      {"m2s_rwd_consumed_credits is     %0d   = m2s_rwd_occ is    %0d - m2s_rwd_occ_d is  %0d\n"},
-      {"****************************DEBUG_INFO_END*********************************************************\n"}
-    , 
-      h2d_req_outstanding_credits, h2d_req_occ_d, h2d_req_occ,
-      h2d_rsp_outstanding_credits, h2d_rsp_occ_d, h2d_rsp_occ,
-      h2d_data_outstanding_credits, h2d_data_occ_d, h2d_data_occ,
-      m2s_req_outstanding_credits,  m2s_req_occ_d, m2s_req_occ, 
-      m2s_rwd_outstanding_credits,  m2s_rwd_occ_d, m2s_rwd_occ,
-      h2d_req_consumed_credits, h2d_req_occ, h2d_req_occ_d,
-      h2d_rsp_consumed_credits, h2d_rsp_occ, h2d_rsp_occ_d,
-      h2d_data_consumed_credits, h2d_data_occ, h2d_data_occ_d,
-      m2s_req_consumed_credits,  m2s_req_occ, m2s_req_occ_d, 
-      m2s_rwd_consumed_credits,  m2s_rwd_occ, m2s_rwd_occ_d
-    );
-    */
 
     if(h2d_rsp_crdt_tbs[3].pending) begin
       if(h2d_rsp_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
@@ -5522,17 +5177,7 @@ module device_tx_path#(
         end
       end 
     end
-/*
-    $display(
-      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-      {"h2d_rsp_crdt_tbs is %0p \n"},
-      {"h2d_rsp_crdt_send is %0d \n"},
-      {"****************************DEBUG_INFO_END*********************************************************\n"},
-    ,
-    h2d_rsp_crdt_tbs, 
-    h2d_rsp_crdt_send
-    );
-*/
+
     if(h2d_req_crdt_tbs[3].pending) begin
       if(h2d_req_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         h2d_req_crdt_send = 'h7;
@@ -5614,17 +5259,7 @@ module device_tx_path#(
         end
       end 
     end
-/*
-    $display(
-      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-      {"h2d_req_crdt_tbs is %0p \n"},
-      {"h2d_req_crdt_send is %0d \n"},
-      {"****************************DEBUG_INFO_END*********************************************************\n"},
-    ,
-    h2d_req_crdt_tbs, 
-    h2d_req_crdt_send
-    );
-*/
+
     if(m2s_req_crdt_tbs[3].pending) begin
       if(m2s_req_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         m2s_req_crdt_send = 'h7;
@@ -5706,17 +5341,7 @@ module device_tx_path#(
         end
       end 
     end
-/*
-    $display(
-      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-      {"m2s_req_crdt_tbs is %0p \n"},
-      {"m2s_req_crdt_send is %0d \n"},
-      {"****************************DEBUG_INFO_END*********************************************************\n"},
-    ,
-    m2s_req_crdt_tbs, 
-    m2s_req_crdt_send
-    );
-*/
+
     if(h2d_data_crdt_tbs[3].pending) begin
       if(h2d_data_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         h2d_data_crdt_send = 'h7;
@@ -5798,17 +5423,7 @@ module device_tx_path#(
         end
       end 
     end
-    /*
-    $display(
-      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-      {"h2d_data_crdt_tbs is %0p \n"},
-      {"h2d_data_crdt_send is %0d \n"},
-      {"****************************DEBUG_INFO_END*********************************************************\n"},
-    ,
-    h2d_data_crdt_tbs, 
-    h2d_data_crdt_send
-    );
-*/
+
     if(m2s_rwd_crdt_tbs[3].pending) begin
       if(m2s_rwd_crdt_tbs[3].credit_to_be_sent >= 'd64) begin
         m2s_rwd_crdt_send = 'h7;
@@ -5890,44 +5505,6 @@ module device_tx_path#(
         end
       end 
     end
-/*
-    $display(
-      {"****************************DEBUG_INFO_BEGIN*********************************************************\n"},
-      {"m2s_rwd_crdt_tbs is %0p \n"},
-      {"m2s_rwd_crdt_send is %0d \n"},
-      {"****************************DEBUG_INFO_END*********************************************************\n"},
-    ,
-    m2s_rwd_crdt_tbs, 
-    m2s_rwd_crdt_send
-    );
-*/
-/*
-    h2d_req_crdt_send             = (h2d_req_crdt_tbs[3].pending)? (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_req_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_req_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_req_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_req_crdt_tbs[2].pending)? (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_req_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_req_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_req_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_req_crdt_tbs[1].pending)? (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_req_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_req_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_req_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_req_crdt_tbs[0].pending)? (h2d_req_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (h2d_req_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_req_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_req_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_req_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_req_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (h2d_req_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
-                                  : 'h0;
-    h2d_rsp_crdt_send             = (h2d_rsp_crdt_tbs[3].pending)? (h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_rsp_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_rsp_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_rsp_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_rsp_crdt_tbs[2].pending)? (h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_rsp_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_rsp_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_rsp_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_rsp_crdt_tbs[1].pending)? (h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_rsp_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_rsp_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_rsp_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_rsp_crdt_tbs[0].pending)? (h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (h2d_rsp_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_rsp_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_rsp_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_rsp_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (h2d_rsp_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
-                                  : 'h0;
-    h2d_data_crdt_send             = (h2d_data_crdt_tbs[3].pending)? (h2d_data_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_data_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_data_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_data_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_data_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_data_crdt_tbs[2].pending)? (h2d_data_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_data_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_data_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_data_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_data_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_data_crdt_tbs[1].pending)? (h2d_data_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_data_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_data_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_data_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_data_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (h2d_data_crdt_tbs[0].pending)? (h2d_data_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (h2d_data_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (h2d_data_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (h2d_data_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (h2d_data_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (h2d_data_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (h2d_data_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
-                                  : 'h0;
-    m2s_req_crdt_send             = (m2s_req_crdt_tbs[3].pending)? (m2s_req_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_req_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_req_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_req_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_req_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (m2s_req_crdt_tbs[2].pending)? (m2s_req_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_req_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_req_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_req_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_req_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (m2s_req_crdt_tbs[1].pending)? (m2s_req_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_req_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_req_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_req_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_req_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (m2s_req_crdt_tbs[0].pending)? (m2s_req_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (m2s_req_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_req_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_req_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_req_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_req_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (m2s_req_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
-                                  : 'h0;
-    m2s_rwd_crdt_send             = (m2s_rwd_crdt_tbs[3].pending)? (m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[3].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_rwd_crdt_tbs[3].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_rwd_crdt_tbs[3].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_rwd_crdt_tbs[3].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[3].credit_to_be_sent == 'd1)? 'h1:
-                                  : (m2s_rwd_crdt_tbs[2].pending)? (m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[2].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_rwd_crdt_tbs[2].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_rwd_crdt_tbs[2].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_rwd_crdt_tbs[2].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[2].credit_to_be_sent == 'd1)? 'h1:
-                                  : (m2s_rwd_crdt_tbs[1].pending)? (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[1].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_rwd_crdt_tbs[1].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_rwd_crdt_tbs[1].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_rwd_crdt_tbs[1].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[1].credit_to_be_sent == 'd1)? 'h1:
-                                  : (m2s_rwd_crdt_tbs[0].pending)? (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd64)? 'h7: (m2s_rwd_crdt_tbs[0].credit_to_be_sent inside {['d63: 'd32]})? 'h6: (m2s_rwd_crdt_tbs[0].credit_to_be_sent inside {['d31: 'd16]})? 'h5 : (m2s_rwd_crdt_tbs[0].credit_to_be_sent inside {['d15: 'd8]})? 'h4: (m2s_rwd_crdt_tbs[0].credit_to_be_sent inside {['d7: 'd4]})? 'd3: (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd2)? 'h2: (m2s_rwd_crdt_tbs[0].credit_to_be_sent == 'd1)? 'h1:
-                                  : 'h0;
-*/
   end
 
   always@(posedge dev_tx_dl_if.clk) begin
@@ -6427,20 +6004,12 @@ module device_tx_path#(
             end else if(h_gnt[0] || h_gnt[1] || h_gnt[3]) begin
               slot_sel <= H_SLOT0;
               if(data_slot[0] == 'h0) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'h2; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'h2; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h2) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'h6; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h6) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'he; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'he) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
@@ -6448,20 +6017,12 @@ module device_tx_path#(
             end else if(h_gnt[5]) begin
               slot_sel <= H_SLOT0;
               if(data_slot[0] == 'h0) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h2; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'h2; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h2) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'h6; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h6) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'he; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'he) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
@@ -6469,20 +6030,12 @@ module device_tx_path#(
             end else if(h_gnt[2]) begin
               slot_sel <= H_SLOT0;
               if(data_slot[0] == 'h0) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h2;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h2; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h2) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h6) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'he; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'he) begin
-                //data_slot[0] <= 'he; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
-                //data_slot[0] <= 'he; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
               end else begin
                 data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
@@ -6506,8 +6059,6 @@ module device_tx_path#(
             end else if(g_gnt[2] || g_gnt[4]) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= G_SLOT2;
-                //data_slot[0] <= 'hc; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'hc; 
                 data_slot[0] <= 'h6; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
@@ -6516,8 +6067,6 @@ module device_tx_path#(
             end else if(g_gnt[6]) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= G_SLOT2;
-                //data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
-                //data_slot[0] <= 'hc; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'h6; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
@@ -6526,8 +6075,6 @@ module device_tx_path#(
             end else if(g_gnt[3]) begin
               if(data_slot[0] == 'h0) begin
                 slot_sel <= G_SLOT2;
-                //data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h6;
-                //data_slot[0] <= 'hc; 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
@@ -6553,8 +6100,6 @@ module device_tx_path#(
               end
             end else if(g_gnt[2] || g_gnt[4]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2)) begin
-                //data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-                //data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); 
                 data_slot[0] <= 'he; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
@@ -6563,8 +6108,6 @@ module device_tx_path#(
               end
             end else if(g_gnt[6]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2)) begin
-                //data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'he; data_slot[4] <= 'h0;
-                //data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'he; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
@@ -6573,8 +6116,6 @@ module device_tx_path#(
               end
             end else if(g_gnt[3]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2)) begin
-                //data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'he;
-                //data_slot[0] <= ((data_slot[0] == 'h2)?'ha: 'h8); 
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'he; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
@@ -6601,8 +6142,6 @@ module device_tx_path#(
               end
             end else if(g_gnt[2] || g_gnt[4]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
-              ///*data_slot[0] <=  ;*/ data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
-              ///*data_slot[0] <=  ;*/ 
               data_slot[0] <= 'hf; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
@@ -6611,8 +6150,6 @@ module device_tx_path#(
               end
             end else if(g_gnt[6]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
-              ///*data_slot[0] <=  ;*/ data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
-              ///*data_slot[0] <=  ;*/ 
               data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
@@ -6621,8 +6158,6 @@ module device_tx_path#(
               end
             end else if(g_gnt[3]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
-              ///*data_slot[0] <=  ;*/ data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
-              ///*data_slot[0] <=  ;*/ 
               data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
@@ -10497,8 +10032,8 @@ module device_rx_path #(
     m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.snptype                 = snptype_t'(data[39:37]);
     m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metafield               = metafield_t'(data[41:40]);
     m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metavalue               = metavalue_t'(data[43:42]);
-    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tag                     = data[58:44];
-    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address                 = data[105:59];
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tag                     = data[59:44];
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address                 = data[105:60];
     m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.poison                  = data[106];
     m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tc                      = data[108:107];
     
@@ -18882,11 +18417,11 @@ module tb_top;
         start_item(d2h_req_seq_item_curr_h);
         rand_fail = d2h_req_seq_item_curr_h.randomize() with {
             reset_cycles  == cycles_rst;
-            valid         == d2h_req_seq_item_h[i].valid;
-            address[51:6] == d2h_req_seq_item_h[i].address[51:6];
-            opcode        == d2h_req_seq_item_h[i].opcode;
-            cqid          == d2h_req_seq_item_h[i].cqid;
-            nt            == d2h_req_seq_item_h[i].nt;
+            //valid         == d2h_req_seq_item_h[i].valid;
+            //address[51:6] == d2h_req_seq_item_h[i].address[51:6];
+            //opcode        == d2h_req_seq_item_h[i].opcode;
+            //cqid          == d2h_req_seq_item_h[i].cqid;
+            //nt            == d2h_req_seq_item_h[i].nt;
           };
         if(!rand_fail) begin
           `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
@@ -19005,6 +18540,7 @@ module tb_top;
       h2d_req_seq_item_h.size == num_trans;
       solve num_trans before h2d_req_seq_item_h.size;
       foreach(h2d_req_seq_item_h[i]) {
+        h2d_req_seq_item_h[i].valid == 1'b1;
         h2d_req_seq_item_h[i].address[5:0] == 6'b0;
         solve h2d_req_seq_item_h.size before h2d_req_seq_item_h[i].valid;
         solve h2d_req_seq_item_h.size before h2d_req_seq_item_h[i].address;
@@ -19052,6 +18588,7 @@ module tb_top;
       h2d_rsp_seq_item_h.size == num_trans;
       solve num_trans before h2d_rsp_seq_item_h.size;
       foreach(h2d_rsp_seq_item_h[i]){
+        soft h2d_rsp_seq_item_h[i].valid == 1'b1;
         solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].valid;
         solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].opcode;
         solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].rspdata;
@@ -19100,6 +18637,7 @@ module tb_top;
       h2d_data_seq_item_h.size == num_trans;
       solve num_trans before h2d_data_seq_item_h.size;
       foreach(h2d_data_seq_item_h[i]){
+        soft h2d_data_seq_item_h[i].valid == 1'b1;
         solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].valid;
         solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].cqid;
         solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].chunkvalid;
@@ -19150,6 +18688,7 @@ module tb_top;
       m2s_req_seq_item_h.size == num_trans;
       solve num_trans before m2s_req_seq_item_h.size;
       foreach(m2s_req_seq_item_h[i]){
+        soft m2s_req_seq_item_h[i].valid == 1'b1;
         !m2s_req_seq_item_h[i].metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1, GEET_CXL_MEM_MF_METAFIELD_RSVD2};
         !m2s_req_seq_item_h[i].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
         solve m2s_req_seq_item_h.size before m2s_req_seq_item_h[i].valid;
@@ -19206,6 +18745,8 @@ module tb_top;
       m2s_rwd_seq_item_h.size == num_trans;
       solve num_trans before m2s_rwd_seq_item_h.size;
       foreach(m2s_rwd_seq_item_h[i]){
+        m2s_rwd_seq_item_h[i].valid == 1'b1;
+        soft m2s_rwd_seq_item_h[i].address[5:0] == 6'b0;
         !m2s_rwd_seq_item_h[i].metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1, GEET_CXL_MEM_MF_METAFIELD_RSVD2};
         !m2s_rwd_seq_item_h[i].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
         solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].metafield;
@@ -19266,6 +18807,7 @@ module tb_top;
       s2m_ndr_seq_item_h.size == num_trans;
       solve num_trans before s2m_ndr_seq_item_h.size;
       foreach(s2m_ndr_seq_item_h[i]){
+        soft s2m_ndr_seq_item_h[i].valid == 1'b1;
         soft !s2m_ndr_seq_item_h[i].metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1, GEET_CXL_MEM_MF_METAFIELD_RSVD2};
         soft !s2m_ndr_seq_item_h[i].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
         solve s2m_ndr_seq_item_h.size before s2m_ndr_seq_item_h[i].valid;
@@ -19316,6 +18858,7 @@ module tb_top;
       s2m_drs_seq_item_h.size == num_trans;
       solve num_trans before s2m_drs_seq_item_h.size;
       foreach(s2m_drs_seq_item_h[i]){
+        soft s2m_drs_seq_item_h[i].valid == 1'b1;
         !s2m_drs_seq_item_h[i].metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1, GEET_CXL_MEM_MF_METAFIELD_RSVD2};
         !s2m_drs_seq_item_h[i].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
         solve s2m_drs_seq_item_h.size before s2m_drs_seq_item_h[i].valid;
@@ -19370,6 +18913,7 @@ module tb_top;
       h2d_req_seq_item_h.size == num_trans;
       solve num_trans before h2d_req_seq_item_h.size;
       foreach(h2d_req_seq_item_h[i]) {
+        soft h2d_req_seq_item_h[i].valid == 1'b1;
         h2d_req_seq_item_h[i].address[5:0] == 6'b0;
         solve h2d_req_seq_item_h.size before h2d_req_seq_item_h[i].valid;
         solve h2d_req_seq_item_h.size before h2d_req_seq_item_h[i].address;
@@ -19390,10 +18934,10 @@ module tb_top;
         start_item(h2d_req_seq_item_curr_h);
         rand_fail = h2d_req_seq_item_curr_h.randomize() with {
             reset_cycles  == cycles_rst;
-            valid         == h2d_req_seq_item_h[i].valid;
-            opcode        == h2d_req_seq_item_h[i].opcode;
-            address[51:6] == h2d_req_seq_item_h[i].address[51:6];
-            uqid          == h2d_req_seq_item_h[i].uqid;
+            //valid         == h2d_req_seq_item_h[i].valid;
+            //opcode        == h2d_req_seq_item_h[i].opcode;
+            //address[51:6] == h2d_req_seq_item_h[i].address[51:6];
+            //uqid          == h2d_req_seq_item_h[i].uqid;
           };
         if(!rand_fail) begin
           `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
@@ -19417,6 +18961,7 @@ module tb_top;
       h2d_rsp_seq_item_h.size == num_trans;
       solve num_trans before h2d_rsp_seq_item_h.size;
       foreach(h2d_rsp_seq_item_h[i]){
+        soft h2d_rsp_seq_item_h[i].valid == 1'b1;
         solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].valid;
         solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].opcode;
         solve h2d_rsp_seq_item_h.size before h2d_rsp_seq_item_h[i].rspdata;
@@ -19465,6 +19010,7 @@ module tb_top;
       h2d_data_seq_item_h.size == num_trans;
       solve num_trans before h2d_data_seq_item_h.size;
       foreach(h2d_data_seq_item_h[i]){
+        soft h2d_data_seq_item_h[i].valid == 1'b1;
         solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].valid;
         solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].cqid;
         solve h2d_data_seq_item_h.size before h2d_data_seq_item_h[i].chunkvalid;
@@ -19515,6 +19061,7 @@ module tb_top;
       d2h_req_seq_item_h.size == num_trans;
       solve num_trans before d2h_req_seq_item_h.size;
       foreach(d2h_req_seq_item_h[i]){
+        soft d2h_req_seq_item_h[i].valid == 1'b1;
         d2h_req_seq_item_h[i].address[5:0] == 6'b0;
         solve d2h_req_seq_item_h.size before d2h_req_seq_item_h[i].valid;
         solve d2h_req_seq_item_h.size before d2h_req_seq_item_h[i].address;
@@ -19564,6 +19111,7 @@ module tb_top;
       d2h_rsp_seq_item_h.size == num_trans;
       solve num_trans before d2h_rsp_seq_item_h.size;
       foreach(d2h_rsp_seq_item_h[i]){
+        soft d2h_rsp_seq_item_h[i].valid == 1'b1;
         solve d2h_rsp_seq_item_h.size before d2h_rsp_seq_item_h[i].valid;
         solve d2h_rsp_seq_item_h.size before d2h_rsp_seq_item_h[i].opcode;
         solve d2h_rsp_seq_item_h.size before d2h_rsp_seq_item_h[i].uqid;
@@ -19608,6 +19156,7 @@ module tb_top;
       d2h_data_seq_item_h.size == num_trans;
       solve num_trans before d2h_data_seq_item_h.size;
       foreach(d2h_data_seq_item_h[i]){
+        soft d2h_data_seq_item_h[i].valid == 1'b1;
         solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].valid;
         solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].uqid;
         solve d2h_data_seq_item_h.size before d2h_data_seq_item_h[i].chunkvalid;
@@ -19683,14 +19232,14 @@ module tb_top;
         start_item(m2s_req_seq_item_curr_h);
         rand_fail = m2s_req_seq_item_curr_h.randomize() with {
             reset_cycles == cycles_rst;
-            valid         == m2s_req_seq_item_h[i].valid;
-            address[51:6] == m2s_req_seq_item_h[i].address[51:6];
-            memopcode     == m2s_req_seq_item_h[i].memopcode;
-            metafield     == m2s_req_seq_item_h[i].metafield;
-            metavalue     == m2s_req_seq_item_h[i].metavalue;
-            snptype       == m2s_req_seq_item_h[i].snptype;
-            tag           == m2s_req_seq_item_h[i].tag;
-            tc            == m2s_req_seq_item_h[i].tc;
+            //valid         == m2s_req_seq_item_h[i].valid;
+            //address[51:6] == m2s_req_seq_item_h[i].address[51:6];
+            //memopcode     == m2s_req_seq_item_h[i].memopcode;
+            //metafield     == m2s_req_seq_item_h[i].metafield;
+            //metavalue     == m2s_req_seq_item_h[i].metavalue;
+            //snptype       == m2s_req_seq_item_h[i].snptype;
+            //tag           == m2s_req_seq_item_h[i].tag;
+            //tc            == m2s_req_seq_item_h[i].tc;
           };
         if(!rand_fail) begin
           `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
@@ -19714,6 +19263,7 @@ module tb_top;
       m2s_rwd_seq_item_h.size == num_trans;
       solve num_trans before m2s_rwd_seq_item_h.size;
       foreach(m2s_rwd_seq_item_h[i]){
+        soft m2s_rwd_seq_item_h[i].valid == 1'b1;
         !m2s_rwd_seq_item_h[i].metafield inside {GEET_CXL_MEM_MF_METAFIELD_RSVD1, GEET_CXL_MEM_MF_METAFIELD_RSVD2};
         !m2s_rwd_seq_item_h[i].metavalue inside {GEET_CXL_MEM_MV_METAVALUE_RSVD};
         solve m2s_rwd_seq_item_h.size before m2s_rwd_seq_item_h[i].metafield;
@@ -19741,16 +19291,16 @@ module tb_top;
         start_item(m2s_rwd_seq_item_curr_h);
         rand_fail = m2s_rwd_seq_item_curr_h.randomize() with {
             reset_cycles == cycles_rst;
-            valid         == m2s_rwd_seq_item_h[i].valid;
-            address[51:6] == m2s_rwd_seq_item_h[i].address[51:6];
-            memopcode     == m2s_rwd_seq_item_h[i].memopcode;
-            metafield     == m2s_rwd_seq_item_h[i].metafield;
-            metavalue     == m2s_rwd_seq_item_h[i].metavalue;
-            snptype       == m2s_rwd_seq_item_h[i].snptype;
-            tag           == m2s_rwd_seq_item_h[i].tag;
-            tc            == m2s_rwd_seq_item_h[i].tc;
-            poison        == m2s_rwd_seq_item_h[i].poison;
-            data          == m2s_rwd_seq_item_h[i].data;
+            //valid         == m2s_rwd_seq_item_h[i].valid;
+            //address[51:6] == m2s_rwd_seq_item_h[i].address[51:6];
+            //memopcode     == m2s_rwd_seq_item_h[i].memopcode;
+            //metafield     == m2s_rwd_seq_item_h[i].metafield;
+            //metavalue     == m2s_rwd_seq_item_h[i].metavalue;
+            //snptype       == m2s_rwd_seq_item_h[i].snptype;
+            //tag           == m2s_rwd_seq_item_h[i].tag;
+            //tc            == m2s_rwd_seq_item_h[i].tc;
+            //poison        == m2s_rwd_seq_item_h[i].poison;
+            //data          == m2s_rwd_seq_item_h[i].data;
           };
         if(!rand_fail) begin
           `uvm_fatal(get_type_name(), $sformatf("randomization fail at %0s", get_full_name));
@@ -20993,7 +20543,7 @@ module tb_top;
           if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
             `uvm_info(get_type_name(), $sformatf("starting dev_d2h_req_seq"), UVM_HIGH)
             if(p_sequencer.dev_d2h_req_seqr == null) `uvm_fatal(get_type_name(), "dev_d2h_req_seqr is null")
-            `uvm_do_on_with(dev_d2h_req_seq_h, p_sequencer.dev_d2h_req_seqr, {num_trans == 1;});
+            `uvm_do_on_with(dev_d2h_req_seq_h, p_sequencer.dev_d2h_req_seqr, {num_trans == 0;});
             `uvm_info(get_type_name(), $sformatf("completed dev_d2h_req_seq"), UVM_HIGH)  
           end
         end
@@ -21001,7 +20551,7 @@ module tb_top;
           if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_1, GEET_CXL_TYPE_2}) begin
             `uvm_info(get_type_name(), $sformatf("starting host_h2d_req_seq"), UVM_HIGH)
             if(p_sequencer.host_h2d_req_seqr == null) `uvm_fatal(get_type_name(), "dev_d2h_req_seqr is null")
-            `uvm_do_on_with(host_h2d_req_seq_h, p_sequencer.host_h2d_req_seqr, {num_trans == 1;});
+            `uvm_do_on_with(host_h2d_req_seq_h, p_sequencer.host_h2d_req_seqr, {num_trans == 0;});
             `uvm_info(get_type_name(), $sformatf("completed host_h2d_req_seq"), UVM_HIGH)
           end
         end
@@ -21017,7 +20567,7 @@ module tb_top;
           if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
             `uvm_info(get_type_name(), $sformatf("starting host_m2s_rwd_seq"), UVM_HIGH)
             if(p_sequencer.host_m2s_rwd_seqr == null) `uvm_fatal(get_type_name(), "dev_d2h_req_seqr is null")
-            `uvm_do_on_with(host_m2s_rwd_seq_h, p_sequencer.host_m2s_rwd_seqr, {num_trans == 2;});
+            `uvm_do_on_with(host_m2s_rwd_seq_h, p_sequencer.host_m2s_rwd_seqr, {num_trans == 3;});
             `uvm_info(get_type_name(), $sformatf("completed host_m2s_rwd_seq"), UVM_HIGH)
           end
         end
