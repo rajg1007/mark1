@@ -4043,8 +4043,8 @@ module host_tx_path#(
                 holding_q[holding_wrptr].data[39:37]       <= m2s_rwd_dataout.snptype;
                 holding_q[holding_wrptr].data[41:40]       <= m2s_rwd_dataout.metafield;
                 holding_q[holding_wrptr].data[43:42]       <= m2s_rwd_dataout.metavalue;
-                holding_q[holding_wrptr].data[58:44]       <= m2s_rwd_dataout.tag;
-                holding_q[holding_wrptr].data[105:59]      <= m2s_rwd_dataout.address[51:6];
+                holding_q[holding_wrptr].data[59:44]       <= m2s_rwd_dataout.tag;
+                holding_q[holding_wrptr].data[105:60]      <= m2s_rwd_dataout.address[51:6];
                 holding_q[holding_wrptr].data[106]         <= m2s_rwd_dataout.poison;
                 holding_q[holding_wrptr].data[108:107]     <= m2s_rwd_dataout.tc;
                 holding_q[holding_wrptr].data[118:109]     <= 'h0; //spare bit set to 0
@@ -6260,7 +6260,7 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[49:38]      <= d2h_req_dataout.cqid;
                 holding_q[holding_wrptr].data[50]         <= d2h_req_dataout.nt;
                 holding_q[holding_wrptr].data[57:51]      <= 'h0;//spare always is 0
-                holding_q[holding_wrptr].data[103:58]     <= d2h_req_dataout.address;
+                holding_q[holding_wrptr].data[103:58]     <= d2h_req_dataout.address[51:6];
                 holding_q[holding_wrptr].data[110:104]    <= 'h0;//spare bits always 0
                 holding_q[holding_wrptr].data[111]        <= d2h_data_dataout.valid;
                 holding_q[holding_wrptr].data[123:112]    <= d2h_data_dataout.uqid;
@@ -7734,7 +7734,8 @@ module host_rx_path #(
     d2h_req_txn_w[0].opcode                                              = d2h_req_opcode_t'(data[37:33]);
     d2h_req_txn_w[0].cqid                                                = data[49:38];
     d2h_req_txn_w[0].nt                                                  = data[50];
-    d2h_req_txn_w[0].address                                             = data[103:58];
+    d2h_req_txn_w[0].address[51:6]                                       = data[103:58];
+    d2h_req_txn_w[0].address[5:0]                                        = 6'h0;
     if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b10;
     else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1100) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b11;
     else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1110) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1110)) posi = 2'b00;
@@ -8846,7 +8847,8 @@ module host_rx_path #(
       d2h_req_txn_w[0].opcode       = d2h_req_opcode_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]);
       d2h_req_txn_w[0].cqid         = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
       d2h_req_txn_w[0].nt           = data[(SLOT1_OFFSET+18)];
-      d2h_req_txn_w[0].address      = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
+      d2h_req_txn_w[0].address[51:6]= data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
+      d2h_req_txn_w[0].address[5:0] = 6'h0;
       d2h_rsp_txn_w[0].valid        = data[(SLOT1_OFFSET+79)];
       d2h_rsp_txn_w[0].opcode       = d2h_rsp_opcode_t'(data[(SLOT1_OFFSET+84):(SLOT1_OFFSET+80)]);
       d2h_rsp_txn_w[0].uqid         = data[(SLOT1_OFFSET+96):(SLOT1_OFFSET+85)];
@@ -8858,7 +8860,8 @@ module host_rx_path #(
       d2h_req_txn_w[0].opcode       = d2h_req_opcode_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]);
       d2h_req_txn_w[0].cqid         = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
       d2h_req_txn_w[0].nt           = data[(SLOT2_OFFSET+18)];
-      d2h_req_txn_w[0].address      = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
+      d2h_req_txn_w[0].address[51:6]= data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
+      d2h_req_txn_w[0].address[5:0] = 6'h0;
       d2h_rsp_txn_w[0].valid        = data[(SLOT2_OFFSET+79)];
       d2h_rsp_txn_w[0].opcode       = d2h_rsp_opcode_t'(data[(SLOT2_OFFSET+84):(SLOT2_OFFSET+80)]);
       d2h_rsp_txn_w[0].uqid         = data[(SLOT2_OFFSET+96):(SLOT2_OFFSET+85)];
@@ -8870,7 +8873,8 @@ module host_rx_path #(
       d2h_req_txn_w[0].opcode       = d2h_req_opcode_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]);
       d2h_req_txn_w[0].cqid         = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
       d2h_req_txn_w[0].nt           = data[(SLOT3_OFFSET+18)];
-      d2h_req_txn_w[0].address      = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
+      d2h_req_txn_w[0].address[51:6]= data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
+      d2h_req_txn_w[0].address[5:0] = 6'h0;
       d2h_rsp_txn_w[0].valid        = data[(SLOT3_OFFSET+79)];
       d2h_rsp_txn_w[0].opcode       = d2h_rsp_opcode_t'(data[(SLOT3_OFFSET+84):(SLOT3_OFFSET+80)]);
       d2h_rsp_txn_w[0].uqid         = data[(SLOT3_OFFSET+96):(SLOT3_OFFSET+85)];
@@ -8900,7 +8904,8 @@ module host_rx_path #(
       d2h_req_txn_w[0].opcode                                              = d2h_req_opcode_t'(data[(SLOT1_OFFSET+5):(SLOT1_OFFSET+1)]);
       d2h_req_txn_w[0].cqid                                                = data[(SLOT1_OFFSET+17):(SLOT1_OFFSET+6)];
       d2h_req_txn_w[0].nt                                                  = data[(SLOT1_OFFSET+18)];
-      d2h_req_txn_w[0].address                                             = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
+      d2h_req_txn_w[0].address[51:6]                                       = data[(SLOT1_OFFSET+71):(SLOT1_OFFSET+26)];
+      d2h_req_txn_w[0].address[5:0]                                        = 6'h0;
       if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b11;
       else if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1100) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1100)) posi = 2'b00;
       else posi = 2'b10;
@@ -8921,7 +8926,8 @@ module host_rx_path #(
       d2h_req_txn_w[0].opcode                                              = d2h_req_opcode_t'(data[(SLOT2_OFFSET+5):(SLOT2_OFFSET+1)]);
       d2h_req_txn_w[0].cqid                                                = data[(SLOT2_OFFSET+17):(SLOT2_OFFSET+6)];
       d2h_req_txn_w[0].nt                                                  = data[(SLOT2_OFFSET+18)];
-      d2h_req_txn_w[0].address                                             = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
+      d2h_req_txn_w[0].address[51:6]                                       = data[(SLOT2_OFFSET+71):(SLOT2_OFFSET+26)];
+      d2h_req_txn_w[0].address[5:0]                                        = 6'h0;
       if((s2m_drs_pkt_iob[s2m_drs_wr_ptr].pending_data_slot.pend == 4'b1000) || (d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b00;
       else posi = 2'b11;
       d2h_data_wr_ptr++;
@@ -8941,7 +8947,8 @@ module host_rx_path #(
       d2h_req_txn_w[0].opcode                                              = d2h_req_opcode_t'(data[(SLOT3_OFFSET+5):(SLOT3_OFFSET+1)]);
       d2h_req_txn_w[0].cqid                                                = data[(SLOT3_OFFSET+17):(SLOT3_OFFSET+6)];
       d2h_req_txn_w[0].nt                                                  = data[(SLOT3_OFFSET+18)];
-      d2h_req_txn_w[0].address                                             = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
+      d2h_req_txn_w[0].address[51:6]                                       = data[(SLOT3_OFFSET+71):(SLOT3_OFFSET+26)];
+      d2h_req_txn_w[0].address[5:0]                                        = 6'h0;
       d2h_data_wr_ptr++;
       d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.start_dslot_posi = 'h0;
       d2h_data_pkt_iob[d2h_data_wr_ptr].pending_data_slot.pend             = 'hf;
@@ -9619,6 +9626,7 @@ module host_rx_path #(
       s2m_drs_rd_ptr <= 'h0;
     end else begin
       if((s2m_drs_pkt_iob[s2m_drs_rd_ptr].pending_data_slot.pend == 'h0) && (s2m_drs_pkt_iob[s2m_drs_rd_ptr].pending_data_slot.valid)) begin
+        s2m_drs_pkt.s2m_drs_txn.valid <= 'h1;
         s2m_drs_pkt <= s2m_drs_pkt_iob[s2m_drs_rd_ptr];
         s2m_drs_pkt_iob[s2m_drs_rd_ptr].pending_data_slot.valid <= 'h0;
         s2m_drs_rd_ptr <= s2m_drs_rd_ptr + 1;
@@ -9626,6 +9634,7 @@ module host_rx_path #(
         s2m_drs_pkt.s2m_drs_txn.valid <= 'h0;
       end
       if((d2h_data_pkt_iob[d2h_data_rd_ptr].pending_data_slot.pend == 'h0) && (d2h_data_pkt_iob[d2h_data_rd_ptr].pending_data_slot.valid)) begin
+        d2h_data_pkt.d2h_data_txn.valid <= 'h1;
         d2h_data_pkt <= d2h_data_pkt_iob[d2h_data_rd_ptr];
         d2h_data_pkt_iob[d2h_data_rd_ptr].pending_data_slot.valid <= 'h0;
         d2h_data_rd_ptr <= d2h_data_rd_ptr + 1;
@@ -9893,7 +9902,8 @@ module device_rx_path #(
   );
     h2d_req_txn_w[0].valid        = data[32];
     h2d_req_txn_w[0].opcode       = h2d_req_opcode_t'(data[35:33]);
-    h2d_req_txn_w[0].address      = data[81:36];
+    h2d_req_txn_w[0].address[51:6]= data[81:36];
+    h2d_req_txn_w[0].address[5:0] = 6'h0;
     h2d_req_txn_w[0].uqid         = data[93:82];
     h2d_rsp_txn_w[0].valid        = data[96];
     h2d_rsp_txn_w[0].opcode       = h2d_rsp_opcode_t'(data[100:97]);
@@ -9950,7 +9960,8 @@ module device_rx_path #(
     else posi = 2'b01;
     h2d_req_txn_w[0].valid                                                = data[32];
     h2d_req_txn_w[0].opcode                                               = h2d_req_opcode_t'(data[35:33]);
-    h2d_req_txn_w[0].address                                              = data[81:36];
+    h2d_req_txn_w[0].address[51:6]                                        = data[81:36];
+    h2d_req_txn_w[0].address[5:0]                                         = 6'h0;
     h2d_req_txn_w[0].uqid                                                 = data[93:82];
     h2d_data_wr_ptr++;
     h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend              = 'hf;
@@ -10033,7 +10044,8 @@ module device_rx_path #(
     m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metafield               = metafield_t'(data[41:40]);
     m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metavalue               = metavalue_t'(data[43:42]);
     m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tag                     = data[59:44];
-    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address                 = data[105:60];
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address[51:6]           = data[105:60];
+    m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address[5:0]            = 6'h0;
     m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.poison                  = data[106];
     m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tc                      = data[108:107];
     
@@ -10049,7 +10061,8 @@ module device_rx_path #(
     m2s_req_txn_w[0].metafield    = metafield_t'(data[41:40]);
     m2s_req_txn_w[0].metavalue    = metavalue_t'(data[43:42]);
     m2s_req_txn_w[0].tag          = data[58:44];
-    m2s_req_txn_w[0].address      = data[106:59];
+    m2s_req_txn_w[0].address[51:6]= data[106:59];
+    m2s_req_txn_w[0].address[5:0] = 6'h0;
     m2s_req_txn_w[0].tc           = data[108:107];
   endfunction
 
@@ -10875,12 +10888,14 @@ module device_rx_path #(
       if(h2d_req_ptr > 0) begin
         h2d_req_txn_w[1].valid                                              = data[(SLOT1_OFFSET+0)];
         h2d_req_txn_w[1].opcode                                             = h2d_req_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
-        h2d_req_txn_w[1].address                                            = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
+        h2d_req_txn_w[1].address[51:6]                                      = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
+        h2d_req_txn_w[1].address[5:0]                                       = 6'h0;
         h2d_req_txn_w[1].uqid                                               = data[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)];
       end else begin
         h2d_req_txn_w[0].valid                                              = data[(SLOT1_OFFSET+0)];
         h2d_req_txn_w[0].opcode                                             = h2d_req_opcode_t'(data[(SLOT1_OFFSET+3):(SLOT1_OFFSET+1)]);
-        h2d_req_txn_w[0].address                                            = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
+        h2d_req_txn_w[0].address[51:6]                                      = data[(SLOT1_OFFSET+49):(SLOT1_OFFSET+4)];
+        h2d_req_txn_w[0].address[5:0]                                       = 6'h0;
         h2d_req_txn_w[0].uqid                                               = data[(SLOT1_OFFSET+61)+(SLOT1_OFFSET+50)];
       end
       if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b11;
@@ -10912,12 +10927,14 @@ module device_rx_path #(
       if(h2d_req_ptr > 0) begin
         h2d_req_txn_w[1].valid                                              = data[(SLOT2_OFFSET+0)];
         h2d_req_txn_w[1].opcode                                             = h2d_req_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
-        h2d_req_txn_w[1].address                                            = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
+        h2d_req_txn_w[1].address[51:6]                                      = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
+        h2d_req_txn_w[1].address[5:0]                                       = 6'h0;
         h2d_req_txn_w[1].uqid                                               = data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+50)];
       end else begin
         h2d_req_txn_w[0].valid                                              = data[(SLOT2_OFFSET+0)];
         h2d_req_txn_w[0].opcode                                             = h2d_req_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
-        h2d_req_txn_w[0].address                                            = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
+        h2d_req_txn_w[0].address[51:6]                                      = data[(SLOT2_OFFSET+49):(SLOT2_OFFSET+4)];
+        h2d_req_txn_w[0].address[5:0]                                       = 6'h0;
         h2d_req_txn_w[0].uqid                                               = data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+50)];
       end
       if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b00;
@@ -10948,12 +10965,14 @@ module device_rx_path #(
       if(h2d_req_ptr > 0) begin
         h2d_req_txn_w[1].valid                                              = data[(SLOT3_OFFSET+0)];
         h2d_req_txn_w[1].opcode                                             = h2d_req_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
-        h2d_req_txn_w[1].address                                            = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
+        h2d_req_txn_w[1].address[51:6]                                      = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
+        h2d_req_txn_w[1].address[5:0]                                       = 6'h0;
         h2d_req_txn_w[1].uqid                                               = data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+50)];
       end else begin
         h2d_req_txn_w[0].valid                                              = data[(SLOT3_OFFSET+0)];
         h2d_req_txn_w[0].opcode                                             = h2d_req_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
-        h2d_req_txn_w[0].address                                            = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
+        h2d_req_txn_w[0].address[51:6]                                      = data[(SLOT3_OFFSET+49):(SLOT3_OFFSET+4)];
+        h2d_req_txn_w[0].address[5:0]                                       = 6'h0;
         h2d_req_txn_w[0].uqid                                               = data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+50)];
       end
       h2d_data_wr_ptr++;
@@ -11187,7 +11206,8 @@ module device_rx_path #(
         m2s_req_txn_w[1].metafield                                          = metafield_t'(data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]);
         m2s_req_txn_w[1].metavalue                                          = metavalue_t'(data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]);
         m2s_req_txn_w[1].tag                                                = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
-        m2s_req_txn_w[1].address                                            = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
+        m2s_req_txn_w[1].address[51:6]                                      = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
+        m2s_req_txn_w[1].address[5:0]                                       = 6'h0;
         m2s_req_txn_w[1].tc                                                 = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
       end else begin
         m2s_req_txn_w[0].valid                                              = data[(SLOT1_OFFSET+0)];
@@ -11196,7 +11216,8 @@ module device_rx_path #(
         m2s_req_txn_w[0].metafield                                          = metafield_t'(data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]);
         m2s_req_txn_w[0].metavalue                                          = metavalue_t'(data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]);
         m2s_req_txn_w[0].tag                                                = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
-        m2s_req_txn_w[0].address                                            = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
+        m2s_req_txn_w[0].address[51:6]                                      = data[(SLOT1_OFFSET+74):(SLOT1_OFFSET+28)];
+        m2s_req_txn_w[0].address[5:0]                                       = 6'h0;
         m2s_req_txn_w[0].tc                                                 = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
       end
       if((m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 4'b1000) || (h2d_data_pkt_iob[h2d_data_wr_ptr].pending_data_slot.pend == 4'b1000)) posi = 2'b11;
@@ -11219,7 +11240,8 @@ module device_rx_path #(
         m2s_req_txn_w[1].metafield                                          = metafield_t'(data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]);
         m2s_req_txn_w[1].metavalue                                          = metavalue_t'(data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]);
         m2s_req_txn_w[1].tag                                                = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
-        m2s_req_txn_w[1].address                                            = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
+        m2s_req_txn_w[1].address[51:6]                                      = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
+        m2s_req_txn_w[1].address[5:0]                                       = 6'h0;
         m2s_req_txn_w[1].tc                                                 = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
       end else begin
         m2s_req_txn_w[0].valid                                              = data[(SLOT2_OFFSET+0)];
@@ -11228,7 +11250,8 @@ module device_rx_path #(
         m2s_req_txn_w[0].metafield                                          = metafield_t'(data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]);
         m2s_req_txn_w[0].metavalue                                          = metavalue_t'(data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]);
         m2s_req_txn_w[0].tag                                                = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
-        m2s_req_txn_w[0].address                                            = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
+        m2s_req_txn_w[0].address[51:6]                                      = data[(SLOT2_OFFSET+74):(SLOT2_OFFSET+28)];
+        m2s_req_txn_w[0].address[5:0]                                       = 6'h0;
         m2s_req_txn_w[0].tc                                                 = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
       end
       h2d_data_wr_ptr++;
@@ -11250,7 +11273,8 @@ module device_rx_path #(
         m2s_req_txn_w[1].metafield                                          = metafield_t'(data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]);
         m2s_req_txn_w[1].metavalue                                          = metavalue_t'(data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]);
         m2s_req_txn_w[1].tag                                                = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
-        m2s_req_txn_w[1].address                                            = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
+        m2s_req_txn_w[1].address[51:6]                                      = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
+        m2s_req_txn_w[1].address[5:0]                                       = 6'h0;
         m2s_req_txn_w[1].tc                                                 = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
       end else begin
         m2s_req_txn_w[0].valid                                              = data[(SLOT3_OFFSET+0)];
@@ -11259,7 +11283,8 @@ module device_rx_path #(
         m2s_req_txn_w[0].metafield                                          = metafield_t'(data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]);
         m2s_req_txn_w[0].metavalue                                          = metavalue_t'(data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]);
         m2s_req_txn_w[0].tag                                                = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
-        m2s_req_txn_w[0].address                                            = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
+        m2s_req_txn_w[0].address[51:6]                                      = data[(SLOT3_OFFSET+74):(SLOT3_OFFSET+28)];
+        m2s_req_txn_w[0].address[5:0]                                       = 6'h0;
         m2s_req_txn_w[0].tc                                                 = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
       end
       h2d_data_wr_ptr++;
@@ -11304,7 +11329,8 @@ module device_rx_path #(
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metafield               = metafield_t'(data[(SLOT1_OFFSET+9):(SLOT1_OFFSET+8)]);
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metavalue               = metavalue_t'(data[(SLOT1_OFFSET+11):(SLOT1_OFFSET+10)]);
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tag                     = data[(SLOT1_OFFSET+27):(SLOT1_OFFSET+12)];
-      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address                 = data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+28)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address[51:6]           = data[(SLOT1_OFFSET+73):(SLOT1_OFFSET+28)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address[5:0]           = 6'h0;
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.poison                  = data[(SLOT1_OFFSET+74)];
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tc                      = data[(SLOT1_OFFSET+76):(SLOT1_OFFSET+75)];
       if(h2d_rsp_ptr > 0) begin
@@ -11333,7 +11359,8 @@ module device_rx_path #(
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metafield               = metafield_t'(data[(SLOT2_OFFSET+9):(SLOT2_OFFSET+8)]);
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metavalue               = metavalue_t'(data[(SLOT2_OFFSET+11):(SLOT2_OFFSET+10)]);
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tag                     = data[(SLOT2_OFFSET+27):(SLOT2_OFFSET+12)];
-      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address                 = data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+28)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address[51:6]           = data[(SLOT2_OFFSET+73):(SLOT2_OFFSET+28)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address[5:0]           = 6'h0;
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.poison                  = data[(SLOT2_OFFSET+74)];
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tc                      = data[(SLOT2_OFFSET+76):(SLOT2_OFFSET+75)];
       if(h2d_rsp_ptr > 0) begin
@@ -11360,7 +11387,8 @@ module device_rx_path #(
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metafield               = metafield_t'(data[(SLOT3_OFFSET+9):(SLOT3_OFFSET+8)]);
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.metavalue               = metavalue_t'(data[(SLOT3_OFFSET+11):(SLOT3_OFFSET+10)]);
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tag                     = data[(SLOT3_OFFSET+27):(SLOT3_OFFSET+12)];
-      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address                 = data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+28)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address[51:6]           = data[(SLOT3_OFFSET+73):(SLOT3_OFFSET+28)];
+      m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.address[5:0]           = 6'h0;
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.poison                  = data[(SLOT3_OFFSET+74)];
       m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.tc                      = data[(SLOT3_OFFSET+76):(SLOT3_OFFSET+75)];
       if(h2d_rsp_ptr > 0) begin
@@ -11424,20 +11452,20 @@ module device_rx_path #(
                 data_slot[2] <= 'h0; 
                 data_slot[3] <= 'h0; 
                 data_slot[4] <= 'h0;
-              end else if(dev_rx_dl_if_d1_data[10:8] == 'h3) begin
+              end else if(dev_rx_dl_if_d1_data[16:14] == 'h3) begin
                 data_slot[0] <= 'h0; 
                 data_slot[1] <= 'hf; 
                 data_slot[2] <= 'hf; 
                 data_slot[3] <= 'hf; 
                 data_slot[4] <= 'hf;
               end
-            end else if((dev_rx_dl_if_d1_data[10:8] == 'h2) || (dev_rx_dl_if_d1_data[10:8] == 'h4) || (dev_rx_dl_if_d1_data[10:8] == 'h5)) begin  
+            end else if((dev_rx_dl_if_d1_data[13:11] == 'h2) || (dev_rx_dl_if_d1_data[13:11] == 'h4) || (dev_rx_dl_if_d1_data[13:11] == 'h5)) begin  
               data_slot[0] <= 'h8; 
               data_slot[1] <= 'he; 
               data_slot[2] <= 'h0; 
               data_slot[3] <= 'h0; 
               data_slot[4] <= 'h0;
-            end else if(dev_rx_dl_if_d1_data[10:8] == 'h3) begin  
+            end else if(dev_rx_dl_if_d1_data[13:11] == 'h3) begin  
               data_slot[0] <= 'h8; 
               data_slot[1] <= 'hf; 
               data_slot[2] <= 'hf; 
@@ -11661,6 +11689,7 @@ module device_rx_path #(
       m2s_rwd_rd_ptr <= 'h0;
     end else begin
       if((m2s_rwd_pkt_iob[m2s_rwd_rd_ptr].pending_data_slot.pend == 'h0) && (m2s_rwd_pkt_iob[m2s_rwd_rd_ptr].pending_data_slot.valid)) begin
+        m2s_rwd_pkt.m2s_rwd_txn.valid <= 'h1;
         m2s_rwd_pkt <= m2s_rwd_pkt_iob[m2s_rwd_rd_ptr];
         m2s_rwd_pkt_iob[m2s_rwd_rd_ptr].pending_data_slot.valid <= 'h0;
         m2s_rwd_rd_ptr <= m2s_rwd_rd_ptr + 1;
@@ -11668,6 +11697,7 @@ module device_rx_path #(
         m2s_rwd_pkt.m2s_rwd_txn.valid <= 'h0;
       end
       if((h2d_data_pkt_iob[h2d_data_rd_ptr].pending_data_slot.pend == 'h0) && (h2d_data_pkt_iob[h2d_data_rd_ptr].pending_data_slot.valid)) begin
+        h2d_data_pkt.h2d_data_txn.valid <= 'h1;
         h2d_data_pkt <= h2d_data_pkt_iob[h2d_data_rd_ptr];
         h2d_data_pkt_iob[h2d_data_rd_ptr].pending_data_slot.valid <= 'h0;
         h2d_data_rd_ptr <= h2d_data_rd_ptr + 1;
@@ -14843,7 +14873,7 @@ module tb_top;
     task sample();
       @(negedge dev_m2s_rwd_if.clk);
       m2s_rwd_seq_item_h               = m2s_rwd_seq_item::type_id::create("m2s_rwd_seq_item_h", this);
-      m2s_rwd_seq_item_h.valid         = dev_m2s_rwd_if.m2s_rwd_txn.valid;
+      m2s_rwd_seq_item_h.valid         = 1'b1;//dev_m2s_rwd_if.m2s_rwd_txn.valid;
       m2s_rwd_seq_item_h.address       = dev_m2s_rwd_if.m2s_rwd_txn.address;
       m2s_rwd_seq_item_h.memopcode     = dev_m2s_rwd_if.m2s_rwd_txn.memopcode;
       m2s_rwd_seq_item_h.metafield     = dev_m2s_rwd_if.m2s_rwd_txn.metafield;
