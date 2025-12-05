@@ -3595,7 +3595,7 @@ module host_tx_path#(
       data_slot[3]   <= 'h0;
       data_slot[4]   <= 'h0;
     end else begin
-      if(data_slot[1] == 'hf) begin
+      if((data_slot[0] == 'hf) || (data_slot[1] == 'hf)) begin
         data_slot[0] <= data_slot[1];
         data_slot[1] <= data_slot[2];
         data_slot[2] <= data_slot[3];
@@ -4902,10 +4902,30 @@ module device_tx_path#(
   logic         dev_tx_dl_if_rstn_d;
   logic         dev_tx_dl_if_rstn_dd;
   logic [511:0] dev_tx_dl_if_data_d;
+  logic d2h_req_rval_w;
+  logic d2h_req_drval_w;
+  logic d2h_req_trval_w;
+  logic d2h_req_qrval_w;
+  logic d2h_rsp_rval_w;
+  logic d2h_rsp_drval_w;
+  logic d2h_rsp_trval_w;
+  logic d2h_rsp_qrval_w;
+  logic d2h_data_rval_w;
+  logic d2h_data_drval_w;
+  logic d2h_data_trval_w;
+  logic d2h_data_qrval_w;
+  logic s2m_ndr_rval_w;
+  logic s2m_ndr_drval_w;
+  logic s2m_ndr_trval_w;
+  logic s2m_ndr_qrval_w;
+  logic s2m_drs_rval_w;
+  logic s2m_drs_drval_w;  
+  logic s2m_drs_trval_w;  
+  logic s2m_drs_qrval_w;
 
   ASSERT_DEVSIDE_ONEHOT_SLOT_SEL: assert property (@(posedge dev_tx_dl_if.clk) disable iff (!dev_tx_dl_if.rstn) $onehot(slot_sel));
 
-  assign h_val[0] = (d2h_data_occ > 0) && (d2h_rsp_occ  > 1)                      ;
+  assign h_val[0] = (d2h_data_occ > 0) && (d2h_rsp_occ  > 1) && (s2m_ndr_occ > 0) ;
   assign h_val[1] = (d2h_req_occ  > 0) && (d2h_data_occ > 0)                      ;
   assign h_val[2] = (d2h_data_occ > 3) && (d2h_rsp_occ  > 0)                      ;
   assign h_val[3] = (s2m_drs_occ  > 0) && (s2m_ndr_occ  > 0)                      ;
@@ -4913,7 +4933,7 @@ module device_tx_path#(
   assign h_val[5] = (s2m_drs_occ  > 1)                                            ;
   assign g_val[1] = (d2h_req_occ  > 0) && (d2h_rsp_occ  > 1)                      ;
   assign g_val[2] = (d2h_req_occ  > 0) && (d2h_data_occ > 0) && (d2h_rsp_occ > 0) ;
-  assign g_val[3] = (d2h_data_occ > 4)                                            ;
+  assign g_val[3] = (d2h_data_occ > 3)                                            ;
   assign g_val[4] = (s2m_drs_occ  > 0) && (s2m_ndr_occ  > 1)                      ;
   assign g_val[5] = (s2m_ndr_occ  > 2)                                            ;
   assign g_val[6] = (s2m_drs_occ  > 2)                                            ;
@@ -4923,26 +4943,26 @@ module device_tx_path#(
  
   assign insert_ack = (((ack_cnt_tbs-ack_cnt_snt) > 16) || init_done)? 1'h1: 1'h0 ; 
 
-  assign d2h_req_drval   = 'h0;
-  assign d2h_req_trval   = 'h0;
-  assign d2h_req_qrval   = 'h0;
-  assign d2h_rsp_drval   = 'h0;
-  assign d2h_rsp_trval   = 'h0;
-  assign d2h_rsp_qrval   = 'h0;
-  assign s2m_ndr_qrval   = 'h0;
-  assign s2m_drs_trval   = 'h0;
-  assign s2m_drs_qrval   = 'h0;
-  assign d2h_data_rval   = (h_gnt[0] || h_gnt[1] || h_gnt[2] || g_gnt[2] || g_gnt[3])? 'h1: 'h0;
-  assign d2h_rsp_rval    = (h_gnt[0] || h_gnt[2] || g_gnt[2])?                         'h1: 'h0;
-  assign s2m_ndr_rval    = (h_gnt[0] || h_gnt[3] || h_gnt[4] || g_gnt[4] || g_gnt[5])? 'h1: 'h0;
-  assign d2h_req_rval    = (h_gnt[1] || g_gnt[2])?                                     'h1: 'h0;
-  assign d2h_data_drval  = (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
-  assign d2h_data_trval  = (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
-  assign d2h_data_qrval  = (h_gnt[2] || g_gnt[3])?                                     'h1: 'h0;
-  assign s2m_drs_rval    = (h_gnt[3] || h_gnt[5] || g_gnt[4] || g_gnt[6])?             'h1: 'h0;
-  assign s2m_ndr_drval   = (h_gnt[4] || g_gnt[4] || g_gnt[5])?                         'h1: 'h0;
-  assign s2m_drs_drval   = (h_gnt[5] || g_gnt[6])?                                     'h1: 'h0;
-  assign s2m_ndr_trval   = (g_gnt[5])?                                                 'h1: 'h0;
+  assign d2h_req_drval_w   = 'h0;
+  assign d2h_req_trval_w   = 'h0;
+  assign d2h_req_qrval_w   = 'h0;
+  assign d2h_rsp_drval_w   = (h_gnt[0] || g_gnt[1])?              'h1: 'h0;
+  assign d2h_rsp_trval_w   = 'h0;
+  assign d2h_rsp_qrval_w   = 'h0;
+  assign s2m_ndr_qrval_w   = 'h0;
+  assign s2m_drs_trval_w   = (g_gnt[6])?                          'h1: 'h0;
+  assign s2m_drs_qrval_w   = 'h0;
+  assign d2h_data_rval_w   = (h_gnt[0] || h_gnt[1] || g_gnt[2])?  'h1: 'h0;
+  assign d2h_rsp_rval_w    = (h_gnt[2] || g_gnt[2])?              'h1: 'h0;
+  assign s2m_ndr_rval_w    = (h_gnt[0] || h_gnt[3])?              'h1: 'h0;
+  assign d2h_req_rval_w    = (h_gnt[1] || g_gnt[1] || g_gnt[2])?  'h1: 'h0;
+  assign d2h_data_drval_w  = 'h0;
+  assign d2h_data_trval_w  = 'h0;
+  assign d2h_data_qrval_w  = (h_gnt[2] || g_gnt[3])?              'h1: 'h0;
+  assign s2m_drs_rval_w    = (h_gnt[3] || g_gnt[4])?              'h1: 'h0;
+  assign s2m_ndr_drval_w   = (h_gnt[4] || g_gnt[4])?              'h1: 'h0;
+  assign s2m_drs_drval_w   = (h_gnt[5])?                          'h1: 'h0;
+  assign s2m_ndr_trval_w   = (g_gnt[5])?                          'h1: 'h0;
 
   always_comb begin
     h2d_rsp_outstanding_credits     = (h2d_rsp_occ_d  > h2d_rsp_occ ) ? (h2d_rsp_occ_d  - h2d_rsp_occ   ) : 'h0;
@@ -5944,19 +5964,59 @@ module device_tx_path#(
   //ll pkt buffer
   always@(negedge dev_tx_dl_if.clk) begin
     if(!dev_tx_dl_if.rstn) begin
-      data_slot[0]    <= 'h0;
-      data_slot[1]    <= 'h0;
-      data_slot[2]    <= 'h0;
-      data_slot[3]    <= 'h0;
-      data_slot[4]    <= 'h0;
+      data_slot[0]    <= 'h0              ;
+      data_slot[1]    <= 'h0              ;
+      data_slot[2]    <= 'h0              ;
+      data_slot[3]    <= 'h0              ;
+      data_slot[4]    <= 'h0              ;
+      d2h_req_rval    <= 'h0              ;
+      d2h_req_drval   <= 'h0              ;
+      d2h_req_trval   <= 'h0              ;
+      d2h_req_qrval   <= 'h0              ;
+      d2h_rsp_rval    <= 'h0              ;
+      d2h_rsp_drval   <= 'h0              ;
+      d2h_rsp_trval   <= 'h0              ;
+      d2h_rsp_qrval   <= 'h0              ;   
+      d2h_data_rval   <= 'h0              ;
+      d2h_data_drval  <= 'h0              ;
+      d2h_data_trval  <= 'h0              ; 
+      d2h_data_qrval  <= 'h0              ;
+      s2m_ndr_rval    <= 'h0              ;
+      s2m_ndr_drval   <= 'h0              ;
+      s2m_ndr_trval   <= 'h0              ;
+      s2m_ndr_qrval   <= 'h0              ;
+      s2m_drs_rval    <= 'h0              ;
+      s2m_drs_drval   <= 'h0              ;
+      s2m_drs_trval   <= 'h0              ;
+      s2m_drs_qrval   <= 'h0              ;
     end else begin
       if(data_slot[1] == 'hf) begin
-        data_slot[0]  <= data_slot[1];
-        data_slot[1]  <= data_slot[2];
-        data_slot[2]  <= data_slot[3];
-        data_slot[3]  <= data_slot[4];
-        data_slot[4]  <= 'h0;
+        data_slot[0]  <= data_slot[1]     ;
+        data_slot[1]  <= data_slot[2]     ;
+        data_slot[2]  <= data_slot[3]     ;
+        data_slot[3]  <= data_slot[4]     ;
+        data_slot[4]  <= 'h0              ;
       end
+      d2h_req_rval    <= d2h_req_rval_w   ;
+      d2h_req_drval   <= d2h_req_drval_w  ;
+      d2h_req_trval   <= d2h_req_trval_w  ;
+      d2h_req_qrval   <= d2h_req_qrval_w  ;
+      d2h_rsp_rval    <= d2h_rsp_rval_w   ;
+      d2h_rsp_drval   <= d2h_rsp_drval_w  ;
+      d2h_rsp_trval   <= d2h_rsp_trval_w  ;
+      d2h_rsp_qrval   <= d2h_rsp_qrval_w  ;
+      d2h_data_rval   <= d2h_data_rval_w  ;
+      d2h_data_drval  <= d2h_data_drval_w ;
+      d2h_data_trval  <= d2h_data_trval_w ;
+      d2h_data_qrval  <= d2h_data_qrval_w ;
+      s2m_ndr_rval    <= s2m_ndr_rval_w   ;
+      s2m_ndr_drval   <= s2m_ndr_drval_w  ;
+      s2m_ndr_trval   <= s2m_ndr_trval_w  ;
+      s2m_ndr_qrval   <= s2m_ndr_qrval_w  ;
+      s2m_drs_rval    <= s2m_drs_rval_w   ;
+      s2m_drs_drval   <= s2m_drs_drval_w  ;
+      s2m_drs_trval   <= s2m_drs_trval_w  ;
+      s2m_drs_qrval   <= s2m_drs_qrval_w  ;
     end
   end
 
@@ -7184,6 +7244,7 @@ module device_tx_path#(
       end
       if(holding_q[holding_rdptr].valid) begin
         dev_tx_dl_if_pre_valid  <= holding_q[holding_rdptr].valid;
+        holding_q[holding_rdptr].valid       <= 'h0;
         dev_tx_dl_if_pre_data   <= holding_q[holding_rdptr].data;
         holding_rdptr           <= holding_rdptr + 1;
       end else begin
@@ -9790,9 +9851,11 @@ module device_rx_path #(
   logic dev_rx_dl_if_d1_valid;//assuming crc checker takes 1 cycle to tell crc pass or fail
   logic dev_rx_dl_if_d2_valid;
   logic dev_rx_dl_if_d3_valid;
+  logic dev_rx_dl_if_d4_valid;
   logic [511:0] dev_rx_dl_if_d1_data;//assuming crc checker takes 1 cycle to tell crc pass or fail
   logic [511:0] dev_rx_dl_if_d2_data;
   logic [511:0] dev_rx_dl_if_d3_data;
+  logic [511:0] dev_rx_dl_if_d4_data;
   logic retry_frame_detect;
   logic retry_req_detect;
   logic retry_ack_detect;
@@ -9817,6 +9880,8 @@ module device_rx_path #(
   bit [4:0] h2d_data_wr_ptr;
   bit [4:0] m2s_rwd_rd_ptr;
   bit [4:0] m2s_rwd_wr_ptr = 'h1f;
+  bit adf;
+  bit adf_d;
 
   assign init_done          = (dev_rx_dl_if_d1_data[39:36] == 'h8) && (dev_rx_dl_if_d1_data[35:32] == 'hc) && (dev_rx_dl_if_d1_data[0] == 'h1) && (dev_rx_dl_if_d1_valid) && (crc_pass_d) && (!crc_fail_d);
   assign retry_frame_detect = (dev_rx_dl_if_d1_data[39:36] == 'h3) && (dev_rx_dl_if_d1_data[35:32] == 'h1) && (dev_rx_dl_if_d1_data[0] == 'h1) && (dev_rx_dl_if_d1_valid) && (crc_pass_d) && (!crc_fail_d);
@@ -10085,8 +10150,10 @@ module device_rx_path #(
           2'b00:
           begin
             if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'hf) begin
-              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
-              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b1110;
+              //m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT1_OFFSET-1:0] = data[SLOT1_OFFSET-1:0];
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[511:0] = data[511:0];
+              //m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b1110;
+              m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b0000;
             end else begin
               $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
             end
@@ -10115,12 +10182,12 @@ module device_rx_path #(
           case(cond)
           2'b00:
           begin
-            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1110) begin
+            /*if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1110) begin
               m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT2_OFFSET-1:SLOT1_OFFSET] = data[SLOT2_OFFSET-1:SLOT1_OFFSET];
               m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b1100;
             end else begin
               $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
-            end
+            end*/
           end
           2'b01:
           begin
@@ -10181,12 +10248,12 @@ module device_rx_path #(
           case(cond)
           2'b00:
           begin
-            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1100) begin
+            /*if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1100) begin
               m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[SLOT3_OFFSET-1:SLOT2_OFFSET] = data[SLOT3_OFFSET-1:SLOT2_OFFSET];
               m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b1000;
             end else begin
               $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
-            end
+            end*/
           end
           2'b01:
           begin
@@ -10242,12 +10309,12 @@ module device_rx_path #(
           case(cond)
           2'b00:
           begin
-            if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1000) begin
+            /*if(m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend == 'b1000) begin
               m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].m2s_rwd_txn.data[511:SLOT3_OFFSET] = data[511:SLOT3_OFFSET];
               m2s_rwd_pkt_iob[m2s_rwd_wr_ptr].pending_data_slot.pend = 'b0000;
             end else begin
               $display("@%0t: w/line#%0d Invalid packing case", $time, `__LINE__);
-            end
+            end*/
           end
           2'b01:
           begin
@@ -11412,20 +11479,31 @@ module device_rx_path #(
     end
 
   endfunction
-
+  
   always@(posedge dev_rx_dl_if.clk) begin
     if(!dev_rx_dl_if.rstn) begin
-      dev_rx_dl_if_d2_valid <= 'h0;
-      dev_rx_dl_if_d2_data <= 'h0;
-      dev_rx_dl_if_d3_valid <= 'h0;
-      dev_rx_dl_if_d3_data <= 'h0;
+      dev_rx_dl_if_d2_valid   <= 'h0;
+      dev_rx_dl_if_d2_data    <= 'h0;
+      dev_rx_dl_if_d3_valid   <= 'h0;
+      dev_rx_dl_if_d3_data    <= 'h0;
+      dev_rx_dl_if_d4_valid   <= 'h0;
+      dev_rx_dl_if_d4_data    <= 'h0;
     end else begin
-      dev_rx_dl_if_d2_valid <= dev_rx_dl_if_d1_valid;
-      dev_rx_dl_if_d2_data <= dev_rx_dl_if_d1_data;
-      dev_rx_dl_if_d3_valid <= dev_rx_dl_if_d2_valid;
-      dev_rx_dl_if_d3_data <= dev_rx_dl_if_d2_data;
-      if(dev_rx_dl_if_d1_valid && retryable_flit && (!llcrd_flit) && 
-          (!data_slot[0][3] || 
+      dev_rx_dl_if_d2_valid   <= dev_rx_dl_if_d1_valid;
+      dev_rx_dl_if_d2_data    <= dev_rx_dl_if_d1_data;
+      dev_rx_dl_if_d3_valid   <= dev_rx_dl_if_d2_valid;
+      dev_rx_dl_if_d3_data    <= dev_rx_dl_if_d2_data;
+      dev_rx_dl_if_d4_valid   <= dev_rx_dl_if_d3_valid;
+      dev_rx_dl_if_d4_data    <= dev_rx_dl_if_d3_data;
+      if(dev_rx_dl_if_d1_valid && retryable_flit && (!llcrd_flit) && adf) begin//((data_slot[0] == 'he) && (data_slot[1] == 'hf))) begin
+        data_slot[0]                    <= data_slot[1]; 
+        data_slot[1]                    <= data_slot[2]; 
+        data_slot[2]                    <= data_slot[3]; 
+        data_slot[3]                    <= data_slot[4]; 
+        data_slot[4]                    <= 'h0;
+      end
+      if(dev_rx_dl_if_d1_valid && retryable_flit && (!llcrd_flit) && (!adf) //&&//this dependency is bad avoid this condition
+          /*((!data_slot[0][3]) || (!data_slot[0][0]) ||
             ((data_slot[0] == 'hf) && 
               (
                 (h2d_data_pkt_d[h2d_data_wr_ptr].pending_data_slot.pend == 'h0) &&
@@ -11435,7 +11513,7 @@ module device_rx_path #(
                 (m2s_rwd_pkt_d.pending_data_slot.pend == 'h0)
               )
             )
-          )
+          )*/
         ) begin 
         if((dev_rx_dl_if_d1_data[7:5] == 'h0) || (dev_rx_dl_if_d1_data[7:5] == 'h5)) begin
           if(dev_rx_dl_if_d1_data[10:8] == 'h1) begin
@@ -11486,17 +11564,17 @@ module device_rx_path #(
             data_slot[4] <= 'h6;
           end
         end else if((dev_rx_dl_if_d1_data[7:5] == 'h1) || (dev_rx_dl_if_d1_data[7:5] == 'h2) || (dev_rx_dl_if_d1_data[7:5] == 'h4)) begin
-          data_slot[0] <= 'he; 
-          data_slot[1] <= 'h2; 
+          data_slot[0] <= 'he;//((data_slot[0] == 'he) && (data_slot[1] == 'hf))? 'hf: 'he; 
+          data_slot[1] <= (data_slot[1] == 'h2)? 'h6: (data_slot[1] == 'h6)? 'he: (data_slot[1] == 'he)? 'hf: 'h2; 
           data_slot[2] <= 'h0; 
           data_slot[3] <= 'h0; 
           data_slot[4] <= 'h0;
         end else if(dev_rx_dl_if_d1_data[7:5] == 'h3) begin
-          data_slot[0] <= 'he; 
+          data_slot[0] <= 'he;//((data_slot[0] == 'he) && (data_slot[1] == 'hf))? 'hf: 'he; 
           data_slot[1] <= 'hf; 
           data_slot[2] <= 'hf; 
           data_slot[3] <= 'hf; 
-          data_slot[4] <= 'h2;
+          data_slot[4] <= (data_slot[4] == 'h2)? 'h6: (data_slot[4] == 'h6)? 'he: (data_slot[4] == 'he)? 'hf: 'h2;
         end
       end
     end  
@@ -11515,7 +11593,13 @@ module device_rx_path #(
       ack                    <= 'h0;
       ack_count_d            <= 'h0;
       ack_ret_val            <= 'h0;
+      adf                    <= 'h0;
     end else begin
+      if(!adf && dev_rx_dl_if_d1_valid && data_slot[0] == 'he && data_slot[1] == 'hf) begin
+        adf <= 'h1;
+      end else if(dev_rx_dl_if_d1_valid && adf) begin
+        adf <= 'h0;
+      end
       if(dev_rx_dl_if_d1_valid && retryable_flit && (!llcrd_flit)) begin
         h2d_req_txn[0]       <= h2d_req_txn_w[0];
         h2d_req_txn[1]       <= h2d_req_txn_w[1];
@@ -11546,13 +11630,6 @@ module device_rx_path #(
       end else begin
         ack_ret_val <= 'h0;
       end      
-      if(dev_rx_dl_if_d1_valid && retryable_flit && (!llcrd_flit) && (data_slot[0] == 'hf)) begin
-        data_slot[0]                   <= data_slot[1]; 
-        data_slot[1]                   <= data_slot[2]; 
-        data_slot[2]                   <= data_slot[3]; 
-        data_slot[3]                   <= data_slot[4]; 
-        data_slot[4]                   <= 'h0;
-      end
       m2s_rwd_pkt_d                     <= m2s_rwd_pkt;
       h2d_data_pkt_d[h2d_data_wr_ptr]   <= h2d_data_pkt_iob[h2d_data_wr_ptr];
       h2d_data_pkt_d[h2d_data_wr_ptr-1] <= h2d_data_pkt_iob[h2d_data_wr_ptr-1];
@@ -11563,117 +11640,124 @@ module device_rx_path #(
 
   //TODO: put the packing logic restrictions in the arbiter logic itself so here I do not need to worry why I am getting illegal pkts we can have assertions to catch the max sub pkts that can be packed
   //TODO: put asserts to catch if there any illegal values on Hslots or Gslots otherwise bellow logic will be very hard to debug
-  always_comb begin
-    if(dev_rx_dl_if_d3_valid && retryable_flit && (!llcrd_flit)) begin
-      ack_count = ack_count + 1;
-      if(!data_slot[0][0]) begin
-        h2d_req_ptr   = 'h0;
-        h2d_rsp_ptr   = 'h0;
-        h2d_data_ptr  = 'h0;
-        m2s_req_ptr   = 'h0;
-        case(dev_rx_dl_if_d3_data[7:5])
-          3'b000: begin
-            header0(dev_rx_dl_if_d3_data, h2d_req_txn_w, h2d_rsp_txn_w);
-            h2d_req_ptr = h2d_req_ptr + 1;
-            h2d_rsp_ptr = h2d_rsp_ptr + 1;
-          end
-          3'b001: begin
-            header1(dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w);
-          end
-          3'b010: begin
-            header2(dev_rx_dl_if_d3_data, h2d_req_txn_w, h2d_data_pkt_iob, h2d_data_wr_ptr);
-          end
-          3'b011: begin
-            header3(dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr);
-          end
-          3'b100: begin
-            header4(dev_rx_dl_if_d3_data, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
-          end
-          3'b101: begin
-            header5(dev_rx_dl_if_d3_data, m2s_req_txn_w);
-            m2s_req_ptr = m2s_req_ptr + 1;
-          end
-          default: begin
+  always@(posedge dev_rx_dl_if.clk) begin
+    if(!dev_rx_dl_if.rstn) begin
+    end else begin
+      if(dev_rx_dl_if_d2_valid && retryable_flit && (!llcrd_flit)) begin
+        ack_count <= ack_count + 1;
+        if(!data_slot[0][0]) begin
+          h2d_req_ptr   <= 'h0;
+          h2d_rsp_ptr   <= 'h0;
+          h2d_data_ptr  <= 'h0;
+          m2s_req_ptr   <= 'h0;
+          case(dev_rx_dl_if_d2_data[7:5])
+            3'b000: begin
+              header0(dev_rx_dl_if_d2_data, h2d_req_txn_w, h2d_rsp_txn_w);
+              h2d_req_ptr <= h2d_req_ptr + 1;
+              h2d_rsp_ptr <= h2d_rsp_ptr + 1;
+            end
+            3'b001: begin
+              header1(dev_rx_dl_if_d2_data, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w);
+            end
+            3'b010: begin
+              header2(dev_rx_dl_if_d2_data, h2d_req_txn_w, h2d_data_pkt_iob, h2d_data_wr_ptr);
+            end
+            3'b011: begin
+              header3(dev_rx_dl_if_d2_data, h2d_data_pkt_iob, h2d_data_wr_ptr);
+            end
+            3'b100: begin
+              header4(dev_rx_dl_if_d2_data, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
+            end
+            3'b101: begin
+              header5(dev_rx_dl_if_d2_data, m2s_req_txn_w);
+              m2s_req_ptr <= m2s_req_ptr + 1;
+            end
+            default: begin
 
-          end
-        endcase
-        case(dev_rx_dl_if_d3_data[10:8])
-          3'b000: begin
-            generic0('h1, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
-          end
-          3'b001: begin
-            generic1('h1, dev_rx_dl_if_d3_data, h2d_rsp_txn_w);
-          end
-          3'b010: begin
-            generic2('h1, dev_rx_dl_if_d3_data, h2d_req_txn_w, h2d_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
-          end
-          3'b011: begin
-            generic3('h1, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
-          end
-          3'b100: begin
-            generic4('h1, dev_rx_dl_if_d3_data, m2s_req_txn_w, m2s_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr);
-          end
-          3'b101: begin
-            generic5('h1, dev_rx_dl_if_d3_data, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
-          end
-          default: begin
-          
-          end
-        endcase
-        case(dev_rx_dl_if_d3_data[13:11])
-          3'b000: begin
-            generic0('h2, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
-          end
-          3'b001: begin
-            generic1('h2, dev_rx_dl_if_d3_data, h2d_rsp_txn_w);
-          end
-          3'b010: begin
-            generic2('h2, dev_rx_dl_if_d3_data, h2d_req_txn_w, h2d_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
-          end
-          3'b011: begin
-            generic3('h2, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
-          end
-          3'b100: begin
-            generic4('h2, dev_rx_dl_if_d3_data, m2s_req_txn_w, m2s_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr);
-          end
-          3'b101: begin
-            generic5('h2, dev_rx_dl_if_d3_data, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
-          end
-          default: begin
-          
-          end
-        endcase
-        case(dev_rx_dl_if_d3_data[16:14])
-          3'b000: begin
-            generic0('h3, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
-          end
-          3'b001: begin
-            generic1('h3, dev_rx_dl_if_d3_data, h2d_rsp_txn_w);
-          end
-          3'b010: begin
-            generic2('h3, dev_rx_dl_if_d3_data, h2d_req_txn_w, h2d_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
-          end
-          3'b011: begin
-            generic3('h3, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
-          end
-          3'b100: begin
-            generic4('h3, dev_rx_dl_if_d3_data, m2s_req_txn_w, m2s_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr);
-          end
-          3'b101: begin
-            generic5('h3, dev_rx_dl_if_d3_data, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
-          end
-          default: begin
-          
-          end
-        endcase
-      end else if(data_slot[0][0]) begin
-          generic0('h0, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
+            end
+          endcase
+          case(dev_rx_dl_if_d2_data[10:8])
+            3'b000: begin
+              generic0('h1, dev_rx_dl_if_d2_data, h2d_data_pkt_iob, h2d_data_wr_ptr, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
+            end
+            3'b001: begin
+              generic1('h1, dev_rx_dl_if_d2_data, h2d_rsp_txn_w);
+            end
+            3'b010: begin
+              generic2('h1, dev_rx_dl_if_d2_data, h2d_req_txn_w, h2d_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
+            end
+            3'b011: begin
+              generic3('h1, dev_rx_dl_if_d2_data, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
+            end
+            3'b100: begin
+              generic4('h1, dev_rx_dl_if_d2_data, m2s_req_txn_w, m2s_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr);
+            end
+            3'b101: begin
+              generic5('h1, dev_rx_dl_if_d2_data, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
+            end
+            default: begin
+            
+            end
+          endcase
+          case(dev_rx_dl_if_d2_data[13:11])
+            3'b000: begin
+              generic0('h2, dev_rx_dl_if_d2_data, h2d_data_pkt_iob, h2d_data_wr_ptr, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
+            end
+            3'b001: begin
+              generic1('h2, dev_rx_dl_if_d2_data, h2d_rsp_txn_w);
+            end
+            3'b010: begin
+              generic2('h2, dev_rx_dl_if_d2_data, h2d_req_txn_w, h2d_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
+            end
+            3'b011: begin
+              generic3('h2, dev_rx_dl_if_d2_data, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
+            end
+            3'b100: begin
+              generic4('h2, dev_rx_dl_if_d2_data, m2s_req_txn_w, m2s_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr);
+            end
+            3'b101: begin
+              generic5('h2, dev_rx_dl_if_d2_data, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
+            end
+            default: begin
+            
+            end
+          endcase
+          case(dev_rx_dl_if_d2_data[16:14])
+            3'b000: begin
+              generic0('h3, dev_rx_dl_if_d2_data, h2d_data_pkt_iob, h2d_data_wr_ptr, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
+            end
+            3'b001: begin
+              generic1('h3, dev_rx_dl_if_d2_data, h2d_rsp_txn_w);
+            end
+            3'b010: begin
+              generic2('h3, dev_rx_dl_if_d2_data, h2d_req_txn_w, h2d_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
+            end
+            3'b011: begin
+              generic3('h3, dev_rx_dl_if_d2_data, h2d_data_pkt_iob, h2d_data_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
+            end
+            3'b100: begin
+              generic4('h3, dev_rx_dl_if_d2_data, m2s_req_txn_w, m2s_req_ptr, h2d_data_pkt_iob, h2d_data_wr_ptr);
+            end
+            3'b101: begin
+              generic5('h3, dev_rx_dl_if_d2_data, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr, h2d_rsp_txn_w, h2d_rsp_ptr);
+            end
+            default: begin
+            
+            end
+          endcase
+        end else if(data_slot[0][0]) begin
+          generic0('h0, dev_rx_dl_if_d2_data, h2d_data_pkt_iob, h2d_data_wr_ptr, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
+        end
       end
-    end
-
-    if(dev_rx_dl_if_d2_valid && retryable_flit && llcrd_flit) begin
-      ack_count = ack_count + 1;
-      ack_ret = {dev_rx_dl_if_d3_data[71:68], dev_rx_dl_if_d3_data[2], dev_rx_dl_if_d3_data[66:64]};
+      //if(dev_rx_dl_if_d3_valid && adf && retryable_flit && (!llcrd_flit)) begin
+      //  if(data_slot[0][0]) begin
+      //    generic0('h0, dev_rx_dl_if_d3_data, h2d_data_pkt_iob, h2d_data_wr_ptr, m2s_rwd_pkt_iob, m2s_rwd_wr_ptr);
+      //  end
+     // end
+      if(dev_rx_dl_if_d2_valid && retryable_flit && llcrd_flit) begin
+        ack_count <= ack_count + 1;
+        ack_ret <= {dev_rx_dl_if_d3_data[71:68], dev_rx_dl_if_d3_data[2], dev_rx_dl_if_d3_data[66:64]};
+      end
     end
   end 
 
@@ -11930,7 +12014,7 @@ module buffer#(
      	wrptr <= 0;
      	eseq <= 'h0;
     end else begin
-     	if(rval || wval) begin
+     	//if(rval || wval) begin
         if((wval && !full) || (dwval && (occupancy < (DEPTH-3))) || (twval && (occupancy < (DEPTH-4))) || (qwval && (occupancy < (DEPTH-5)))) begin
          	casez({qwval,twval,dwval,wval})
             4'b0001: begin
@@ -11973,18 +12057,18 @@ module buffer#(
                 rdptr <= rdptr + ack_cnt;
               end
             end
-            4'b0010: begin
+            4'b001?: begin
               rdptr <= rdptr + 2;
          	    dataout <= fifo_h[rdptr];
          	    ddataout <= fifo_h[rdptr+1];
             end
-            4'b0100: begin
+            4'b01??: begin
               rdptr <= rdptr + 3;
          	    dataout <= fifo_h[rdptr];
          	    ddataout <= fifo_h[rdptr+1];
          	    tdataout <= fifo_h[rdptr+2];
             end
-            4'b1000: begin
+            4'b1???: begin
               rdptr <= rdptr + 4;
          	    dataout <= fifo_h[rdptr];
          	    ddataout <= fifo_h[rdptr+1];
@@ -11996,7 +12080,7 @@ module buffer#(
             end
           endcase
         end
-     	end
+     	//end
     end
  	end
   
@@ -12777,6 +12861,9 @@ module cxl_device
   	.trval(s2m_ndr_trval),
   	.qrval(s2m_ndr_qrval),
   	.wval(dev_s2m_ndr_if.s2m_ndr_txn.valid),
+  	.dwval('h0),
+  	.twval('h0),
+  	.qwval('h0),
     .datain(dev_s2m_ndr_if.s2m_ndr_txn),
     .dataout(s2m_ndr_dataout),
     .ddataout(s2m_ndr_ddataout),
@@ -20597,7 +20684,7 @@ module tb_top;
           if(cxl_cfg_obj_h.cxl_type inside {GEET_CXL_TYPE_2, GEET_CXL_TYPE_3}) begin
             `uvm_info(get_type_name(), $sformatf("starting host_m2s_rwd_seq"), UVM_HIGH)
             if(p_sequencer.host_m2s_rwd_seqr == null) `uvm_fatal(get_type_name(), "dev_d2h_req_seqr is null")
-            `uvm_do_on_with(host_m2s_rwd_seq_h, p_sequencer.host_m2s_rwd_seqr, {num_trans == 3;});
+            `uvm_do_on_with(host_m2s_rwd_seq_h, p_sequencer.host_m2s_rwd_seqr, {num_trans == 12;});
             `uvm_info(get_type_name(), $sformatf("completed host_m2s_rwd_seq"), UVM_HIGH)
           end
         end
