@@ -2565,6 +2565,7 @@ module host_tx_path#(
   assign h_val[3] = (h2d_data_occ > 3)                                            ;
   assign h_val[4] = (m2s_rwd_occ  > 0)                                            ;
   assign h_val[5] = (m2s_req_occ  > 0)                                            ;
+  assign g_val[0] = 'h0                                                           ;
   assign g_val[1] = (h2d_rsp_occ  > 3)                                            ;
   assign g_val[2] = (h2d_req_occ  > 0) && (h2d_data_occ > 0) && (h2d_rsp_occ > 0) ;
   assign g_val[3] = (h2d_data_occ > 3) && (h2d_rsp_occ  > 0)                      ;
@@ -3764,6 +3765,9 @@ module host_tx_path#(
             end
           end
         end
+        XSLOT: begin
+          slot_sel <= XSLOT;
+        end
         default: begin
             slot_sel <= XSLOT;
         end 
@@ -4006,7 +4010,7 @@ module host_tx_path#(
                   holding_q[holding_wrptr+3].data[383:0]   <= h2d_data_tdataout.data[511:128];
                   holding_q[holding_wrptr+3].data[511:384] <= h2d_data_qdataout.data[127:0];
                   holding_q[holding_wrptr+3].valid         <= 'h1;
-                  holding_q[holding_wrptr+4].data[511:128]   <= h2d_data_qdataout.data[511:128];
+                  holding_q[holding_wrptr+4].data[511:128] <= h2d_data_qdataout.data[511:128];
                   holding_q[holding_wrptr+4].valid         <= 'h0;
                   holding_wrptr                            <= holding_wrptr + 4;
                 end else if(data_slot_d[0] == 'he) begin
@@ -4902,26 +4906,26 @@ module device_tx_path#(
   logic         dev_tx_dl_if_rstn_d;
   logic         dev_tx_dl_if_rstn_dd;
   logic [511:0] dev_tx_dl_if_data_d;
-  logic d2h_req_rval_w;
-  logic d2h_req_drval_w;
-  logic d2h_req_trval_w;
-  logic d2h_req_qrval_w;
-  logic d2h_rsp_rval_w;
-  logic d2h_rsp_drval_w;
-  logic d2h_rsp_trval_w;
-  logic d2h_rsp_qrval_w;
-  logic d2h_data_rval_w;
-  logic d2h_data_drval_w;
-  logic d2h_data_trval_w;
-  logic d2h_data_qrval_w;
-  logic s2m_ndr_rval_w;
-  logic s2m_ndr_drval_w;
-  logic s2m_ndr_trval_w;
-  logic s2m_ndr_qrval_w;
-  logic s2m_drs_rval_w;
-  logic s2m_drs_drval_w;  
-  logic s2m_drs_trval_w;  
-  logic s2m_drs_qrval_w;
+  logic         d2h_req_rval_w;
+  logic         d2h_req_drval_w;
+  logic         d2h_req_trval_w;
+  logic         d2h_req_qrval_w;
+  logic         d2h_rsp_rval_w;
+  logic         d2h_rsp_drval_w;
+  logic         d2h_rsp_trval_w;
+  logic         d2h_rsp_qrval_w;
+  logic         d2h_data_rval_w;
+  logic         d2h_data_drval_w;
+  logic         d2h_data_trval_w;
+  logic         d2h_data_qrval_w;
+  logic         s2m_ndr_rval_w;
+  logic         s2m_ndr_drval_w;
+  logic         s2m_ndr_trval_w;
+  logic         s2m_ndr_qrval_w;
+  logic         s2m_drs_rval_w;
+  logic         s2m_drs_drval_w;  
+  logic         s2m_drs_trval_w;  
+  logic         s2m_drs_qrval_w;
 
   ASSERT_DEVSIDE_ONEHOT_SLOT_SEL: assert property (@(posedge dev_tx_dl_if.clk) disable iff (!dev_tx_dl_if.rstn) $onehot(slot_sel));
 
@@ -4931,15 +4935,16 @@ module device_tx_path#(
   assign h_val[3] = (s2m_drs_occ  > 0) && (s2m_ndr_occ  > 0)                      ;
   assign h_val[4] = (s2m_ndr_occ  > 1)                                            ; 
   assign h_val[5] = (s2m_drs_occ  > 1)                                            ;
+  assign g_val[0] = 'h0                                                           ;
   assign g_val[1] = (d2h_req_occ  > 0) && (d2h_rsp_occ  > 1)                      ;
   assign g_val[2] = (d2h_req_occ  > 0) && (d2h_data_occ > 0) && (d2h_rsp_occ > 0) ;
   assign g_val[3] = (d2h_data_occ > 3)                                            ;
   assign g_val[4] = (s2m_drs_occ  > 0) && (s2m_ndr_occ  > 1)                      ;
-  assign g_val[5] = (s2m_ndr_occ  > 2)                                            ;
+  assign g_val[5] = (s2m_ndr_occ  > 1)                                            ;
   assign g_val[6] = (s2m_drs_occ  > 2)                                            ;
   
   assign h_req = ((slot_sel>1)  || (data_slot[0] == 'hf))? 'h0: h_val             ;
-  assign g_req = ((slot_sel[0]) || (data_slot[0] == 'hf))? 'h0: g_val             ;
+  assign g_req = ((slot_sel[0]) || ((data_slot[0] == 'hf) || (data_slot[0] == 'he)))? 'h0: g_val             ;
  
   assign insert_ack = (((ack_cnt_tbs-ack_cnt_snt) > 16) || init_done)? 1'h1: 1'h0 ; 
 
@@ -4960,9 +4965,9 @@ module device_tx_path#(
   assign d2h_data_trval_w  = 'h0;
   assign d2h_data_qrval_w  = (h_gnt[2] || g_gnt[3])?              'h1: 'h0;
   assign s2m_drs_rval_w    = (h_gnt[3] || g_gnt[4])?              'h1: 'h0;
-  assign s2m_ndr_drval_w   = (h_gnt[4] || g_gnt[4])?              'h1: 'h0;
+  assign s2m_ndr_drval_w   = (h_gnt[4] || g_gnt[4] || g_gnt[5])?  'h1: 'h0;
   assign s2m_drs_drval_w   = (h_gnt[5])?                          'h1: 'h0;
-  assign s2m_ndr_trval_w   = (g_gnt[5])?                          'h1: 'h0;
+  assign s2m_ndr_trval_w   = 'h0;
 
   always_comb begin
     h2d_rsp_outstanding_credits     = (h2d_rsp_occ_d  > h2d_rsp_occ ) ? (h2d_rsp_occ_d  - h2d_rsp_occ   ) : 'h0;
@@ -5990,7 +5995,7 @@ module device_tx_path#(
       s2m_drs_trval   <= 'h0              ;
       s2m_drs_qrval   <= 'h0              ;
     end else begin
-      if(data_slot[1] == 'hf) begin
+      if((data_slot[0] == 'hf) || (data_slot[1] == 'hf)) begin
         data_slot[0]  <= data_slot[1]     ;
         data_slot[1]  <= data_slot[2]     ;
         data_slot[2]  <= data_slot[3]     ;
@@ -6062,43 +6067,52 @@ module device_tx_path#(
                 slot_sel <= H_SLOT0;
               end
             end else if(h_gnt[0] || h_gnt[1] || h_gnt[3]) begin
-              slot_sel <= H_SLOT0;
               if(data_slot[0] == 'h0) begin
+                slot_sel <= H_SLOT0;
                 data_slot[0] <= 'h2; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h2) begin
+                slot_sel <= H_SLOT0;
                 data_slot[0] <= 'h6; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h6) begin
+                slot_sel <= H_SLOT0;
                 data_slot[0] <= 'he; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'he) begin
+                slot_sel <= H_SLOT0;
                 data_slot[0] <= 'hf; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
+                slot_sel <= XSLOT;
               end
             end else if(h_gnt[5]) begin
-              slot_sel <= H_SLOT0;
               if(data_slot[0] == 'h0) begin
+                slot_sel <= H_SLOT0;
                 data_slot[0] <= 'hf; data_slot[1] <= 'h2; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h2) begin
+                slot_sel <= H_SLOT0;
                 data_slot[0] <= 'hf; data_slot[1] <= 'h6; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h6) begin
+                slot_sel <= H_SLOT0;
                 data_slot[0] <= 'hf; data_slot[1] <= 'he; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'he) begin
+                slot_sel <= H_SLOT0;
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
+                slot_sel <= XSLOT;
               end
             end else if(h_gnt[2]) begin
-              slot_sel <= H_SLOT0;
               if(data_slot[0] == 'h0) begin
+                slot_sel <= H_SLOT0;
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h2; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h2) begin
+                slot_sel <= H_SLOT0;
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'h6) begin
+                slot_sel <= H_SLOT0;
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'he; data_slot[4] <= 'h0;
               end else if(data_slot[0] == 'he) begin
+                slot_sel <= H_SLOT0;
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
               end else begin
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
+                slot_sel <= XSLOT;
               end
             end
           end
@@ -6114,7 +6128,6 @@ module device_tx_path#(
                 slot_sel <= G_SLOT2;
               end else begin
                 slot_sel <= XSLOT;
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[2] || g_gnt[4]) begin
               if(data_slot[0] == 'h0) begin
@@ -6122,7 +6135,6 @@ module device_tx_path#(
                 data_slot[0] <= 'h6; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[6]) begin
               if(data_slot[0] == 'h0) begin
@@ -6130,7 +6142,6 @@ module device_tx_path#(
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'h6; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[3]) begin
               if(data_slot[0] == 'h0) begin
@@ -6138,7 +6149,6 @@ module device_tx_path#(
                 data_slot[0] <= 'hf; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h6; data_slot[4] <= 'h0;
               end else begin
                 slot_sel <= XSLOT;
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else begin
               slot_sel <= XSLOT;
@@ -6156,7 +6166,6 @@ module device_tx_path#(
                 slot_sel <= G_SLOT3;
               end else begin
                 slot_sel <= XSLOT;
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[2] || g_gnt[4]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2)) begin
@@ -6164,7 +6173,6 @@ module device_tx_path#(
                 slot_sel <= H_SLOT0;
               end else begin
                 slot_sel <= XSLOT;
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[6]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2)) begin
@@ -6172,7 +6180,6 @@ module device_tx_path#(
                 slot_sel <= H_SLOT0;
               end else begin
                 slot_sel <= XSLOT;
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[3]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2)) begin
@@ -6180,7 +6187,6 @@ module device_tx_path#(
                 slot_sel <= H_SLOT0;
               end else begin
                 slot_sel <= XSLOT;
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else begin
               slot_sel <= XSLOT;
@@ -6198,15 +6204,13 @@ module device_tx_path#(
                 slot_sel <= H_SLOT0;
               end else begin
                 slot_sel <= XSLOT;
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[2] || g_gnt[4]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
-              data_slot[0] <= 'hf; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
+                data_slot[0] <= 'hf; data_slot[1] <= 'h0; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
                 slot_sel <= H_SLOT0;
               end else begin
                 slot_sel <= XSLOT;
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[6]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
@@ -6214,7 +6218,6 @@ module device_tx_path#(
                 slot_sel <= H_SLOT0;
               end else begin
                 slot_sel <= XSLOT;
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else if(g_gnt[3]) begin
               if(data_slot[0] == 'h0 || (data_slot[0] == 'h2) || (data_slot[0] == 'h6)) begin
@@ -6222,19 +6225,23 @@ module device_tx_path#(
                 slot_sel <= H_SLOT0;
               end else begin
                 slot_sel <= XSLOT;
-                data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
               end
             end else begin
               slot_sel <= XSLOT;
             end
           end
         end
+        XSLOT: begin
+          slot_sel <= XSLOT;
+          data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
+        end
         default: begin
-            slot_sel = XSLOT;
+          slot_sel <= XSLOT;
+          data_slot[0] <= 'hX; data_slot[1] <= 'hX; data_slot[2] <= 'hX; data_slot[3] <= 'hX; data_slot[4] <= 'hX;
         end 
       endcase
       
-      if((slot_sel_d_d != slot_sel_d) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5]) begin
+      if((slot_sel_d != slot_sel) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5]) begin
         case(slot_sel_d)
           H_SLOT0: begin
             case(h_gnt_d)
@@ -6440,7 +6447,7 @@ module device_tx_path#(
                   holding_q[holding_wrptr+3].data[383:0]  <= d2h_data_tdataout.data[511:128];
                   holding_q[holding_wrptr+3].data[511:384]<= d2h_data_qdataout.data[127:0];
                   holding_q[holding_wrptr+3].valid        <= 'h1;
-                  holding_q[holding_wrptr+4].data[511:0]  <= d2h_data_qdataout.data[511:128];
+                  holding_q[holding_wrptr+4].data[511:128]<= d2h_data_qdataout.data[511:128];
                   holding_q[holding_wrptr+4].valid        <= 'h0;
                   holding_wrptr                           <= holding_wrptr + 4;
                 end else if(data_slot_d[0] == 'he) begin
@@ -6485,11 +6492,11 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[95:80]      <= s2m_ndr_dataout.tag;
                 holding_q[holding_wrptr].data[99:96]      <= 'h0;//spare bits always 0
                 holding_q[holding_wrptr].data[127:100]    <= 'h0;//rsvd bits always 0
-                if(data_slot_d[0]) begin
+                if(data_slot_d[0] == 'h0) begin
                   holding_q[holding_wrptr].data[511:128]  <= s2m_drs_dataout.data[383:0];
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
-                  holding_q[holding_wrptr+1].data[127:0]  <= s2m_drs_dataout.data[511:384];
+                  holding_q[holding_wrptr+1].data[255:128]<= s2m_drs_dataout.data[511:384];
                   holding_q[holding_wrptr+1].valid        <= 'h0;
                 end else if(data_slot_d[0] == 'h2) begin
                   holding_q[holding_wrptr].data[511:256]  <= s2m_drs_dataout.data[255:0];
@@ -6615,7 +6622,7 @@ module device_tx_path#(
                 end
               end
               default: begin
-                holding_q[holding_wrptr].valid            <= 'h0;
+                holding_q[holding_wrptr].valid            <= 'hx;
               end
             endcase
           end
@@ -6764,11 +6771,11 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+35):(SLOT1_OFFSET+34)]      <= s2m_ndr_ddataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+51):(SLOT1_OFFSET+36)]      <= s2m_ndr_ddataout.tag;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+55):(SLOT1_OFFSET+52)]      <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+56)]                        <= s2m_ndr_tdataout.valid;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)]      <= s2m_ndr_tdataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)]      <= s2m_ndr_tdataout.metafield;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]      <= s2m_ndr_tdataout.metavalue;
-                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+64)]      <= s2m_ndr_tdataout.tag;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+56)]                        <= 'h0;//s2m_ndr_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)]      <= 'h0;//s2m_ndr_tdataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)]      <= 'h0;//s2m_ndr_tdataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]      <= 'h0;//s2m_ndr_tdataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+64)]      <= 'h0;//s2m_ndr_tdataout.tag;
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+83):(SLOT1_OFFSET+80)]      <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT1_OFFSET+127):(SLOT1_OFFSET+84)]     <= 'h0;//rsvd bits are always 0
                 holding_q[holding_wrptr].valid                                          <= 'h0;
@@ -6956,11 +6963,11 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+35):(SLOT2_OFFSET+34)]      <= s2m_ndr_ddataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+51):(SLOT2_OFFSET+36)]      <= s2m_ndr_ddataout.tag;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+55):(SLOT2_OFFSET+52)]      <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+56)]                        <= s2m_ndr_tdataout.valid;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+59):(SLOT2_OFFSET+57)]      <= s2m_ndr_tdataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+60)]      <= s2m_ndr_tdataout.metafield;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)]      <= s2m_ndr_tdataout.metavalue;
-                holding_q[holding_wrptr].data[(SLOT2_OFFSET+79):(SLOT2_OFFSET+64)]      <= s2m_ndr_tdataout.tag;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+56)]                        <= 'h0;//s2m_ndr_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+59):(SLOT2_OFFSET+57)]      <= 'h0;//s2m_ndr_tdataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+60)]      <= 'h0;//s2m_ndr_tdataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)]      <= 'h0;//s2m_ndr_tdataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT2_OFFSET+79):(SLOT2_OFFSET+64)]      <= 'h0;//s2m_ndr_tdataout.tag;
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+83):(SLOT2_OFFSET+80)]      <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT2_OFFSET+127):(SLOT2_OFFSET+84)]     <= 'h0;//rsvd bits are always 0
                 holding_q[holding_wrptr].valid                                          <= 'h0;
@@ -7151,11 +7158,11 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+35):(SLOT3_OFFSET+34)]      <= s2m_ndr_ddataout.metavalue;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+51):(SLOT3_OFFSET+36)]      <= s2m_ndr_ddataout.tag;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+55):(SLOT3_OFFSET+52)]      <= 'h0;//spare bits are always 0
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+56)]                        <= s2m_ndr_tdataout.valid;
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+59):(SLOT3_OFFSET+57)]      <= s2m_ndr_tdataout.opcode;
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+60)]      <= s2m_ndr_tdataout.metafield;
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)]      <= s2m_ndr_tdataout.metavalue;
-                holding_q[holding_wrptr].data[(SLOT3_OFFSET+79):(SLOT3_OFFSET+64)]      <= s2m_ndr_tdataout.tag;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+56)]                        <= 'h0;//s2m_ndr_tdataout.valid;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+59):(SLOT3_OFFSET+57)]      <= 'h0;//s2m_ndr_tdataout.opcode;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+60)]      <= 'h0;//s2m_ndr_tdataout.metafield;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)]      <= 'h0;//s2m_ndr_tdataout.metavalue;
+                holding_q[holding_wrptr].data[(SLOT3_OFFSET+79):(SLOT3_OFFSET+64)]      <= 'h0;//s2m_ndr_tdataout.tag;
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+83):(SLOT3_OFFSET+80)]      <= 'h0;//spare bits are always 0
                 holding_q[holding_wrptr].data[(SLOT3_OFFSET+127):(SLOT3_OFFSET+84)]     <= 'h0;//rsvd bits are always 0
                 if((data_slot_d[0] == 'h0) || (data_slot_d[0] == 'h2) || (data_slot_d[0] == 'h6)) begin
@@ -7216,44 +7223,44 @@ module device_tx_path#(
   always@(posedge dev_tx_dl_if.clk) begin
     if(!dev_tx_dl_if.rstn) begin
       foreach(holding_q[i]) begin
-        holding_q[i].valid    <= 'h0;
-        holding_q[i].data     <= 'h0;
+        holding_q[i].valid                  <= 'h0;
+        holding_q[i].data                   <= 'h0;
       end
-      dev_tx_dl_if_pre_valid  <= 'h0;
-      dev_tx_dl_if_pre_data   <= 'h0;
-      dev_tx_dl_if.valid      <= 'h0;
-      dev_tx_dl_if_valid_d    <= 'h0;
-      dev_tx_dl_if_rstn_d     <= 'h0;
-      dev_tx_dl_if_rstn_dd    <= 'h0;
-      dev_tx_dl_if.data       <= 'h0;
-      dev_tx_dl_if_data_d     <= 'h0;
-      holding_rdptr           <= 'h0;
-      ack_cnt_tbs             <= 'h0;
-      ack_cnt_snt             <= 'h0;
-      insert_ack_d            <= 'h0;
+      dev_tx_dl_if_pre_valid                <= 'h0;
+      dev_tx_dl_if_pre_data                 <= 'h0;
+      dev_tx_dl_if.valid                    <= 'h0;
+      dev_tx_dl_if_rstn_d                   <= 'h0;
+      dev_tx_dl_if_rstn_dd                  <= 'h0;
+      dev_tx_dl_if_valid_d                  <= 'h0;
+      dev_tx_dl_if.data                     <= 'h0;
+      dev_tx_dl_if_data_d                   <= 'h0;
+      holding_rdptr                         <= 'h0;
+      ack_cnt_tbs                           <= 'h0;
+      ack_cnt_snt                           <= 'h0;
+      insert_ack_d                          <= 'h0;
     end else begin
-      insert_ack_d <= insert_ack;
-      dev_tx_dl_if_valid_d    <= dev_tx_dl_if_pre_valid;
-      dev_tx_dl_if_rstn_d     <= dev_tx_dl_if.rstn;
-      dev_tx_dl_if_rstn_dd    <= dev_tx_dl_if_rstn_d;
-      dev_tx_dl_if_data_d     <= dev_tx_dl_if_pre_data;
-      dev_tx_dl_if.valid      <= dev_tx_dl_if_pre_valid;
-      dev_tx_dl_if.data       <= {dev_tx_dl_if_pre_crc[15:0], dev_tx_dl_if_pre_data[511:0]};
+      insert_ack_d                          <= insert_ack;
+      dev_tx_dl_if_rstn_d                   <= dev_tx_dl_if.rstn;
+      dev_tx_dl_if_rstn_dd                  <= dev_tx_dl_if_rstn_d;
+      dev_tx_dl_if_valid_d                  <= dev_tx_dl_if_pre_valid;
+      dev_tx_dl_if_data_d                   <= dev_tx_dl_if_pre_data;
+      dev_tx_dl_if.valid                    <= dev_tx_dl_if_pre_valid;
+      dev_tx_dl_if.data                     <= {dev_tx_dl_if_pre_crc[15:0], dev_tx_dl_if_pre_data[511:0]};
       if(ack) begin
-        ack_cnt_tbs           <= ack_cnt_tbs + 1;
+        ack_cnt_tbs                         <= ack_cnt_tbs + 1;
       end
       if(holding_q[holding_rdptr].valid) begin
-        dev_tx_dl_if_pre_valid  <= holding_q[holding_rdptr].valid;
-        holding_q[holding_rdptr].valid       <= 'h0;
-        dev_tx_dl_if_pre_data   <= holding_q[holding_rdptr].data;
-        holding_rdptr           <= holding_rdptr + 1;
+        dev_tx_dl_if_pre_valid              <= holding_q[holding_rdptr].valid;
+        holding_q[holding_rdptr].valid      <= 'h0;
+        dev_tx_dl_if_pre_data               <= holding_q[holding_rdptr].data;
+        holding_rdptr                       <= holding_rdptr + 1;
       end else begin
         if((dev_tx_dl_if_rstn_dd == 'h0) && (dev_tx_dl_if_rstn_d == 'h1)) begin
-          dev_tx_dl_if_pre_valid          <= 'h1;
-          dev_tx_dl_if_pre_data[0]        <= 'h1;
-          dev_tx_dl_if_pre_data[35:32]    <= 'b1100;
-          dev_tx_dl_if_pre_data[39:36]    <= 'b1000;
-          dev_tx_dl_if_pre_data[67:64]    <= 'h1;
+          dev_tx_dl_if_pre_valid            <= 'h1;
+          dev_tx_dl_if_pre_data[0]          <= 'h1;
+          dev_tx_dl_if_pre_data[35:32]      <= 'b1100;
+          dev_tx_dl_if_pre_data[39:36]      <= 'b1000;
+          dev_tx_dl_if_pre_data[67:64]      <= 'h1;
         end else begin
           if(insert_ack) begin
             dev_tx_dl_if_pre_valid          <= 'h1;
@@ -7602,7 +7609,7 @@ module host_rx_path #(
   output d2h_req_txn_t d2h_req_txn[4],
   output d2h_rsp_txn_t d2h_rsp_txn[2],
   output d2h_data_pkt_t d2h_data_pkt,
-  output s2m_ndr_txn_t s2m_ndr_txn[3],
+  output s2m_ndr_txn_t s2m_ndr_txn[2],
   output s2m_drs_pkt_t s2m_drs_pkt,
   output logic ack,
   output logic ack_ret_val,
@@ -7657,7 +7664,7 @@ module host_rx_path #(
   bit [4:0] s2m_drs_rd_ptr;
   d2h_req_txn_t  d2h_req_txn_w[4];
   d2h_rsp_txn_t  d2h_rsp_txn_w[2];
-  s2m_ndr_txn_t  s2m_ndr_txn_w[3];
+  s2m_ndr_txn_t  s2m_ndr_txn_w[2];
   logic [2:0] ack_count;
   logic [2:0] ack_count_d;
   logic llcrd_flit;
@@ -7752,7 +7759,7 @@ module host_rx_path #(
     ref d2h_data_pkt_t d2h_data_pkt_iob[32],
     ref bit [4:0] d2h_data_wr_ptr, 
     ref d2h_rsp_txn_t d2h_rsp_txn_w[2], 
-    ref s2m_ndr_txn_t s2m_ndr_txn_w[3]
+    ref s2m_ndr_txn_t s2m_ndr_txn_w[2]
   );
 
     bit [1:0] posi;
@@ -7871,7 +7878,7 @@ module host_rx_path #(
     input logic [511:0] data, 
     ref s2m_drs_pkt_t s2m_drs_pkt_iob[32], 
     ref bit [4:0] s2m_drs_wr_ptr,
-    ref s2m_ndr_txn_t s2m_ndr_txn_w[3]
+    ref s2m_ndr_txn_t s2m_ndr_txn_w[2]
   );
     bit [1:0] posi;
 
@@ -7899,7 +7906,7 @@ module host_rx_path #(
 
   function automatic void header4(
     input logic [511:0] data, 
-    ref s2m_ndr_txn_t s2m_ndr_txn_w[3]
+    ref s2m_ndr_txn_t s2m_ndr_txn_w[2]
   );
 
     s2m_ndr_txn_w[0].valid        = data[32];
@@ -9169,7 +9176,7 @@ module host_rx_path #(
     input logic [511:0] data,
     ref s2m_drs_pkt_t s2m_drs_pkt_iob[32],
     ref bit [4:0] s2m_drs_wr_ptr,
-    ref s2m_ndr_txn_t s2m_ndr_txn_w[3]
+    ref s2m_ndr_txn_t s2m_ndr_txn_w[2]
   );
     bit [1:0] posi;
 
@@ -9253,7 +9260,7 @@ module host_rx_path #(
   function automatic void generic5(
     input logic [1:0] slot_sel,
     input logic [511:0] data,
-    ref s2m_ndr_txn_t s2m_ndr_txn_w[3]
+    ref s2m_ndr_txn_t s2m_ndr_txn_w[2]
   );
 
     if(slot_sel == 'h1) begin
@@ -9267,11 +9274,12 @@ module host_rx_path #(
       s2m_ndr_txn_w[1].metafield    = metafield_t'(data[(SLOT1_OFFSET+33):(SLOT1_OFFSET+32)]);
       s2m_ndr_txn_w[1].metavalue    = metavalue_t'(data[(SLOT1_OFFSET+35):(SLOT1_OFFSET+34)]);
       s2m_ndr_txn_w[1].tag          = data[(SLOT1_OFFSET+51):(SLOT1_OFFSET+36)];
-      s2m_ndr_txn_w[2].valid        = data[(SLOT1_OFFSET+56)];
-      s2m_ndr_txn_w[2].opcode       = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)]);
-      s2m_ndr_txn_w[2].metafield    = metafield_t'(data[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)]);
-      s2m_ndr_txn_w[2].metavalue    = metavalue_t'(data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]);
-      s2m_ndr_txn_w[2].tag          = data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+64)];
+      //this below is a mistake did not read properly the spec, only 2 ndr txn per slot
+      //s2m_ndr_txn_w[2].valid        = data[(SLOT1_OFFSET+56)];
+      //s2m_ndr_txn_w[2].opcode       = s2m_ndr_opcode_t'(data[(SLOT1_OFFSET+59):(SLOT1_OFFSET+57)]);
+      //s2m_ndr_txn_w[2].metafield    = metafield_t'(data[(SLOT1_OFFSET+61):(SLOT1_OFFSET+60)]);
+      //s2m_ndr_txn_w[2].metavalue    = metavalue_t'(data[(SLOT1_OFFSET+63):(SLOT1_OFFSET+62)]);
+      //s2m_ndr_txn_w[2].tag          = data[(SLOT1_OFFSET+79):(SLOT1_OFFSET+64)];
     end else if(slot_sel == 'h2) begin
       s2m_ndr_txn_w[0].valid        = data[(SLOT2_OFFSET+0)];
       s2m_ndr_txn_w[0].opcode       = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+3):(SLOT2_OFFSET+1)]);
@@ -9283,11 +9291,12 @@ module host_rx_path #(
       s2m_ndr_txn_w[1].metafield    = metafield_t'(data[(SLOT2_OFFSET+33):(SLOT2_OFFSET+32)]);
       s2m_ndr_txn_w[1].metavalue    = metavalue_t'(data[(SLOT2_OFFSET+35):(SLOT2_OFFSET+34)]);
       s2m_ndr_txn_w[1].tag          = data[(SLOT2_OFFSET+51):(SLOT2_OFFSET+36)];
-      s2m_ndr_txn_w[2].valid        = data[(SLOT2_OFFSET+56)];
-      s2m_ndr_txn_w[2].opcode       = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+59):(SLOT2_OFFSET+57)]);
-      s2m_ndr_txn_w[2].metafield    = metafield_t'(data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+60)]);
-      s2m_ndr_txn_w[2].metavalue    = metavalue_t'(data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)]);
-      s2m_ndr_txn_w[2].tag          = data[(SLOT2_OFFSET+79):(SLOT2_OFFSET+64)];
+      //this below is a mistake did not read properly from spec
+      //s2m_ndr_txn_w[2].valid        = data[(SLOT2_OFFSET+56)];
+      //s2m_ndr_txn_w[2].opcode       = s2m_ndr_opcode_t'(data[(SLOT2_OFFSET+59):(SLOT2_OFFSET+57)]);
+      //s2m_ndr_txn_w[2].metafield    = metafield_t'(data[(SLOT2_OFFSET+61):(SLOT2_OFFSET+60)]);
+      //s2m_ndr_txn_w[2].metavalue    = metavalue_t'(data[(SLOT2_OFFSET+63):(SLOT2_OFFSET+62)]);
+      //s2m_ndr_txn_w[2].tag          = data[(SLOT2_OFFSET+79):(SLOT2_OFFSET+64)];
     end else if(slot_sel == 'h3) begin
       s2m_ndr_txn_w[0].valid        = data[(SLOT3_OFFSET+0)];
       s2m_ndr_txn_w[0].opcode       = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+3):(SLOT3_OFFSET+1)]);
@@ -9299,15 +9308,16 @@ module host_rx_path #(
       s2m_ndr_txn_w[1].metafield    = metafield_t'(data[(SLOT3_OFFSET+33):(SLOT3_OFFSET+32)]);
       s2m_ndr_txn_w[1].metavalue    = metavalue_t'(data[(SLOT3_OFFSET+35):(SLOT3_OFFSET+34)]);
       s2m_ndr_txn_w[1].tag          = data[(SLOT3_OFFSET+51):(SLOT3_OFFSET+36)];
-      s2m_ndr_txn_w[2].valid        = data[(SLOT3_OFFSET+56)];
-      s2m_ndr_txn_w[2].opcode       = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+59):(SLOT3_OFFSET+57)]);
-      s2m_ndr_txn_w[2].metafield    = metafield_t'(data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+60)]);
-      s2m_ndr_txn_w[2].metavalue    = metavalue_t'(data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)]);
-      s2m_ndr_txn_w[2].tag          = data[(SLOT3_OFFSET+79):(SLOT3_OFFSET+64)];
+      //this below is a mistake did not read properly the spec, only 2 ndr txn per slot
+      //s2m_ndr_txn_w[2].valid        = data[(SLOT3_OFFSET+56)];
+      //s2m_ndr_txn_w[2].opcode       = s2m_ndr_opcode_t'(data[(SLOT3_OFFSET+59):(SLOT3_OFFSET+57)]);
+      //s2m_ndr_txn_w[2].metafield    = metafield_t'(data[(SLOT3_OFFSET+61):(SLOT3_OFFSET+60)]);
+      //s2m_ndr_txn_w[2].metavalue    = metavalue_t'(data[(SLOT3_OFFSET+63):(SLOT3_OFFSET+62)]);
+      //s2m_ndr_txn_w[2].tag          = data[(SLOT3_OFFSET+79):(SLOT3_OFFSET+64)];
     end else begin
       s2m_ndr_txn_w[0].valid        = 'hX;
       s2m_ndr_txn_w[1].valid        = 'hX;
-      s2m_ndr_txn_w[2].valid        = 'hX;
+      //s2m_ndr_txn_w[2].valid        = 'hX;
     end
 
   endfunction
@@ -9512,7 +9522,7 @@ module host_rx_path #(
         d2h_rsp_txn[1]       <= d2h_rsp_txn_w[1];
         s2m_ndr_txn[0]       <= s2m_ndr_txn_w[0];
         s2m_ndr_txn[1]       <= s2m_ndr_txn_w[1];
-        s2m_ndr_txn[2]       <= s2m_ndr_txn_w[2];
+        //s2m_ndr_txn[2]       <= s2m_ndr_txn_w[2];//this is a mistake did not read spec properly
       end else begin
         d2h_req_txn[0].valid <= 'h0;
         d2h_req_txn[1].valid <= 'h0;
@@ -9522,7 +9532,7 @@ module host_rx_path #(
         d2h_rsp_txn[1].valid <= 'h0;
         s2m_ndr_txn[0].valid <= 'h0;
         s2m_ndr_txn[1].valid <= 'h0;
-        s2m_ndr_txn[2].valid <= 'h0;
+        //s2m_ndr_txn[2].valid <= 'h0;this is a mistake did not read spec properly
       end
       if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit)) begin
         data_slot[0] <= data_slot[1]; 
@@ -12010,77 +12020,81 @@ module buffer#(
 
  	always@(posedge clk) begin
     if(!rstn) begin
-     	rdptr <= 0;
      	wrptr <= 0;
      	eseq <= 'h0;
     end else begin
-     	//if(rval || wval) begin
-        if((wval && !full) || (dwval && (occupancy < (DEPTH-3))) || (twval && (occupancy < (DEPTH-4))) || (qwval && (occupancy < (DEPTH-5)))) begin
-         	casez({qwval,twval,dwval,wval})
-            4'b0001: begin
-              fifo_h[wrptr] <= datain;
-         	    wrptr <= wrptr + 1;
-         	    eseq <= eseq + 1;
+      if((wval && !full) || (dwval && (occupancy < (DEPTH-3))) || (twval && (occupancy < (DEPTH-4))) || (qwval && (occupancy < (DEPTH-5)))) begin
+       	casez({qwval,twval,dwval,wval})
+          4'b0001: begin
+            fifo_h[wrptr] <= datain;
+       	    wrptr <= wrptr + 1;
+       	    eseq <= eseq + 1;
+          end
+          //TODO: potential bug: look at how you are filling in the parallel writes because for 4 writes there could be 3 ready and this could trigger 3 writes and 4th will be ignored which will be a bug
+          4'b001?: begin
+            fifo_h[wrptr] <= datain;
+            fifo_h[wrptr+1] <= ddatain;
+       	    wrptr <= wrptr + 2;
+       	    eseq <= eseq + 2;
+          end
+          4'b01??: begin
+            fifo_h[wrptr] <= datain;
+            fifo_h[wrptr+1] <= ddatain;
+            fifo_h[wrptr+2] <= tdatain;
+       	    wrptr <= wrptr + 3;
+       	    eseq <= eseq + 3;
+          end
+          4'b1???: begin
+            fifo_h[wrptr] <= datain;
+            fifo_h[wrptr+1] <= ddatain;
+            fifo_h[wrptr+2] <= tdatain;
+            fifo_h[wrptr+3] <= qdatain;
+       	    wrptr <= wrptr + 4;
+       	    eseq <= eseq + 4;
+          end
+          default: begin
+          end
+        endcase
+      end
+    end
+ 	end
+ 	always@(posedge clk) begin
+    if(!rstn) begin
+     	rdptr <= 0;
+    end else begin
+      if(((rval && (!empty)) || (drval && (occupancy>1)) || (trval && (occupancy>2)) || (qrval && (occupancy>3)))) begin
+        casez({qrval,trval,drval,rval})
+          4'b0001: begin
+            if(ack_cnt == 0) begin
+              rdptr <= rdptr + 1;
+       	      dataout <= fifo_h[rdptr];
+            end else begin
+              rdptr <= rdptr + ack_cnt;
             end
-            //TODO: potential bug: look at how you are filling in the parallel writes because for 4 writes there could be 3 ready and this could trigger 3 writes and 4th will be ignored which will be a bug
-            4'b001?: begin
-              fifo_h[wrptr] <= datain;
-              fifo_h[wrptr+1] <= ddatain;
-         	    wrptr <= wrptr + 2;
-         	    eseq <= eseq + 2;
-            end
-            4'b01??: begin
-              fifo_h[wrptr] <= datain;
-              fifo_h[wrptr+1] <= ddatain;
-              fifo_h[wrptr+2] <= tdatain;
-         	    wrptr <= wrptr + 3;
-         	    eseq <= eseq + 3;
-            end
-            4'b1???: begin
-              fifo_h[wrptr] <= datain;
-              fifo_h[wrptr+1] <= ddatain;
-              fifo_h[wrptr+2] <= tdatain;
-              fifo_h[wrptr+3] <= qdatain;
-         	    wrptr <= wrptr + 4;
-         	    eseq <= eseq + 4;
-            end
-            default: begin
-            end
-          endcase
-        end else if(((rval && (!empty)) || (drval && (occupancy>1)) || (trval && (occupancy>2)) || (qrval && (occupancy>3)))) begin
-          casez({qrval,trval,drval,rval})
-            4'b0001: begin
-              if(ack_cnt == 0) begin
-                rdptr <= rdptr + 1;
-         	      dataout <= fifo_h[rdptr];
-              end else begin
-                rdptr <= rdptr + ack_cnt;
-              end
-            end
-            4'b001?: begin
-              rdptr <= rdptr + 2;
-         	    dataout <= fifo_h[rdptr];
-         	    ddataout <= fifo_h[rdptr+1];
-            end
-            4'b01??: begin
-              rdptr <= rdptr + 3;
-         	    dataout <= fifo_h[rdptr];
-         	    ddataout <= fifo_h[rdptr+1];
-         	    tdataout <= fifo_h[rdptr+2];
-            end
-            4'b1???: begin
-              rdptr <= rdptr + 4;
-         	    dataout <= fifo_h[rdptr];
-         	    ddataout <= fifo_h[rdptr+1];
-         	    tdataout <= fifo_h[rdptr+2];
-         	    qdataout <= fifo_h[rdptr+3];
-            end
-            default: begin
-              rdptr <= 'hX;
-            end
-          endcase
-        end
-     	//end
+          end
+          4'b001?: begin
+            rdptr <= rdptr + 2;
+       	    dataout <= fifo_h[rdptr];
+       	    ddataout <= fifo_h[rdptr+1];
+          end
+          4'b01??: begin
+            rdptr <= rdptr + 3;
+       	    dataout <= fifo_h[rdptr];
+       	    ddataout <= fifo_h[rdptr+1];
+       	    tdataout <= fifo_h[rdptr+2];
+          end
+          4'b1???: begin
+            rdptr <= rdptr + 4;
+       	    dataout <= fifo_h[rdptr];
+       	    ddataout <= fifo_h[rdptr+1];
+       	    tdataout <= fifo_h[rdptr+2];
+       	    qdataout <= fifo_h[rdptr+3];
+          end
+          default: begin
+            rdptr <= 'hX;
+          end
+        endcase
+      end
     end
  	end
   
@@ -12179,7 +12193,7 @@ module cxl_host
   d2h_req_txn_t d2h_req_txn[4];
   d2h_rsp_txn_t d2h_rsp_txn[2];
   d2h_data_pkt_t d2h_data_pkt;
-  s2m_ndr_txn_t s2m_ndr_txn[3];
+  s2m_ndr_txn_t s2m_ndr_txn[2];
   s2m_drs_pkt_t s2m_drs_pkt;
   logic ack;
   logic ack_ret_val;
@@ -12268,11 +12282,11 @@ module cxl_host
     end
   end
 
-  assign host_m2s_req_if.ready                = (!m2s_req_full)   && (curr_m_crdt_req_cnt   != 0);
-  assign host_m2s_rwd_if.ready                = (!m2s_rwd_full)   && (curr_m_crdt_data_cnt  != 0);
-  assign host_h2d_req_if.ready                = (!h2d_req_full)   && (curr_c_crdt_req_cnt   != 0);
-  assign host_h2d_rsp_if.ready                = (!h2d_rsp_full)   && (curr_c_crdt_rsp_cnt   != 0);
-  assign host_h2d_data_if.ready               = (!h2d_data_full)  && (curr_c_crdt_data_cnt  != 0);
+  assign host_m2s_req_if.ready                = (!m2s_req_full ) && (curr_m_crdt_req_cnt  != 0);
+  assign host_m2s_rwd_if.ready                = (!m2s_rwd_full ) && (curr_m_crdt_data_cnt != 0);
+  assign host_h2d_req_if.ready                = (!h2d_req_full ) && (curr_c_crdt_req_cnt  != 0);
+  assign host_h2d_rsp_if.ready                = (!h2d_rsp_full ) && (curr_c_crdt_rsp_cnt  != 0);
+  assign host_h2d_data_if.ready               = (!h2d_data_full) && (curr_c_crdt_data_cnt != 0);
   assign host_d2h_req_if.d2h_req_txn.valid    = !d2h_req_valid    ;
   assign host_d2h_req_if.d2h_req_txn          =  d2h_req_dataout  ;
   assign host_d2h_rsp_if.d2h_rsp_txn.valid    = !d2h_rsp_valid    ;
@@ -12281,8 +12295,8 @@ module cxl_host
   assign host_d2h_data_if.d2h_data_txn        =  d2h_data_dataout ;
   assign host_s2m_ndr_if.s2m_ndr_txn.valid    = !s2m_ndr_valid    ;
   assign host_s2m_ndr_if.s2m_ndr_txn          =  s2m_ndr_dataout  ;
-  assign host_s2m_drs_if.s2m_drs_txn.valid    = !s2m_drs_valid  ;
-  assign host_s2m_drs_if.s2m_drs_txn          =  s2m_drs_dataout;
+  assign host_s2m_drs_if.s2m_drs_txn.valid    = !s2m_drs_valid    ;
+  assign host_s2m_drs_if.s2m_drs_txn          =  s2m_drs_dataout  ;
 
   buffer #(
     .DEPTH(BUFFER_DEPTH),
@@ -12368,10 +12382,13 @@ module cxl_host
   	.rval(host_s2m_ndr_if.ready),
   	.wval(s2m_ndr_txn[0].valid),
   	.dwval(s2m_ndr_txn[1].valid),
-  	.twval(s2m_ndr_txn[2].valid),
+  	.twval('h0),
+  	.qwval('h0),
+//  	.twval(s2m_ndr_txn[2].valid),
+//  	.qwval(s2m_ndr_txn[3].valid),
     .datain(s2m_ndr_txn[0]),
     .ddatain(s2m_ndr_txn[1]),
-    .tdatain(s2m_ndr_txn[2]),
+//    .tdatain(s2m_ndr_txn[2]),
     .dataout(s2m_ndr_dataout),
   	.eseq,
     .ack_cnt('h0),
