@@ -4944,7 +4944,7 @@ module device_tx_path#(
   assign g_val[6] = (s2m_drs_occ  > 2)                                            ;
   
   assign h_req = ((slot_sel>1)  || (data_slot[0] == 'hf))? 'h0: h_val             ;
-  assign g_req = ((slot_sel[0]) || ((data_slot[0] == 'hf) || (data_slot[0] == 'he)))? 'h0: g_val             ;
+  assign g_req = ((slot_sel[0]) || ((data_slot[0] == 'hf) || (data_slot[0] == 'he)) || ((d2h_req_occ == 'h0) && (d2h_rsp_occ == 'h0) && (d2h_data_occ == 'h0) && (s2m_drs_occ == 'h0)))? 'h0: g_val;
  
   assign insert_ack = (((ack_cnt_tbs-ack_cnt_snt) > 16) || init_done)? 1'h1: 1'h0 ; 
 
@@ -6057,13 +6057,13 @@ module device_tx_path#(
             slot_sel <= H_SLOT0;
           end else begin
             if(h_gnt[4]) begin
-              if(data_slot[0] == 'h0) begin
+              if((data_slot[0]) && (!((d2h_req_occ == 'h0) && (d2h_rsp_occ == 'h0) && (d2h_data_occ == 'h0) && (s2m_drs_occ == 'h0))) == 'h0) begin
                 slot_sel <= G_SLOT1;
               end else if(data_slot[0] == 'h2) begin
                 slot_sel <= G_SLOT2;
               end else if(data_slot[0] == 'h6) begin
                 slot_sel <= G_SLOT3;
-              end else if(data_slot[0] == 'he) begin
+              end else if((data_slot[0] == 'he) || ((d2h_req_occ == 'h0) && (d2h_rsp_occ == 'h0) && (d2h_data_occ == 'h0) && (s2m_drs_occ == 'h0))) begin
                 slot_sel <= H_SLOT0;
               end
             end else if(h_gnt[0] || h_gnt[1] || h_gnt[3]) begin
@@ -6241,7 +6241,7 @@ module device_tx_path#(
         end 
       endcase
       
-      if((slot_sel_d != slot_sel) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[5]) begin
+      if((slot_sel_d != slot_sel) || h_gnt_d[0] || h_gnt_d[1] || h_gnt_d[2] || h_gnt_d[3] || h_gnt_d[4] || h_gnt_d[5]) begin
         case(slot_sel_d)
           H_SLOT0: begin
             case(h_gnt_d)
@@ -6547,6 +6547,11 @@ module device_tx_path#(
                 holding_q[holding_wrptr].data[87:84]      <= 'h0;//spare are always 0
                 holding_q[holding_wrptr].data[127:88]     <= 'h0;//rsvd bits are always 0
                 if(data_slot_d[0] == 'he) begin
+                  holding_q[holding_wrptr].valid          <= 'h1;
+                  holding_wrptr                           <= holding_wrptr + 1;
+                  holding_q[holding_wrptr+1].valid        <= 'h0;
+                end else if((d2h_req_occ == 'h0) && (d2h_rsp_occ == 'h0) && (d2h_data_occ == 'h0) && (s2m_drs_occ == 'h0)) begin
+                  holding_q[holding_wrptr].data[511:128]  <= 'h0;//rsvd bits are always 0
                   holding_q[holding_wrptr].valid          <= 'h1;
                   holding_wrptr                           <= holding_wrptr + 1;
                   holding_q[holding_wrptr+1].valid        <= 'h0;
@@ -9445,15 +9450,15 @@ module host_rx_path #(
       data_slot[3] <= 'h0;
       data_slot[4] <= 'h0;
     end else begin
-      if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit) &&
-          (!data_slot_d[0][3] || 
+      if(host_rx_dl_if_d_valid && retryable_flit && (!llcrd_flit) && (!init_done)// &&
+          /*(!data_slot_d[0][3] || 
             ((data_slot_d[0] == 'hf) && 
               ((d2h_data_pkt_d[d2h_data_wr_ptr].pending_data_slot.pend == 0) && (s2m_drs_pkt_d[s2m_drs_wr_ptr].pending_data_slot.pend == 0)) &&
               ((d2h_data_pkt_d[d2h_data_wr_ptr-1].pending_data_slot.pend == 0) && (s2m_drs_pkt_d[s2m_drs_wr_ptr-1].pending_data_slot.pend == 0)) &&
               ((d2h_data_pkt_d[d2h_data_wr_ptr-2].pending_data_slot.pend == 0) && (s2m_drs_pkt_d[s2m_drs_wr_ptr-2].pending_data_slot.pend == 0)) &&
               ((d2h_data_pkt_d[d2h_data_wr_ptr-3].pending_data_slot.pend == 0))
             )
-          )
+          )*/
         ) begin 
         if(host_rx_dl_if_d_data[7:5] == 'h4) begin
           if((host_rx_dl_if_d_data[10:8] == 'h1) || (host_rx_dl_if_d_data[10:8] == 'h5)) begin
@@ -9464,21 +9469,21 @@ module host_rx_path #(
                 data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
               end else if(host_rx_dl_if_d_data[16:14] == 'h6) begin  
                 data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h0;
-              end else begin
+              end else if(host_rx_dl_if_d_data[16:14] == 'h3)begin
                 data_slot[0] <= 'h0; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'hf;
               end
             end else if((host_rx_dl_if_d_data[10:8] == 'h2) || (host_rx_dl_if_d_data[10:8] == 'h4)) begin  
               data_slot[0] <= 'h8; data_slot[1] <= 'h7; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
             end else if(host_rx_dl_if_d_data[10:8] == 'h6) begin  
               data_slot[0] <= 'h8; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h7; data_slot[4] <= 'h0;
-            end else begin
+            end else if(host_rx_dl_if_d_data[16:14] == 'h3)begin
               data_slot[0] <= 'h8; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h7;
             end
           end else if((host_rx_dl_if_d_data[10:8] == 'h2) || (host_rx_dl_if_d_data[10:8] == 'h4)) begin  
             data_slot[0] <= 'hc; data_slot[1] <= 'h3; data_slot[2] <= 'h0; data_slot[3] <= 'h0; data_slot[4] <= 'h0;
           end else if(host_rx_dl_if_d_data[10:8] == 'h6) begin  
             data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'h3; data_slot[4] <= 'h0;
-          end else begin
+          end else if(host_rx_dl_if_d_data[16:14] == 'h3)begin
             data_slot[0] <= 'hc; data_slot[1] <= 'hf; data_slot[2] <= 'hf; data_slot[3] <= 'hf; data_slot[4] <= 'h3;
           end
         end else if((host_rx_dl_if_d_data[7:5] == 'h0) || (host_rx_dl_if_d_data[7:5] == 'h1) || (host_rx_dl_if_d_data[7:5] == 'h3)) begin
